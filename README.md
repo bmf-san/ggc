@@ -76,6 +76,10 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl rebase interactive       | git log ... → git rebase -i HEAD~N         | 対話的にHEAD~Nまでrebase           |
 | gcl branch delete           | git branch ... → git branch -d <選択>     | ローカルブランチを対話的に複数削除 |
 | gcl branch delete-merged     | git branch --merged ... → git branch -d <選択> | マージ済みローカルブランチを対話的に一括削除 |
+| gcl remote list             | git remote -v                            | リモート一覧表示                     |
+| gcl remote add <name> <url>     | git remote add <name> <url>              | リモート追加                         |
+| gcl remote remove <name>        | git remote remove <name>                 | リモート削除                         |
+| gcl remote set-url <name> <url> | git remote set-url <name> <url>          | リモートURL変更                      |
 
 ## ディレクトリ構成
 

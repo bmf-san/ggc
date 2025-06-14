@@ -36,6 +36,8 @@ func Route(args []string) {
 		cmd.Stash(args[2:])
 	case "rebase":
 		cmd.Rebase(args[2:])
+	case "remote":
+		cmd.Remote(args[2:])
 	default:
 		cmd.ShowHelp()
 	}
