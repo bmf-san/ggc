@@ -121,31 +121,55 @@ func branchDelete() {
 		fmt.Println("ローカルブランチが見つかりません")
 		return
 	}
-	fmt.Println("削除するローカルブランチを番号で選択（スペース区切り, 例: 1 3 5）:")
-	for i, b := range branches {
-		fmt.Printf("[%d] %s\n", i+1, b)
-	}
-	fmt.Print("> ")
 	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	if input == "" {
-		fmt.Println("キャンセルしました")
-		return
-	}
-	indices := strings.Fields(input)
 	selected := []string{}
-	for _, idx := range indices {
-		n, err := strconv.Atoi(idx)
-		if err != nil || n < 1 || n > len(branches) {
-			fmt.Printf("無効な番号: %s\n", idx)
+	for {
+		fmt.Println("\033[1;36m削除するローカルブランチを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		for i, b := range branches {
+			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, b)
+		}
+		fmt.Print("> ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if input == "" {
+			fmt.Println("キャンセルしました")
 			return
 		}
-		selected = append(selected, branches[n-1])
-	}
-	if len(selected) == 0 {
-		fmt.Println("何も選択されませんでした")
-		return
+		if input == "all" {
+			selected = branches
+			break
+		}
+		if input == "none" {
+			selected = []string{}
+			continue
+		}
+		indices := strings.Fields(input)
+		tmp := []string{}
+		valid := true
+		for _, idx := range indices {
+			n, err := strconv.Atoi(idx)
+			if err != nil || n < 1 || n > len(branches) {
+				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				valid = false
+				break
+			}
+			tmp = append(tmp, branches[n-1])
+		}
+		if !valid {
+			continue
+		}
+		selected = tmp
+		if len(selected) == 0 {
+			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			continue
+		}
+		fmt.Printf("\033[1;32m選択したブランチ: %v\033[0m\n", selected)
+		fmt.Print("このブランチを削除しますか？ (y/n): ")
+		ans, _ := reader.ReadString('\n')
+		ans = strings.TrimSpace(ans)
+		if ans == "y" || ans == "Y" {
+			break
+		}
 	}
 	for _, b := range selected {
 		cmd := exec.Command("git", "branch", "-d", b)
@@ -159,13 +183,11 @@ func branchDelete() {
 }
 
 func branchDeleteMerged() {
-	// 現在のブランチを取得
 	current, err := git.GetCurrentBranch()
 	if err != nil {
 		fmt.Println("エラー: 現在のブランチ取得に失敗:", err)
 		return
 	}
-	// マージ済みローカルブランチ一覧取得（現在のブランチ以外）
 	cmd := exec.Command("git", "branch", "--merged")
 	out, err := cmd.Output()
 	if err != nil {
@@ -184,31 +206,55 @@ func branchDeleteMerged() {
 		fmt.Println("マージ済みローカルブランチはありません")
 		return
 	}
-	fmt.Println("削除するマージ済みローカルブランチを番号で選択（スペース区切り, 例: 1 3 5）:")
-	for i, b := range branches {
-		fmt.Printf("[%d] %s\n", i+1, b)
-	}
-	fmt.Print("> ")
 	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	if input == "" {
-		fmt.Println("キャンセルしました")
-		return
-	}
-	indices := strings.Fields(input)
 	selected := []string{}
-	for _, idx := range indices {
-		n, err := strconv.Atoi(idx)
-		if err != nil || n < 1 || n > len(branches) {
-			fmt.Printf("無効な番号: %s\n", idx)
+	for {
+		fmt.Println("\033[1;36m削除するマージ済みローカルブランチを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		for i, b := range branches {
+			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, b)
+		}
+		fmt.Print("> ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if input == "" {
+			fmt.Println("キャンセルしました")
 			return
 		}
-		selected = append(selected, branches[n-1])
-	}
-	if len(selected) == 0 {
-		fmt.Println("何も選択されませんでした")
-		return
+		if input == "all" {
+			selected = branches
+			break
+		}
+		if input == "none" {
+			selected = []string{}
+			continue
+		}
+		indices := strings.Fields(input)
+		tmp := []string{}
+		valid := true
+		for _, idx := range indices {
+			n, err := strconv.Atoi(idx)
+			if err != nil || n < 1 || n > len(branches) {
+				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				valid = false
+				break
+			}
+			tmp = append(tmp, branches[n-1])
+		}
+		if !valid {
+			continue
+		}
+		selected = tmp
+		if len(selected) == 0 {
+			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			continue
+		}
+		fmt.Printf("\033[1;32m選択したブランチ: %v\033[0m\n", selected)
+		fmt.Print("このブランチを削除しますか？ (y/n): ")
+		ans, _ := reader.ReadString('\n')
+		ans = strings.TrimSpace(ans)
+		if ans == "y" || ans == "Y" {
+			break
+		}
 	}
 	for _, b := range selected {
 		cmd := exec.Command("git", "branch", "-d", b)

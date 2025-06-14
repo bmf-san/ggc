@@ -54,31 +54,55 @@ func CleanInteractive() {
 		fmt.Println("削除候補ファイルはありません")
 		return
 	}
-	fmt.Println("削除するファイルを番号で選択（スペース区切り, 例: 1 3 5）:")
-	for i, f := range files {
-		fmt.Printf("  [%d] %s\n", i+1, f)
-	}
-	fmt.Print("> ")
 	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	if input == "" {
-		fmt.Println("キャンセルしました")
-		return
-	}
-	indices := strings.Fields(input)
 	selected := []string{}
-	for _, idx := range indices {
-		n, err := strconv.Atoi(idx)
-		if err != nil || n < 1 || n > len(files) {
-			fmt.Printf("無効な番号: %s\n", idx)
+	for {
+		fmt.Println("\033[1;36m削除するファイルを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		for i, f := range files {
+			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, f)
+		}
+		fmt.Print("> ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if input == "" {
+			fmt.Println("キャンセルしました")
 			return
 		}
-		selected = append(selected, files[n-1])
-	}
-	if len(selected) == 0 {
-		fmt.Println("何も選択されませんでした")
-		return
+		if input == "all" {
+			selected = files
+			break
+		}
+		if input == "none" {
+			selected = []string{}
+			continue
+		}
+		indices := strings.Fields(input)
+		tmp := []string{}
+		valid := true
+		for _, idx := range indices {
+			n, err := strconv.Atoi(idx)
+			if err != nil || n < 1 || n > len(files) {
+				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				valid = false
+				break
+			}
+			tmp = append(tmp, files[n-1])
+		}
+		if !valid {
+			continue
+		}
+		selected = tmp
+		if len(selected) == 0 {
+			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			continue
+		}
+		fmt.Printf("\033[1;32m選択したファイル: %v\033[0m\n", selected)
+		fmt.Print("このファイルを削除しますか？ (y/n): ")
+		ans, _ := reader.ReadString('\n')
+		ans = strings.TrimSpace(ans)
+		if ans == "y" || ans == "Y" {
+			break
+		}
 	}
 	// git clean -f -- <file1> <file2> ...
 	args := append([]string{"clean", "-f", "--"}, selected...)
