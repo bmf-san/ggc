@@ -40,59 +40,46 @@ export PATH=$PATH:$HOME/go/bin
 ## 使い方
 
 ```sh
-gcl <コマンド> [サブコマンド] [オプション]
+gcl <command> [subcommand] [options]
 ```
+
+### コマンド一覧（テーブル形式）
+
+| gclコマンド例                | 実際に実行されるgitコマンド           | 説明                       |
+|-----------------------------|--------------------------------------|----------------------------|
+| gcl add <file>              | git add <file>                       | ファイルをステージング     |
+| gcl branch current          | git rev-parse --abbrev-ref HEAD       | 現在のブランチ名を表示     |
+| gcl branch checkout         | git branch ... → git checkout <選択>   | 対話的にブランチ切替       |
+| gcl push current            | git push origin <branch>              | 現在のブランチをpush       |
+| gcl push force              | git push --force origin <branch>      | 現在のブランチを強制push   |
+| gcl pull current            | git pull origin <branch>              | 現在のブランチをpull       |
+| gcl pull rebase             | git pull --rebase origin <branch>     | rebase付きpull             |
+| gcl log simple              | git log --oneline                     | シンプルなログ表示         |
+| gcl log graph               | git log --graph                       | グラフ付きログ表示         |
+| gcl commit allow-empty      | git commit --allow-empty -m ...        | 空コミット                 |
+| gcl commit tmp              | git commit -m "tmp"                   | 一時コミット               |
+| gcl fetch --prune           | git fetch --prune                     | prune付きfetch             |
+| gcl clean files             | git clean -f                          | ファイルのクリーン         |
+| gcl clean dirs              | git clean -d                          | ディレクトリのクリーン     |
+| gcl reset clean             | git reset --hard HEAD; git clean -fd  | リセット＋クリーン         |
 
 ### 主なコマンド例
 
-- ファイルをステージング: `gcl add <file>`
-- ブランチ名表示: `gcl branch current`
-- 現在のブランチを push: `gcl push current`
-- 現在のブランチを強制push: `gcl push force`
-- 現在のブランチを pull: `gcl pull current`
-- rebase付きpull: `gcl pull rebase`
-- ログ表示: `gcl log simple` / `gcl log graph`
-- 空コミット: `gcl commit allow-empty`
-- 一時コミット: `gcl commit tmp`
-- fetch --prune: `gcl fetch --prune`
-- クリーン: `gcl clean files` / `gcl clean dirs`
-
-### コマンド一覧
-
-```
-gcl
-├── add <file>                # ファイルをステージング
-├── branch
-│   ├── current             # 現在のブランチ名を表示
-│   ├── checkout            # ローカルブランチを選択して checkout（対話式, 今後実装）
-│   ├── checkout-remote     # リモートから新規ブランチ checkout（対話式, 今後実装）
-│   ├── delete              # ローカルブランチを選んで削除（対話式, 今後実装）
-│   └── delete-merged       # マージ済みブランチを一括削除（今後実装）
-├── pull
-│   ├── current             # 現在のブランチを pull
-│   └── rebase              # rebase付き pull
-├── push
-│   ├── current             # 現在のブランチを push
-│   └── force               # HEAD を強制 push
-├── stash
-│   └── trash               # git add . && stash（今後実装）
-├── log
-│   ├── simple              # git log --oneline
-│   └── graph               # git log --graph
-├── commit
-│   ├── allow-empty         # 空コミット
-│   ├── tmp                 # 一時コミット
-│   └── push [-i]           # 対話的 add → commit → push（今後実装）
-├── fetch
-│   └── --prune             # fetch --prune
-├── clean
-│   ├── files               # git clean -f
-│   └── dirs                # git clean -d
-├── reset
-│   └── clean               # reset --hard HEAD + clean -fd（今後実装）
-├── rebase
-│   └── interactive         # HEAD~N まで対話的 rebase（今後実装）
-```
+- gcl add .
+- gcl branch current
+- gcl branch checkout
+- gcl push current
+- gcl push force
+- gcl pull current
+- gcl pull rebase
+- gcl log simple
+- gcl log graph
+- gcl commit allow-empty
+- gcl commit tmp
+- gcl fetch --prune
+- gcl clean files
+- gcl clean dirs
+- gcl reset clean
 
 ## ディレクトリ構成
 
