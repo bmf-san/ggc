@@ -18,24 +18,24 @@ func Rebase(args []string) {
 }
 
 func ShowRebaseHelp() {
-	fmt.Println("使用例: gcl rebase interactive")
+	fmt.Println("Usage: gcl rebase interactive")
 }
 
-// 対話的にHEAD~Nまでrebase
+// Interactively rebase up to HEAD~N
 func RebaseInteractive() {
-	// 1. 直近10件のコミット履歴を取得
+	// 1. Get the last 10 commit logs
 	cmd := exec.Command("git", "log", "--oneline", "-n", "10")
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Printf("エラー: git log の取得に失敗しました: %v\n", err)
+		fmt.Printf("error: failed to get git log: %v\n", err)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {
-		fmt.Println("コミット履歴がありません")
+		fmt.Println("No commit history found")
 		return
 	}
-	fmt.Println("どこまでrebaseしますか？番号を選択（例: 3）:")
+	fmt.Println("Where do you want to rebase up to? Select a number (e.g., 3):")
 	for i, line := range lines {
 		fmt.Printf("  [%d] %s\n", i+1, line)
 	}
@@ -44,22 +44,22 @@ func RebaseInteractive() {
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	if input == "" {
-		fmt.Println("キャンセルしました")
+		fmt.Println("Cancelled")
 		return
 	}
 	idx, err := strconv.Atoi(input)
 	if err != nil || idx < 1 || idx > len(lines) {
-		fmt.Println("無効な番号です")
+		fmt.Println("Invalid number")
 		return
 	}
-	// Nコミット前までrebase
+	// N commits before rebase
 	N := idx
 	rebaseCmd := exec.Command("git", "rebase", "-i", fmt.Sprintf("HEAD~%d", N))
 	rebaseCmd.Stdin = os.Stdin
 	rebaseCmd.Stdout = os.Stdout
 	rebaseCmd.Stderr = os.Stderr
 	if err := rebaseCmd.Run(); err != nil {
-		fmt.Printf("エラー: git rebase に失敗しました: %v\n", err)
+		fmt.Printf("error: git rebase failed: %v\n", err)
 		return
 	}
 }

@@ -18,6 +18,7 @@ func AddCommitPush() {
 		return
 	}
 	// Enter commit message
+	fmt.Print("\n\r")
 	fmt.Print("Enter commit message: ")
 	reader := bufio.NewReader(os.Stdin)
 	msg, _ := reader.ReadString('\n')

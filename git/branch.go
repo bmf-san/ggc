@@ -32,7 +32,7 @@ func ListRemoteBranches() ([]string, error) {
 		return nil, err
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	// origin/HEAD -> origin/main などのHEAD参照は除外
+	// Exclude HEAD references such as origin/HEAD -> origin/main
 	filtered := []string{}
 	for _, l := range lines {
 		if strings.Contains(l, "->") {
