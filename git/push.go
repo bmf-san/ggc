@@ -14,3 +14,14 @@ func PushCurrentBranch() error {
 	cmd.Stderr = nil
 	return cmd.Run()
 }
+
+func PushForceCurrentBranch() error {
+	branch, err := GetCurrentBranch()
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("git", "push", "--force", "origin", branch)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Run()
+}
