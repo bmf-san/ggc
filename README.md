@@ -19,7 +19,7 @@
 
 ## インストール
 
-### 1. make build でバイナリ生成
+### make build でバイナリ生成
 
 ```sh
 git clone <このリポジトリURL>
@@ -28,7 +28,7 @@ make build
 
 `gcl` バイナリをパスの通ったディレクトリに配置してください。
 
-### 2. go install でグローバルインストール
+### go install でグローバルインストール
 
 ```sh
 go install .
@@ -96,11 +96,20 @@ git/                     # Git操作のラッパー
 
 ## 補完スクリプト
 
-標準ライブラリのみで構築されているため自動補完はありませんが、bash/zsh 用の補完スクリプト（サブコマンドまで）を `tools/completions/gcl.bash` などに配置予定です。
+`tools/completions/gcl.bash` に bash 用の補完スクリプトを用意しています。
+
+### 設定方法（bash/zsh）
+
+```sh
+# bash の場合
+source /path/to/gcl/tools/completions/gcl.bash
+# zsh の場合も同様に source で読み込めます
+```
+
+- `.bashrc` や `.zshrc` に追記すると、ターミナル起動時に自動で補完が有効になります。
+- サブコマンドまで補完対応済みです。
 
 ## 今後の拡張
-- `--dry-run` オプション
-- コマンド実行ログ出力
 - `.gclconfig` によるカスタム設定
 - テスト用のモック実装切替
 - 複合コマンドや対話UIの実装
