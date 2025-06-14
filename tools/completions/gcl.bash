@@ -65,5 +65,20 @@ _gcl()
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
+
+    # Dynamic completion for branch checkout
+    if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "checkout" ]]; then
+        local branches
+        branches=$(gcl __complete branch 2>/dev/null)
+        COMPREPLY=( $(compgen -W "${branches}" -- ${cur}) )
+        return 0
+    fi
+    # Dynamic completion for add
+    if [[ ${COMP_WORDS[1]} == "add" ]]; then
+        local files
+        files=$(gcl __complete files 2>/dev/null)
+        COMPREPLY=( $(compgen -W "${files}" -- ${cur}) )
+        return 0
+    fi
 }
 complete -F _gcl gcl
