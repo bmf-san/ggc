@@ -64,6 +64,7 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl reset clean        | git reset --hard HEAD; git clean -fd    | リセット＋クリーン              |
 | gcl commit-push        | git add ... → git commit ... → git push | 対話的にadd/commit/push一括実行 |
 | gcl clean interactive        | git clean -nd → git clean -f -- <選択>   | 対話的に削除ファイル選択・クリーン |
+| gcl stash trash              | git add . → git stash                   | 変更ファイルをaddしてstash         |
 
 ### 主なコマンド例
 
@@ -84,6 +85,7 @@ gcl <コマンド> [サブコマンド] [オプション]
 - gcl reset clean
 - gcl commit-push
 - gcl clean interactive
+- gcl stash trash
 
 ## ディレクトリ構成
 

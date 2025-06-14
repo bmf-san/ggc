@@ -32,6 +32,8 @@ func Route(args []string) {
 		}
 	case "commit-push":
 		cmd.CommitPushInteractive()
+	case "stash":
+		cmd.Stash(args[2:])
 	default:
 		cmd.ShowHelp()
 	}
