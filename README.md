@@ -50,6 +50,7 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl add <file>         | git add <file>                          | ファイルをステージング          |
 | gcl branch current     | git rev-parse --abbrev-ref HEAD         | 現在のブランチ名を表示          |
 | gcl branch checkout    | git branch ... → git checkout <選択>    | 対話的にブランチ切替            |
+| gcl branch checkout-remote | git branch -r ... → git checkout -b ... --track ... | リモートブランチから新規ローカル作成・チェックアウト |
 | gcl push current       | git push origin <branch>                | 現在のブランチをpush            |
 | gcl push force         | git push --force origin <branch>        | 現在のブランチを強制push        |
 | gcl pull current       | git pull origin <branch>                | 現在のブランチをpull            |
@@ -66,12 +67,15 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl clean interactive        | git clean -nd → git clean -f -- <選択>   | 対話的に削除ファイル選択・クリーン |
 | gcl stash trash              | git add . → git stash                   | 変更ファイルをaddしてstash         |
 | gcl rebase interactive       | git log ... → git rebase -i HEAD~N         | 対話的にHEAD~Nまでrebase           |
+| gcl branch delete           | git branch ... → git branch -d <選択>     | ローカルブランチを対話的に複数削除 |
+| gcl branch delete-merged     | git branch --merged ... → git branch -d <選択> | マージ済みローカルブランチを対話的に一括削除 |
 
 ### 主なコマンド例
 
 - gcl add .
 - gcl branch current
 - gcl branch checkout
+- gcl branch checkout-remote
 - gcl push current
 - gcl push force
 - gcl pull current
@@ -88,6 +92,8 @@ gcl <コマンド> [サブコマンド] [オプション]
 - gcl clean interactive
 - gcl stash trash
 - gcl rebase interactive
+- gcl branch delete
+- gcl branch delete-merged
 
 ## ディレクトリ構成
 
