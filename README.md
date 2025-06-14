@@ -30,7 +30,7 @@ Place the `gcl` binary in a directory included in your PATH.
 ### Global install with go install
 
 ```sh
-go install .
+go install github.com/bmf-san/gcl@latest
 ```
 
 - The `gcl` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
