@@ -12,7 +12,7 @@ func Stash(args []string) {
 		addCmd.Stdout = nil
 		addCmd.Stderr = nil
 		if err := addCmd.Run(); err != nil {
-			fmt.Printf("エラー: git add . に失敗しました: %v\n", err)
+			fmt.Printf("Error: failed to add all files: %v\n", err)
 			return
 		}
 		// git stash
@@ -20,15 +20,15 @@ func Stash(args []string) {
 		stashCmd.Stdout = nil
 		stashCmd.Stderr = nil
 		if err := stashCmd.Run(); err != nil {
-			fmt.Printf("エラー: git stash に失敗しました: %v\n", err)
+			fmt.Printf("Error: failed to stash: %v\n", err)
 			return
 		}
-		fmt.Println("add . → stash を実行しました")
+		fmt.Println("add . → stash done")
 		return
 	}
 	ShowStashHelp()
 }
 
 func ShowStashHelp() {
-	fmt.Println("使用例: gcl stash trash")
+	fmt.Println("Usage: gcl stash trash")
 }

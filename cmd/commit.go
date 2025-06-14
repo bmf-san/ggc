@@ -12,13 +12,13 @@ func Commit(args []string) {
 		case "allow-empty":
 			err := git.CommitAllowEmpty()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		case "tmp":
 			err := git.CommitTmp()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		}
@@ -27,5 +27,5 @@ func Commit(args []string) {
 }
 
 func ShowCommitHelp() {
-	fmt.Println("使用例: gcl commit allow-empty | gcl commit tmp")
+	fmt.Println("Usage: gcl commit allow-empty | gcl commit tmp")
 }

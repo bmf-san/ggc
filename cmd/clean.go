@@ -17,13 +17,13 @@ func Clean(args []string) {
 		case "files":
 			err := git.CleanFiles()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		case "dirs":
 			err := git.CleanDirs()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		}
@@ -32,15 +32,15 @@ func Clean(args []string) {
 }
 
 func ShowCleanHelp() {
-	fmt.Println("使用例: gcl clean files | gcl clean dirs")
+	fmt.Println("Usage: gcl clean files | gcl clean dirs")
 }
 
-// 対話的に削除候補ファイルを選択してクリーン
+// Interactively select files to clean
 func CleanInteractive() {
-	cmd := exec.Command("git", "clean", "-nd") // dry-runで候補取得
+	cmd := exec.Command("git", "clean", "-nd") // get candidates with dry-run
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Printf("エラー: git clean -nd の取得に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to get candidates with git clean -nd: %v\n", err)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -51,13 +51,13 @@ func CleanInteractive() {
 		}
 	}
 	if len(files) == 0 {
-		fmt.Println("削除候補ファイルはありません")
+		fmt.Println("No files to clean.")
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
 	selected := []string{}
 	for {
-		fmt.Println("\033[1;36m削除するファイルを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		fmt.Println("\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, f := range files {
 			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, f)
 		}
@@ -65,7 +65,7 @@ func CleanInteractive() {
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			fmt.Println("キャンセルしました")
+			fmt.Println("Cancelled.")
 			return
 		}
 		if input == "all" {
@@ -82,7 +82,7 @@ func CleanInteractive() {
 		for _, idx := range indices {
 			n, err := strconv.Atoi(idx)
 			if err != nil || n < 1 || n > len(files) {
-				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				fmt.Printf("\033[1;31mInvalid number: %s\033[0m\n", idx)
 				valid = false
 				break
 			}
@@ -93,11 +93,11 @@ func CleanInteractive() {
 		}
 		selected = tmp
 		if len(selected) == 0 {
-			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			fmt.Println("\033[1;33mNothing selected.\033[0m")
 			continue
 		}
-		fmt.Printf("\033[1;32m選択したファイル: %v\033[0m\n", selected)
-		fmt.Print("このファイルを削除しますか？ (y/n): ")
+		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", selected)
+		fmt.Print("Delete these files? (y/n): ")
 		ans, _ := reader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
@@ -110,8 +110,8 @@ func CleanInteractive() {
 	cleanCmd.Stdout = os.Stdout
 	cleanCmd.Stderr = os.Stderr
 	if err := cleanCmd.Run(); err != nil {
-		fmt.Printf("エラー: git clean に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to clean files: %v\n", err)
 		return
 	}
-	fmt.Println("選択したファイルを削除しました")
+	fmt.Println("Selected files deleted.")
 }

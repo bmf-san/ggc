@@ -1,4 +1,4 @@
-# Goプロジェクト用Makefile
+# Makefile for Go project
 
 APP_NAME=gcl
 

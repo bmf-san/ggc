@@ -3,28 +3,28 @@ package cmd
 import "fmt"
 
 func ShowHelp() {
-	fmt.Print(`gcl: Git操作を効率化するGo製CLIツール
+	fmt.Print(`gcl: A Go-based CLI tool to streamline Git operations
 
 Usage:
-  gcl <コマンド> [サブコマンド] [オプション]
+  gcl <command> [subcommand] [options]
 
-主なコマンド:
-  gcl add <file>              ファイルをステージング
-  gcl branch current          現在のブランチ名を表示
-  gcl branch checkout         対話的にブランチ切替
-  gcl push current            現在のブランチをpush
-  gcl push force              現在のブランチを強制push
-  gcl pull current            現在のブランチをpull
-  gcl pull rebase             rebase付きpull
-  gcl log simple              シンプルなログ表示
-  gcl log graph               グラフ付きログ表示
-  gcl commit allow-empty      空コミット
-  gcl commit tmp              一時コミット
-  gcl fetch --prune           prune付きfetch
-  gcl clean files             ファイルのクリーン
-  gcl clean dirs              ディレクトリのクリーン
-  gcl reset clean             リセット＋クリーン
-  gcl commit-push             対話的にadd/commit/push一括実行
+Main Commands:
+  gcl add <file>              Stage file(s)
+  gcl branch current          Show current branch name
+  gcl branch checkout         Interactive branch switch
+  gcl push current            Push current branch
+  gcl push force              Force push current branch
+  gcl pull current            Pull current branch
+  gcl pull rebase             Pull with rebase
+  gcl log simple              Show simple log
+  gcl log graph               Show log with graph
+  gcl commit allow-empty      Create empty commit
+  gcl commit tmp              Temporary commit
+  gcl fetch --prune           Fetch with prune
+  gcl clean files             Clean files
+  gcl clean dirs              Clean directories
+  gcl reset clean             Reset and clean
+  gcl commit-push             Interactive add/commit/push
 
 Examples:
   gcl add .

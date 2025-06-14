@@ -10,7 +10,7 @@ func Reset(args []string) {
 	if len(args) > 0 && args[0] == "clean" {
 		err := git.ResetClean()
 		if err != nil {
-			fmt.Println("エラー:", err)
+			fmt.Println("Error:", err)
 		}
 		return
 	}
@@ -18,5 +18,5 @@ func Reset(args []string) {
 }
 
 func ShowResetHelp() {
-	fmt.Println("使用例: gcl reset clean")
+	fmt.Println("Usage: gcl reset clean")
 }

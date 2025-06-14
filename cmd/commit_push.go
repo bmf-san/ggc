@@ -15,12 +15,12 @@ func CommitPushInteractive() {
 	cmd := exec.Command("git", "status", "--porcelain")
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Printf("エラー: git status の取得に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to get git status: %v\n", err)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	if len(lines) == 1 && lines[0] == "" {
-		fmt.Println("変更されたファイルはありません")
+		fmt.Println("No changed files.")
 		return
 	}
 
@@ -33,13 +33,13 @@ func CommitPushInteractive() {
 		files = append(files, strings.TrimSpace(line[2:]))
 	}
 	if len(files) == 0 {
-		fmt.Println("ステージング可能なファイルはありません")
+		fmt.Println("No files to stage.")
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
 	selected := []string{}
 	for {
-		fmt.Println("\033[1;36m追加するファイルを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		fmt.Println("\033[1;36mSelect files to add by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, f := range files {
 			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, f)
 		}
@@ -47,7 +47,7 @@ func CommitPushInteractive() {
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			fmt.Println("キャンセルしました")
+			fmt.Println("Cancelled.")
 			return
 		}
 		if input == "all" {
@@ -64,7 +64,7 @@ func CommitPushInteractive() {
 		for _, idx := range indices {
 			n, err := strconv.Atoi(idx)
 			if err != nil || n < 1 || n > len(files) {
-				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				fmt.Printf("\033[1;31mInvalid number: %s\033[0m\n", idx)
 				valid = false
 				break
 			}
@@ -75,12 +75,12 @@ func CommitPushInteractive() {
 		}
 		selected = tmp
 		if len(selected) == 0 {
-			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			fmt.Println("\033[1;33mNothing selected.\033[0m")
 			continue
 		}
-		// 確認プロンプト
-		fmt.Printf("\033[1;32m選択したファイル: %v\033[0m\n", selected)
-		fmt.Print("このファイルでaddしますか？ (y/n): ")
+		// Confirmation prompt
+		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", selected)
+		fmt.Print("Add these files? (y/n): ")
 		ans, _ := reader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
@@ -94,16 +94,16 @@ func CommitPushInteractive() {
 	addCmd.Stdout = os.Stdout
 	addCmd.Stderr = os.Stderr
 	if err := addCmd.Run(); err != nil {
-		fmt.Printf("エラー: git add に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to add files: %v\n", err)
 		return
 	}
 
 	// 4. コミットメッセージ入力
-	fmt.Print("コミットメッセージを入力してください: ")
+	fmt.Print("Enter commit message: ")
 	msg, _ := reader.ReadString('\n')
 	msg = strings.TrimSpace(msg)
 	if msg == "" {
-		fmt.Println("キャンセルしました")
+		fmt.Println("Cancelled.")
 		return
 	}
 
@@ -112,7 +112,7 @@ func CommitPushInteractive() {
 	commitCmd.Stdout = os.Stdout
 	commitCmd.Stderr = os.Stderr
 	if err := commitCmd.Run(); err != nil {
-		fmt.Printf("エラー: git commit に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to commit: %v\n", err)
 		return
 	}
 
@@ -120,7 +120,7 @@ func CommitPushInteractive() {
 	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	branchOut, err := branchCmd.Output()
 	if err != nil {
-		fmt.Printf("エラー: ブランチ名の取得に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to get branch name: %v\n", err)
 		return
 	}
 	branch := strings.TrimSpace(string(branchOut))
@@ -130,9 +130,9 @@ func CommitPushInteractive() {
 	pushCmd.Stdout = os.Stdout
 	pushCmd.Stderr = os.Stderr
 	if err := pushCmd.Run(); err != nil {
-		fmt.Printf("エラー: git push に失敗しました: %v\n", err)
+		fmt.Printf("Error: failed to push: %v\n", err)
 		return
 	}
 
-	fmt.Println("完了しました！")
+	fmt.Println("Done!")
 }

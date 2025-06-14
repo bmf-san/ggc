@@ -12,13 +12,13 @@ func Push(args []string) {
 		case "current":
 			err := git.PushCurrentBranch()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		case "force":
 			err := git.PushForceCurrentBranch()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		}
@@ -27,5 +27,5 @@ func Push(args []string) {
 }
 
 func ShowPushHelp() {
-	fmt.Println("使用例: gcl push current | gcl push force")
+	fmt.Println("Usage: gcl push current | gcl push force")
 }

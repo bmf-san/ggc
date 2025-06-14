@@ -15,7 +15,7 @@ func Branch(args []string) {
 	if len(args) == 1 && args[0] == "current" {
 		branch, err := git.GetCurrentBranch()
 		if err != nil {
-			fmt.Println("エラー:", err)
+			fmt.Println("Error:", err)
 			return
 		}
 		fmt.Println(branch)
@@ -43,24 +43,24 @@ func Branch(args []string) {
 func branchCheckout() {
 	branches, err := git.ListLocalBranches()
 	if err != nil {
-		fmt.Println("エラー:", err)
+		fmt.Println("Error:", err)
 		return
 	}
 	if len(branches) == 0 {
-		fmt.Println("ローカルブランチが見つかりません")
+		fmt.Println("No local branches found.")
 		return
 	}
-	fmt.Println("ローカルブランチ一覧:")
+	fmt.Println("Local branches:")
 	for i, b := range branches {
 		fmt.Printf("[%d] %s\n", i+1, b)
 	}
-	fmt.Print("チェックアウトする番号を入力してください: ")
+	fmt.Print("Enter the number to checkout: ")
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	idx, err := strconv.Atoi(input)
 	if err != nil || idx < 1 || idx > len(branches) {
-		fmt.Println("無効な番号です")
+		fmt.Println("Invalid number.")
 		return
 	}
 	branch := branches[idx-1]
@@ -68,38 +68,38 @@ func branchCheckout() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Println("エラー:", err)
+		fmt.Println("Error:", err)
 	}
 }
 
 func branchCheckoutRemote() {
 	branches, err := git.ListRemoteBranches()
 	if err != nil {
-		fmt.Println("エラー:", err)
+		fmt.Println("Error:", err)
 		return
 	}
 	if len(branches) == 0 {
-		fmt.Println("リモートブランチが見つかりません")
+		fmt.Println("No remote branches found.")
 		return
 	}
-	fmt.Println("リモートブランチ一覧:")
+	fmt.Println("Remote branches:")
 	for i, b := range branches {
 		fmt.Printf("[%d] %s\n", i+1, b)
 	}
-	fmt.Print("チェックアウトする番号を入力してください: ")
+	fmt.Print("Enter the number to checkout: ")
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	idx, err := strconv.Atoi(input)
 	if err != nil || idx < 1 || idx > len(branches) {
-		fmt.Println("無効な番号です")
+		fmt.Println("Invalid number.")
 		return
 	}
 	remoteBranch := branches[idx-1]
 	// origin/feature/foo → feature/foo
 	parts := strings.SplitN(remoteBranch, "/", 2)
 	if len(parts) != 2 {
-		fmt.Println("無効なリモートブランチ名です")
+		fmt.Println("Invalid remote branch name.")
 		return
 	}
 	localBranch := parts[1]
@@ -107,24 +107,24 @@ func branchCheckoutRemote() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Println("エラー:", err)
+		fmt.Println("Error:", err)
 	}
 }
 
 func branchDelete() {
 	branches, err := git.ListLocalBranches()
 	if err != nil {
-		fmt.Println("エラー:", err)
+		fmt.Println("Error:", err)
 		return
 	}
 	if len(branches) == 0 {
-		fmt.Println("ローカルブランチが見つかりません")
+		fmt.Println("No local branches found.")
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
 	selected := []string{}
 	for {
-		fmt.Println("\033[1;36m削除するローカルブランチを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		fmt.Println("\033[1;36mSelect local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, b := range branches {
 			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, b)
 		}
@@ -132,7 +132,7 @@ func branchDelete() {
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			fmt.Println("キャンセルしました")
+			fmt.Println("Cancelled.")
 			return
 		}
 		if input == "all" {
@@ -149,7 +149,7 @@ func branchDelete() {
 		for _, idx := range indices {
 			n, err := strconv.Atoi(idx)
 			if err != nil || n < 1 || n > len(branches) {
-				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				fmt.Printf("\033[1;31mInvalid number: %s\033[0m\n", idx)
 				valid = false
 				break
 			}
@@ -160,11 +160,11 @@ func branchDelete() {
 		}
 		selected = tmp
 		if len(selected) == 0 {
-			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			fmt.Println("\033[1;33mNothing selected.\033[0m")
 			continue
 		}
-		fmt.Printf("\033[1;32m選択したブランチ: %v\033[0m\n", selected)
-		fmt.Print("このブランチを削除しますか？ (y/n): ")
+		fmt.Printf("\033[1;32mSelected branches: %v\033[0m\n", selected)
+		fmt.Print("Delete these branches? (y/n): ")
 		ans, _ := reader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
@@ -176,22 +176,22 @@ func branchDelete() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("エラー: %s の削除に失敗しました: %v\n", b, err)
+			fmt.Printf("Error: failed to delete %s: %v\n", b, err)
 		}
 	}
-	fmt.Println("選択したブランチを削除しました")
+	fmt.Println("Selected branches deleted.")
 }
 
 func branchDeleteMerged() {
 	current, err := git.GetCurrentBranch()
 	if err != nil {
-		fmt.Println("エラー: 現在のブランチ取得に失敗:", err)
+		fmt.Println("Error: failed to get current branch:", err)
 		return
 	}
 	cmd := exec.Command("git", "branch", "--merged")
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Println("エラー: マージ済みブランチ取得に失敗:", err)
+		fmt.Println("Error: failed to get merged branches:", err)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -203,13 +203,13 @@ func branchDeleteMerged() {
 		}
 	}
 	if len(branches) == 0 {
-		fmt.Println("マージ済みローカルブランチはありません")
+		fmt.Println("No merged local branches.")
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
 	selected := []string{}
 	for {
-		fmt.Println("\033[1;36m削除するマージ済みローカルブランチを番号で選択（スペース区切り, all:全選択, none:全解除, 例: 1 3 5）:\033[0m")
+		fmt.Println("\033[1;36mSelect merged local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, b := range branches {
 			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, b)
 		}
@@ -217,7 +217,7 @@ func branchDeleteMerged() {
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			fmt.Println("キャンセルしました")
+			fmt.Println("Cancelled.")
 			return
 		}
 		if input == "all" {
@@ -234,7 +234,7 @@ func branchDeleteMerged() {
 		for _, idx := range indices {
 			n, err := strconv.Atoi(idx)
 			if err != nil || n < 1 || n > len(branches) {
-				fmt.Printf("\033[1;31m無効な番号: %s\033[0m\n", idx)
+				fmt.Printf("\033[1;31mInvalid number: %s\033[0m\n", idx)
 				valid = false
 				break
 			}
@@ -245,11 +245,11 @@ func branchDeleteMerged() {
 		}
 		selected = tmp
 		if len(selected) == 0 {
-			fmt.Println("\033[1;33m何も選択されませんでした\033[0m")
+			fmt.Println("\033[1;33mNothing selected.\033[0m")
 			continue
 		}
-		fmt.Printf("\033[1;32m選択したブランチ: %v\033[0m\n", selected)
-		fmt.Print("このブランチを削除しますか？ (y/n): ")
+		fmt.Printf("\033[1;32mSelected branches: %v\033[0m\n", selected)
+		fmt.Print("Delete these branches? (y/n): ")
 		ans, _ := reader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
@@ -261,12 +261,12 @@ func branchDeleteMerged() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("エラー: %s の削除に失敗しました: %v\n", b, err)
+			fmt.Printf("Error: failed to delete %s: %v\n", b, err)
 		}
 	}
-	fmt.Println("選択したマージ済みブランチを削除しました")
+	fmt.Println("Selected merged branches deleted.")
 }
 
 func ShowBranchHelp() {
-	fmt.Println("使用例: gcl branch current | gcl branch checkout | gcl branch checkout-remote | gcl branch delete | gcl branch delete-merged")
+	fmt.Println("Usage: gcl branch current | gcl branch checkout | gcl branch checkout-remote | gcl branch delete | gcl branch delete-merged")
 }
