@@ -25,7 +25,13 @@ func Route(args []string) {
 	case "fetch":
 		cmd.Fetch(args[2:])
 	case "clean":
-		cmd.Clean(args[2:])
+		if len(args) > 2 && args[2] == "interactive" {
+			cmd.CleanInteractive()
+		} else {
+			cmd.Clean(args[2:])
+		}
+	case "commit-push":
+		cmd.CommitPushInteractive()
 	default:
 		cmd.ShowHelp()
 	}
