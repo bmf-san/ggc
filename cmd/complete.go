@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 // Complete handles dynamic completion for subcommands/args

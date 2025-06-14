@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/bmf-san/gcl/cmd"
+	"github.com/bmf-san/ggc/cmd"
 )
 
 func Route(args []string) {

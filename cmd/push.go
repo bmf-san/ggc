@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Push(args []string) {
@@ -27,5 +27,5 @@ func Push(args []string) {
 }
 
 func ShowPushHelp() {
-	fmt.Println("Usage: gcl push current | gcl push force")
+	fmt.Println("Usage: ggc push current | ggc push force")
 }

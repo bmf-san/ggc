@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Pull(args []string) {
@@ -27,5 +27,5 @@ func Pull(args []string) {
 }
 
 func ShowPullHelp() {
-	fmt.Println("Usage: gcl pull current | gcl pull rebase")
+	fmt.Println("Usage: ggc pull current | ggc pull rebase")
 }

@@ -18,7 +18,7 @@ func Rebase(args []string) {
 }
 
 func ShowRebaseHelp() {
-	fmt.Println("Usage: gcl rebase interactive")
+	fmt.Println("Usage: ggc rebase interactive")
 }
 
 // Interactively rebase up to HEAD~N

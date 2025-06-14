@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Fetch(args []string) {
@@ -18,5 +18,5 @@ func Fetch(args []string) {
 }
 
 func ShowFetchHelp() {
-	fmt.Println("Usage: gcl fetch --prune")
+	fmt.Println("Usage: ggc fetch --prune")
 }
