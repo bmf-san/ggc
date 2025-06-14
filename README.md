@@ -1,124 +1,122 @@
-# gcl CLI ツール
+# gcl
 
-## 概要
+## Overview
 
-`gcl` は、Git 操作を効率化するための Go 製 CLI ツールです。シェルスクリプトやエイリアスの代替として、保守性・拡張性に優れた構成を目指しています。Go 標準ライブラリのみを使用し、最小限の依存で動作します。
+`gcl` is a CLI tool written in Go to streamline Git operations. It aims to be a maintainable and extensible alternative to shell scripts and aliases, using only the Go standard library with minimal dependencies.
 
-## 特徴
-- よく使う Git 操作（add/push/pull/branch/log など）を簡単なコマンドで実行
-- 複数の Git 操作を統合した複合コマンド（今後実装予定）
-- 対話式 UI によるブランチ・ファイル選択やメッセージ入力（今後実装予定）
-- Go 標準ライブラリのみで実装
+## Features
+- Simple commands for common Git operations (add, push, pull, branch, log, etc.)
+- Composite commands that combine multiple Git operations
+- Interactive UI for branch/file selection and message input
+- Implemented using only the Go standard library
 
-## インストール
+## Supported Environments
+- OS: macOS (Apple Silicon/Intel), Linux, WSL2 (Windows Subsystem for Linux)
+- Go version: 1.21 or later recommended
+- Dependencies: Go standard library only (no extra packages required)
+- Requirement: `git` command must be installed
 
-### 1. make build でバイナリ生成
+## Installation
+
+### Build with make
 
 ```sh
-git clone <このリポジトリURL>
+git clone <repository URL>
 make build
 ```
 
-`gcl` バイナリをパスの通ったディレクトリに配置してください。
+Place the `gcl` binary in a directory included in your PATH.
 
-### 2. go install でグローバルインストール
+### Global install with go install
 
 ```sh
 go install .
 ```
 
-- `$GOBIN`（通常は `$HOME/go/bin`）に `gcl` バイナリがインストールされます。
-- `$GOBIN` が `PATH` に含まれていれば、どこからでも `gcl` コマンドが使えます。
-- もし `PATH` が通っていない場合は、以下を追加してください：
+- The `gcl` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
+- If `$GOBIN` is in your `PATH`, you can use `gcl` from anywhere.
+- If not, add it to your `PATH`:
 
 ```sh
 export PATH=$PATH:$(go env GOBIN)
-# または
+# or
 export PATH=$PATH:$HOME/go/bin
 ```
 
-## 使い方
+## Usage
 
 ```sh
-gcl <コマンド> [サブコマンド] [オプション]
+gcl <command> [subcommand] [options]
 ```
 
-### 主なコマンド例
+### Main Command Examples
 
-| gclコマンド例                | 実際に実行されるgitコマンド           | 説明                       |
-|-----------------------------|--------------------------------------|----------------------------|
-| gcl add <file>              | git add <file>                       | ファイルをステージング     |
-| gcl branch current          | git rev-parse --abbrev-ref HEAD       | 現在のブランチ名を表示     |
-| gcl branch checkout         | git branch ... → git checkout <選択>   | 対話的にブランチ切替       |
-| gcl push current            | git push origin <branch>              | 現在のブランチをpush       |
-| gcl push force              | git push --force origin <branch>      | 現在のブランチを強制push   |
-| gcl pull current            | git pull origin <branch>              | 現在のブランチをpull       |
-| gcl pull rebase             | git pull --rebase origin <branch>     | rebase付きpull             |
-| gcl log simple              | git log --oneline                     | シンプルなログ表示         |
-| gcl log graph               | git log --graph                       | グラフ付きログ表示         |
-| gcl commit allow-empty      | git commit --allow-empty -m ...        | 空コミット                 |
-| gcl commit tmp              | git commit -m "tmp"                   | 一時コミット               |
-| gcl fetch --prune           | git fetch --prune                     | prune付きfetch             |
-| gcl clean files             | git clean -f                          | ファイルのクリーン         |
-| gcl clean dirs              | git clean -d                          | ディレクトリのクリーン     |
-| gcl reset clean             | git reset --hard HEAD; git clean -fd  | リセット＋クリーン         |
+|     gcl Command Example      |       Actual git Command       |              Description               |
+| --------------------------- | ------------------------------ | -------------------------------------- |
+| gcl add <file>              | git add <file>                 | Stage file(s)                          |
+| gcl branch current          | git rev-parse --abbrev-ref HEAD| Show current branch name               |
+| gcl branch checkout         | git branch ... → git checkout <selected> | Interactive branch switch     |
+| gcl branch checkout-remote  | git branch -r ... → git checkout -b ... --track ... | Create and checkout new local branch from remote |
+| gcl push current            | git push origin <branch>        | Push current branch                    |
+| gcl push force              | git push --force origin <branch>| Force push current branch              |
+| gcl pull current            | git pull origin <branch>        | Pull current branch                    |
+| gcl pull rebase             | git pull --rebase origin <branch>| Pull with rebase                      |
+| gcl log simple              | git log --oneline               | Show simple log                        |
+| gcl log graph               | git log --graph                 | Show log with graph                    |
+| gcl commit allow-empty      | git commit --allow-empty -m ... | Create empty commit                    |
+| gcl commit tmp              | git commit -m "tmp"             | Temporary commit                       |
+| gcl fetch --prune           | git fetch --prune               | Fetch with prune                       |
+| gcl clean files             | git clean -f                    | Clean files                            |
+| gcl clean dirs              | git clean -d                    | Clean directories                      |
+| gcl reset clean             | git reset --hard HEAD; git clean -fd | Reset and clean                   |
+| gcl commit-push             | git add ... → git commit ... → git push | Interactive add/commit/push      |
+| gcl clean interactive       | git clean -nd → git clean -f -- <selected> | Interactive file selection and clean |
+| gcl stash trash             | git add . → git stash           | Add all changes and stash              |
+| gcl rebase interactive      | git log ... → git rebase -i HEAD~N | Interactive rebase up to HEAD~N   |
+| gcl branch delete           | git branch ... → git branch -d <selected> | Interactive delete local branches |
+| gcl branch delete-merged    | git branch --merged ... → git branch -d <selected> | Interactive delete merged local branches |
+| gcl remote list             | git remote -v                   | Show remotes                           |
+| gcl remote add <name> <url> | git remote add <name> <url>     | Add remote                             |
+| gcl remote remove <name>    | git remote remove <name>        | Remove remote                          |
+| gcl remote set-url <name> <url> | git remote set-url <name> <url> | Change remote URL                  |
+| gcl add-commit-push         | git add . → git commit ... → git push | Add, commit, and push all at once |
+| gcl pull-rebase-push        | git pull → git rebase origin/main → git push | Pull, rebase, and push all at once |
+| gcl stash-pull-pop          | git stash → git pull → git stash pop | Stash, pull, and pop all at once  |
+| gcl reset-clean             | git reset --hard HEAD → git clean -fd | Reset and clean all at once        |
 
-### 主なコマンド例
-
-- gcl add .
-- gcl branch current
-- gcl branch checkout
-- gcl push current
-- gcl push force
-- gcl pull current
-- gcl pull rebase
-- gcl log simple
-- gcl log graph
-- gcl commit allow-empty
-- gcl commit tmp
-- gcl fetch --prune
-- gcl clean files
-- gcl clean dirs
-- gcl reset clean
-
-## ディレクトリ構成
+## Directory Structure
 
 ```
-main.go                  # エントリポイント
-router/                  # コマンド分岐ロジック
-cmd/                     # 各コマンドのエントリ処理
-  ├── add.go
-  ├── branch.go
-  ├── commit.go
-  ├── help.go
-  ├── log.go
-  ├── pull.go
-  ├── push.go
-  ├── fetch.go
-  ├── clean.go
-  ...
-git/                     # Git操作のラッパー
-  ├── branch.go
-  ├── commit.go
-  ├── log.go
-  ├── pull.go
-  ├── push.go
-  ├── fetch.go
-  ├── clean.go
-  ...
+main.go                  # Entry point
+router/                  # Command routing logic
+cmd/                     # Command entry handlers
+git/                     # Git operation wrappers
 ```
 
-## 補完スクリプト
+## Completion Script
 
-標準ライブラリのみで構築されているため自動補完はありませんが、bash/zsh 用の補完スクリプト（サブコマンドまで）を `tools/completions/gcl.bash` などに配置予定です。
+A bash completion script is available at `tools/completions/gcl.bash`.
 
-## 今後の拡張
-- `--dry-run` オプション
-- コマンド実行ログ出力
-- `.gclconfig` によるカスタム設定
-- テスト用のモック実装切替
-- 複合コマンドや対話UIの実装
+### How to Enable (bash/zsh)
 
----
+```sh
+# For bash
+source /path/to/gcl/tools/completions/gcl.bash
+# For zsh, you can also use source
+```
 
-ご意見・ご要望は Issue までお願いします。
+- Add the above to your `.bashrc` or `.zshrc` to enable completion automatically on terminal startup.
+- Subcommand completion is supported.
+
+## Future Plans
+- Custom configuration via `.gclconfig`
+- Mock implementation for testing
+- More composite commands and interactive UI
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

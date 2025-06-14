@@ -14,13 +14,13 @@ func Log(args []string) {
 		case "simple":
 			err := git.LogSimple()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		case "graph":
 			err := logGraph()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		}
@@ -36,5 +36,5 @@ func logGraph() error {
 }
 
 func ShowLogHelp() {
-	fmt.Println("使用例: gcl log simple | gcl log graph")
+	fmt.Println("Usage: gcl log simple | gcl log graph")
 }

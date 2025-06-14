@@ -12,13 +12,13 @@ func Pull(args []string) {
 		case "current":
 			err := git.PullCurrentBranch()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		case "rebase":
 			err := git.PullRebaseCurrentBranch()
 			if err != nil {
-				fmt.Println("エラー:", err)
+				fmt.Println("Error:", err)
 			}
 			return
 		}
@@ -27,5 +27,5 @@ func Pull(args []string) {
 }
 
 func ShowPullHelp() {
-	fmt.Println("使用例: gcl pull current | gcl pull rebase")
+	fmt.Println("Usage: gcl pull current | gcl pull rebase")
 }
