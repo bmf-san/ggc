@@ -10,6 +10,13 @@
 - 対話式 UI によるブランチ・ファイル選択やメッセージ入力（今後実装予定）
 - Go 標準ライブラリのみで実装
 
+## サポート環境
+
+- OS: macOS（Apple Silicon/Intel）、Linux、WSL2（Windows Subsystem for Linux）
+- Goバージョン: 1.21 以上推奨
+- 依存: Go標準ライブラリのみ（追加パッケージ不要）
+- 必須: gitコマンドがインストールされていること
+
 ## インストール
 
 ### 1. make build でバイナリ生成
@@ -70,56 +77,13 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl branch delete           | git branch ... → git branch -d <選択>     | ローカルブランチを対話的に複数削除 |
 | gcl branch delete-merged     | git branch --merged ... → git branch -d <選択> | マージ済みローカルブランチを対話的に一括削除 |
 
-### 主なコマンド例
-
-- gcl add .
-- gcl branch current
-- gcl branch checkout
-- gcl branch checkout-remote
-- gcl push current
-- gcl push force
-- gcl pull current
-- gcl pull rebase
-- gcl log simple
-- gcl log graph
-- gcl commit allow-empty
-- gcl commit tmp
-- gcl fetch --prune
-- gcl clean files
-- gcl clean dirs
-- gcl reset clean
-- gcl commit-push
-- gcl clean interactive
-- gcl stash trash
-- gcl rebase interactive
-- gcl branch delete
-- gcl branch delete-merged
-
 ## ディレクトリ構成
 
 ```
 main.go                  # エントリポイント
 router/                  # コマンド分岐ロジック
 cmd/                     # 各コマンドのエントリ処理
-  ├── add.go
-  ├── branch.go
-  ├── commit.go
-  ├── help.go
-  ├── log.go
-  ├── pull.go
-  ├── push.go
-  ├── fetch.go
-  ├── clean.go
-  ...
 git/                     # Git操作のラッパー
-  ├── branch.go
-  ├── commit.go
-  ├── log.go
-  ├── pull.go
-  ├── push.go
-  ├── fetch.go
-  ├── clean.go
-  ...
 ```
 
 ## 補完スクリプト
