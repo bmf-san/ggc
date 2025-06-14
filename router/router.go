@@ -10,6 +10,9 @@ func Route(args []string) {
 		return
 	}
 	switch args[1] {
+	case "__complete":
+		cmd.Complete(args[2:])
+		return
 	case "branch":
 		cmd.Branch(args[2:])
 	case "push":
