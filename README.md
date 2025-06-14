@@ -1,4 +1,4 @@
-# gcl CLI Tool
+# gcl
 
 ## Overview
 

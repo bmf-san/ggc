@@ -122,7 +122,6 @@ func branchDelete() {
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
-	selected := []string{}
 	for {
 		fmt.Println("\033[1;36mSelect local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, b := range branches {
@@ -136,11 +135,9 @@ func branchDelete() {
 			return
 		}
 		if input == "all" {
-			selected = branches
 			break
 		}
 		if input == "none" {
-			selected = []string{}
 			continue
 		}
 		indices := strings.Fields(input)
@@ -158,28 +155,17 @@ func branchDelete() {
 		if !valid {
 			continue
 		}
-		selected = tmp
-		if len(selected) == 0 {
-			fmt.Println("\033[1;33mNothing selected.\033[0m")
-			continue
+		for _, b := range tmp {
+			cmd := exec.Command("git", "branch", "-d", b)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				fmt.Printf("Error: failed to delete %s: %v\n", b, err)
+			}
 		}
-		fmt.Printf("\033[1;32mSelected branches: %v\033[0m\n", selected)
-		fmt.Print("Delete these branches? (y/n): ")
-		ans, _ := reader.ReadString('\n')
-		ans = strings.TrimSpace(ans)
-		if ans == "y" || ans == "Y" {
-			break
-		}
+		fmt.Println("Selected branches deleted.")
+		break
 	}
-	for _, b := range selected {
-		cmd := exec.Command("git", "branch", "-d", b)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("Error: failed to delete %s: %v\n", b, err)
-		}
-	}
-	fmt.Println("Selected branches deleted.")
 }
 
 func branchDeleteMerged() {
@@ -207,7 +193,6 @@ func branchDeleteMerged() {
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
-	selected := []string{}
 	for {
 		fmt.Println("\033[1;36mSelect merged local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, b := range branches {
@@ -221,11 +206,9 @@ func branchDeleteMerged() {
 			return
 		}
 		if input == "all" {
-			selected = branches
 			break
 		}
 		if input == "none" {
-			selected = []string{}
 			continue
 		}
 		indices := strings.Fields(input)
@@ -243,28 +226,17 @@ func branchDeleteMerged() {
 		if !valid {
 			continue
 		}
-		selected = tmp
-		if len(selected) == 0 {
-			fmt.Println("\033[1;33mNothing selected.\033[0m")
-			continue
+		for _, b := range tmp {
+			cmd := exec.Command("git", "branch", "-d", b)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				fmt.Printf("Error: failed to delete %s: %v\n", b, err)
+			}
 		}
-		fmt.Printf("\033[1;32mSelected branches: %v\033[0m\n", selected)
-		fmt.Print("Delete these branches? (y/n): ")
-		ans, _ := reader.ReadString('\n')
-		ans = strings.TrimSpace(ans)
-		if ans == "y" || ans == "Y" {
-			break
-		}
+		fmt.Println("Selected merged branches deleted.")
+		break
 	}
-	for _, b := range selected {
-		cmd := exec.Command("git", "branch", "-d", b)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("Error: failed to delete %s: %v\n", b, err)
-		}
-	}
-	fmt.Println("Selected merged branches deleted.")
 }
 
 func ShowBranchHelp() {

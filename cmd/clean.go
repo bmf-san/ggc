@@ -55,7 +55,6 @@ func CleanInteractive() {
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
-	selected := []string{}
 	for {
 		fmt.Println("\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, f := range files {
@@ -69,11 +68,18 @@ func CleanInteractive() {
 			return
 		}
 		if input == "all" {
-			selected = files
+			args := append([]string{"clean", "-f", "--"}, files...)
+			cleanCmd := exec.Command("git", args...)
+			cleanCmd.Stdout = os.Stdout
+			cleanCmd.Stderr = os.Stderr
+			if err := cleanCmd.Run(); err != nil {
+				fmt.Printf("Error: failed to clean files: %v\n", err)
+				return
+			}
+			fmt.Println("Selected files deleted.")
 			break
 		}
 		if input == "none" {
-			selected = []string{}
 			continue
 		}
 		indices := strings.Fields(input)
@@ -91,27 +97,25 @@ func CleanInteractive() {
 		if !valid {
 			continue
 		}
-		selected = tmp
-		if len(selected) == 0 {
+		if len(tmp) == 0 {
 			fmt.Println("\033[1;33mNothing selected.\033[0m")
 			continue
 		}
-		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", selected)
+		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", tmp)
 		fmt.Print("Delete these files? (y/n): ")
 		ans, _ := reader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
+			args := append([]string{"clean", "-f", "--"}, tmp...)
+			cleanCmd := exec.Command("git", args...)
+			cleanCmd.Stdout = os.Stdout
+			cleanCmd.Stderr = os.Stderr
+			if err := cleanCmd.Run(); err != nil {
+				fmt.Printf("Error: failed to clean files: %v\n", err)
+				return
+			}
+			fmt.Println("Selected files deleted.")
 			break
 		}
 	}
-	// git clean -f -- <file1> <file2> ...
-	args := append([]string{"clean", "-f", "--"}, selected...)
-	cleanCmd := exec.Command("git", args...)
-	cleanCmd.Stdout = os.Stdout
-	cleanCmd.Stderr = os.Stderr
-	if err := cleanCmd.Run(); err != nil {
-		fmt.Printf("Error: failed to clean files: %v\n", err)
-		return
-	}
-	fmt.Println("Selected files deleted.")
 }

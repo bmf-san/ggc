@@ -37,7 +37,6 @@ func CommitPushInteractive() {
 		return
 	}
 	reader := bufio.NewReader(os.Stdin)
-	selected := []string{}
 	for {
 		fmt.Println("\033[1;36mSelect files to add by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, f := range files {
@@ -51,11 +50,17 @@ func CommitPushInteractive() {
 			return
 		}
 		if input == "all" {
-			selected = files
+			addArgs := append([]string{"add"}, files...)
+			addCmd := exec.Command("git", addArgs...)
+			addCmd.Stdout = os.Stdout
+			addCmd.Stderr = os.Stderr
+			if err := addCmd.Run(); err != nil {
+				fmt.Printf("Error: failed to add files: %v\n", err)
+				return
+			}
 			break
 		}
 		if input == "none" {
-			selected = []string{}
 			continue
 		}
 		indices := strings.Fields(input)
@@ -73,29 +78,26 @@ func CommitPushInteractive() {
 		if !valid {
 			continue
 		}
-		selected = tmp
-		if len(selected) == 0 {
+		if len(tmp) == 0 {
 			fmt.Println("\033[1;33mNothing selected.\033[0m")
 			continue
 		}
 		// Confirmation prompt
-		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", selected)
+		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", tmp)
 		fmt.Print("Add these files? (y/n): ")
 		ans, _ := reader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
+			addArgs := append([]string{"add"}, tmp...)
+			addCmd := exec.Command("git", addArgs...)
+			addCmd.Stdout = os.Stdout
+			addCmd.Stderr = os.Stderr
+			if err := addCmd.Run(); err != nil {
+				fmt.Printf("Error: failed to add files: %v\n", err)
+				return
+			}
 			break
 		}
-	}
-
-	// 3. git add 実行
-	addArgs := append([]string{"add"}, selected...)
-	addCmd := exec.Command("git", addArgs...)
-	addCmd.Stdout = os.Stdout
-	addCmd.Stderr = os.Stderr
-	if err := addCmd.Run(); err != nil {
-		fmt.Printf("Error: failed to add files: %v\n", err)
-		return
 	}
 
 	// 4. コミットメッセージ入力
