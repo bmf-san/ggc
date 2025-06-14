@@ -7,18 +7,29 @@ import (
 )
 
 func Pull(args []string) {
-	if len(args) > 0 && args[0] == "current" {
-		err := git.PullCurrentBranch()
-		if err != nil {
-			fmt.Println("エラー:", err)
+	if len(args) > 0 {
+		switch args[0] {
+		case "current":
+			err := git.PullCurrentBranch()
+			if err != nil {
+				fmt.Println("エラー:", err)
+				return
+			}
+			fmt.Println("現在のブランチをpullしました")
+			return
+		case "rebase":
+			err := git.PullRebaseCurrentBranch()
+			if err != nil {
+				fmt.Println("エラー:", err)
+				return
+			}
+			fmt.Println("rebase付きでpullしました")
 			return
 		}
-		fmt.Println("現在のブランチをpullしました")
-		return
 	}
 	ShowPullHelp()
 }
 
 func ShowPullHelp() {
-	fmt.Println("使用例: gg pull current")
+	fmt.Println("使用例: gcl pull current | gcl pull rebase")
 }
