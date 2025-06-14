@@ -20,6 +20,10 @@ func Route(args []string) {
 		cmd.Log(args[2:])
 	case "commit":
 		cmd.Commit(args[2:])
+	case "add":
+		cmd.Add(args[2:])
+	case "fetch":
+		cmd.Fetch(args[2:])
 	default:
 		cmd.ShowHelp()
 	}
