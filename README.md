@@ -65,6 +65,7 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl commit-push        | git add ... → git commit ... → git push | 対話的にadd/commit/push一括実行 |
 | gcl clean interactive        | git clean -nd → git clean -f -- <選択>   | 対話的に削除ファイル選択・クリーン |
 | gcl stash trash              | git add . → git stash                   | 変更ファイルをaddしてstash         |
+| gcl rebase interactive       | git log ... → git rebase -i HEAD~N         | 対話的にHEAD~Nまでrebase           |
 
 ### 主なコマンド例
 
@@ -86,6 +87,7 @@ gcl <コマンド> [サブコマンド] [オプション]
 - gcl commit-push
 - gcl clean interactive
 - gcl stash trash
+- gcl rebase interactive
 
 ## ディレクトリ構成
 

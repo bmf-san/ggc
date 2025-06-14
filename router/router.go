@@ -34,6 +34,8 @@ func Route(args []string) {
 		cmd.CommitPushInteractive()
 	case "stash":
 		cmd.Stash(args[2:])
+	case "rebase":
+		cmd.Rebase(args[2:])
 	default:
 		cmd.ShowHelp()
 	}
