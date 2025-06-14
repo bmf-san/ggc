@@ -24,6 +24,8 @@ func Route(args []string) {
 		cmd.Add(args[2:])
 	case "fetch":
 		cmd.Fetch(args[2:])
+	case "clean":
+		cmd.Clean(args[2:])
 	default:
 		cmd.ShowHelp()
 	}
