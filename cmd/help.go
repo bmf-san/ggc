@@ -35,8 +35,15 @@ Examples:
   gcl add .
   gcl branch current
   gcl push current
+  gcl push force
   gcl pull current
+  gcl pull rebase
   gcl log simple
+  gcl log graph
   gcl commit allow-empty
+  gcl commit tmp
+  gcl fetch --prune
+  gcl clean files
+  gcl clean dirs
 `)
 }
