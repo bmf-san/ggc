@@ -38,6 +38,14 @@ func Route(args []string) {
 		cmd.Rebase(args[2:])
 	case "remote":
 		cmd.Remote(args[2:])
+	case "add-commit-push":
+		cmd.AddCommitPush()
+	case "pull-rebase-push":
+		cmd.PullRebasePush()
+	case "stash-pull-pop":
+		cmd.StashPullPop()
+	case "reset-clean":
+		cmd.ResetClean()
 	default:
 		cmd.ShowHelp()
 	}

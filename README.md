@@ -80,6 +80,10 @@ gcl <コマンド> [サブコマンド] [オプション]
 | gcl remote add <name> <url>     | git remote add <name> <url>              | リモート追加                         |
 | gcl remote remove <name>        | git remote remove <name>                 | リモート削除                         |
 | gcl remote set-url <name> <url> | git remote set-url <name> <url>          | リモートURL変更                      |
+| gcl add-commit-push          | git add . → git commit ... → git push      | すべてadd→commit→push一発実行         |
+| gcl pull-rebase-push         | git pull → git rebase origin/main → git push | pull→rebase→push一発実行              |
+| gcl stash-pull-pop           | git stash → git pull → git stash pop        | stash→pull→pop一発実行                |
+| gcl reset-clean              | git reset --hard HEAD → git clean -fd       | reset→clean一発実行                   |
 
 ## ディレクトリ構成
 
