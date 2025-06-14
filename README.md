@@ -12,12 +12,30 @@
 
 ## インストール
 
+### 1. make build でバイナリ生成
+
 ```sh
 git clone <このリポジトリURL>
 make build
 ```
 
 `gcl` バイナリをパスの通ったディレクトリに配置してください。
+
+### 2. go install でグローバルインストール
+
+```sh
+go install .
+```
+
+- `$GOBIN`（通常は `$HOME/go/bin`）に `gcl` バイナリがインストールされます。
+- `$GOBIN` が `PATH` に含まれていれば、どこからでも `gcl` コマンドが使えます。
+- もし `PATH` が通っていない場合は、以下を追加してください：
+
+```sh
+export PATH=$PATH:$(go env GOBIN)
+# または
+export PATH=$PATH:$HOME/go/bin
+```
 
 ## 使い方
 

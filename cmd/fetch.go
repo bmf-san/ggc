@@ -11,9 +11,7 @@ func Fetch(args []string) {
 		err := git.FetchPrune()
 		if err != nil {
 			fmt.Println("エラー:", err)
-			return
 		}
-		fmt.Println("fetch --prune を実行しました")
 		return
 	}
 	ShowFetchHelp()

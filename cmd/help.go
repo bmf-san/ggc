@@ -3,7 +3,7 @@ package cmd
 import "fmt"
 
 func ShowHelp() {
-	fmt.Println(`gcl: Git操作を効率化するGo製CLIツール
+	fmt.Print(`gcl: Git操作を効率化するGo製CLIツール
 
 Usage:
   gcl <command> [subcommand] [options]

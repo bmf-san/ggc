@@ -1,12 +1,12 @@
 package git
 
 import (
-	"os/exec"
+	"os"
 )
 
 func FetchPrune() error {
-	cmd := exec.Command("git", "fetch", "--prune")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "fetch", "--prune")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

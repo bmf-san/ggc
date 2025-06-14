@@ -13,17 +13,13 @@ func Commit(args []string) {
 			err := git.CommitAllowEmpty()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("空コミットを作成しました")
 			return
 		case "tmp":
 			err := git.CommitTmp()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("一時コミット(tmp)を作成しました")
 			return
 		}
 	}

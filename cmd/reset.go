@@ -11,9 +11,7 @@ func Reset(args []string) {
 		err := git.ResetClean()
 		if err != nil {
 			fmt.Println("エラー:", err)
-			return
 		}
-		fmt.Println("reset --hard HEAD + clean -fd を実行しました")
 		return
 	}
 	ShowResetHelp()

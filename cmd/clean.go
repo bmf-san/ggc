@@ -13,17 +13,13 @@ func Clean(args []string) {
 			err := git.CleanFiles()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("git clean -f を実行しました")
 			return
 		case "dirs":
 			err := git.CleanDirs()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("git clean -d を実行しました")
 			return
 		}
 	}

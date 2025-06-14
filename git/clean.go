@@ -1,19 +1,19 @@
 package git
 
 import (
-	"os/exec"
+	"os"
 )
 
 func CleanFiles() error {
-	cmd := exec.Command("git", "clean", "-f")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "clean", "-f")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
 func CleanDirs() error {
-	cmd := exec.Command("git", "clean", "-d")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "clean", "-d")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

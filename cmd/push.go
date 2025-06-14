@@ -13,17 +13,13 @@ func Push(args []string) {
 			err := git.PushCurrentBranch()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("現在のブランチをpushしました")
 			return
 		case "force":
 			err := git.PushForceCurrentBranch()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("現在のブランチを強制pushしました")
 			return
 		}
 	}

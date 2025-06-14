@@ -13,17 +13,13 @@ func Pull(args []string) {
 			err := git.PullCurrentBranch()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("現在のブランチをpullしました")
 			return
 		case "rebase":
 			err := git.PullRebaseCurrentBranch()
 			if err != nil {
 				fmt.Println("エラー:", err)
-				return
 			}
-			fmt.Println("rebase付きでpullしました")
 			return
 		}
 	}

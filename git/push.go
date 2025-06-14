@@ -1,27 +1,31 @@
 package git
 
 import (
+	"os"
 	"os/exec"
 )
 
+var execCommand = exec.Command
+var getCurrentBranch = GetCurrentBranch
+
 func PushCurrentBranch() error {
-	branch, err := GetCurrentBranch()
+	branch, err := getCurrentBranch()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("git", "push", "origin", branch)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "push", "origin", branch)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
 func PushForceCurrentBranch() error {
-	branch, err := GetCurrentBranch()
+	branch, err := getCurrentBranch()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("git", "push", "--force", "origin", branch)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "push", "--force", "origin", branch)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
