@@ -12,12 +12,30 @@
 
 ## インストール
 
+### 1. make build でバイナリ生成
+
 ```sh
 git clone <このリポジトリURL>
 make build
 ```
 
 `gcl` バイナリをパスの通ったディレクトリに配置してください。
+
+### 2. go install でグローバルインストール
+
+```sh
+go install .
+```
+
+- `$GOBIN`（通常は `$HOME/go/bin`）に `gcl` バイナリがインストールされます。
+- `$GOBIN` が `PATH` に含まれていれば、どこからでも `gcl` コマンドが使えます。
+- もし `PATH` が通っていない場合は、以下を追加してください：
+
+```sh
+export PATH=$PATH:$(go env GOBIN)
+# または
+export PATH=$PATH:$HOME/go/bin
+```
 
 ## 使い方
 
@@ -30,9 +48,14 @@ gcl <コマンド> [サブコマンド] [オプション]
 - ファイルをステージング: `gcl add <file>`
 - ブランチ名表示: `gcl branch current`
 - 現在のブランチを push: `gcl push current`
+- 現在のブランチを強制push: `gcl push force`
 - 現在のブランチを pull: `gcl pull current`
+- rebase付きpull: `gcl pull rebase`
 - ログ表示: `gcl log simple` / `gcl log graph`
 - 空コミット: `gcl commit allow-empty`
+- 一時コミット: `gcl commit tmp`
+- fetch --prune: `gcl fetch --prune`
+- クリーン: `gcl clean files` / `gcl clean dirs`
 
 ### コマンド一覧
 
@@ -47,10 +70,10 @@ gcl
 │   └── delete-merged       # マージ済みブランチを一括削除（今後実装）
 ├── pull
 │   ├── current             # 現在のブランチを pull
-│   └── rebase              # rebase付き pull（今後実装）
+│   └── rebase              # rebase付き pull
 ├── push
 │   ├── current             # 現在のブランチを push
-│   └── force               # HEAD を強制 push（今後実装）
+│   └── force               # HEAD を強制 push
 ├── stash
 │   └── trash               # git add . && stash（今後実装）
 ├── log
@@ -58,13 +81,13 @@ gcl
 │   └── graph               # git log --graph
 ├── commit
 │   ├── allow-empty         # 空コミット
-│   ├── tmp                 # 一時コミット（今後実装）
+│   ├── tmp                 # 一時コミット
 │   └── push [-i]           # 対話的 add → commit → push（今後実装）
 ├── fetch
-│   └── --prune             # fetch --prune（今後実装）
+│   └── --prune             # fetch --prune
 ├── clean
-│   ├── files               # git clean -f（今後実装）
-│   └── dirs                # git clean -d（今後実装）
+│   ├── files               # git clean -f
+│   └── dirs                # git clean -d
 ├── reset
 │   └── clean               # reset --hard HEAD + clean -fd（今後実装）
 ├── rebase
@@ -83,15 +106,19 @@ cmd/                     # 各コマンドのエントリ処理
   ├── help.go
   ├── log.go
   ├── pull.go
-  └── push.go
-...
+  ├── push.go
+  ├── fetch.go
+  ├── clean.go
+  ...
 git/                     # Git操作のラッパー
   ├── branch.go
   ├── commit.go
   ├── log.go
   ├── pull.go
-  └── push.go
-...
+  ├── push.go
+  ├── fetch.go
+  ├── clean.go
+  ...
 ```
 
 ## 補完スクリプト

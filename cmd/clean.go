@@ -6,26 +6,26 @@ import (
 	"github.com/bmf-san/gcl/git"
 )
 
-func Pull(args []string) {
+func Clean(args []string) {
 	if len(args) > 0 {
 		switch args[0] {
-		case "current":
-			err := git.PullCurrentBranch()
+		case "files":
+			err := git.CleanFiles()
 			if err != nil {
 				fmt.Println("エラー:", err)
 			}
 			return
-		case "rebase":
-			err := git.PullRebaseCurrentBranch()
+		case "dirs":
+			err := git.CleanDirs()
 			if err != nil {
 				fmt.Println("エラー:", err)
 			}
 			return
 		}
 	}
-	ShowPullHelp()
+	ShowCleanHelp()
 }
 
-func ShowPullHelp() {
-	fmt.Println("使用例: gcl pull current | gcl pull rebase")
+func ShowCleanHelp() {
+	fmt.Println("使用例: gcl clean files | gcl clean dirs")
 }

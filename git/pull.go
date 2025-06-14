@@ -1,16 +1,27 @@
 package git
 
 import (
-	"os/exec"
+	"os"
 )
 
 func PullCurrentBranch() error {
-	branch, err := GetCurrentBranch()
+	branch, err := getCurrentBranch()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("git", "pull", "origin", branch)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "pull", "origin", branch)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func PullRebaseCurrentBranch() error {
+	branch, err := getCurrentBranch()
+	if err != nil {
+		return err
+	}
+	cmd := execCommand("git", "pull", "--rebase", "origin", branch)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

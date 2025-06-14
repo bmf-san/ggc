@@ -1,12 +1,19 @@
 package git
 
 import (
-	"os/exec"
+	"os"
 )
 
 func CommitAllowEmpty() error {
-	cmd := exec.Command("git", "commit", "--allow-empty", "-m", "empty commit")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := execCommand("git", "commit", "--allow-empty", "-m", "empty commit")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func CommitTmp() error {
+	cmd := execCommand("git", "commit", "-m", "tmp")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
