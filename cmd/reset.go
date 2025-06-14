@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Reset(args []string) {
@@ -18,5 +18,5 @@ func Reset(args []string) {
 }
 
 func ShowResetHelp() {
-	fmt.Println("Usage: gcl reset clean")
+	fmt.Println("Usage: ggc reset clean")
 }

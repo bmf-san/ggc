@@ -137,7 +137,7 @@ func InteractiveUI() []string {
 				for ph, val := range inputs {
 					finalCmd = strings.ReplaceAll(finalCmd, "<"+ph+">", val)
 				}
-				args := []string{"gcl"}
+				args := []string{"ggc"}
 				args = append(args, strings.Fields(finalCmd)...)
 				return args
 			}

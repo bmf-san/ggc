@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Commit(args []string) {
@@ -27,5 +27,5 @@ func Commit(args []string) {
 }
 
 func ShowCommitHelp() {
-	fmt.Println("Usage: gcl commit allow-empty | gcl commit tmp")
+	fmt.Println("Usage: ggc commit allow-empty | ggc commit tmp")
 }

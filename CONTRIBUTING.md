@@ -21,7 +21,7 @@ Thank you for your interest in contributing to this repository! Bug reports, fea
 ## Testing
 - macOS/Linux/WSL2 are recommended environments
 - Use `make build` to build the binary, `make test` to run tests
-- Update the completion script (`tools/completions/gcl.bash`) as needed
+- Update the completion script (`tools/completions/ggc.bash`) as needed
 
 ## Other
 - If unsure, please open an Issue for discussion first!

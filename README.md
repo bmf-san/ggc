@@ -1,14 +1,15 @@
-# gcl
+# ggc
 
 ## Overview
 
-gcl is a CLI tool written in Go to streamline Git operations. It aims to be a maintainable and extensible alternative to shell scripts and aliases, using only the Go standard library with minimal dependencies.
+ggc is a Git tool written in Go, providing both a traditional command-line interface (CLI) and an interactive character user interface (CUI) with incremental search. It is designed to be fast, user-friendly, and extensible. (Go Git CLI & CUI)
 
 ## Features
+- Traditional command-line interface (CLI): run `ggc <command> [args]` for direct operations
+- Interactive character user interface (CUI): run `ggc` with no arguments to launch an incremental search UI for command selection
 - Simple commands for common Git operations (add, push, pull, branch, log, etc.)
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
-- Incremental search UI for command selection (just run `gcl` with no arguments)
 - All prompts and UI are in English
 - All prompts and command inputs are always aligned to the left (no terminal right-shift issues)
 - Implemented using only the Go standard library (+ golang.org/x/term)
@@ -28,16 +29,16 @@ git clone <repository URL>
 make build
 ```
 
-Place the `gcl` binary in a directory included in your PATH.
+Place the `ggc` binary in a directory included in your PATH.
 
 ### Global install with go install
 
 ```sh
-go install github.com/bmf-san/gcl@latest
+go install github.com/bmf-san/ggc@latest
 ```
 
-- The `gcl` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
-- If `$GOBIN` is in your `PATH`, you can use `gcl` from anywhere.
+- The `ggc` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
+- If `$GOBIN` is in your `PATH`, you can use `ggc` from anywhere.
 - If not, add it to your `PATH`:
 
 ```sh
@@ -53,7 +54,7 @@ export PATH=$PATH:$HOME/go/bin
 Just run:
 
 ```sh
-gcl
+ggc
 ```
 
 - Type to filter commands (incremental search)
@@ -63,36 +64,36 @@ gcl
 
 ### Main Command Examples
 
-|     gcl Command Example      |       Actual git Command       |              Description               |
+|     ggc Command Example      |       Actual git Command       |              Description               |
 | --------------------------- | ------------------------------ | -------------------------------------- |
-| gcl add <file>              | git add <file>                 | Stage file(s)                          |
-| gcl add -p                  | git add -p                     | Interactive hunk selection (patch mode) |
-| gcl branch current          | git rev-parse --abbrev-ref HEAD| Show current branch name               |
-| gcl branch checkout         | git branch ... → git checkout <selected> | Interactive branch switch     |
-| gcl branch checkout-remote  | git branch -r ... → git checkout -b ... --track ... | Create and checkout new local branch from remote |
-| gcl branch delete           | git branch ... → git branch -d <selected> | Interactive delete local branches |
-| gcl branch delete-merged    | git branch --merged ... → git branch -d <selected> | Interactive delete merged local branches |
-| gcl push current            | git push origin <branch>        | Push current branch                    |
-| gcl push force              | git push --force origin <branch>| Force push current branch              |
-| gcl pull current            | git pull origin <branch>        | Pull current branch                    |
-| gcl pull rebase             | git pull --rebase origin <branch>| Pull with rebase                      |
-| gcl log simple              | git log --oneline               | Show simple log                        |
-| gcl log graph               | git log --graph                 | Show log with graph                    |
-| gcl commit allow-empty      | git commit --allow-empty -m ... | Create empty commit                    |
-| gcl commit tmp              | git commit -m "tmp"             | Temporary commit                       |
-| gcl fetch --prune           | git fetch --prune               | Fetch with prune                       |
-| gcl clean files             | git clean -f                    | Clean files                            |
-| gcl clean dirs              | git clean -d                    | Clean directories                      |
-| gcl reset clean             | git reset --hard HEAD; git clean -fd | Reset and clean                   |
-| gcl commit-push             | Interactive add/commit/push     | Select files, commit, and push interactively |
-| gcl add-commit-push         | git add . → git commit ... → git push | Add, commit, and push all at once |
-| gcl pull-rebase-push        | git pull → git rebase origin/main → git push | Pull, rebase, and push all at once |
-| gcl stash-pull-pop          | git stash → git pull → git stash pop | Stash, pull, and pop all at once  |
-| gcl reset-clean             | git reset --hard HEAD → git clean -fd | Reset and clean all at once        |
-| gcl remote list             | git remote -v                   | Show remotes                           |
-| gcl remote add <name> <url> | git remote add <name> <url>     | Add remote                             |
-| gcl remote remove <name>    | git remote remove <name>        | Remove remote                          |
-| gcl remote set-url <name> <url> | git remote set-url <name> <url> | Change remote URL                  |
+| ggc add <file>              | git add <file>                 | Stage file(s)                          |
+| ggc add -p                  | git add -p                     | Interactive hunk selection (patch mode) |
+| ggc branch current          | git rev-parse --abbrev-ref HEAD| Show current branch name               |
+| ggc branch checkout         | git branch ... → git checkout <selected> | Interactive branch switch     |
+| ggc branch checkout-remote  | git branch -r ... → git checkout -b ... --track ... | Create and checkout new local branch from remote |
+| ggc branch delete           | git branch ... → git branch -d <selected> | Interactive delete local branches |
+| ggc branch delete-merged    | git branch --merged ... → git branch -d <selected> | Interactive delete merged local branches |
+| ggc push current            | git push origin <branch>        | Push current branch                    |
+| ggc push force              | git push --force origin <branch>| Force push current branch              |
+| ggc pull current            | git pull origin <branch>        | Pull current branch                    |
+| ggc pull rebase             | git pull --rebase origin <branch>| Pull with rebase                      |
+| ggc log simple              | git log --oneline               | Show simple log                        |
+| ggc log graph               | git log --graph                 | Show log with graph                    |
+| ggc commit allow-empty      | git commit --allow-empty -m ... | Create empty commit                    |
+| ggc commit tmp              | git commit -m "tmp"             | Temporary commit                       |
+| ggc fetch --prune           | git fetch --prune               | Fetch with prune                       |
+| ggc clean files             | git clean -f                    | Clean files                            |
+| ggc clean dirs              | git clean -d                    | Clean directories                      |
+| ggc reset clean             | git reset --hard HEAD; git clean -fd | Reset and clean                   |
+| ggc commit-push             | Interactive add/commit/push     | Select files, commit, and push interactively |
+| ggc add-commit-push         | git add . → git commit ... → git push | Add, commit, and push all at once |
+| ggc pull-rebase-push        | git pull → git rebase origin/main → git push | Pull, rebase, and push all at once |
+| ggc stash-pull-pop          | git stash → git pull → git stash pop | Stash, pull, and pop all at once  |
+| ggc reset-clean             | git reset --hard HEAD → git clean -fd | Reset and clean all at once        |
+| ggc remote list             | git remote -v                   | Show remotes                           |
+| ggc remote add <name> <url> | git remote add <name> <url>     | Add remote                             |
+| ggc remote remove <name>    | git remote remove <name>        | Remove remote                          |
+| ggc remote set-url <name> <url> | git remote set-url <name> <url> | Change remote URL                  |
 
 ## Directory Structure
 
@@ -105,13 +106,13 @@ git/                     # Git operation wrappers
 
 ## Completion Script
 
-A bash completion script is available at `tools/completions/gcl.bash`.
+A bash completion script is available at `tools/completions/ggc.bash`.
 
 ### How to Enable (bash/zsh)
 
 ```sh
 # For bash
-source /path/to/gcl/tools/completions/gcl.bash
+source /path/to/ggc/tools/completions/ggc.bash
 # For zsh, you can also use source
 ```
 
@@ -119,7 +120,7 @@ source /path/to/gcl/tools/completions/gcl.bash
 - Subcommand completion is supported.
 
 ## Future Plans
-- Custom configuration via `.gclconfig`
+- Custom configuration via `.ggcconfig`
 - Mock implementation for testing
 - More composite commands and interactive UI
 

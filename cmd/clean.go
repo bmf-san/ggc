@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Clean(args []string) {
@@ -32,7 +32,7 @@ func Clean(args []string) {
 }
 
 func ShowCleanHelp() {
-	fmt.Println("Usage: gcl clean files | gcl clean dirs")
+	fmt.Println("Usage: ggc clean files | ggc clean dirs")
 }
 
 // Interactively select files to clean

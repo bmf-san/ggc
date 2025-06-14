@@ -1,6 +1,6 @@
 # Makefile for Go project
 
-APP_NAME=gcl
+APP_NAME=ggc
 
 .PHONY: all build run clean test lint
 

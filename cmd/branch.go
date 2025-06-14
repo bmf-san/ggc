@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Branch(args []string) {
@@ -240,5 +240,5 @@ func branchDeleteMerged() {
 }
 
 func ShowBranchHelp() {
-	fmt.Println("Usage: gcl branch current | gcl branch checkout | gcl branch checkout-remote | gcl branch delete | gcl branch delete-merged")
+	fmt.Println("Usage: ggc branch current | ggc branch checkout | ggc branch checkout-remote | ggc branch delete | ggc branch delete-merged")
 }

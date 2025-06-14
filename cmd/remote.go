@@ -13,21 +13,21 @@ func Remote(args []string) {
 			return
 		case "add":
 			if len(args) < 3 {
-				fmt.Println("Usage: gcl remote add <name> <url>")
+				fmt.Println("Usage: ggc remote add <name> <url>")
 				return
 			}
 			remoteAdd(args[1], args[2])
 			return
 		case "remove":
 			if len(args) < 2 {
-				fmt.Println("Usage: gcl remote remove <name>")
+				fmt.Println("Usage: ggc remote remove <name>")
 				return
 			}
 			remoteRemove(args[1])
 			return
 		case "set-url":
 			if len(args) < 3 {
-				fmt.Println("Usage: gcl remote set-url <name> <url>")
+				fmt.Println("Usage: ggc remote set-url <name> <url>")
 				return
 			}
 			remoteSetURL(args[1], args[2])
@@ -81,5 +81,5 @@ func remoteSetURL(name, url string) {
 }
 
 func ShowRemoteHelp() {
-	fmt.Println("Usage: gcl remote list | gcl remote add <name> <url> | gcl remote remove <name> | gcl remote set-url <name> <url>")
+	fmt.Println("Usage: ggc remote list | ggc remote add <name> <url> | ggc remote remove <name> | ggc remote set-url <name> <url>")
 }

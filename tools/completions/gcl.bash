@@ -1,5 +1,5 @@
-# bash completion for gcl
-_gcl()
+# bash completion for ggc
+_ggc()
 {
     local cur prev opts subopts
     COMPREPLY=()
@@ -69,16 +69,16 @@ _gcl()
     # Dynamic completion for branch checkout
     if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "checkout" ]]; then
         local branches
-        branches=$(gcl __complete branch 2>/dev/null)
+        branches=$(ggc __complete branch 2>/dev/null)
         COMPREPLY=( $(compgen -W "${branches}" -- ${cur}) )
         return 0
     fi
     # Dynamic completion for add
     if [[ ${COMP_WORDS[1]} == "add" ]]; then
         local files
-        files=$(gcl __complete files 2>/dev/null)
+        files=$(ggc __complete files 2>/dev/null)
         COMPREPLY=( $(compgen -W "${files}" -- ${cur}) )
         return 0
     fi
 }
-complete -F _gcl gcl
+complete -F _ggc ggc

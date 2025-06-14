@@ -3,45 +3,45 @@ package cmd
 import "fmt"
 
 func ShowHelp() {
-	fmt.Print(`gcl: A Go-based CLI tool to streamline Git operations
+	fmt.Print(`ggc: A Go-based CLI tool to streamline Git operations
 
 Usage:
-  gcl <command> [subcommand] [options]
+  ggc <command> [subcommand] [options]
 
 Main Commands:
-  gcl add <file>              Stage file(s)
-  gcl branch current          Show current branch name
-  gcl branch checkout         Interactive branch switch
-  gcl push current            Push current branch
-  gcl push force              Force push current branch
-  gcl pull current            Pull current branch
-  gcl pull rebase             Pull with rebase
-  gcl log simple              Show simple log
-  gcl log graph               Show log with graph
-  gcl commit allow-empty      Create empty commit
-  gcl commit tmp              Temporary commit
-  gcl fetch --prune           Fetch with prune
-  gcl clean files             Clean files
-  gcl clean dirs              Clean directories
-  gcl reset clean             Reset and clean
-  gcl commit-push             Interactive add/commit/push
+  ggc add <file>              Stage file(s)
+  ggc branch current          Show current branch name
+  ggc branch checkout         Interactive branch switch
+  ggc push current            Push current branch
+  ggc push force              Force push current branch
+  ggc pull current            Pull current branch
+  ggc pull rebase             Pull with rebase
+  ggc log simple              Show simple log
+  ggc log graph               Show log with graph
+  ggc commit allow-empty      Create empty commit
+  ggc commit tmp              Temporary commit
+  ggc fetch --prune           Fetch with prune
+  ggc clean files             Clean files
+  ggc clean dirs              Clean directories
+  ggc reset clean             Reset and clean
+  ggc commit-push             Interactive add/commit/push
 
 Examples:
-  gcl add .
-  gcl branch current
-  gcl branch checkout
-  gcl push current
-  gcl push force
-  gcl pull current
-  gcl pull rebase
-  gcl log simple
-  gcl log graph
-  gcl commit allow-empty
-  gcl commit tmp
-  gcl fetch --prune
-  gcl clean files
-  gcl clean dirs
-  gcl reset clean
-  gcl commit-push
+  ggc add .
+  ggc branch current
+  ggc branch checkout
+  ggc push current
+  ggc push force
+  ggc pull current
+  ggc pull rebase
+  ggc log simple
+  ggc log graph
+  ggc commit allow-empty
+  ggc commit tmp
+  ggc fetch --prune
+  ggc clean files
+  ggc clean dirs
+  ggc reset clean
+  ggc commit-push
 `)
 }

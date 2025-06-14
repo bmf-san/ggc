@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/bmf-san/gcl/git"
+	"github.com/bmf-san/ggc/git"
 )
 
 func Log(args []string) {
@@ -36,5 +36,5 @@ func logGraph() error {
 }
 
 func ShowLogHelp() {
-	fmt.Println("Usage: gcl log simple | gcl log graph")
+	fmt.Println("Usage: ggc log simple | ggc log graph")
 }

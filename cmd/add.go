@@ -8,7 +8,7 @@ import (
 
 func Add(args []string) {
 	if len(args) == 0 {
-		fmt.Println("Usage: gcl add <file> | gcl add -p")
+		fmt.Println("Usage: ggc add <file> | ggc add -p")
 		return
 	}
 	if len(args) == 1 && args[0] == "-p" {

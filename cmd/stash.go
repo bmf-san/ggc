@@ -30,5 +30,5 @@ func Stash(args []string) {
 }
 
 func ShowStashHelp() {
-	fmt.Println("Usage: gcl stash trash")
+	fmt.Println("Usage: ggc stash trash")
 }
