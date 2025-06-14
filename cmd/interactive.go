@@ -53,14 +53,20 @@ func InteractiveUI() []string {
 		fmt.Println("Failed to set terminal to raw mode:", err)
 		return nil
 	}
-	defer term.Restore(fd, oldState)
+	defer func() {
+		if err := term.Restore(fd, oldState); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
+		}
+	}()
 
 	// For Ctrl+C exit
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		term.Restore(fd, oldState)
+		if err := term.Restore(fd, oldState); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
+		}
 		os.Exit(0)
 	}()
 
@@ -69,7 +75,9 @@ func InteractiveUI() []string {
 	input := ""
 
 	for {
-		os.Stdout.Write([]byte("\033[H\033[2J\033[H"))
+		if _, err := os.Stdout.Write([]byte("\033[H\033[2J\033[H")); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to write clear screen sequence:", err)
+		}
 		fmt.Printf("Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, Enter: execute, Ctrl+C: quit)\n")
 		fmt.Printf("\rSearch: %s\n\n", input)
 
@@ -109,7 +117,9 @@ func InteractiveUI() []string {
 		if b == 13 { // Enter
 			if len(filtered) > 0 {
 				fmt.Printf("\nExecute: %s\n", filtered[selected])
-				term.Restore(fd, oldState)
+				if err := term.Restore(fd, oldState); err != nil {
+					fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
+				}
 				// Placeholder detection
 				cmdTemplate := filtered[selected]
 				placeholders := extractPlaceholders(cmdTemplate)
@@ -128,9 +138,7 @@ func InteractiveUI() []string {
 					finalCmd = strings.ReplaceAll(finalCmd, "<"+ph+">", val)
 				}
 				args := []string{"gcl"}
-				for _, s := range strings.Fields(finalCmd) {
-					args = append(args, s)
-				}
+				args = append(args, strings.Fields(finalCmd)...)
 				return args
 			}
 			break
