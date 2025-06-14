@@ -23,7 +23,7 @@ func Complete(args []string) {
 			fmt.Println(b)
 		}
 	case "files":
-		// git ls-files で管理下ファイル一覧を取得
+		// Get list of files managed by git ls-files
 		cmd := exec.Command("git", "ls-files")
 		out, err := cmd.Output()
 		if err != nil {
@@ -34,6 +34,6 @@ func Complete(args []string) {
 			fmt.Println(f)
 		}
 	default:
-		// 今後他の補完も追加可能
+		// Other completions can be added in the future
 	}
 }

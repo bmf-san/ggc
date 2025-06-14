@@ -11,7 +11,7 @@ import (
 
 // Show interactive add/commit/push
 func CommitPushInteractive() {
-	// 1. git status --porcelain で変更ファイル一覧取得
+	// 1. Get changed files with git status --porcelain
 	cmd := exec.Command("git", "status", "--porcelain")
 	out, err := cmd.Output()
 	if err != nil {
@@ -24,7 +24,7 @@ func CommitPushInteractive() {
 		return
 	}
 
-	// 2. ファイル一覧を番号付きで表示
+	// 2. Show file list with numbers
 	files := []string{}
 	for _, line := range lines {
 		if len(line) < 4 {
@@ -100,7 +100,7 @@ func CommitPushInteractive() {
 		}
 	}
 
-	// 4. コミットメッセージ入力
+	fmt.Print("\n\r")
 	fmt.Print("Enter commit message: ")
 	msg, _ := reader.ReadString('\n')
 	msg = strings.TrimSpace(msg)
@@ -109,7 +109,7 @@ func CommitPushInteractive() {
 		return
 	}
 
-	// 5. git commit 実行
+	// 5. Run git commit
 	commitCmd := exec.Command("git", "commit", "-m", msg)
 	commitCmd.Stdout = os.Stdout
 	commitCmd.Stderr = os.Stderr
@@ -118,7 +118,7 @@ func CommitPushInteractive() {
 		return
 	}
 
-	// 6. 現在のブランチ名取得
+	// 6. Get current branch name
 	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	branchOut, err := branchCmd.Output()
 	if err != nil {
@@ -127,7 +127,7 @@ func CommitPushInteractive() {
 	}
 	branch := strings.TrimSpace(string(branchOut))
 
-	// 7. git push 実行
+	// 7. Run git push
 	pushCmd := exec.Command("git", "push", "origin", branch)
 	pushCmd.Stdout = os.Stdout
 	pushCmd.Stderr = os.Stderr

@@ -7,11 +7,11 @@ import (
 )
 
 func PullRebasePush() {
-	// 現在のブランチ名取得
+	// Get current branch name
 	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	branchOut, err := branchCmd.Output()
 	if err != nil {
-		fmt.Printf("エラー: ブランチ名の取得に失敗しました: %v\n", err)
+		fmt.Printf("Error: Failed to get branch name: %v\n", err)
 		return
 	}
 	branch := strings.TrimSpace(string(branchOut))
@@ -20,7 +20,7 @@ func PullRebasePush() {
 	pullCmd.Stdout = nil
 	pullCmd.Stderr = nil
 	if err := pullCmd.Run(); err != nil {
-		fmt.Printf("エラー: git pull に失敗しました: %v\n", err)
+		fmt.Printf("Error: Failed to git pull: %v\n", err)
 		return
 	}
 	// git rebase origin/main
@@ -28,7 +28,7 @@ func PullRebasePush() {
 	rebaseCmd.Stdout = nil
 	rebaseCmd.Stderr = nil
 	if err := rebaseCmd.Run(); err != nil {
-		fmt.Printf("エラー: git rebase に失敗しました: %v\n", err)
+		fmt.Printf("Error: Failed to git rebase: %v\n", err)
 		return
 	}
 	// git push
@@ -36,8 +36,8 @@ func PullRebasePush() {
 	pushCmd.Stdout = nil
 	pushCmd.Stderr = nil
 	if err := pushCmd.Run(); err != nil {
-		fmt.Printf("エラー: git push に失敗しました: %v\n", err)
+		fmt.Printf("Error: Failed to git push: %v\n", err)
 		return
 	}
-	fmt.Println("pull→rebase→push 完了")
+	fmt.Println("pull→rebase→push completed")
 }

@@ -12,14 +12,14 @@ func StashPullPop() {
 	stashCmd.Stdout = nil
 	stashCmd.Stderr = nil
 	if err := stashCmd.Run(); err != nil {
-		fmt.Printf("エラー: git stash に失敗しました: %v\n", err)
+		fmt.Printf("error: failed to git stash: %v\n", err)
 		return
 	}
-	// 現在のブランチ名取得
+	// Get current branch name
 	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	branchOut, err := branchCmd.Output()
 	if err != nil {
-		fmt.Printf("エラー: ブランチ名の取得に失敗しました: %v\n", err)
+		fmt.Printf("error: failed to get branch name: %v\n", err)
 		return
 	}
 	branch := strings.TrimSpace(string(branchOut))
@@ -28,7 +28,7 @@ func StashPullPop() {
 	pullCmd.Stdout = nil
 	pullCmd.Stderr = nil
 	if err := pullCmd.Run(); err != nil {
-		fmt.Printf("エラー: git pull に失敗しました: %v\n", err)
+		fmt.Printf("error: failed to git pull: %v\n", err)
 		return
 	}
 	// git stash pop
@@ -36,8 +36,8 @@ func StashPullPop() {
 	popCmd.Stdout = nil
 	popCmd.Stderr = nil
 	if err := popCmd.Run(); err != nil {
-		fmt.Printf("エラー: git stash pop に失敗しました: %v\n", err)
+		fmt.Printf("error: failed to git stash pop: %v\n", err)
 		return
 	}
-	fmt.Println("stash→pull→pop 完了")
+	fmt.Println("stash→pull→pop done")
 }
