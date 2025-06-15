@@ -1,5 +1,11 @@
 # ggc
 
+A Go Git CLI & CUI.
+
+<img src="https://storage.googleapis.com/gopherizeme.appspot.com/gophers/22bdcabe630eb8f45ed8c740ea665a8345f1d3f6.png" alt="ggc" title="ggc" width="250px">
+
+This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c2b4123684f93071af0cf559eb0b5).
+
 ## Overview
 
 ggc is a Git tool written in Go, providing both a traditional command-line interface (CLI) and an interactive character user interface (CUI) with incremental search. It is designed to be fast, user-friendly, and extensible. (Go Git CLI & CUI)
@@ -118,11 +124,6 @@ source /path/to/ggc/tools/completions/ggc.bash
 
 - Add the above to your `.bashrc` or `.zshrc` to enable completion automatically on terminal startup.
 - Subcommand completion is supported.
-
-## Future Plans
-- Custom configuration via `.ggcconfig`
-- Mock implementation for testing
-- More composite commands and interactive UI
 
 ## Contributing
 
