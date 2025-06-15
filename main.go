@@ -8,7 +8,7 @@ import (
 	"github.com/bmf-san/ggc/router"
 )
 
-const version = "v0.1.0-beta"
+const version = "v1.0.2"
 
 func main() {
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
