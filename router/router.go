@@ -24,7 +24,8 @@ func Route(args []string) {
 	case "commit":
 		cmd.Commit(args[2:])
 	case "add":
-		cmd.Add(args[2:])
+		adder := cmd.NewAdder()
+		adder.Add(args[2:])
 	case "fetch":
 		cmd.Fetch(args[2:])
 	case "clean":
