@@ -20,7 +20,16 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.1.6
       - name: Lint
         run: make lint
-      - name: Test
-        run: make test
+      - name: Test with coverage
+        run: |
+          go test ./... -coverprofile=coverage.out
+          go tool cover -func=coverage.out
+      - name: Check coverage threshold
+        run: |
+          total=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          threshold=80.0
+          awk "BEGIN {exit !(total < threshold)}" && \
+            echo "Coverage $total% is below threshold $threshold%" && exit 1 || \
+            echo "Coverage $total% is above threshold $threshold%"
       - name: Build
         run: make build
