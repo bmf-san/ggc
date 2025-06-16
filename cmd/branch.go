@@ -37,6 +37,10 @@ func Branch(args []string) {
 		branchDeleteMerged()
 		return
 	}
+	if len(args) == 1 && args[0] == "create" {
+		branchCreate()
+		return
+	}
 	ShowBranchHelp()
 }
 
@@ -239,6 +243,25 @@ func branchDeleteMerged() {
 	}
 }
 
+func branchCreate() {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter new branch name: ")
+	branchName, _ := reader.ReadString('\n')
+	branchName = strings.TrimSpace(branchName)
+	if branchName == "" {
+		fmt.Println("Branch name is empty. Cancelled.")
+		return
+	}
+	cmd := exec.Command("git", "checkout", "-b", branchName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+	fmt.Printf("Branch '%s' created and checked out.\n", branchName)
+}
+
 func ShowBranchHelp() {
-	fmt.Println("Usage: ggc branch current | ggc branch checkout | ggc branch checkout-remote | ggc branch delete | ggc branch delete-merged")
+	fmt.Println("Usage: ggc branch current | ggc branch checkout | ggc branch checkout-remote | ggc branch create | ggc branch delete | ggc branch delete-merged")
 }

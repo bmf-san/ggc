@@ -15,6 +15,15 @@ func Complete(args []string) {
 	}
 	switch args[0] {
 	case "branch":
+		if len(args) == 1 {
+			// Suggest subcommand candidates
+			subs := []string{"current", "checkout", "checkout-remote", "create", "delete", "delete-merged"}
+			for _, s := range subs {
+				fmt.Println(s)
+			}
+			return
+		}
+		// For the second argument and beyond, suggest local branch names
 		branches, err := git.ListLocalBranches()
 		if err != nil {
 			return
