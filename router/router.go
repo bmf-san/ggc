@@ -36,7 +36,8 @@ func Route(args []string) {
 		if len(args) > 2 && args[2] == "interactive" {
 			cmd.CleanInteractive()
 		} else {
-			cmd.Clean(args[2:])
+			cleaner := cmd.NewCleaner()
+			cleaner.Clean(args[2:])
 		}
 	case "commit-push":
 		cmd.CommitPushInteractive()
