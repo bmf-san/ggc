@@ -38,8 +38,3 @@ func (s *Stasher) Stash(args []string) {
 func ShowStashHelp() {
 	fmt.Println("Usage: ggc stash trash")
 }
-
-// 旧インターフェース維持用ラッパー
-// func Stash(args []string) {
-// 	NewStasher().Stash(args)
-// }

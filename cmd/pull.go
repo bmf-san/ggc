@@ -41,8 +41,3 @@ func (p *Puller) Pull(args []string) {
 func ShowPullHelp() {
 	fmt.Println("Usage: ggc pull current | ggc pull rebase")
 }
-
-// 旧インターフェース維持用ラッパー
-// func Pull(args []string) {
-// 	NewPuller().Pull(args)
-// }

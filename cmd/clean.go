@@ -12,14 +12,18 @@ import (
 )
 
 type Cleaner struct {
-	CleanFiles func() error
-	CleanDirs  func() error
+	CleanFiles  func() error
+	CleanDirs   func() error
+	execCommand func(name string, arg ...string) *exec.Cmd
+	inputReader *bufio.Reader
 }
 
 func NewCleaner() *Cleaner {
 	return &Cleaner{
-		CleanFiles: git.CleanFiles,
-		CleanDirs:  git.CleanDirs,
+		CleanFiles:  git.CleanFiles,
+		CleanDirs:   git.CleanDirs,
+		execCommand: exec.Command,
+		inputReader: bufio.NewReader(os.Stdin),
 	}
 }
 
@@ -48,8 +52,8 @@ func ShowCleanHelp() {
 }
 
 // Interactively select files to clean
-func CleanInteractive() {
-	cmd := exec.Command("git", "clean", "-nd") // get candidates with dry-run
+func (c *Cleaner) CleanInteractive() {
+	cmd := c.execCommand("git", "clean", "-nd") // get candidates with dry-run
 	out, err := cmd.Output()
 	if err != nil {
 		fmt.Printf("Error: failed to get candidates with git clean -nd: %v\n", err)
@@ -66,7 +70,7 @@ func CleanInteractive() {
 		fmt.Println("No files to clean.")
 		return
 	}
-	reader := bufio.NewReader(os.Stdin)
+	reader := c.inputReader
 	for {
 		fmt.Println("\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, f := range files {
@@ -81,7 +85,7 @@ func CleanInteractive() {
 		}
 		if input == "all" {
 			args := append([]string{"clean", "-f", "--"}, files...)
-			cleanCmd := exec.Command("git", args...)
+			cleanCmd := c.execCommand("git", args...)
 			cleanCmd.Stdout = os.Stdout
 			cleanCmd.Stderr = os.Stderr
 			if err := cleanCmd.Run(); err != nil {
@@ -119,7 +123,7 @@ func CleanInteractive() {
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
 			args := append([]string{"clean", "-f", "--"}, tmp...)
-			cleanCmd := exec.Command("git", args...)
+			cleanCmd := c.execCommand("git", args...)
 			cleanCmd.Stdout = os.Stdout
 			cleanCmd.Stderr = os.Stderr
 			if err := cleanCmd.Run(); err != nil {
@@ -131,8 +135,3 @@ func CleanInteractive() {
 		}
 	}
 }
-
-// 旧インターフェース維持用ラッパー
-// func Clean(args []string) {
-// 	NewCleaner().Clean(args)
-// }

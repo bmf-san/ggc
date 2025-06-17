@@ -30,8 +30,3 @@ func (f *Fetcher) Fetch(args []string) {
 func ShowFetchHelp() {
 	fmt.Println("Usage: ggc fetch --prune")
 }
-
-// 旧インターフェース維持用ラッパー
-// func Fetch(args []string) {
-// 	NewFetcher().Fetch(args)
-// }

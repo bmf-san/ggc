@@ -35,7 +35,8 @@ func Route(args []string) {
 		fetcher.Fetch(args[2:])
 	case "clean":
 		if len(args) > 2 && args[2] == "interactive" {
-			cmd.CleanInteractive()
+			cleaner := cmd.NewCleaner()
+			cleaner.CleanInteractive()
 		} else {
 			cleaner := cmd.NewCleaner()
 			cleaner.Clean(args[2:])

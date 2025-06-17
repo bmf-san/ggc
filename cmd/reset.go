@@ -30,8 +30,3 @@ func (r *Resetter) Reset(args []string) {
 func ShowResetHelp() {
 	fmt.Println("Usage: ggc reset clean")
 }
-
-// 旧インターフェース維持用ラッパー
-// func Reset(args []string) {
-// 	NewResetter().Reset(args)
-// }
