@@ -9,7 +9,19 @@ import (
 )
 
 // Complete handles dynamic completion for subcommands/args
-func Complete(args []string) {
+type Completer struct {
+	listLocalBranches func() ([]string, error)
+	execCommand       func(name string, arg ...string) *exec.Cmd
+}
+
+func NewCompleter() *Completer {
+	return &Completer{
+		listLocalBranches: git.ListLocalBranches,
+		execCommand:       exec.Command,
+	}
+}
+
+func (c *Completer) Complete(args []string) {
 	if len(args) < 1 {
 		return
 	}
@@ -24,7 +36,7 @@ func Complete(args []string) {
 			return
 		}
 		// For the second argument and beyond, suggest local branch names
-		branches, err := git.ListLocalBranches()
+		branches, err := c.listLocalBranches()
 		if err != nil {
 			return
 		}
@@ -33,7 +45,7 @@ func Complete(args []string) {
 		}
 	case "files":
 		// Get list of files managed by git ls-files
-		cmd := exec.Command("git", "ls-files")
+		cmd := c.execCommand("git", "ls-files")
 		out, err := cmd.Output()
 		if err != nil {
 			return
