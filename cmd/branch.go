@@ -11,9 +11,24 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Branch(args []string) {
+type Brancher struct {
+	GetCurrentBranch func() (string, error)
+}
+
+func NewBrancher() *Brancher {
+	return &Brancher{
+		GetCurrentBranch: git.GetCurrentBranch,
+	}
+}
+
+// 旧インターフェース維持用ラッパー
+// func Branch(args []string) {
+// 	NewBrancher().Branch(args)
+// }
+
+func (b *Brancher) Branch(args []string) {
 	if len(args) == 1 && args[0] == "current" {
-		branch, err := git.GetCurrentBranch()
+		branch, err := b.GetCurrentBranch()
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
