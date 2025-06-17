@@ -16,7 +16,8 @@ func Route(args []string) {
 	case "branch":
 		cmd.Branch(args[2:])
 	case "push":
-		cmd.Push(args[2:])
+		pusher := cmd.NewPusher()
+		pusher.Push(args[2:])
 	case "pull":
 		cmd.Pull(args[2:])
 	case "log":

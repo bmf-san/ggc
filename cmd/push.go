@@ -6,17 +6,29 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Push(args []string) {
+type Pusher struct {
+	PushCurrentBranch      func() error
+	PushForceCurrentBranch func() error
+}
+
+func NewPusher() *Pusher {
+	return &Pusher{
+		PushCurrentBranch:      git.PushCurrentBranch,
+		PushForceCurrentBranch: git.PushForceCurrentBranch,
+	}
+}
+
+func (p *Pusher) Push(args []string) {
 	if len(args) > 0 {
 		switch args[0] {
 		case "current":
-			err := git.PushCurrentBranch()
+			err := p.PushCurrentBranch()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
 			return
 		case "force":
-			err := git.PushForceCurrentBranch()
+			err := p.PushForceCurrentBranch()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
