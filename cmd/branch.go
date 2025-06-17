@@ -27,11 +27,6 @@ func NewBrancher() *Brancher {
 	}
 }
 
-// 旧インターフェース維持用ラッパー
-// func Branch(args []string) {
-// 	NewBrancher().Branch(args)
-// }
-
 func (b *Brancher) Branch(args []string) {
 	if len(args) == 1 && args[0] == "current" {
 		branch, err := b.GetCurrentBranch()
