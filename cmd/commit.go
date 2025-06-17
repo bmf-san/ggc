@@ -6,17 +6,29 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Commit(args []string) {
+type Committer struct {
+	CommitAllowEmpty func() error
+	CommitTmp        func() error
+}
+
+func NewCommitter() *Committer {
+	return &Committer{
+		CommitAllowEmpty: git.CommitAllowEmpty,
+		CommitTmp:        git.CommitTmp,
+	}
+}
+
+func (c *Committer) Commit(args []string) {
 	if len(args) > 0 {
 		switch args[0] {
 		case "allow-empty":
-			err := git.CommitAllowEmpty()
+			err := c.CommitAllowEmpty()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
 			return
 		case "tmp":
-			err := git.CommitTmp()
+			err := c.CommitTmp()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
