@@ -42,7 +42,8 @@ func Route(args []string) {
 	case "commit-push":
 		cmd.CommitPushInteractive()
 	case "stash":
-		cmd.Stash(args[2:])
+		stasher := cmd.NewStasher()
+		stasher.Stash(args[2:])
 	case "rebase":
 		cmd.Rebase(args[2:])
 	case "remote":

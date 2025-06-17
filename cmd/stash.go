@@ -5,18 +5,24 @@ import (
 	"os/exec"
 )
 
-func Stash(args []string) {
+type Stasher struct {
+	execCommand func(name string, arg ...string) *exec.Cmd
+}
+
+func NewStasher() *Stasher {
+	return &Stasher{execCommand: exec.Command}
+}
+
+func (s *Stasher) Stash(args []string) {
 	if len(args) > 0 && args[0] == "trash" {
-		// git add .
-		addCmd := exec.Command("git", "add", ".")
+		addCmd := s.execCommand("git", "add", ".")
 		addCmd.Stdout = nil
 		addCmd.Stderr = nil
 		if err := addCmd.Run(); err != nil {
 			fmt.Printf("Error: failed to add all files: %v\n", err)
 			return
 		}
-		// git stash
-		stashCmd := exec.Command("git", "stash")
+		stashCmd := s.execCommand("git", "stash")
 		stashCmd.Stdout = nil
 		stashCmd.Stderr = nil
 		if err := stashCmd.Run(); err != nil {
@@ -32,3 +38,8 @@ func Stash(args []string) {
 func ShowStashHelp() {
 	fmt.Println("Usage: ggc stash trash")
 }
+
+// 旧インターフェース維持用ラッパー
+// func Stash(args []string) {
+// 	NewStasher().Stash(args)
+// }
