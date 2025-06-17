@@ -47,7 +47,8 @@ func Route(args []string) {
 	case "rebase":
 		cmd.Rebase(args[2:])
 	case "remote":
-		cmd.Remote(args[2:])
+		remoteer := cmd.NewRemoteer()
+		remoteer.Remote(args[2:])
 	case "add-commit-push":
 		cmd.AddCommitPush()
 	case "pull-rebase-push":
