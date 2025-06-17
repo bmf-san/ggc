@@ -19,7 +19,8 @@ func Route(args []string) {
 		pusher := cmd.NewPusher()
 		pusher.Push(args[2:])
 	case "pull":
-		cmd.Pull(args[2:])
+		puller := cmd.NewPuller()
+		puller.Pull(args[2:])
 	case "log":
 		cmd.Log(args[2:])
 	case "commit":
