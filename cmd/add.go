@@ -38,8 +38,3 @@ func (a *Adder) Add(args []string) {
 		fmt.Println("error:", err)
 	}
 }
-
-// 旧インターフェース維持用ラッパー
-func Add(args []string) {
-	NewAdder().Add(args)
-}
