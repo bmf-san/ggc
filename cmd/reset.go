@@ -6,9 +6,19 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Reset(args []string) {
+type Resetter struct {
+	ResetClean func() error
+}
+
+func NewResetter() *Resetter {
+	return &Resetter{
+		ResetClean: git.ResetClean,
+	}
+}
+
+func (r *Resetter) Reset(args []string) {
 	if len(args) > 0 && args[0] == "clean" {
-		err := git.ResetClean()
+		err := r.ResetClean()
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
@@ -20,3 +30,8 @@ func Reset(args []string) {
 func ShowResetHelp() {
 	fmt.Println("Usage: ggc reset clean")
 }
+
+// 旧インターフェース維持用ラッパー
+// func Reset(args []string) {
+// 	NewResetter().Reset(args)
+// }
