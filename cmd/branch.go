@@ -12,12 +12,18 @@ import (
 )
 
 type Brancher struct {
-	GetCurrentBranch func() (string, error)
+	GetCurrentBranch  func() (string, error)
+	ListLocalBranches func() ([]string, error)
+	execCommand       func(name string, arg ...string) *exec.Cmd
+	inputReader       *bufio.Reader
 }
 
 func NewBrancher() *Brancher {
 	return &Brancher{
-		GetCurrentBranch: git.GetCurrentBranch,
+		GetCurrentBranch:  git.GetCurrentBranch,
+		ListLocalBranches: git.ListLocalBranches,
+		execCommand:       exec.Command,
+		inputReader:       bufio.NewReader(os.Stdin),
 	}
 }
 
@@ -37,7 +43,7 @@ func (b *Brancher) Branch(args []string) {
 		return
 	}
 	if len(args) == 1 && args[0] == "checkout" {
-		branchCheckout()
+		b.branchCheckout()
 		return
 	}
 	if len(args) == 1 && args[0] == "checkout-remote" {
@@ -59,8 +65,8 @@ func (b *Brancher) Branch(args []string) {
 	ShowBranchHelp()
 }
 
-func branchCheckout() {
-	branches, err := git.ListLocalBranches()
+func (b *Brancher) branchCheckout() {
+	branches, err := b.ListLocalBranches()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -70,12 +76,11 @@ func branchCheckout() {
 		return
 	}
 	fmt.Println("Local branches:")
-	for i, b := range branches {
-		fmt.Printf("[%d] %s\n", i+1, b)
+	for i, br := range branches {
+		fmt.Printf("[%d] %s\n", i+1, br)
 	}
 	fmt.Print("Enter the number to checkout: ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
+	input, _ := b.inputReader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	idx, err := strconv.Atoi(input)
 	if err != nil || idx < 1 || idx > len(branches) {
@@ -83,7 +88,7 @@ func branchCheckout() {
 		return
 	}
 	branch := branches[idx-1]
-	cmd := exec.Command("git", "checkout", branch)
+	cmd := b.execCommand("git", "checkout", branch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
