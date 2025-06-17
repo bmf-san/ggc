@@ -11,17 +11,29 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Clean(args []string) {
+type Cleaner struct {
+	CleanFiles func() error
+	CleanDirs  func() error
+}
+
+func NewCleaner() *Cleaner {
+	return &Cleaner{
+		CleanFiles: git.CleanFiles,
+		CleanDirs:  git.CleanDirs,
+	}
+}
+
+func (c *Cleaner) Clean(args []string) {
 	if len(args) > 0 {
 		switch args[0] {
 		case "files":
-			err := git.CleanFiles()
+			err := c.CleanFiles()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
 			return
 		case "dirs":
-			err := git.CleanDirs()
+			err := c.CleanDirs()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
@@ -119,3 +131,8 @@ func CleanInteractive() {
 		}
 	}
 }
+
+// 旧インターフェース維持用ラッパー
+// func Clean(args []string) {
+// 	NewCleaner().Clean(args)
+// }
