@@ -53,7 +53,8 @@ func Route(args []string) {
 	case "stash-pull-pop":
 		cmd.StashPullPop()
 	case "reset-clean":
-		cmd.ResetClean()
+		resetter := cmd.NewResetter()
+		resetter.Reset(args[2:])
 	default:
 		cmd.ShowHelp()
 	}
