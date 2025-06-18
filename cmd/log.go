@@ -8,17 +8,29 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Log(args []string) {
+type Logger struct {
+	execCommand func(name string, arg ...string) *exec.Cmd
+	logSimple   func() error
+}
+
+func NewLogger() *Logger {
+	return &Logger{
+		execCommand: exec.Command,
+		logSimple:   git.LogSimple,
+	}
+}
+
+func (l *Logger) Log(args []string) {
 	if len(args) > 0 {
 		switch args[0] {
 		case "simple":
-			err := git.LogSimple()
+			err := l.logSimple()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
 			return
 		case "graph":
-			err := logGraph()
+			err := l.logGraph()
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
@@ -28,8 +40,8 @@ func Log(args []string) {
 	ShowLogHelp()
 }
 
-func logGraph() error {
-	cmd := exec.Command("git", "log", "--graph")
+func (l *Logger) logGraph() error {
+	cmd := l.execCommand("git", "log", "--graph")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -37,4 +49,9 @@ func logGraph() error {
 
 func ShowLogHelp() {
 	fmt.Println("Usage: ggc log simple | ggc log graph")
+}
+
+// 既存互換用
+func Log(args []string) {
+	NewLogger().Log(args)
 }

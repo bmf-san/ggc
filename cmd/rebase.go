@@ -9,9 +9,21 @@ import (
 	"strings"
 )
 
-func Rebase(args []string) {
+type Rebaser struct {
+	execCommand func(name string, arg ...string) *exec.Cmd
+	inputReader *bufio.Reader
+}
+
+func NewRebaser() *Rebaser {
+	return &Rebaser{
+		execCommand: exec.Command,
+		inputReader: bufio.NewReader(os.Stdin),
+	}
+}
+
+func (r *Rebaser) Rebase(args []string) {
 	if len(args) > 0 && args[0] == "interactive" {
-		RebaseInteractive()
+		r.RebaseInteractive()
 		return
 	}
 	ShowRebaseHelp()
@@ -22,9 +34,9 @@ func ShowRebaseHelp() {
 }
 
 // Interactively rebase up to HEAD~N
-func RebaseInteractive() {
+func (r *Rebaser) RebaseInteractive() {
 	// 1. Get the last 10 commit logs
-	cmd := exec.Command("git", "log", "--oneline", "-n", "10")
+	cmd := r.execCommand("git", "log", "--oneline", "-n", "10")
 	out, err := cmd.Output()
 	if err != nil {
 		fmt.Printf("error: failed to get git log: %v\n", err)
@@ -40,8 +52,7 @@ func RebaseInteractive() {
 		fmt.Printf("  [%d] %s\n", i+1, line)
 	}
 	fmt.Print("> ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
+	input, _ := r.inputReader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	if input == "" {
 		fmt.Println("Cancelled")
@@ -54,7 +65,7 @@ func RebaseInteractive() {
 	}
 	// N commits before rebase
 	N := idx
-	rebaseCmd := exec.Command("git", "rebase", "-i", fmt.Sprintf("HEAD~%d", N))
+	rebaseCmd := r.execCommand("git", "rebase", "-i", fmt.Sprintf("HEAD~%d", N))
 	rebaseCmd.Stdin = os.Stdin
 	rebaseCmd.Stdout = os.Stdout
 	rebaseCmd.Stderr = os.Stderr
@@ -62,4 +73,8 @@ func RebaseInteractive() {
 		fmt.Printf("error: git rebase failed: %v\n", err)
 		return
 	}
+}
+
+func Rebase(args []string) {
+	NewRebaser().Rebase(args)
 }
