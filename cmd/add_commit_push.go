@@ -3,53 +3,88 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
 )
 
-func AddCommitPush() {
+type AddCommitPusher struct {
+	execCommand  func(name string, arg ...string) *exec.Cmd
+	inputReader  *bufio.Reader
+	outputWriter io.Writer
+}
+
+func NewAddCommitPusher() *AddCommitPusher {
+	return &AddCommitPusher{
+		execCommand:  exec.Command,
+		inputReader:  bufio.NewReader(os.Stdin),
+		outputWriter: os.Stdout,
+	}
+}
+
+func (a *AddCommitPusher) AddCommitPush() {
 	// git add .
-	addCmd := exec.Command("git", "add", ".")
-	addCmd.Stdout = os.Stdout
-	addCmd.Stderr = os.Stderr
+	addCmd := a.execCommand("git", "add", ".")
+	addCmd.Stdout = a.outputWriter
+	addCmd.Stderr = a.outputWriter
 	if err := addCmd.Run(); err != nil {
-		fmt.Printf("Error: failed to add all files: %v\n", err)
+		if _, err := fmt.Fprintf(a.outputWriter, "Error: failed to add all files: %v\n", err); err != nil {
+			_ = err
+		}
 		return
 	}
 	// Enter commit message
-	fmt.Print("\n\r")
-	fmt.Print("Enter commit message: ")
-	reader := bufio.NewReader(os.Stdin)
-	msg, _ := reader.ReadString('\n')
+	if _, err := fmt.Fprint(a.outputWriter, "\n\r"); err != nil {
+		_ = err
+	}
+	if _, err := fmt.Fprint(a.outputWriter, "Enter commit message: "); err != nil {
+		_ = err
+	}
+	msg, _ := a.inputReader.ReadString('\n')
 	msg = strings.TrimSpace(msg)
 	if msg == "" {
-		fmt.Println("Cancelled.")
+		if _, err := fmt.Fprintln(a.outputWriter, "Cancelled."); err != nil {
+			_ = err
+		}
 		return
 	}
 	// git commit
-	commitCmd := exec.Command("git", "commit", "-m", msg)
-	commitCmd.Stdout = os.Stdout
-	commitCmd.Stderr = os.Stderr
+	commitCmd := a.execCommand("git", "commit", "-m", msg)
+	commitCmd.Stdout = a.outputWriter
+	commitCmd.Stderr = a.outputWriter
 	if err := commitCmd.Run(); err != nil {
-		fmt.Printf("Error: failed to commit: %v\n", err)
+		if _, err := fmt.Fprintf(a.outputWriter, "Error: failed to commit: %v\n", err); err != nil {
+			_ = err
+		}
 		return
 	}
 	// Get current branch name
-	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchCmd := a.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	branchOut, err := branchCmd.Output()
 	if err != nil {
-		fmt.Printf("Error: failed to get branch name: %v\n", err)
+		if _, err := fmt.Fprintf(a.outputWriter, "Error: failed to get branch name: %v\n", err); err != nil {
+			_ = err
+		}
 		return
 	}
 	branch := strings.TrimSpace(string(branchOut))
 	// git push
-	pushCmd := exec.Command("git", "push", "origin", branch)
-	pushCmd.Stdout = os.Stdout
-	pushCmd.Stderr = os.Stderr
+	pushCmd := a.execCommand("git", "push", "origin", branch)
+	pushCmd.Stdout = a.outputWriter
+	pushCmd.Stderr = a.outputWriter
 	if err := pushCmd.Run(); err != nil {
-		fmt.Printf("Error: failed to push: %v\n", err)
+		if _, err := fmt.Fprintf(a.outputWriter, "Error: failed to push: %v\n", err); err != nil {
+			_ = err
+		}
 		return
 	}
-	fmt.Println("add→commit→push done")
+	if _, err := fmt.Fprintln(a.outputWriter, "add→commit→push done"); err != nil {
+		_ = err
+	}
+}
+
+// 既存互換用
+func AddCommitPush() {
+	NewAddCommitPusher().AddCommitPush()
 }

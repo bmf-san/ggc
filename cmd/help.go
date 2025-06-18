@@ -1,9 +1,21 @@
 package cmd
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+	"os"
+)
 
-func ShowHelp() {
-	fmt.Print(`ggc: A Go-based CLI tool to streamline Git operations
+type Helper struct {
+	writer io.Writer
+}
+
+func NewHelper() *Helper {
+	return &Helper{writer: os.Stdout}
+}
+
+func (h *Helper) ShowHelp() {
+	if _, err := fmt.Fprint(h.writer, `ggc: A Go-based CLI tool to streamline Git operations
 
 Usage:
   ggc <command> [subcommand] [options]
@@ -43,5 +55,13 @@ Examples:
   ggc clean dirs
   ggc reset clean
   ggc commit-push
-`)
+`); err != nil {
+		// ignore error (for test/lint)
+		_ = err
+	}
+}
+
+// 既存互換用
+func ShowHelp() {
+	NewHelper().ShowHelp()
 }
