@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -15,55 +16,61 @@ type PullRebasePusher struct {
 func NewPullRebasePusher() *PullRebasePusher {
 	return &PullRebasePusher{
 		execCommand:  exec.Command,
-		outputWriter: nil,
+		outputWriter: os.Stdout,
 	}
 }
 
-func (p *PullRebasePusher) PullRebasePush() {
-	branchCmd := p.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
-	branchOut, err := branchCmd.Output()
+func (prp *PullRebasePusher) PullRebasePush() {
+	branch, err := prp.getBranch()
 	if err != nil {
-		if _, err := fmt.Fprintf(p.outputWriter, "Error: Failed to get branch name: %v\n", err); err != nil {
-			_ = err
-		}
+		_, _ = fmt.Fprintf(prp.outputWriter, "Error: Failed to get branch name\n%v\n", err)
 		return
 	}
-	branch := strings.TrimSpace(string(branchOut))
-	pullCmd := p.execCommand("git", "pull", "origin", branch)
-	pullCmd.Stdout = p.outputWriter
-	pullCmd.Stderr = p.outputWriter
-	if err := pullCmd.Run(); err != nil {
-		if _, err := fmt.Fprintf(p.outputWriter, "Error: Failed to git pull: %v\n", err); err != nil {
-			_ = err
-		}
+	_, _ = fmt.Fprintf(prp.outputWriter, "current branch: %s\n", branch)
+
+	if err := prp.gitPull(branch); err != nil {
+		_, _ = fmt.Fprintf(prp.outputWriter, "Error: Failed to git pull\n%v\n", err)
 		return
 	}
-	rebaseCmd := p.execCommand("git", "rebase", "origin/main")
-	rebaseCmd.Stdout = p.outputWriter
-	rebaseCmd.Stderr = p.outputWriter
-	if err := rebaseCmd.Run(); err != nil {
-		if _, err := fmt.Fprintf(p.outputWriter, "Error: Failed to git rebase: %v\n", err); err != nil {
-			_ = err
-		}
+
+	if err := prp.gitRebase("origin/main"); err != nil {
+		_, _ = fmt.Fprintf(prp.outputWriter, "Error: Failed to git rebase\n%v\n", err)
 		return
 	}
-	pushCmd := p.execCommand("git", "push", "origin", branch)
-	pushCmd.Stdout = p.outputWriter
-	pushCmd.Stderr = p.outputWriter
-	if err := pushCmd.Run(); err != nil {
-		if _, err := fmt.Fprintf(p.outputWriter, "Error: Failed to git push: %v\n", err); err != nil {
-			_ = err
-		}
+
+	if err := prp.gitPush(branch); err != nil {
+		_, _ = fmt.Fprintf(prp.outputWriter, "Error: Failed to git push\n%v\n", err)
 		return
 	}
-	if _, err := fmt.Fprintln(p.outputWriter, "pull→rebase→push completed"); err != nil {
-		_ = err
-	}
+	_, _ = fmt.Fprintln(prp.outputWriter, "pull→rebase→push completed")
 }
 
-// 既存互換用
-func PullRebasePush() {
-	p := NewPullRebasePusher()
-	p.outputWriter = nil // 既存通り（os.Stdoutに出力）
-	p.PullRebasePush()
+func (prp *PullRebasePusher) getBranch() (string, error) {
+	cmd := prp.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func (prp *PullRebasePusher) gitPull(branch string) error {
+	cmd := prp.execCommand("git", "pull", "origin", branch)
+	cmd.Stdout = prp.outputWriter
+	cmd.Stderr = prp.outputWriter
+	return cmd.Run()
+}
+
+func (prp *PullRebasePusher) gitRebase(baseBranch string) error {
+	cmd := prp.execCommand("git", "rebase", baseBranch)
+	cmd.Stdout = prp.outputWriter
+	cmd.Stderr = prp.outputWriter
+	return cmd.Run()
+}
+
+func (prp *PullRebasePusher) gitPush(branch string) error {
+	cmd := prp.execCommand("git", "push", "origin", branch, "--force-with-lease")
+	cmd.Stdout = prp.outputWriter
+	cmd.Stderr = prp.outputWriter
+	return cmd.Run()
 }
