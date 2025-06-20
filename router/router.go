@@ -54,7 +54,7 @@ func Route(args []string) {
 	case "add-commit-push":
 		cmd.AddCommitPush()
 	case "pull-rebase-push":
-		cmd.PullRebasePush()
+		cmd.NewPullRebasePusher().PullRebasePush()
 	case "stash-pull-pop":
 		cmd.StashPullPop()
 	case "reset-clean":
