@@ -14,7 +14,7 @@ type Completer struct {
 	execCommand       func(name string, arg ...string) *exec.Cmd
 }
 
-func NewCompleter() *Completer {
+var NewCompleter = func() *Completer {
 	return &Completer{
 		listLocalBranches: git.ListLocalBranches,
 		execCommand:       exec.Command,
