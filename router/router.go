@@ -4,63 +4,65 @@ import (
 	"github.com/bmf-san/ggc/cmd"
 )
 
-func Route(args []string) {
+// Router is a struct that holds all the commands.
+type Router struct {
+	Executer cmd.Executer
+}
+
+// NewRouter creates a new Router.
+func NewRouter(e cmd.Executer) *Router {
+	return &Router{
+		Executer: e,
+	}
+}
+
+// Route routes the command to the appropriate function.
+func (r *Router) Route(args []string) {
 	if len(args) < 2 {
-		cmd.ShowHelp()
+		r.Executer.ShowHelp()
 		return
 	}
 	switch args[1] {
 	case "__complete":
-		cmd.Complete(args[2:])
+		r.Executer.Complete(args[2:])
 		return
 	case "branch":
-		brancher := cmd.NewBrancher()
-		brancher.Branch(args[2:])
+		r.Executer.Branch(args[2:])
 	case "push":
-		pusher := cmd.NewPusher()
-		pusher.Push(args[2:])
+		r.Executer.Push(args[2:])
 	case "pull":
-		puller := cmd.NewPuller()
-		puller.Pull(args[2:])
+		r.Executer.Pull(args[2:])
 	case "log":
-		cmd.Log(args[2:])
+		r.Executer.Log(args[2:])
 	case "commit":
-		committer := cmd.NewCommitter()
-		committer.Commit(args[2:])
+		r.Executer.Commit(args[2:])
 	case "add":
-		adder := cmd.NewAdder()
-		adder.Add(args[2:])
+		r.Executer.Add(args[2:])
 	case "fetch":
-		fetcher := cmd.NewFetcher()
-		fetcher.Fetch(args[2:])
+		r.Executer.Fetch(args[2:])
 	case "clean":
 		if len(args) > 2 && args[2] == "interactive" {
-			cleaner := cmd.NewCleaner()
-			cleaner.CleanInteractive()
+			r.Executer.CleanInteractive()
 		} else {
-			cleaner := cmd.NewCleaner()
-			cleaner.Clean(args[2:])
+			r.Executer.Clean(args[2:])
 		}
 	case "commit-push":
-		cmd.CommitPushInteractive()
+		r.Executer.CommitPushInteractive()
 	case "stash":
-		stasher := cmd.NewStasher()
-		stasher.Stash(args[2:])
+		r.Executer.Stash(args[2:])
 	case "rebase":
-		cmd.Rebase(args[2:])
+		r.Executer.Rebase(args[2:])
 	case "remote":
-		remoteer := cmd.NewRemoteer()
-		remoteer.Remote(args[2:])
+		r.Executer.Remote(args[2:])
 	case "add-commit-push":
-		cmd.AddCommitPush()
-	case "pull-rebase-push":
-		cmd.NewPullRebasePusher().PullRebasePush()
-	case "stash-pull-pop":
-		cmd.StashPullPop()
+		r.Executer.AddCommitPush()
+	case "prp", "pull-rebase-push":
+		r.Executer.PullRebasePush()
+	case "sp", "stash-pull-pop":
+		r.Executer.StashPullPop()
 	case "reset-clean":
-		resetter := cmd.NewResetter()
-		resetter.Reset(args[2:])
+		r.Executer.Reset(args[2:])
 	default:
-		cmd.ShowHelp()
+		r.Executer.ShowHelp()
 	}
 }
