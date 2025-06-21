@@ -5,40 +5,48 @@ import (
 	"os/exec"
 )
 
-func Remote(args []string) {
+type Remoteer struct {
+	execCommand func(name string, arg ...string) *exec.Cmd
+}
+
+func NewRemoteer() *Remoteer {
+	return &Remoteer{execCommand: exec.Command}
+}
+
+func (r *Remoteer) Remote(args []string) {
 	if len(args) > 0 {
 		switch args[0] {
 		case "list":
-			remoteList()
+			r.remoteList()
 			return
 		case "add":
 			if len(args) < 3 {
 				fmt.Println("Usage: ggc remote add <name> <url>")
 				return
 			}
-			remoteAdd(args[1], args[2])
+			r.remoteAdd(args[1], args[2])
 			return
 		case "remove":
 			if len(args) < 2 {
 				fmt.Println("Usage: ggc remote remove <name>")
 				return
 			}
-			remoteRemove(args[1])
+			r.remoteRemove(args[1])
 			return
 		case "set-url":
 			if len(args) < 3 {
 				fmt.Println("Usage: ggc remote set-url <name> <url>")
 				return
 			}
-			remoteSetURL(args[1], args[2])
+			r.remoteSetURL(args[1], args[2])
 			return
 		}
 	}
 	ShowRemoteHelp()
 }
 
-func remoteList() {
-	cmd := exec.Command("git", "remote", "-v")
+func (r *Remoteer) remoteList() {
+	cmd := r.execCommand("git", "remote", "-v")
 	out, err := cmd.Output()
 	if err != nil {
 		fmt.Printf("Error: failed to get git remote -v: %v\n", err)
@@ -47,8 +55,8 @@ func remoteList() {
 	fmt.Print(string(out))
 }
 
-func remoteAdd(name, url string) {
-	cmd := exec.Command("git", "remote", "add", name, url)
+func (r *Remoteer) remoteAdd(name, url string) {
+	cmd := r.execCommand("git", "remote", "add", name, url)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
@@ -58,8 +66,8 @@ func remoteAdd(name, url string) {
 	fmt.Printf("Remote '%s' added\n", name)
 }
 
-func remoteRemove(name string) {
-	cmd := exec.Command("git", "remote", "remove", name)
+func (r *Remoteer) remoteRemove(name string) {
+	cmd := r.execCommand("git", "remote", "remove", name)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
@@ -69,8 +77,8 @@ func remoteRemove(name string) {
 	fmt.Printf("Remote '%s' removed\n", name)
 }
 
-func remoteSetURL(name, url string) {
-	cmd := exec.Command("git", "remote", "set-url", name, url)
+func (r *Remoteer) remoteSetURL(name, url string) {
+	cmd := r.execCommand("git", "remote", "set-url", name, url)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {

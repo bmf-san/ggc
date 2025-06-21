@@ -6,9 +6,19 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-func Fetch(args []string) {
+type Fetcher struct {
+	FetchPrune func() error
+}
+
+func NewFetcher() *Fetcher {
+	return &Fetcher{
+		FetchPrune: git.FetchPrune,
+	}
+}
+
+func (f *Fetcher) Fetch(args []string) {
 	if len(args) > 0 && args[0] == "--prune" {
-		err := git.FetchPrune()
+		err := f.FetchPrune()
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
