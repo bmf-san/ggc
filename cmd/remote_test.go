@@ -31,7 +31,7 @@ func TestRemoteer_Remote_List(t *testing.T) {
 
 	output := buf.String()
 	if !called || output == "" || output[:6] != "origin" {
-		t.Errorf("listサブコマンドの出力が想定と異なります: %s", output)
+		t.Errorf("output of list subcommand is not what was expected: %s", output)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestRemoteer_Remote_Add(t *testing.T) {
 	_, _ = buf.ReadFrom(r)
 	os.Stdout = oldStdout
 	if !called {
-		t.Error("addサブコマンドでexecCommandが呼ばれていません")
+		t.Error("execCommand is not called in add subcommand")
 	}
 }
 
@@ -81,7 +81,7 @@ func TestRemoteer_Remote_Remove(t *testing.T) {
 	_, _ = buf.ReadFrom(r)
 	os.Stdout = oldStdout
 	if !called {
-		t.Error("removeサブコマンドでexecCommandが呼ばれていません")
+		t.Error("execCommand is not called in remove subcommand")
 	}
 }
 
@@ -106,7 +106,7 @@ func TestRemoteer_Remote_SetURL(t *testing.T) {
 	_, _ = buf.ReadFrom(r)
 	os.Stdout = oldStdout
 	if !called {
-		t.Error("set-urlサブコマンドでexecCommandが呼ばれていません")
+		t.Error("execCommand is not called in set-url subcommand")
 	}
 }
 
@@ -131,6 +131,6 @@ func TestRemoteer_Remote_Help(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
+		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }

@@ -51,7 +51,7 @@ func ShowLogHelp() {
 	fmt.Println("Usage: ggc log simple | ggc log graph")
 }
 
-// 既存互換用
+// For backward compatibility
 func Log(args []string) {
 	NewLogger().Log(args)
 }

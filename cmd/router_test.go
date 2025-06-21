@@ -8,14 +8,14 @@ import (
 )
 
 func TestComplete(t *testing.T) {
-	// オリジナルのNewCompleterを保存
+	// Save the original NewCompleter
 	originalNewCompleter := NewCompleter
 	defer func() {
-		// テスト終了後に元に戻す
+		// Restore it after the test finishes
 		NewCompleter = originalNewCompleter
 	}()
 
-	// NewCompleterをモックに差し替える
+	// Mock NewCompleter
 	NewCompleter = func() *Completer {
 		return &Completer{
 			listLocalBranches: func() ([]string, error) {
@@ -24,13 +24,13 @@ func TestComplete(t *testing.T) {
 		}
 	}
 
-	// 標準出力をキャプチャ
+	// Capture standard output
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	// テスト対象の関数を実行
-	// "branch"サブコマンドに、"sub"という引数を与えて呼び出す
+	// Execute the function under test
+	// Call it with "sub" argument for "branch" subcommand
 	Complete([]string{"branch", "sub"})
 
 	if err := w.Close(); err != nil {
@@ -43,7 +43,7 @@ func TestComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 出力に期待するブランチ名が含まれているか確認
+	// Check if the output contains the expected branch name
 	expected := "feature/test-branch"
 	if !bytes.Contains(buf.Bytes(), []byte(expected)) {
 		t.Errorf("expected output to contain %q, but got %q", expected, buf.String())

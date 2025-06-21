@@ -181,7 +181,7 @@ func (c *CommitPusher) CommitPushInteractive() {
 	}
 }
 
-// 既存互換用
+// For backward compatibility
 func CommitPushInteractive() {
 	NewCommitPusher().CommitPushInteractive()
 }

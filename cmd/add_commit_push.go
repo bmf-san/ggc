@@ -84,7 +84,7 @@ func (a *AddCommitPusher) AddCommitPush() {
 	}
 }
 
-// 既存互換用
+// For backward compatibility
 func AddCommitPush() {
 	NewAddCommitPusher().AddCommitPush()
 }

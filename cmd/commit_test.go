@@ -20,7 +20,7 @@ func TestCommitter_Commit_AllowEmpty(t *testing.T) {
 	}
 	c.Commit([]string{"allow-empty"})
 	if !called {
-		t.Error("CommitAllowEmptyが呼ばれていません")
+		t.Error("CommitAllowEmpty should be called")
 	}
 }
 
@@ -37,7 +37,7 @@ func TestCommitter_Commit_Tmp(t *testing.T) {
 	}
 	c.Commit([]string{"tmp"})
 	if !called {
-		t.Error("CommitTmpが呼ばれていません")
+		t.Error("CommitTmp should be called")
 	}
 }
 
@@ -61,7 +61,7 @@ func TestCommitter_Commit_Help(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
+		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
 
@@ -85,6 +85,6 @@ func TestCommitter_Commit_AllowEmpty_Error(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Error" {
-		t.Errorf("エラー出力がされていません: %s", output)
+		t.Errorf("Error should be displayed, but got: %s", output)
 	}
 }

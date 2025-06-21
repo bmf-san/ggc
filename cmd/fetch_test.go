@@ -17,7 +17,7 @@ func TestFetcher_Fetch_Prune(t *testing.T) {
 	}
 	f.Fetch([]string{"--prune"})
 	if !called {
-		t.Error("FetchPruneが呼ばれていません")
+		t.Error("FetchPrune should be called")
 	}
 }
 
@@ -40,7 +40,7 @@ func TestFetcher_Fetch_Help(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
+		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
 
@@ -63,6 +63,6 @@ func TestFetcher_Fetch_Prune_Error(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Error" {
-		t.Errorf("エラー出力がされていません: %s", output)
+		t.Errorf("Error should be displayed, but got: %s", output)
 	}
 }
