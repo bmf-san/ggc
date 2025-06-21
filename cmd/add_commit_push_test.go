@@ -26,10 +26,10 @@ func TestAddCommitPusher_AddCommitPush_Success(t *testing.T) {
 	acp.AddCommitPush()
 	output := buf.String()
 	if !strings.Contains(output, "add→commit→push done") {
-		t.Errorf("正常系で完了メッセージが出力されていません: %s", output)
+		t.Errorf("success message should be displayed, but not: %s", output)
 	}
 	if len(calls) < 4 {
-		t.Errorf("コマンド呼び出し数が想定より少ない: %v", calls)
+		t.Errorf("number of command calls is less than expected: %v", calls)
 	}
 }
 
@@ -44,7 +44,7 @@ func TestAddCommitPusher_AddCommitPush_Cancel(t *testing.T) {
 	acp.AddCommitPush()
 	output := buf.String()
 	if !strings.Contains(output, "Cancelled.") {
-		t.Errorf("キャンセル時の出力が想定と異なります: %s", output)
+		t.Errorf("cancel message should be displayed, but not: %s", output)
 	}
 }
 
@@ -61,7 +61,7 @@ func TestAddCommitPusher_AddCommitPush_AddError(t *testing.T) {
 	acp.AddCommitPush()
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to add all files") {
-		t.Errorf("add失敗時のエラー出力が想定と異なります: %s", output)
+		t.Errorf("error message on add failure should be displayed, but not: %s", output)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestAddCommitPusher_AddCommitPush_CommitError(t *testing.T) {
 	acp.AddCommitPush()
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to commit") {
-		t.Errorf("commit失敗時のエラー出力が想定と異なります: %s", output)
+		t.Errorf("error message on commit failure should be displayed, but not: %s", output)
 	}
 }
 
@@ -117,7 +117,7 @@ func TestAddCommitPusher_AddCommitPush_BranchError(t *testing.T) {
 	acp.AddCommitPush()
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to get branch name") {
-		t.Errorf("branch取得失敗時のエラー出力が想定と異なります: %s", output)
+		t.Errorf("error message on branch name fetch failure should be displayed, but not: %s", output)
 	}
 }
 
@@ -151,6 +151,6 @@ func TestAddCommitPusher_AddCommitPush_PushError(t *testing.T) {
 	acp.AddCommitPush()
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to push") {
-		t.Errorf("push失敗時のエラー出力が想定と異なります: %s", output)
+		t.Errorf("error message on push failure should be displayed, but not: %s", output)
 	}
 }

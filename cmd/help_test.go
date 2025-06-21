@@ -14,12 +14,12 @@ func TestHelper_ShowHelp_Output(t *testing.T) {
 
 	output := buf.String()
 	if !strings.Contains(output, "ggc: A Go-based CLI tool to streamline Git operations") {
-		t.Errorf("ヘルプ出力が想定と異なります: %s", output)
+		t.Errorf("help output is not what was expected: %s", output)
 	}
 	if !strings.Contains(output, "ggc add <file>") {
-		t.Errorf("コマンド一覧が出力されていません: %s", output)
+		t.Errorf("command list is not displayed: %s", output)
 	}
 	if !strings.Contains(output, "Examples:") {
-		t.Errorf("Examplesが出力されていません: %s", output)
+		t.Errorf("examples are not displayed: %s", output)
 	}
 }

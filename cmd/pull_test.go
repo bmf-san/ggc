@@ -18,7 +18,7 @@ func TestPuller_Pull_Current(t *testing.T) {
 	}
 	p.Pull([]string{"current"})
 	if !called {
-		t.Error("PullCurrentBranchが呼ばれていません")
+		t.Error("PullCurrentBranch should be called")
 	}
 }
 
@@ -33,7 +33,7 @@ func TestPuller_Pull_Rebase(t *testing.T) {
 	}
 	p.Pull([]string{"rebase"})
 	if !called {
-		t.Error("PullRebaseCurrentBranchが呼ばれていません")
+		t.Error("PullRebaseCurrentBranch should be called")
 	}
 }
 
@@ -57,7 +57,7 @@ func TestPuller_Pull_Help(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
+		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
 
@@ -81,6 +81,6 @@ func TestPuller_Pull_Current_Error(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Error" {
-		t.Errorf("エラー出力がされていません: %s", output)
+		t.Errorf("Error should be displayed, but got: %s", output)
 	}
 }

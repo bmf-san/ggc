@@ -61,7 +61,7 @@ Examples:
 	}
 }
 
-// 既存互換用
+// For backward compatibility
 func ShowHelp() {
 	NewHelper().ShowHelp()
 }
