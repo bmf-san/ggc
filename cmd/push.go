@@ -1,43 +1,54 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/bmf-san/ggc/git"
 )
 
+// Pusher provides functionality for the push command.
 type Pusher struct {
-	PushCurrentBranch      func() error
-	PushForceCurrentBranch func() error
+	gitClient    git.Clienter
+	outputWriter io.Writer
+	helper       *Helper
 }
 
+// NewPusher creates a new Pusher.
 func NewPusher() *Pusher {
-	return &Pusher{
-		PushCurrentBranch:      git.PushCurrentBranch,
-		PushForceCurrentBranch: git.PushForceCurrentBranch,
-	}
+	return NewPusherWithClient(git.NewClient())
 }
 
+// NewPusherWithClient creates a new Pusher with the specified git client.
+func NewPusherWithClient(client git.Clienter) *Pusher {
+	p := &Pusher{
+		gitClient:    client,
+		outputWriter: os.Stdout,
+		helper:       NewHelper(),
+	}
+	p.helper.outputWriter = p.outputWriter
+	return p
+}
+
+// Push executes the push command with the given arguments.
 func (p *Pusher) Push(args []string) {
-	if len(args) > 0 {
-		switch args[0] {
-		case "current":
-			err := p.PushCurrentBranch()
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			return
-		case "force":
-			err := p.PushForceCurrentBranch()
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			return
-		}
+	if len(args) == 0 {
+		p.helper.ShowPushHelp()
+		return
 	}
-	ShowPushHelp()
-}
 
-func ShowPushHelp() {
-	fmt.Println("Usage: ggc push current | ggc push force")
+	switch args[0] {
+	case "current":
+		if err := p.gitClient.Push(false); err != nil {
+			_, _ = fmt.Fprintf(p.outputWriter, "Error: %v\n", err)
+		}
+	case "force":
+		if err := p.gitClient.Push(true); err != nil {
+			_, _ = fmt.Fprintf(p.outputWriter, "Error: %v\n", err)
+		}
+	default:
+		p.helper.ShowPushHelp()
+	}
 }

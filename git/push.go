@@ -1,31 +1,16 @@
+// Package git provides a high-level interface to git commands.
 package git
 
-import (
-	"os"
-	"os/exec"
-)
-
-var execCommand = exec.Command
-var getCurrentBranch = GetCurrentBranch
-
-func PushCurrentBranch() error {
-	branch, err := getCurrentBranch()
+// Push pushes to a remote.
+func (c *Client) Push(force bool) error {
+	branch, err := c.GetCurrentBranch()
 	if err != nil {
 		return err
 	}
-	cmd := execCommand("git", "push", "origin", branch)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
-func PushForceCurrentBranch() error {
-	branch, err := getCurrentBranch()
-	if err != nil {
-		return err
+	args := []string{"push", "origin", branch}
+	if force {
+		args = append(args, "--force-with-lease")
 	}
-	cmd := execCommand("git", "push", "--force", "origin", branch)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd := c.execCommand("git", args...)
 	return cmd.Run()
 }

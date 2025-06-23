@@ -6,32 +6,32 @@ import (
 	"testing"
 )
 
-func TestCommitAllowEmpty_ExecutesCorrectCommand(t *testing.T) {
+func TestClient_CommitAllowEmpty(t *testing.T) {
 	var gotArgs []string
-	origExecCommand := execCommand
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotArgs = append([]string{name}, args...)
-		return exec.Command("echo")
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			gotArgs = append([]string{name}, args...)
+			return exec.Command("echo")
+		},
 	}
-	defer func() { execCommand = origExecCommand }()
 
-	_ = CommitAllowEmpty()
+	_ = client.CommitAllowEmpty()
 	want := []string{"git", "commit", "--allow-empty", "-m", "empty commit"}
 	if !reflect.DeepEqual(gotArgs, want) {
 		t.Errorf("got %v, want %v", gotArgs, want)
 	}
 }
 
-func TestCommitTmp_ExecutesCorrectCommand(t *testing.T) {
+func TestClient_CommitTmp(t *testing.T) {
 	var gotArgs []string
-	origExecCommand := execCommand
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotArgs = append([]string{name}, args...)
-		return exec.Command("echo")
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			gotArgs = append([]string{name}, args...)
+			return exec.Command("echo")
+		},
 	}
-	defer func() { execCommand = origExecCommand }()
 
-	_ = CommitTmp()
+	_ = client.CommitTmp()
 	want := []string{"git", "commit", "-m", "tmp"}
 	if !reflect.DeepEqual(gotArgs, want) {
 		t.Errorf("got %v, want %v", gotArgs, want)

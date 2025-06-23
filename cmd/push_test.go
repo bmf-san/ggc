@@ -3,84 +3,85 @@ package cmd
 import (
 	"bytes"
 	"errors"
-	"os"
 	"testing"
+
+	"github.com/bmf-san/ggc/git"
 )
 
-func TestPusher_Push_Current(t *testing.T) {
-	called := false
-	p := &Pusher{
-		PushCurrentBranch: func() error {
-			called = true
-			return nil
-		},
-		PushForceCurrentBranch: func() error { return nil },
-	}
-	p.Push([]string{"current"})
-	if !called {
-		t.Error("PushCurrentBranchが呼ばれていません")
-	}
+type mockPushGitClient struct {
+	git.Clienter
+	pushCalled bool
+	pushForce  bool
+	err        error
 }
 
-func TestPusher_Push_Force(t *testing.T) {
-	called := false
-	p := &Pusher{
-		PushCurrentBranch: func() error { return nil },
-		PushForceCurrentBranch: func() error {
-			called = true
-			return nil
+func (m *mockPushGitClient) Push(force bool) error {
+	m.pushCalled = true
+	m.pushForce = force
+	return m.err
+}
+
+func TestPusher_Push(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		wantPush bool
+		wantErr  bool
+		err      error
+	}{
+		{
+			name:     "normal_push",
+			args:     []string{"current"},
+			wantPush: true,
+			wantErr:  false,
+		},
+		{
+			name:     "push_with_error",
+			args:     []string{"current"},
+			wantPush: true,
+			wantErr:  true,
+			err:      errors.New("push failed"),
 		},
 	}
-	p.Push([]string{"force"})
-	if !called {
-		t.Error("PushForceCurrentBranchが呼ばれていません")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mockPushGitClient{err: tt.err}
+			var buf bytes.Buffer
+			pusher := &Pusher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				helper:       NewHelper(),
+			}
+			pusher.helper.outputWriter = &buf
+			pusher.Push(tt.args)
+
+			if mockClient.pushCalled != tt.wantPush {
+				t.Errorf("Push called = %v, want %v", mockClient.pushCalled, tt.wantPush)
+			}
+
+			if tt.wantErr {
+				output := buf.String()
+				if output != "Error: push failed\n" {
+					t.Errorf("Output = %q, want %q", output, "Error: push failed\n")
+				}
+			}
+		})
 	}
 }
 
 func TestPusher_Push_Help(t *testing.T) {
-	p := &Pusher{
-		PushCurrentBranch:      func() error { return nil },
-		PushForceCurrentBranch: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	p.Push([]string{"unknown"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
 	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
+	pusher := &Pusher{
+		gitClient:    &mockPushGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	pusher.helper.outputWriter = &buf
+	pusher.Push([]string{})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
-	}
-}
-
-func TestPusher_Push_Current_Error(t *testing.T) {
-	p := &Pusher{
-		PushCurrentBranch:      func() error { return errors.New("fail") },
-		PushForceCurrentBranch: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	p.Push([]string{"current"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if output == "" || output[:5] != "Error" {
-		t.Errorf("エラー出力がされていません: %s", output)
+	if output == "" || !bytes.Contains(buf.Bytes(), []byte("Usage")) {
+		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }

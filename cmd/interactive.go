@@ -1,3 +1,4 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
@@ -44,7 +45,7 @@ var commands = []string{
 	"reset-clean",
 }
 
-// Incremental search interactive UI
+// InteractiveUI provides an incremental search interactive UI for command selection.
 // Returns the selected command as []string (nil if nothing selected)
 func InteractiveUI() []string {
 	fd := int(os.Stdin.Fd())

@@ -31,7 +31,7 @@ func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
 func TestAdder_Add_GitAddCalled(t *testing.T) {
 	called := false
 	adder := &Adder{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			called = true
 			return exec.Command("echo")
 		},
@@ -70,7 +70,7 @@ func TestAdder_Add_RunError_PrintsError(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	adder := &Adder{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			cmd := exec.Command("false") // 常にエラーを返すコマンド
 			return cmd
 		},

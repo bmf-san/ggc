@@ -109,7 +109,7 @@ func TestRebaser_RebaseInteractive_InvalidNumber(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_NoHistory(t *testing.T) {
 	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("echo", "")
 		},
 		inputReader: bufioReaderWithInput("1\n"),
@@ -137,7 +137,7 @@ func TestRebaser_RebaseInteractive_NoHistory(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_LogError(t *testing.T) {
 	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("false")
 		},
 		inputReader: bufioReaderWithInput("1\n"),

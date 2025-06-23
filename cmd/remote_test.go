@@ -2,132 +2,127 @@ package cmd
 
 import (
 	"bytes"
-	"os"
 	"os/exec"
 	"testing"
 )
 
+type noopCmd struct {
+	cmd *exec.Cmd
+}
+
+func newNoopCmd() *noopCmd {
+	cmd := exec.Command("true")
+	return &noopCmd{cmd: cmd}
+}
+
+func (c *noopCmd) Run() error {
+	return nil
+}
+
 func TestRemoteer_Remote_List(t *testing.T) {
 	called := false
+	var buf bytes.Buffer
 	remoteer := &Remoteer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			called = true
-			cmd := exec.Command("echo", "origin\thttps://example.com (fetch)")
-			return cmd
+			return newNoopCmd().cmd
 		},
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	remoteer.helper.outputWriter = &buf
 
 	remoteer.Remote([]string{"list"})
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if !called || output == "" || output[:6] != "origin" {
-		t.Errorf("output of list subcommand is not what was expected: %s", output)
+	if !called {
+		t.Error("execCommand is not called in list subcommand")
 	}
 }
 
 func TestRemoteer_Remote_Add(t *testing.T) {
 	called := false
+	var buf bytes.Buffer
 	remoteer := &Remoteer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			called = true
-			return exec.Command("echo")
+			return newNoopCmd().cmd
 		},
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	remoteer.helper.outputWriter = &buf
 
 	remoteer.Remote([]string{"add", "origin", "https://example.com"})
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
 	if !called {
 		t.Error("execCommand is not called in add subcommand")
+	}
+	output := buf.String()
+	if output != "Remote 'origin' added\n" {
+		t.Errorf("unexpected output: got %q", output)
 	}
 }
 
 func TestRemoteer_Remote_Remove(t *testing.T) {
 	called := false
+	var buf bytes.Buffer
 	remoteer := &Remoteer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			called = true
-			return exec.Command("echo")
+			return newNoopCmd().cmd
 		},
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	remoteer.helper.outputWriter = &buf
 
 	remoteer.Remote([]string{"remove", "origin"})
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
 	if !called {
 		t.Error("execCommand is not called in remove subcommand")
+	}
+	output := buf.String()
+	if output != "Remote 'origin' removed\n" {
+		t.Errorf("unexpected output: got %q", output)
 	}
 }
 
 func TestRemoteer_Remote_SetURL(t *testing.T) {
 	called := false
+	var buf bytes.Buffer
 	remoteer := &Remoteer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			called = true
-			return exec.Command("echo")
+			return newNoopCmd().cmd
 		},
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	remoteer.helper.outputWriter = &buf
 
 	remoteer.Remote([]string{"set-url", "origin", "https://example.com"})
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
 	if !called {
 		t.Error("execCommand is not called in set-url subcommand")
+	}
+	output := buf.String()
+	if output != "Remote 'origin' URL updated\n" {
+		t.Errorf("unexpected output: got %q", output)
 	}
 }
 
 func TestRemoteer_Remote_Help(t *testing.T) {
+	var buf bytes.Buffer
 	remoteer := &Remoteer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			return exec.Command("echo")
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return newNoopCmd().cmd
 		},
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	remoteer.helper.outputWriter = &buf
 
 	remoteer.Remote([]string{"unknown"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {

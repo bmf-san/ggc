@@ -1,18 +1,15 @@
+// Package git provides a high-level interface to git commands.
 package git
 
-import (
-	"os"
-)
-
-func ResetClean() error {
-	cmd1 := execCommand("git", "reset", "--hard", "HEAD")
-	cmd1.Stdout = os.Stdout
-	cmd1.Stderr = os.Stderr
-	if err := cmd1.Run(); err != nil {
+// ResetHardAndClean resets the current branch to the state of origin and cleans the working directory.
+func (c *Client) ResetHardAndClean() error {
+	branch, err := c.GetCurrentBranch()
+	if err != nil {
 		return err
 	}
-	cmd2 := execCommand("git", "clean", "-fd")
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	return cmd2.Run()
+	cmd := c.execCommand("git", "reset", "--hard", "origin/"+branch)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return c.CleanDirs()
 }

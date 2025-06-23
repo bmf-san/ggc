@@ -1,148 +1,100 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
-import "io"
+import (
+	"io"
+	"os"
+
+	"github.com/bmf-san/ggc/git"
+)
 
 // Executer is an interface for executing commands.
 type Executer interface {
-	Add(args []string)
-	AddCommitPush()
+	Help()
 	Branch(args []string)
-	Clean(args []string)
-	CleanInteractive()
 	Commit(args []string)
-	CommitPushInteractive()
-	Complete(args []string)
-	Fetch(args []string)
 	Log(args []string)
 	Pull(args []string)
-	PullRebasePush()
 	Push(args []string)
-	Rebase(args []string)
-	Remote(args []string)
 	Reset(args []string)
-	Stash(args []string)
-	StashPullPop()
-	ShowHelp()
+	Clean(args []string)
+	PullRebasePush()
 }
 
-// Cmd is a struct that holds all the commands.
+// Cmd represents the command-line interface.
 type Cmd struct {
+	gitClient        git.Clienter
 	outputWriter     io.Writer
-	adder            *Adder
-	addCommitPusher  *AddCommitPusher
-	brancher         *Brancher
-	cleaner          *Cleaner
-	committer        *Committer
-	commitPusher     *CommitPusher
-	completer        *Completer
-	fetcher          *Fetcher
 	helper           *Helper
+	brancher         *Brancher
+	committer        *Committer
 	logger           *Logger
 	puller           *Puller
-	pullRebasePusher *PullRebasePusher
 	pusher           *Pusher
-	rebaser          *Rebaser
-	remoteer         *Remoteer
 	resetter         *Resetter
-	stasher          *Stasher
+	cleaner          *Cleaner
+	pullRebasePusher *PullRebasePusher
 }
 
 // NewCmd creates a new Cmd.
-func NewCmd(w io.Writer) *Cmd {
+func NewCmd() *Cmd {
+	client := git.NewClient()
 	return &Cmd{
-		outputWriter:     w,
-		adder:            NewAdder(),
-		addCommitPusher:  NewAddCommitPusher(),
-		brancher:         NewBrancher(),
-		cleaner:          NewCleaner(),
-		committer:        NewCommitter(),
-		commitPusher:     NewCommitPusher(),
-		completer:        NewCompleter(),
-		fetcher:          NewFetcher(),
+		gitClient:        client,
+		outputWriter:     os.Stdout,
 		helper:           NewHelper(),
+		brancher:         NewBrancher(),
+		committer:        NewCommitter(),
 		logger:           NewLogger(),
 		puller:           NewPuller(),
-		pullRebasePusher: NewPullRebasePusher(),
 		pusher:           NewPusher(),
-		rebaser:          NewRebaser(),
-		remoteer:         NewRemoteer(),
 		resetter:         NewResetter(),
-		stasher:          NewStasher(),
+		cleaner:          NewCleaner(),
+		pullRebasePusher: NewPullRebasePusher(),
 	}
 }
 
-func (c *Cmd) Add(args []string) {
-	c.adder.Add(args)
+// Help displays help information.
+func (c *Cmd) Help() {
+	c.helper.ShowHelp()
 }
 
-func (c *Cmd) AddCommitPush() {
-	c.addCommitPusher.AddCommitPush()
-}
-
+// Branch executes the branch command with the given arguments.
 func (c *Cmd) Branch(args []string) {
 	c.brancher.Branch(args)
 }
 
-func (c *Cmd) Clean(args []string) {
-	c.cleaner.Clean(args)
-}
-
-func (c *Cmd) CleanInteractive() {
-	c.cleaner.CleanInteractive()
-}
-
+// Commit executes the commit command with the given arguments.
 func (c *Cmd) Commit(args []string) {
 	c.committer.Commit(args)
 }
 
-func (c *Cmd) CommitPushInteractive() {
-	c.commitPusher.CommitPushInteractive()
-}
-
-func (c *Cmd) Complete(args []string) {
-	c.completer.Complete(args)
-}
-
-func (c *Cmd) Fetch(args []string) {
-	c.fetcher.Fetch(args)
-}
-
+// Log executes the log command with the given arguments.
 func (c *Cmd) Log(args []string) {
 	c.logger.Log(args)
 }
 
+// Pull executes the pull command with the given arguments.
 func (c *Cmd) Pull(args []string) {
 	c.puller.Pull(args)
 }
 
-func (c *Cmd) PullRebasePush() {
-	c.pullRebasePusher.PullRebasePush()
-}
-
+// Push executes the push command with the given arguments.
 func (c *Cmd) Push(args []string) {
 	c.pusher.Push(args)
 }
 
-func (c *Cmd) Rebase(args []string) {
-	c.rebaser.Rebase(args)
+// Reset executes the reset command.
+func (c *Cmd) Reset(_ []string) {
+	c.resetter.Reset()
 }
 
-func (c *Cmd) Remote(args []string) {
-	c.remoteer.Remote(args)
+// Clean executes the clean command with the given arguments.
+func (c *Cmd) Clean(args []string) {
+	c.cleaner.Clean(args)
 }
 
-func (c *Cmd) Reset(args []string) {
-	c.resetter.Reset(args)
-}
-
-func (c *Cmd) Stash(args []string) {
-	c.stasher.Stash(args)
-}
-
-func (c *Cmd) StashPullPop() {
-	// not implemented
-}
-
-func (c *Cmd) ShowHelp() {
-	c.helper.ShowHelp()
+// PullRebasePush executes the pull-rebase-push command.
+func (c *Cmd) PullRebasePush() {
+	c.pullRebasePusher.PullRebasePush()
 }

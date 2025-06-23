@@ -1,3 +1,4 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
@@ -9,31 +10,32 @@ import (
 	"strings"
 )
 
+// Rebaser provides functionality for the rebase command.
 type Rebaser struct {
 	execCommand func(name string, arg ...string) *exec.Cmd
 	inputReader *bufio.Reader
+	helper      *Helper
 }
 
+// NewRebaser creates a new Rebaser.
 func NewRebaser() *Rebaser {
 	return &Rebaser{
 		execCommand: exec.Command,
 		inputReader: bufio.NewReader(os.Stdin),
+		helper:      NewHelper(),
 	}
 }
 
+// Rebase executes the rebase command with the given arguments.
 func (r *Rebaser) Rebase(args []string) {
 	if len(args) > 0 && args[0] == "interactive" {
 		r.RebaseInteractive()
 		return
 	}
-	ShowRebaseHelp()
+	r.helper.ShowRebaseHelp()
 }
 
-func ShowRebaseHelp() {
-	fmt.Println("Usage: ggc rebase interactive")
-}
-
-// Interactively rebase up to HEAD~N
+// RebaseInteractive interactively rebases up to HEAD~N.
 func (r *Rebaser) RebaseInteractive() {
 	// 1. Get the last 10 commit logs
 	cmd := r.execCommand("git", "log", "--oneline", "-n", "10")
@@ -73,8 +75,4 @@ func (r *Rebaser) RebaseInteractive() {
 		fmt.Printf("error: git rebase failed: %v\n", err)
 		return
 	}
-}
-
-func Rebase(args []string) {
-	NewRebaser().Rebase(args)
 }

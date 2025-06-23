@@ -1,19 +1,28 @@
+// Package git provides a high-level interface to git commands.
 package git
 
 import (
 	"os"
 )
 
-func CleanFiles() error {
-	cmd := execCommand("git", "clean", "-f")
+// CleanFiles cleans untracked files.
+func (c *Client) CleanFiles() error {
+	cmd := c.execCommand("git", "clean", "-fd")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return NewError("clean files", "git clean -fd", err)
+	}
+	return nil
 }
 
-func CleanDirs() error {
-	cmd := execCommand("git", "clean", "-d")
+// CleanDirs cleans untracked directories.
+func (c *Client) CleanDirs() error {
+	cmd := c.execCommand("git", "clean", "-fdx")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return NewError("clean directories", "git clean -fdx", err)
+	}
+	return nil
 }

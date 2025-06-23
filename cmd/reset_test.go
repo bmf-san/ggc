@@ -3,66 +3,61 @@ package cmd
 import (
 	"bytes"
 	"errors"
-	"os"
 	"testing"
 )
 
-func TestResetter_Reset_Clean(t *testing.T) {
-	called := false
-	resetter := &Resetter{
-		ResetClean: func() error {
-			called = true
-			return nil
+type mockResetGitClient struct {
+	mockGitClient
+	resetHardAndCleanCalled bool
+	err                     error
+}
+
+func (m *mockResetGitClient) ResetHardAndClean() error {
+	m.resetHardAndCleanCalled = true
+	return m.err
+}
+
+func TestResetter_Reset(t *testing.T) {
+	tests := []struct {
+		name         string
+		resetError   error
+		expectOutput string
+		expectReset  bool
+	}{
+		{
+			name:         "successful reset",
+			resetError:   nil,
+			expectOutput: "",
+			expectReset:  true,
+		},
+		{
+			name:         "reset with error",
+			resetError:   errors.New("reset failed"),
+			expectOutput: "Error: reset failed\n",
+			expectReset:  true,
 		},
 	}
-	resetter.Reset([]string{"clean"})
-	if !called {
-		t.Error("ResetCleanが呼ばれていません")
-	}
-}
 
-func TestResetter_Reset_Help(t *testing.T) {
-	resetter := &Resetter{
-		ResetClean: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mockResetGitClient{
+				err: tt.resetError,
+			}
+			var buf bytes.Buffer
+			resetter := &Resetter{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+			}
 
-	resetter.Reset([]string{"unknown"})
+			resetter.Reset()
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
+			if mockClient.resetHardAndCleanCalled != tt.expectReset {
+				t.Errorf("Reset called = %v, want %v", mockClient.resetHardAndCleanCalled, tt.expectReset)
+			}
 
-	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
-	}
-}
-
-func TestResetter_Reset_Clean_Error(t *testing.T) {
-	resetter := &Resetter{
-		ResetClean: func() error { return errors.New("fail") },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	resetter.Reset([]string{"clean"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if output == "" || output[:5] != "Error" {
-		t.Errorf("エラー出力がされていません: %s", output)
+			if got := buf.String(); got != tt.expectOutput {
+				t.Errorf("Output = %q, want %q", got, tt.expectOutput)
+			}
+		})
 	}
 }

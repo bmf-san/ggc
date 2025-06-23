@@ -1,57 +1,57 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
 	"github.com/bmf-san/ggc/git"
 )
 
+// Logger provides functionality for the log command.
 type Logger struct {
-	execCommand func(name string, arg ...string) *exec.Cmd
-	logSimple   func() error
+	gitClient    git.Clienter
+	outputWriter io.Writer
+	execCommand  func(name string, arg ...string) *exec.Cmd
+	helper       *Helper
 }
 
+// NewLogger creates a new Logger.
 func NewLogger() *Logger {
-	return &Logger{
-		execCommand: exec.Command,
-		logSimple:   git.LogSimple,
-	}
+	return NewLoggerWithClient(git.NewClient())
 }
 
+// NewLoggerWithClient creates a new Logger with the specified git client.
+func NewLoggerWithClient(client git.Clienter) *Logger {
+	l := &Logger{
+		gitClient:    client,
+		outputWriter: os.Stdout,
+		execCommand:  exec.Command,
+		helper:       NewHelper(),
+	}
+	l.helper.outputWriter = l.outputWriter
+	return l
+}
+
+// Log executes the log command with the given arguments.
 func (l *Logger) Log(args []string) {
-	if len(args) > 0 {
-		switch args[0] {
-		case "simple":
-			err := l.logSimple()
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			return
-		case "graph":
-			err := l.logGraph()
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			return
-		}
+	if len(args) == 0 {
+		l.helper.ShowLogHelp()
+		return
 	}
-	ShowLogHelp()
-}
 
-func (l *Logger) logGraph() error {
-	cmd := l.execCommand("git", "log", "--graph")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
-func ShowLogHelp() {
-	fmt.Println("Usage: ggc log simple | ggc log graph")
-}
-
-// For backward compatibility
-func Log(args []string) {
-	NewLogger().Log(args)
+	switch args[0] {
+	case "simple":
+		if err := l.gitClient.LogSimple(); err != nil {
+			_, _ = fmt.Fprintf(l.outputWriter, "Error: %v\n", err)
+		}
+	case "graph":
+		if err := l.gitClient.LogGraph(); err != nil {
+			_, _ = fmt.Fprintf(l.outputWriter, "Error: %v\n", err)
+		}
+	default:
+		l.helper.ShowLogHelp()
+	}
 }
