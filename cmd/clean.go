@@ -1,8 +1,10 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -11,52 +13,60 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
+// Cleaner provides functionality for the clean command.
 type Cleaner struct {
-	CleanFiles  func() error
-	CleanDirs   func() error
-	execCommand func(name string, arg ...string) *exec.Cmd
-	inputReader *bufio.Reader
+	gitClient    git.Clienter
+	outputWriter io.Writer
+	execCommand  func(name string, arg ...string) *exec.Cmd
+	inputReader  *bufio.Reader
+	helper       *Helper
 }
 
+// NewCleaner creates a new Cleaner.
 func NewCleaner() *Cleaner {
-	return &Cleaner{
-		CleanFiles:  git.CleanFiles,
-		CleanDirs:   git.CleanDirs,
-		execCommand: exec.Command,
-		inputReader: bufio.NewReader(os.Stdin),
-	}
+	return NewCleanerWithClient(git.NewClient())
 }
 
+// NewCleanerWithClient creates a new Cleaner with the specified git client.
+func NewCleanerWithClient(client git.Clienter) *Cleaner {
+	c := &Cleaner{
+		gitClient:    client,
+		outputWriter: os.Stdout,
+		execCommand:  exec.Command,
+		inputReader:  bufio.NewReader(os.Stdin),
+		helper:       NewHelper(),
+	}
+	c.helper.outputWriter = c.outputWriter
+	return c
+}
+
+// Clean executes the clean command with the given arguments.
 func (c *Cleaner) Clean(args []string) {
-	if len(args) > 0 {
-		switch args[0] {
-		case "files":
-			err := c.CleanFiles()
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			return
-		case "dirs":
-			err := c.CleanDirs()
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			return
-		}
+	if len(args) == 0 {
+		c.helper.ShowCleanHelp()
+		return
 	}
-	ShowCleanHelp()
+
+	switch args[0] {
+	case "files":
+		if err := c.gitClient.CleanFiles(); err != nil {
+			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		}
+	case "dirs":
+		if err := c.gitClient.CleanDirs(); err != nil {
+			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		}
+	default:
+		c.helper.ShowCleanHelp()
+	}
 }
 
-func ShowCleanHelp() {
-	fmt.Println("Usage: ggc clean files | ggc clean dirs")
-}
-
-// Interactively select files to clean
+// CleanInteractive interactively selects files to clean.
 func (c *Cleaner) CleanInteractive() {
 	cmd := c.execCommand("git", "clean", "-nd") // get candidates with dry-run
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Printf("Error: failed to get candidates with git clean -nd: %v\n", err)
+		_, _ = fmt.Fprintf(c.outputWriter, "Error: failed to get candidates with git clean -nd: %v\n", err)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -67,32 +77,32 @@ func (c *Cleaner) CleanInteractive() {
 		}
 	}
 	if len(files) == 0 {
-		fmt.Println("No files to clean.")
+		_, _ = fmt.Fprintln(c.outputWriter, "No files to clean.")
 		return
 	}
-	reader := c.inputReader
+
 	for {
-		fmt.Println("\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
+		_, _ = fmt.Fprintln(c.outputWriter, "\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 		for i, f := range files {
-			fmt.Printf("  [\033[1;33m%d\033[0m] %s\n", i+1, f)
+			_, _ = fmt.Fprintf(c.outputWriter, "  [\033[1;33m%d\033[0m] %s\n", i+1, f)
 		}
-		fmt.Print("> ")
-		input, _ := reader.ReadString('\n')
+		_, _ = fmt.Fprint(c.outputWriter, "> ")
+		input, _ := c.inputReader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			fmt.Println("Cancelled.")
+			_, _ = fmt.Fprintln(c.outputWriter, "Cancelled.")
 			return
 		}
 		if input == "all" {
 			args := append([]string{"clean", "-f", "--"}, files...)
 			cleanCmd := c.execCommand("git", args...)
-			cleanCmd.Stdout = os.Stdout
-			cleanCmd.Stderr = os.Stderr
+			cleanCmd.Stdout = c.outputWriter
+			cleanCmd.Stderr = c.outputWriter
 			if err := cleanCmd.Run(); err != nil {
-				fmt.Printf("Error: failed to clean files: %v\n", err)
+				_, _ = fmt.Fprintf(c.outputWriter, "Error: failed to clean files: %v\n", err)
 				return
 			}
-			fmt.Println("Selected files deleted.")
+			_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
 			break
 		}
 		if input == "none" {
@@ -104,7 +114,7 @@ func (c *Cleaner) CleanInteractive() {
 		for _, idx := range indices {
 			n, err := strconv.Atoi(idx)
 			if err != nil || n < 1 || n > len(files) {
-				fmt.Printf("\033[1;31mInvalid number: %s\033[0m\n", idx)
+				_, _ = fmt.Fprintf(c.outputWriter, "\033[1;31mInvalid number: %s\033[0m\n", idx)
 				valid = false
 				break
 			}
@@ -114,23 +124,23 @@ func (c *Cleaner) CleanInteractive() {
 			continue
 		}
 		if len(tmp) == 0 {
-			fmt.Println("\033[1;33mNothing selected.\033[0m")
+			_, _ = fmt.Fprintln(c.outputWriter, "\033[1;33mNothing selected.\033[0m")
 			continue
 		}
-		fmt.Printf("\033[1;32mSelected files: %v\033[0m\n", tmp)
-		fmt.Print("Delete these files? (y/n): ")
-		ans, _ := reader.ReadString('\n')
+		_, _ = fmt.Fprintf(c.outputWriter, "\033[1;32mSelected files: %v\033[0m\n", tmp)
+		_, _ = fmt.Fprint(c.outputWriter, "Delete these files? (y/n): ")
+		ans, _ := c.inputReader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
 			args := append([]string{"clean", "-f", "--"}, tmp...)
 			cleanCmd := c.execCommand("git", args...)
-			cleanCmd.Stdout = os.Stdout
-			cleanCmd.Stderr = os.Stderr
+			cleanCmd.Stdout = c.outputWriter
+			cleanCmd.Stderr = c.outputWriter
 			if err := cleanCmd.Run(); err != nil {
-				fmt.Printf("Error: failed to clean files: %v\n", err)
+				_, _ = fmt.Fprintf(c.outputWriter, "Error: failed to clean files: %v\n", err)
 				return
 			}
-			fmt.Println("Selected files deleted.")
+			_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
 			break
 		}
 	}

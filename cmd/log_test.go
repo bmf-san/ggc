@@ -3,142 +3,103 @@ package cmd
 import (
 	"bytes"
 	"errors"
-	"os"
-	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/git"
 )
 
-func TestLogger_Log_Graph_Success(t *testing.T) {
-	logger := &Logger{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			return exec.Command("echo", "graph output")
-		},
-		logSimple: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+type mockLogGitClient struct {
+	git.Clienter
+	logSimpleCalled bool
+	logGraphCalled  bool
+	err             error
+}
 
-	logger.Log([]string{"graph"})
+func (m *mockLogGitClient) LogSimple() error {
+	m.logSimpleCalled = true
+	return m.err
+}
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
+func (m *mockLogGitClient) LogGraph() error {
+	m.logGraphCalled = true
+	return m.err
+}
+
+func TestLogger_Log_Simple(t *testing.T) {
+	mockClient := &mockLogGitClient{}
 	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
+	l := &Logger{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if !strings.Contains(output, "graph output") {
-		t.Errorf("graphサブコマンドの出力が想定と異なります: %s", output)
+	l.helper.outputWriter = &buf
+	l.Log([]string{"simple"})
+	if !mockClient.logSimpleCalled {
+		t.Error("LogSimple should be called")
 	}
 }
 
-func TestLogger_Log_Graph_Error(t *testing.T) {
-	logger := &Logger{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			return exec.Command("false")
-		},
-		logSimple: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	logger.Log([]string{"graph"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
+func TestLogger_Log_Graph(t *testing.T) {
+	mockClient := &mockLogGitClient{}
 	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
+	l := &Logger{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if !strings.Contains(output, "Error:") {
-		t.Errorf("graphサブコマンドのエラー出力が想定と異なります: %s", output)
-	}
-}
-
-func TestLogger_Log_Simple_Success(t *testing.T) {
-	logger := &Logger{
-		execCommand: exec.Command,
-		logSimple:   func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	logger.Log([]string{"simple"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
-	}
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if output != "" {
-		t.Errorf("simpleサブコマンドの正常時は出力なし想定: %s", output)
-	}
-}
-
-func TestLogger_Log_Simple_Error(t *testing.T) {
-	logger := &Logger{
-		execCommand: exec.Command,
-		logSimple:   func() error { return errors.New("dummy error") },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	logger.Log([]string{"simple"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
-	}
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if !strings.Contains(output, "Error:") {
-		t.Errorf("simpleサブコマンドのエラー出力が想定と異なります: %s", output)
+	l.helper.outputWriter = &buf
+	l.Log([]string{"graph"})
+	if !mockClient.logGraphCalled {
+		t.Error("LogGraph should be called")
 	}
 }
 
 func TestLogger_Log_Help(t *testing.T) {
-	logger := &Logger{
-		execCommand: exec.Command,
-		logSimple:   func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	logger.Log([]string{"unknown"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
 	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
+	l := &Logger{
+		gitClient:    &mockLogGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
 	}
-	os.Stdout = oldStdout
+	l.helper.outputWriter = &buf
+	l.Log([]string{"unknown"})
 
 	output := buf.String()
-	if !strings.Contains(output, "Usage: ggc log simple | ggc log graph") {
-		t.Errorf("ヘルプ出力が想定と異なります: %s", output)
+	if output == "" || !strings.Contains(output, "Usage") {
+		t.Errorf("Usage should be displayed, but got: %s", output)
+	}
+}
+
+func TestLogger_Log_Simple_Error(t *testing.T) {
+	var buf bytes.Buffer
+	l := &Logger{
+		gitClient:    &mockLogGitClient{err: errors.New("fail")},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	l.helper.outputWriter = &buf
+	l.Log([]string{"simple"})
+
+	output := buf.String()
+	if output != "Error: fail\n" {
+		t.Errorf("unexpected output: got %q", output)
+	}
+}
+
+func TestLogger_Log_Graph_Error(t *testing.T) {
+	var buf bytes.Buffer
+	l := &Logger{
+		gitClient:    &mockLogGitClient{err: errors.New("fail")},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	l.helper.outputWriter = &buf
+	l.Log([]string{"graph"})
+
+	output := buf.String()
+	if output != "Error: fail\n" {
+		t.Errorf("unexpected output: got %q", output)
 	}
 }

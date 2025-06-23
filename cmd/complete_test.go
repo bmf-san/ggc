@@ -7,8 +7,28 @@ import (
 	"testing"
 )
 
+type mockCompleteGitClient struct {
+	mockGitClient
+	branches []string
+	err      error
+}
+
+func (m *mockCompleteGitClient) GetBranchName() (string, error) {
+	return "main", nil
+}
+
+func (m *mockCompleteGitClient) GetGitStatus() (string, error) {
+	return "", nil
+}
+
+func (m *mockCompleteGitClient) ListLocalBranches() ([]string, error) {
+	return m.branches, m.err
+}
+
 func TestCompleter_Complete_BranchSubcommands(t *testing.T) {
-	completer := &Completer{}
+	completer := &Completer{
+		gitClient: &mockCompleteGitClient{},
+	}
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
@@ -34,8 +54,8 @@ func TestCompleter_Complete_BranchSubcommands(t *testing.T) {
 
 func TestCompleter_Complete_BranchNames(t *testing.T) {
 	completer := &Completer{
-		listLocalBranches: func() ([]string, error) {
-			return []string{"main", "feature/test"}, nil
+		gitClient: &mockCompleteGitClient{
+			branches: []string{"main", "feature/test"},
 		},
 	}
 	oldStdout := os.Stdout
@@ -63,7 +83,8 @@ func TestCompleter_Complete_BranchNames(t *testing.T) {
 
 func TestCompleter_Complete_Files(t *testing.T) {
 	completer := &Completer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		gitClient: &mockCompleteGitClient{},
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("echo", "foo.txt\nbar.txt")
 		},
 	}
@@ -92,8 +113,8 @@ func TestCompleter_Complete_Files(t *testing.T) {
 
 func TestCompleter_Complete_BranchList_Error(t *testing.T) {
 	completer := &Completer{
-		listLocalBranches: func() ([]string, error) {
-			return nil, os.ErrNotExist
+		gitClient: &mockCompleteGitClient{
+			err: os.ErrNotExist,
 		},
 	}
 	oldStdout := os.Stdout
@@ -119,7 +140,8 @@ func TestCompleter_Complete_BranchList_Error(t *testing.T) {
 
 func TestCompleter_Complete_Files_Error(t *testing.T) {
 	completer := &Completer{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		gitClient: &mockCompleteGitClient{},
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("false")
 		},
 	}
@@ -145,7 +167,9 @@ func TestCompleter_Complete_Files_Error(t *testing.T) {
 }
 
 func TestCompleter_Complete_Default(t *testing.T) {
-	completer := &Completer{}
+	completer := &Completer{
+		gitClient: &mockCompleteGitClient{},
+	}
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w

@@ -2,67 +2,64 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
-	"os"
+	"os/exec"
+	"strings"
 	"testing"
 )
 
-func TestFetcher_Fetch_Prune(t *testing.T) {
-	called := false
-	f := &Fetcher{
-		FetchPrune: func() error {
-			called = true
-			return nil
+func TestFetcher_Fetch(t *testing.T) {
+	cases := []struct {
+		name           string
+		args           []string
+		expectedCmd    string
+		expectedOutput string
+		mockOutput     []byte
+		mockError      error
+	}{
+		{
+			name:           "fetch with prune",
+			args:           []string{"--prune"},
+			expectedCmd:    "git fetch --prune",
+			expectedOutput: "mock output",
+			mockOutput:     []byte("mock output"),
+			mockError:      nil,
+		},
+		{
+			name:           "fetch with no args",
+			args:           []string{},
+			expectedOutput: "Usage: ggc fetch [options]",
+		},
+		{
+			name:           "fetch with invalid arg",
+			args:           []string{"invalid"},
+			expectedOutput: "Usage: ggc fetch [options]",
 		},
 	}
-	f.Fetch([]string{"--prune"})
-	if !called {
-		t.Error("FetchPrune should be called")
-	}
-}
 
-func TestFetcher_Fetch_Help(t *testing.T) {
-	f := &Fetcher{
-		FetchPrune: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			f := &Fetcher{
+				outputWriter: &buf,
+				helper:       NewHelper(),
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					if tc.expectedCmd != "" {
+						gotCmd := strings.Join(append([]string{name}, args...), " ")
+						if gotCmd != tc.expectedCmd {
+							t.Errorf("expected command %q, got %q", tc.expectedCmd, gotCmd)
+						}
+					}
+					return exec.Command("echo", string(tc.mockOutput))
+				},
+			}
+			f.helper.outputWriter = &buf
 
-	f.Fetch([]string{"unknown"})
+			f.Fetch(tc.args)
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usage should be displayed, but got: %s", output)
-	}
-}
-
-func TestFetcher_Fetch_Prune_Error(t *testing.T) {
-	f := &Fetcher{
-		FetchPrune: func() error { return errors.New("fail") },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	f.Fetch([]string{"--prune"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if output == "" || output[:5] != "Error" {
-		t.Errorf("Error should be displayed, but got: %s", output)
+			output := buf.String()
+			if !strings.Contains(output, tc.expectedOutput) {
+				t.Errorf("expected output to contain %q, got %q", tc.expectedOutput, output)
+			}
+		})
 	}
 }

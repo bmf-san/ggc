@@ -1,3 +1,4 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
@@ -13,6 +14,8 @@ import (
 
 var commands = []string{
 	"add <file>",
+	"add .",
+	"add -p",
 	"branch current",
 	"branch checkout",
 	"branch checkout-remote",
@@ -24,27 +27,27 @@ var commands = []string{
 	"pull rebase",
 	"log simple",
 	"log graph",
+	"commit <message>",
 	"commit allow-empty",
 	"commit tmp",
 	"fetch --prune",
 	"clean files",
 	"clean dirs",
-	"reset clean",
-	"commit-push",
-	"clean interactive",
+	"clean-interactive",
+	"reset-clean",
+	"commit-push-interactive",
 	"stash trash",
 	"rebase interactive",
 	"remote list",
-	"remote add <name> <url>",
-	"remote remove <name>",
-	"remote set-url <name> <url>",
+	"remote add <n> <url>",
+	"remote remove <n>",
+	"remote set-url <n> <url>",
 	"add-commit-push",
 	"pull-rebase-push",
 	"stash-pull-pop",
-	"reset-clean",
 }
 
-// Incremental search interactive UI
+// InteractiveUI provides an incremental search interactive UI for command selection.
 // Returns the selected command as []string (nil if nothing selected)
 func InteractiveUI() []string {
 	fd := int(os.Stdin.Fd())

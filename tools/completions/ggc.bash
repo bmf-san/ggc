@@ -6,11 +6,11 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add branch commit push pull log fetch clean reset help stash rebase remote commit-push add-commit-push pull-rebase-push stash-pull-pop reset-clean"
+    opts="add add-commit-push branch clean clean-interactive commit commit-push-interactive complete fetch log pull pull-rebase-push push rebase remote reset reset-clean stash stash-pull-pop"
 
     case ${prev} in
         branch)
-            subopts="current checkout checkout-remote delete delete-merged"
+            subopts="current checkout checkout-remote delete delete-merged list-local list-remote"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -35,27 +35,22 @@ _ggc()
             return 0
             ;;
         clean)
-            subopts="files dirs interactive"
+            subopts="files dirs"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
-        reset)
-            subopts="clean"
-            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
-            return 0
-            ;;
-        stash)
-            subopts="trash"
-            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
-            return 0
-            ;;
-        rebase)
-            subopts="interactive"
+        complete)
+            subopts="bash zsh"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
         remote)
             subopts="list add remove set-url"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        fetch)
+            subopts="--prune"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

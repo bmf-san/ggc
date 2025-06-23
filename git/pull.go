@@ -1,27 +1,12 @@
+// Package git provides a high-level interface to git commands.
 package git
 
-import (
-	"os"
-)
-
-func PullCurrentBranch() error {
-	branch, err := getCurrentBranch()
-	if err != nil {
-		return err
+// Pull pulls from a remote.
+func (c *Client) Pull(rebase bool) error {
+	args := []string{"pull"}
+	if rebase {
+		args = append(args, "--rebase")
 	}
-	cmd := execCommand("git", "pull", "origin", branch)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
-func PullRebaseCurrentBranch() error {
-	branch, err := getCurrentBranch()
-	if err != nil {
-		return err
-	}
-	cmd := execCommand("git", "pull", "--rebase", "origin", branch)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd := c.execCommand("git", args...)
 	return cmd.Run()
 }

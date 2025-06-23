@@ -1,3 +1,4 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
@@ -9,12 +10,14 @@ import (
 	"strings"
 )
 
+// AddCommitPusher provides functionality for add-commit-push command.
 type AddCommitPusher struct {
 	execCommand  func(name string, arg ...string) *exec.Cmd
 	inputReader  *bufio.Reader
 	outputWriter io.Writer
 }
 
+// NewAddCommitPusher creates a new AddCommitPusher.
 func NewAddCommitPusher() *AddCommitPusher {
 	return &AddCommitPusher{
 		execCommand:  exec.Command,
@@ -23,6 +26,7 @@ func NewAddCommitPusher() *AddCommitPusher {
 	}
 }
 
+// AddCommitPush executes add, commit, and push in sequence.
 func (a *AddCommitPusher) AddCommitPush() {
 	// git add .
 	addCmd := a.execCommand("git", "add", ".")
@@ -82,9 +86,4 @@ func (a *AddCommitPusher) AddCommitPush() {
 	if _, err := fmt.Fprintln(a.outputWriter, "add→commit→push done"); err != nil {
 		_ = err
 	}
-}
-
-// For backward compatibility
-func AddCommitPush() {
-	NewAddCommitPusher().AddCommitPush()
 }

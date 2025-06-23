@@ -3,88 +3,115 @@ package cmd
 import (
 	"bytes"
 	"errors"
-	"os"
+	"os/exec"
+	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/git"
 )
 
+// mockGitClient for commit_test
+type mockCommitGitClient struct {
+	git.Clienter
+	commitAllowEmptyCalled bool
+	commitTmpCalled        bool
+	err                    error
+}
+
+func (m *mockCommitGitClient) CommitAllowEmpty() error {
+	m.commitAllowEmptyCalled = true
+	return m.err
+}
+
+func (m *mockCommitGitClient) CommitTmp() error {
+	m.commitTmpCalled = true
+	return m.err
+}
+
 func TestCommitter_Commit_AllowEmpty(t *testing.T) {
-	called := false
+	mockClient := &mockCommitGitClient{}
+	var buf bytes.Buffer
 	c := &Committer{
-		CommitAllowEmpty: func() error {
-			called = true
-			return nil
-		},
-		CommitTmp: func() error {
-			return nil
-		},
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
 	}
+	c.helper.outputWriter = &buf
 	c.Commit([]string{"allow-empty"})
-	if !called {
+	if !mockClient.commitAllowEmptyCalled {
 		t.Error("CommitAllowEmpty should be called")
 	}
 }
 
 func TestCommitter_Commit_Tmp(t *testing.T) {
-	called := false
+	mockClient := &mockCommitGitClient{}
+	var buf bytes.Buffer
 	c := &Committer{
-		CommitAllowEmpty: func() error {
-			return nil
-		},
-		CommitTmp: func() error {
-			called = true
-			return nil
-		},
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
 	}
+	c.helper.outputWriter = &buf
 	c.Commit([]string{"tmp"})
-	if !called {
+	if !mockClient.commitTmpCalled {
 		t.Error("CommitTmp should be called")
 	}
 }
 
 func TestCommitter_Commit_Help(t *testing.T) {
-	c := &Committer{
-		CommitAllowEmpty: func() error { return nil },
-		CommitTmp:        func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	c.Commit([]string{"unknown"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
 	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
 
 func TestCommitter_Commit_AllowEmpty_Error(t *testing.T) {
+	var buf bytes.Buffer
 	c := &Committer{
-		CommitAllowEmpty: func() error { return errors.New("fail") },
-		CommitTmp:        func() error { return nil },
+		gitClient:    &mockCommitGitClient{err: errors.New("fail")},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
+	c.helper.outputWriter = &buf
 	c.Commit([]string{"allow-empty"})
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
 	output := buf.String()
-	if output == "" || output[:5] != "Error" {
-		t.Errorf("Error should be displayed, but got: %s", output)
+	if output != "Error: fail\n" {
+		t.Errorf("unexpected output: got %q", output)
+	}
+}
+
+func TestCommitter_Commit_Normal(t *testing.T) {
+	var buf bytes.Buffer
+	commandCalled := false
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(name string, arg ...string) *exec.Cmd {
+			if name == "git" && len(arg) == 3 && arg[0] == "commit" && arg[1] == "-m" && arg[2] == "test message" {
+				commandCalled = true
+			}
+			return exec.Command("echo")
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"test message"})
+
+	if !commandCalled {
+		t.Error("git commit command should be called with the correct message")
 	}
 }

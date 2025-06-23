@@ -1,40 +1,50 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 )
 
+// Stasher handles stash operations.
 type Stasher struct {
-	execCommand func(name string, arg ...string) *exec.Cmd
+	outputWriter io.Writer
+	helper       *Helper
+	execCommand  func(string, ...string) *exec.Cmd
 }
 
+// NewStasher creates a new Stasher instance.
 func NewStasher() *Stasher {
-	return &Stasher{execCommand: exec.Command}
+	return &Stasher{
+		outputWriter: os.Stdout,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
 }
 
+// Stash executes git stash commands.
 func (s *Stasher) Stash(args []string) {
-	if len(args) > 0 && args[0] == "trash" {
-		addCmd := s.execCommand("git", "add", ".")
-		addCmd.Stdout = nil
-		addCmd.Stderr = nil
-		if err := addCmd.Run(); err != nil {
-			fmt.Printf("Error: failed to add all files: %v\n", err)
-			return
-		}
-		stashCmd := s.execCommand("git", "stash")
-		stashCmd.Stdout = nil
-		stashCmd.Stderr = nil
-		if err := stashCmd.Run(); err != nil {
-			fmt.Printf("Error: failed to stash: %v\n", err)
-			return
-		}
-		fmt.Println("add . → stash done")
+	if len(args) == 0 {
+		s.helper.ShowStashHelp()
 		return
 	}
-	ShowStashHelp()
-}
 
-func ShowStashHelp() {
-	fmt.Println("Usage: ggc stash trash")
+	var cmd *exec.Cmd
+	switch args[0] {
+	case "trash":
+		// Drop the latest stash
+		cmd = s.execCommand("git", "stash", "drop")
+	default:
+		s.helper.ShowStashHelp()
+		return
+	}
+
+	if err := cmd.Run(); err != nil {
+		_, _ = fmt.Fprintf(s.outputWriter, "Error: no stash found\n")
+		return
+	}
+
+	_, _ = fmt.Fprintf(s.outputWriter, "Dropped refs/stash@{0}\n")
 }

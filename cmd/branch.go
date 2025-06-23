@@ -1,8 +1,10 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -11,88 +13,89 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
+// Brancher provides functionality for the branch command.
 type Brancher struct {
-	GetCurrentBranch  func() (string, error)
-	ListLocalBranches func() ([]string, error)
-	execCommand       func(name string, arg ...string) *exec.Cmd
-	inputReader       *bufio.Reader
+	gitClient    git.Clienter
+	execCommand  func(name string, arg ...string) *exec.Cmd
+	inputReader  *bufio.Reader
+	outputWriter io.Writer
+	helper       *Helper
 }
 
+// NewBrancher creates a new Brancher.
 func NewBrancher() *Brancher {
 	return &Brancher{
-		GetCurrentBranch:  git.GetCurrentBranch,
-		ListLocalBranches: git.ListLocalBranches,
-		execCommand:       exec.Command,
-		inputReader:       bufio.NewReader(os.Stdin),
+		gitClient:    git.NewClient(),
+		execCommand:  exec.Command,
+		inputReader:  bufio.NewReader(os.Stdin),
+		outputWriter: os.Stdout,
+		helper:       NewHelper(),
 	}
 }
 
+// Branch executes the branch command with the given arguments.
 func (b *Brancher) Branch(args []string) {
-	if len(args) == 1 && args[0] == "current" {
-		branch, err := b.GetCurrentBranch()
-		if err != nil {
-			fmt.Println("Error:", err)
+	if len(args) > 0 {
+		switch args[0] {
+		case "current":
+			branch, err := b.gitClient.GetCurrentBranch()
+			if err != nil {
+				_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+				return
+			}
+			_, _ = fmt.Fprintln(b.outputWriter, branch)
+			return
+		case "checkout":
+			b.branchCheckout()
+			return
+		case "checkout-remote":
+			branchCheckoutRemote()
+			return
+		case "delete":
+			branchDelete()
+			return
+		case "delete-merged":
+			branchDeleteMerged()
 			return
 		}
-		fmt.Println(branch)
-		return
 	}
-	if len(args) == 1 && args[0] == "checkout" {
-		b.branchCheckout()
-		return
-	}
-	if len(args) == 1 && args[0] == "checkout-remote" {
-		branchCheckoutRemote()
-		return
-	}
-	if len(args) == 1 && args[0] == "delete" {
-		branchDelete()
-		return
-	}
-	if len(args) == 1 && args[0] == "delete-merged" {
-		branchDeleteMerged()
-		return
-	}
-	if len(args) == 1 && args[0] == "create" {
-		branchCreate()
-		return
-	}
-	ShowBranchHelp()
+	b.helper.ShowBranchHelp()
 }
 
 func (b *Brancher) branchCheckout() {
-	branches, err := b.ListLocalBranches()
+	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
-		fmt.Println("Error:", err)
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 		return
 	}
 	if len(branches) == 0 {
-		fmt.Println("No local branches found.")
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
 		return
 	}
-	fmt.Println("Local branches:")
+	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
 	for i, br := range branches {
-		fmt.Printf("[%d] %s\n", i+1, br)
+		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
 	}
-	fmt.Print("Enter the number to checkout: ")
+	_, _ = fmt.Fprint(b.outputWriter, "Enter the number to checkout: ")
 	input, _ := b.inputReader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	idx, err := strconv.Atoi(input)
 	if err != nil || idx < 1 || idx > len(branches) {
-		fmt.Println("Invalid number.")
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
 		return
 	}
 	branch := branches[idx-1]
 	cmd := b.execCommand("git", "checkout", branch)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = b.outputWriter
+	cmd.Stderr = b.outputWriter
 	if err := cmd.Run(); err != nil {
-		fmt.Println("Error:", err)
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
 }
 
 func branchCheckoutRemote() {
-	branches, err := git.ListRemoteBranches()
+	gitClient := git.NewClient()
+	branches, err := gitClient.ListRemoteBranches()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -131,7 +134,8 @@ func branchCheckoutRemote() {
 }
 
 func branchDelete() {
-	branches, err := git.ListLocalBranches()
+	gitClient := git.NewClient()
+	branches, err := gitClient.ListLocalBranches()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -188,7 +192,8 @@ func branchDelete() {
 }
 
 func branchDeleteMerged() {
-	current, err := git.GetCurrentBranch()
+	gitClient := git.NewClient()
+	current, err := gitClient.GetCurrentBranch()
 	if err != nil {
 		fmt.Println("Error: failed to get current branch:", err)
 		return
@@ -256,27 +261,4 @@ func branchDeleteMerged() {
 		fmt.Println("Selected merged branches deleted.")
 		break
 	}
-}
-
-func branchCreate() {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter new branch name: ")
-	branchName, _ := reader.ReadString('\n')
-	branchName = strings.TrimSpace(branchName)
-	if branchName == "" {
-		fmt.Println("Branch name is empty. Cancelled.")
-		return
-	}
-	cmd := exec.Command("git", "checkout", "-b", branchName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return
-	}
-	fmt.Printf("Branch '%s' created and checked out.\n", branchName)
-}
-
-func ShowBranchHelp() {
-	fmt.Println("Usage: ggc branch current | ggc branch checkout | ggc branch checkout-remote | ggc branch create | ggc branch delete | ggc branch delete-merged")
 }

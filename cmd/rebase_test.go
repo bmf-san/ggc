@@ -10,160 +10,262 @@ import (
 )
 
 func TestRebaser_RebaseInteractive_SelectValid(t *testing.T) {
-	var gotArgs [][]string
-	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			gotArgs = append(gotArgs, append([]string{name}, arg...))
-			if name == "git" && arg[0] == "log" {
-				return exec.Command("echo", "a1 first\nb2 second\nc3 third")
-			}
-			return exec.Command("echo")
-		},
-		inputReader: bufioReaderWithInput("2\n"),
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	rebaser.RebaseInteractive()
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
 	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
+	commandCount := 0
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			commandCount++
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				case "log":
+					return exec.Command("echo", "a1 first\nb2 second\nc3 third")
+				}
+			}
+			cmd := exec.Command("echo")
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			return cmd
+		},
+		inputReader: bufio.NewReader(strings.NewReader("2\n")),
 	}
-	os.Stdout = oldStdout
+	r.helper.outputWriter = &buf
+
+	r.RebaseInteractive()
 
 	output := buf.String()
-	if !strings.Contains(output, "Where do you want to rebase up to?") {
-		t.Errorf("プロンプトが出力されていません: %s", output)
+	if !strings.Contains(output, "Current branch: feature/test") {
+		t.Errorf("expected branch name, got: %s", output)
 	}
-	if len(gotArgs) < 2 || gotArgs[1][0] != "git" || gotArgs[1][1] != "rebase" {
-		t.Errorf("rebaseコマンドが呼ばれていません: %+v", gotArgs)
+	if !strings.Contains(output, "Select number of commits to rebase") {
+		t.Errorf("expected prompt, got: %s", output)
+	}
+	if !strings.Contains(output, "Rebase successful") {
+		t.Errorf("expected success message, got: %s", output)
+	}
+}
+
+func TestRebaser_RebaseInteractive_BranchError(t *testing.T) {
+	var buf bytes.Buffer
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return exec.Command("false")
+		},
+		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+	}
+	r.helper.outputWriter = &buf
+
+	r.RebaseInteractive()
+
+	output := buf.String()
+	if !strings.Contains(output, "Error: failed to get current branch") {
+		t.Errorf("expected branch error message, got: %s", output)
 	}
 }
 
 func TestRebaser_RebaseInteractive_Cancel(t *testing.T) {
-	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			if name == "git" && arg[0] == "log" {
-				return exec.Command("echo", "a1 first\nb2 second\nc3 third")
+	var buf bytes.Buffer
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				case "log":
+					return exec.Command("echo", "a1 first\nb2 second\nc3 third")
+				}
 			}
 			return exec.Command("echo")
 		},
-		inputReader: bufioReaderWithInput("\n"),
+		inputReader: bufio.NewReader(strings.NewReader("\n")),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	r.helper.outputWriter = &buf
 
-	rebaser.RebaseInteractive()
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
-	}
-	os.Stdout = oldStdout
+	r.RebaseInteractive()
 
 	output := buf.String()
-	if !strings.Contains(output, "Cancelled") {
-		t.Errorf("キャンセル時の出力が想定と異なります: %s", output)
+	if !strings.Contains(output, "Error: operation cancelled") {
+		t.Errorf("expected cancellation message, got: %s", output)
 	}
 }
 
 func TestRebaser_RebaseInteractive_InvalidNumber(t *testing.T) {
-	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			if name == "git" && arg[0] == "log" {
-				return exec.Command("echo", "a1 first\nb2 second\nc3 third")
+	var buf bytes.Buffer
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				case "log":
+					return exec.Command("echo", "a1 first\nb2 second\nc3 third")
+				}
 			}
 			return exec.Command("echo")
 		},
-		inputReader: bufioReaderWithInput("abc\n"),
+		inputReader: bufio.NewReader(strings.NewReader("abc\n")),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	r.helper.outputWriter = &buf
 
-	rebaser.RebaseInteractive()
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
-	}
-	os.Stdout = oldStdout
+	r.RebaseInteractive()
 
 	output := buf.String()
-	if !strings.Contains(output, "Invalid number") {
-		t.Errorf("不正な番号入力時の出力が想定と異なります: %s", output)
+	if !strings.Contains(output, "Error: invalid number") {
+		t.Errorf("expected invalid number message, got: %s", output)
 	}
 }
 
 func TestRebaser_RebaseInteractive_NoHistory(t *testing.T) {
-	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			return exec.Command("echo", "")
-		},
-		inputReader: bufioReaderWithInput("1\n"),
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	rebaser.RebaseInteractive()
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
 	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				case "log":
+					return exec.Command("echo", "")
+				}
+			}
+			return exec.Command("echo")
+		},
+		inputReader: bufio.NewReader(strings.NewReader("1\n")),
 	}
-	os.Stdout = oldStdout
+	r.helper.outputWriter = &buf
+
+	r.RebaseInteractive()
 
 	output := buf.String()
-	if !strings.Contains(output, "No commit history found") {
-		t.Errorf("履歴なし時の出力が想定と異なります: %s", output)
+	if !strings.Contains(output, "Error: no commit history found") {
+		t.Errorf("expected no history message, got: %s", output)
 	}
 }
 
 func TestRebaser_RebaseInteractive_LogError(t *testing.T) {
-	rebaser := &Rebaser{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+	var buf bytes.Buffer
+	commandCount := 0
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			commandCount++
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				}
+			}
 			return exec.Command("false")
 		},
-		inputReader: bufioReaderWithInput("1\n"),
+		inputReader: bufio.NewReader(strings.NewReader("1\n")),
 	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	r.helper.outputWriter = &buf
 
-	rebaser.RebaseInteractive()
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("buf.ReadFrom failed: %v", err)
-	}
-	os.Stdout = oldStdout
+	r.RebaseInteractive()
 
 	output := buf.String()
-	if !strings.Contains(output, "error: failed to get git log") {
-		t.Errorf("git logエラー時の出力が想定と異なります: %s", output)
+	if !strings.Contains(output, "Error: failed to get git log") {
+		t.Errorf("expected log error message, got: %s", output)
 	}
 }
 
-// テスト用: 任意の入力を返すbufio.Readerを生成
-func bufioReaderWithInput(s string) *bufio.Reader {
-	return bufio.NewReader(strings.NewReader(s))
+func TestRebaser_RebaseInteractive_RebaseError(t *testing.T) {
+	var buf bytes.Buffer
+	commandCount := 0
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			commandCount++
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				case "log":
+					return exec.Command("echo", "a1 first")
+				case "rebase":
+					return exec.Command("false")
+				}
+			}
+			return exec.Command("echo")
+		},
+		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+	}
+	r.helper.outputWriter = &buf
+
+	r.RebaseInteractive()
+
+	output := buf.String()
+	if !strings.Contains(output, "Error: rebase failed") {
+		t.Errorf("expected rebase error message, got: %s", output)
+	}
+}
+
+func TestRebaser_Rebase(t *testing.T) {
+	cases := []struct {
+		name           string
+		args           []string
+		expectedOutput string
+	}{
+		{
+			name:           "no args",
+			args:           []string{},
+			expectedOutput: "Usage: ggc rebase",
+		},
+		{
+			name:           "invalid command",
+			args:           []string{"invalid"},
+			expectedOutput: "Usage: ggc rebase",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			r := &Rebaser{
+				outputWriter: &buf,
+				helper:       NewHelper(),
+				execCommand:  exec.Command,
+				inputReader:  bufio.NewReader(strings.NewReader("")),
+			}
+			r.helper.outputWriter = &buf
+
+			r.Rebase(tc.args)
+
+			output := buf.String()
+			if !strings.Contains(output, tc.expectedOutput) {
+				t.Errorf("expected output to contain %q, got %q", tc.expectedOutput, output)
+			}
+		})
+	}
 }

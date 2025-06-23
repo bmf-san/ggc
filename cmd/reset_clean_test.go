@@ -8,46 +8,34 @@ import (
 	"testing"
 )
 
-func TestStasher_Stash(t *testing.T) {
+func TestResetCleaner_ResetClean(t *testing.T) {
 	cases := []struct {
 		name           string
-		args           []string
 		expectedCmds   []string
 		mockOutput     []byte
 		mockError      error
 		expectedOutput string
 	}{
 		{
-			name:           "stash trash success",
-			args:           []string{"trash"},
-			expectedCmds:   []string{"git stash drop"},
-			mockOutput:     []byte("Dropped refs/stash@{0}"),
+			name:           "successful execution",
+			expectedCmds:   []string{"git reset --hard HEAD", "git clean -fd"},
+			mockOutput:     []byte("operation successful"),
 			mockError:      nil,
-			expectedOutput: "Dropped refs/stash@{0}",
+			expectedOutput: "operation successful",
 		},
 		{
-			name:           "stash trash error",
-			args:           []string{"trash"},
-			expectedCmds:   []string{"git stash drop"},
+			name:           "reset error",
+			expectedCmds:   []string{"git reset --hard HEAD"},
 			mockOutput:     nil,
-			mockError:      errors.New("no stash found"),
-			expectedOutput: "Error: no stash found",
+			mockError:      errors.New("reset error"),
+			expectedOutput: "Error resetting changes: reset error",
 		},
 		{
-			name:           "no args",
-			args:           []string{},
-			expectedCmds:   nil,
+			name:           "clean error",
+			expectedCmds:   []string{"git reset --hard HEAD", "git clean -fd"},
 			mockOutput:     nil,
-			mockError:      nil,
-			expectedOutput: "Usage: ggc stash [command]",
-		},
-		{
-			name:           "invalid command",
-			args:           []string{"invalid"},
-			expectedCmds:   nil,
-			mockOutput:     nil,
-			mockError:      nil,
-			expectedOutput: "Usage: ggc stash [command]",
+			mockError:      errors.New("clean error"),
+			expectedOutput: "Error cleaning untracked files: clean error",
 		},
 	}
 
@@ -55,7 +43,7 @@ func TestStasher_Stash(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			cmdIndex := 0
-			s := &Stasher{
+			r := &ResetCleaner{
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand: func(_ string, args ...string) *exec.Cmd {
@@ -72,9 +60,9 @@ func TestStasher_Stash(t *testing.T) {
 					return exec.Command("echo", string(tc.mockOutput))
 				},
 			}
-			s.helper.outputWriter = &buf
+			r.helper.outputWriter = &buf
 
-			s.Stash(tc.args)
+			r.ResetClean()
 
 			output := buf.String()
 			if !strings.Contains(output, tc.expectedOutput) {

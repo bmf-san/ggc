@@ -1,3 +1,4 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
@@ -10,12 +11,14 @@ import (
 	"strings"
 )
 
+// CommitPusher provides functionality for interactive commit and push.
 type CommitPusher struct {
 	execCommand  func(name string, arg ...string) *exec.Cmd
 	inputReader  *bufio.Reader
 	outputWriter io.Writer
 }
 
+// NewCommitPusher creates a new CommitPusher.
 func NewCommitPusher() *CommitPusher {
 	return &CommitPusher{
 		execCommand:  exec.Command,
@@ -24,6 +27,7 @@ func NewCommitPusher() *CommitPusher {
 	}
 }
 
+// CommitPushInteractive interactively adds, commits, and pushes files.
 func (c *CommitPusher) CommitPushInteractive() {
 	cmd := c.execCommand("git", "status", "--porcelain")
 	out, err := cmd.Output()
@@ -179,9 +183,4 @@ func (c *CommitPusher) CommitPushInteractive() {
 	if _, err := fmt.Fprintln(c.outputWriter, "Done!"); err != nil {
 		_ = err
 	}
-}
-
-// For backward compatibility
-func CommitPushInteractive() {
-	NewCommitPusher().CommitPushInteractive()
 }

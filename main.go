@@ -1,3 +1,4 @@
+// Package main is the entry point for the ggc CLI tool.
 package main
 
 import (
@@ -8,7 +9,7 @@ import (
 )
 
 func main() {
-	c := cmd.NewCmd(os.Stdout)
+	c := cmd.NewCmd()
 	r := router.NewRouter(c)
-	r.Route(os.Args)
+	r.Route(os.Args[1:])
 }

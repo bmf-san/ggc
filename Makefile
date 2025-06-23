@@ -16,7 +16,7 @@ test:
 	go test ./...
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run --max-issues-per-linter=0 --max-same-issues=0
 
 clean:
 	rm -f $(APP_NAME)

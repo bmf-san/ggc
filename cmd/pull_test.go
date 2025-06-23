@@ -3,84 +3,85 @@ package cmd
 import (
 	"bytes"
 	"errors"
-	"os"
 	"testing"
+
+	"github.com/bmf-san/ggc/git"
 )
 
-func TestPuller_Pull_Current(t *testing.T) {
-	called := false
-	p := &Puller{
-		PullCurrentBranch: func() error {
-			called = true
-			return nil
-		},
-		PullRebaseCurrentBranch: func() error { return nil },
-	}
-	p.Pull([]string{"current"})
-	if !called {
-		t.Error("PullCurrentBranch should be called")
-	}
+type mockPullGitClient struct {
+	git.Clienter
+	pullCalled bool
+	pullRebase bool
+	err        error
 }
 
-func TestPuller_Pull_Rebase(t *testing.T) {
-	called := false
-	p := &Puller{
-		PullCurrentBranch: func() error { return nil },
-		PullRebaseCurrentBranch: func() error {
-			called = true
-			return nil
+func (m *mockPullGitClient) Pull(rebase bool) error {
+	m.pullCalled = true
+	m.pullRebase = rebase
+	return m.err
+}
+
+func TestPuller_Pull(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		wantPull bool
+		wantErr  bool
+		err      error
+	}{
+		{
+			name:     "normal_pull",
+			args:     []string{"current"},
+			wantPull: true,
+			wantErr:  false,
+		},
+		{
+			name:     "pull_with_error",
+			args:     []string{"current"},
+			wantPull: true,
+			wantErr:  true,
+			err:      errors.New("pull failed"),
 		},
 	}
-	p.Pull([]string{"rebase"})
-	if !called {
-		t.Error("PullRebaseCurrentBranch should be called")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mockPullGitClient{err: tt.err}
+			var buf bytes.Buffer
+			puller := &Puller{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				helper:       NewHelper(),
+			}
+			puller.helper.outputWriter = &buf
+			puller.Pull(tt.args)
+
+			if mockClient.pullCalled != tt.wantPull {
+				t.Errorf("Pull called = %v, want %v", mockClient.pullCalled, tt.wantPull)
+			}
+
+			if tt.wantErr {
+				output := buf.String()
+				if output != "Error: pull failed\n" {
+					t.Errorf("Output = %q, want %q", output, "Error: pull failed\n")
+				}
+			}
+		})
 	}
 }
 
 func TestPuller_Pull_Help(t *testing.T) {
-	p := &Puller{
-		PullCurrentBranch:       func() error { return nil },
-		PullRebaseCurrentBranch: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	p.Pull([]string{"unknown"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
 	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
+	puller := &Puller{
+		gitClient:    &mockPullGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	puller.helper.outputWriter = &buf
+	puller.Pull([]string{})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !bytes.Contains(buf.Bytes(), []byte("Usage")) {
 		t.Errorf("Usage should be displayed, but got: %s", output)
-	}
-}
-
-func TestPuller_Pull_Current_Error(t *testing.T) {
-	p := &Puller{
-		PullCurrentBranch:       func() error { return errors.New("fail") },
-		PullRebaseCurrentBranch: func() error { return nil },
-	}
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	p.Pull([]string{"current"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
-
-	output := buf.String()
-	if output == "" || output[:5] != "Error" {
-		t.Errorf("Error should be displayed, but got: %s", output)
 	}
 }

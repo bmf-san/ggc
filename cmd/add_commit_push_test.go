@@ -50,7 +50,7 @@ func TestAddCommitPusher_AddCommitPush_Cancel(t *testing.T) {
 
 func TestAddCommitPusher_AddCommitPush_AddError(t *testing.T) {
 	acp := &AddCommitPusher{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("false")
 		},
 		inputReader:  bufio.NewReader(strings.NewReader("test\n")),
@@ -68,7 +68,7 @@ func TestAddCommitPusher_AddCommitPush_AddError(t *testing.T) {
 func TestAddCommitPusher_AddCommitPush_CommitError(t *testing.T) {
 	step := 0
 	acp := &AddCommitPusher{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			if step == 0 {
 				step++
 				return exec.Command("echo") // add
@@ -94,7 +94,7 @@ func TestAddCommitPusher_AddCommitPush_CommitError(t *testing.T) {
 func TestAddCommitPusher_AddCommitPush_BranchError(t *testing.T) {
 	step := 0
 	acp := &AddCommitPusher{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			if step == 0 {
 				step++
 				return exec.Command("echo") // add
@@ -124,7 +124,7 @@ func TestAddCommitPusher_AddCommitPush_BranchError(t *testing.T) {
 func TestAddCommitPusher_AddCommitPush_PushError(t *testing.T) {
 	step := 0
 	acp := &AddCommitPusher{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			if step == 0 {
 				step++
 				return exec.Command("echo") // add

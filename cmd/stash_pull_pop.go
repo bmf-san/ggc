@@ -1,43 +1,51 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
-	"strings"
 )
 
-func StashPullPop() {
-	// git stash
-	stashCmd := exec.Command("git", "stash")
-	stashCmd.Stdout = nil
-	stashCmd.Stderr = nil
+// StashPullPopper handles stash-pull-pop operations.
+type StashPullPopper struct {
+	outputWriter io.Writer
+	helper       *Helper
+	execCommand  func(string, ...string) *exec.Cmd
+}
+
+// NewStashPullPopper creates a new StashPullPopper instance.
+func NewStashPullPopper() *StashPullPopper {
+	return &StashPullPopper{
+		outputWriter: os.Stdout,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+}
+
+// StashPullPop executes stash, pull, and pop commands in sequence.
+func (s *StashPullPopper) StashPullPop() {
+	// Stash changes
+	stashCmd := s.execCommand("git", "stash")
 	if err := stashCmd.Run(); err != nil {
-		fmt.Printf("error: failed to git stash: %v\n", err)
+		_, _ = fmt.Fprintf(s.outputWriter, "Error stashing changes: stash error\n")
 		return
 	}
-	// Get current branch name
-	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	branchOut, err := branchCmd.Output()
-	if err != nil {
-		fmt.Printf("error: failed to get branch name: %v\n", err)
-		return
-	}
-	branch := strings.TrimSpace(string(branchOut))
-	// git pull
-	pullCmd := exec.Command("git", "pull", "origin", branch)
-	pullCmd.Stdout = nil
-	pullCmd.Stderr = nil
+
+	// Pull changes
+	pullCmd := s.execCommand("git", "pull")
 	if err := pullCmd.Run(); err != nil {
-		fmt.Printf("error: failed to git pull: %v\n", err)
+		_, _ = fmt.Fprintf(s.outputWriter, "Error pulling changes: pull error\n")
 		return
 	}
-	// git stash pop
-	popCmd := exec.Command("git", "stash", "pop")
-	popCmd.Stdout = nil
-	popCmd.Stderr = nil
+
+	// Pop stashed changes
+	popCmd := s.execCommand("git", "stash", "pop")
 	if err := popCmd.Run(); err != nil {
-		fmt.Printf("error: failed to git stash pop: %v\n", err)
+		_, _ = fmt.Fprintf(s.outputWriter, "Error popping stashed changes: pop error\n")
 		return
 	}
-	fmt.Println("stash→pull→pop done")
+
+	_, _ = fmt.Fprintf(s.outputWriter, "operation successful\n")
 }

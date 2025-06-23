@@ -8,46 +8,41 @@ import (
 	"testing"
 )
 
-func TestStasher_Stash(t *testing.T) {
+func TestStashPullPopper_StashPullPop(t *testing.T) {
 	cases := []struct {
 		name           string
-		args           []string
 		expectedCmds   []string
 		mockOutput     []byte
 		mockError      error
 		expectedOutput string
 	}{
 		{
-			name:           "stash trash success",
-			args:           []string{"trash"},
-			expectedCmds:   []string{"git stash drop"},
-			mockOutput:     []byte("Dropped refs/stash@{0}"),
+			name:           "successful execution",
+			expectedCmds:   []string{"git stash", "git pull", "git stash pop"},
+			mockOutput:     []byte("operation successful"),
 			mockError:      nil,
-			expectedOutput: "Dropped refs/stash@{0}",
+			expectedOutput: "operation successful",
 		},
 		{
-			name:           "stash trash error",
-			args:           []string{"trash"},
-			expectedCmds:   []string{"git stash drop"},
+			name:           "stash error",
+			expectedCmds:   []string{"git stash"},
 			mockOutput:     nil,
-			mockError:      errors.New("no stash found"),
-			expectedOutput: "Error: no stash found",
+			mockError:      errors.New("stash error"),
+			expectedOutput: "Error stashing changes: stash error",
 		},
 		{
-			name:           "no args",
-			args:           []string{},
-			expectedCmds:   nil,
+			name:           "pull error",
+			expectedCmds:   []string{"git stash", "git pull"},
 			mockOutput:     nil,
-			mockError:      nil,
-			expectedOutput: "Usage: ggc stash [command]",
+			mockError:      errors.New("pull error"),
+			expectedOutput: "Error pulling changes: pull error",
 		},
 		{
-			name:           "invalid command",
-			args:           []string{"invalid"},
-			expectedCmds:   nil,
+			name:           "pop error",
+			expectedCmds:   []string{"git stash", "git pull", "git stash pop"},
 			mockOutput:     nil,
-			mockError:      nil,
-			expectedOutput: "Usage: ggc stash [command]",
+			mockError:      errors.New("pop error"),
+			expectedOutput: "Error popping stashed changes: pop error",
 		},
 	}
 
@@ -55,7 +50,7 @@ func TestStasher_Stash(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			cmdIndex := 0
-			s := &Stasher{
+			s := &StashPullPopper{
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand: func(_ string, args ...string) *exec.Cmd {
@@ -74,7 +69,7 @@ func TestStasher_Stash(t *testing.T) {
 			}
 			s.helper.outputWriter = &buf
 
-			s.Stash(tc.args)
+			s.StashPullPop()
 
 			output := buf.String()
 			if !strings.Contains(output, tc.expectedOutput) {
