@@ -1,0 +1,49 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - revive
+    - errcheck
+    - staticcheck
+    - govet
+    - ineffassign
+    - unused
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - "disableStutteringCheck"
+          - "disableChecksOnMethods"
+          - "disableChecksOnTypes"
+          - "disableChecksOnConstants"
+          - "disableChecksOnVariables"
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - revive
+
+    - text: "exported (method|type|const|var) .* should have comment or be unexported"
+      linters:
+        - revive
+    - text: "package-comments: should have a package comment"
+      linters:
+        - revive
+    - text: "unused-parameter:"
+      linters:
+        - revive
+
+settings:
+  godoc:
+    check-exported: true
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - godoc

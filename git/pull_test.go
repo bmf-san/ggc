@@ -6,42 +6,37 @@ import (
 	"testing"
 )
 
-func TestPullCurrentBranch_ExecutesCorrectCommand(t *testing.T) {
-	origGetCurrentBranch := getCurrentBranch
-	getCurrentBranch = func() (string, error) { return "main", nil }
-	defer func() { getCurrentBranch = origGetCurrentBranch }()
-
-	var gotArgs []string
-	origExecCommand := execCommand
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotArgs = append([]string{name}, args...)
-		return exec.Command("echo")
+func TestClient_Pull(t *testing.T) {
+	cases := []struct {
+		name     string
+		rebase   bool
+		wantArgs []string
+	}{
+		{
+			name:     "pull",
+			rebase:   false,
+			wantArgs: []string{"git", "pull"},
+		},
+		{
+			name:     "pull with rebase",
+			rebase:   true,
+			wantArgs: []string{"git", "pull", "--rebase"},
+		},
 	}
-	defer func() { execCommand = origExecCommand }()
 
-	_ = PullCurrentBranch()
-	want := []string{"git", "pull", "origin", "main"}
-	if !reflect.DeepEqual(gotArgs, want) {
-		t.Errorf("got %v, want %v", gotArgs, want)
-	}
-}
-
-func TestPullRebaseCurrentBranch_ExecutesCorrectCommand(t *testing.T) {
-	origGetCurrentBranch := getCurrentBranch
-	getCurrentBranch = func() (string, error) { return "main", nil }
-	defer func() { getCurrentBranch = origGetCurrentBranch }()
-
-	var gotArgs []string
-	origExecCommand := execCommand
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotArgs = append([]string{name}, args...)
-		return exec.Command("echo")
-	}
-	defer func() { execCommand = origExecCommand }()
-
-	_ = PullRebaseCurrentBranch()
-	want := []string{"git", "pull", "--rebase", "origin", "main"}
-	if !reflect.DeepEqual(gotArgs, want) {
-		t.Errorf("got %v, want %v", gotArgs, want)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+			}
+			_ = client.Pull(tc.rebase)
+			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
+			}
+		})
 	}
 }

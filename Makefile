@@ -2,7 +2,7 @@
 
 APP_NAME=ggc
 
-.PHONY: all build run clean test lint
+.PHONY: all build run clean test lint cover
 
 all: build
 
@@ -16,7 +16,11 @@ test:
 	go test ./...
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run --max-issues-per-linter=0 --max-same-issues=0
 
 clean:
 	rm -f $(APP_NAME)
+
+cover:
+	go test ./... -coverprofile=coverage.out
+	go tool cover -func=coverage.out

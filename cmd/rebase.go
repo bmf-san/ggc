@@ -1,3 +1,4 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
@@ -9,22 +10,35 @@ import (
 	"strings"
 )
 
-func Rebase(args []string) {
+// Rebaser provides functionality for the rebase command.
+type Rebaser struct {
+	execCommand func(name string, arg ...string) *exec.Cmd
+	inputReader *bufio.Reader
+	helper      *Helper
+}
+
+// NewRebaser creates a new Rebaser.
+func NewRebaser() *Rebaser {
+	return &Rebaser{
+		execCommand: exec.Command,
+		inputReader: bufio.NewReader(os.Stdin),
+		helper:      NewHelper(),
+	}
+}
+
+// Rebase executes the rebase command with the given arguments.
+func (r *Rebaser) Rebase(args []string) {
 	if len(args) > 0 && args[0] == "interactive" {
-		RebaseInteractive()
+		r.RebaseInteractive()
 		return
 	}
-	ShowRebaseHelp()
+	r.helper.ShowRebaseHelp()
 }
 
-func ShowRebaseHelp() {
-	fmt.Println("Usage: ggc rebase interactive")
-}
-
-// Interactively rebase up to HEAD~N
-func RebaseInteractive() {
+// RebaseInteractive interactively rebases up to HEAD~N.
+func (r *Rebaser) RebaseInteractive() {
 	// 1. Get the last 10 commit logs
-	cmd := exec.Command("git", "log", "--oneline", "-n", "10")
+	cmd := r.execCommand("git", "log", "--oneline", "-n", "10")
 	out, err := cmd.Output()
 	if err != nil {
 		fmt.Printf("error: failed to get git log: %v\n", err)
@@ -40,8 +54,7 @@ func RebaseInteractive() {
 		fmt.Printf("  [%d] %s\n", i+1, line)
 	}
 	fmt.Print("> ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
+	input, _ := r.inputReader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	if input == "" {
 		fmt.Println("Cancelled")
@@ -54,7 +67,7 @@ func RebaseInteractive() {
 	}
 	// N commits before rebase
 	N := idx
-	rebaseCmd := exec.Command("git", "rebase", "-i", fmt.Sprintf("HEAD~%d", N))
+	rebaseCmd := r.execCommand("git", "rebase", "-i", fmt.Sprintf("HEAD~%d", N))
 	rebaseCmd.Stdin = os.Stdin
 	rebaseCmd.Stdout = os.Stdout
 	rebaseCmd.Stderr = os.Stderr
