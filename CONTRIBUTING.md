@@ -15,7 +15,7 @@ Thank you for your interest in contributing to this repository! Bug reports, fea
 - Please manually test major commands as well.
 
 ## Coding Standards
-- Go 1.21 or later, standard library only
+- Go 1.24 or later, standard library only
 - Pass linting (golangci-lint) and static analysis
 
 ## Implementation Guidelines

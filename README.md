@@ -22,7 +22,7 @@ ggc is a Git tool written in Go, providing both a traditional command-line inter
 
 ## Supported Environments
 - OS: macOS (Apple Silicon/Intel), Linux, WSL2 (Windows Subsystem for Linux)
-- Go version: 1.21 or later recommended
+- Go version: 1.24 or later recommended
 - Dependencies: Go standard library + golang.org/x/term (no extra packages required)
 - Requirement: `git` command must be installed
 
@@ -66,6 +66,9 @@ ggc
 - Type to filter commands (incremental search)
 - Use ctrl+n/ctrl+p to move selection, Enter to execute
 - If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input (always left-aligned)
+- After command execution, results are displayed and you can press Enter to continue
+- After viewing results, you return to the command selection screen for continuous use
+- Use "quit" command or ctrl+c to exit interactive mode
 - All UI and prompts are in English
 
 ### Main Command Examples
@@ -102,6 +105,7 @@ ggc
 | ggc reset                   | git reset --hard HEAD; git clean -fd | Reset and clean                   |
 | ggc stash                   | git stash                       | Stash changes                          |
 | ggc stash-pull-pop          | git stash → git pull → git stash pop | Stash, pull, and pop all at once  |
+| ggc quit                     | (Exit interactive mode)         | Exit interactive mode              |
 
 ## Directory Structure
 
