@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"bufio"
+	"fmt"
 	"io"
 	"os"
 
@@ -122,8 +124,21 @@ func (c *Cmd) PullRebasePush() {
 
 // Interactive starts the interactive UI mode.
 func (c *Cmd) Interactive() {
-	if args := InteractiveUI(); args != nil {
+	for {
+		args := InteractiveUI()
+		if args == nil {
+			break
+		}
+
+		// "quit" コマンドをチェック
+		if len(args) >= 2 && args[1] == "quit" {
+			break
+		}
+
 		c.Route(args[1:]) // Skip "ggc" in args
+
+		// コマンド実行後、結果を確認するための待機
+		c.waitForContinue()
 	}
 }
 
@@ -178,4 +193,10 @@ func (c *Cmd) Route(args []string) {
 	default:
 		c.Help()
 	}
+}
+
+func (c *Cmd) waitForContinue() {
+	fmt.Println("\nPress Enter to continue...")
+	reader := bufio.NewReader(os.Stdin)
+	_, _ = reader.ReadString('\n')
 }

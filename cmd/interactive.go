@@ -45,6 +45,7 @@ var commands = []string{
 	"add-commit-push",
 	"pull-rebase-push",
 	"stash-pull-pop",
+	"quit",
 }
 
 // InteractiveUI provides an incremental search interactive UI for command selection.
