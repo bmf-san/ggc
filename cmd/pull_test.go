@@ -85,3 +85,62 @@ func TestPuller_Pull_Help(t *testing.T) {
 		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
+
+func TestPuller_Pull_Rebase(t *testing.T) {
+	mockClient := &mockPullGitClient{}
+	var buf bytes.Buffer
+	puller := &Puller{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	puller.helper.outputWriter = &buf
+	puller.Pull([]string{"rebase"})
+
+	if !mockClient.pullCalled {
+		t.Error("Pull should be called")
+	}
+	if !mockClient.pullRebase {
+		t.Error("Pull should be called with rebase=true")
+	}
+}
+
+func TestPuller_Pull_RebaseError(t *testing.T) {
+	mockClient := &mockPullGitClient{err: errors.New("rebase failed")}
+	var buf bytes.Buffer
+	puller := &Puller{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	puller.helper.outputWriter = &buf
+	puller.Pull([]string{"rebase"})
+
+	if !mockClient.pullCalled {
+		t.Error("Pull should be called")
+	}
+	if !mockClient.pullRebase {
+		t.Error("Pull should be called with rebase=true")
+	}
+
+	output := buf.String()
+	if output != "Error: rebase failed\n" {
+		t.Errorf("Expected error message, got: %s", output)
+	}
+}
+
+func TestPuller_Pull_UnknownCommand(t *testing.T) {
+	var buf bytes.Buffer
+	puller := &Puller{
+		gitClient:    &mockPullGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	puller.helper.outputWriter = &buf
+	puller.Pull([]string{"unknown"})
+
+	output := buf.String()
+	if output == "" || !bytes.Contains(buf.Bytes(), []byte("Usage")) {
+		t.Errorf("Usage should be displayed for unknown command, but got: %s", output)
+	}
+}

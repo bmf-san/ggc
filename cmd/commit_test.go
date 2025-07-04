@@ -115,3 +115,51 @@ func TestCommitter_Commit_Normal(t *testing.T) {
 		t.Error("git commit command should be called with the correct message")
 	}
 }
+
+func TestCommitter_Commit_Normal_Error(t *testing.T) {
+	var buf bytes.Buffer
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _  ...string) *exec.Cmd {
+			return exec.Command("false") // 失敗するコマンド
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"test message"})
+
+	output := buf.String()
+	if !strings.Contains(output, "Error:") {
+		t.Errorf("Expected error message, got: %s", output)
+	}
+}
+
+func TestCommitter_Commit_Tmp_Error(t *testing.T) {
+	var buf bytes.Buffer
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{err: errors.New("tmp commit failed")},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"tmp"})
+
+	output := buf.String()
+	if output != "Error: tmp commit failed\n" {
+		t.Errorf("Expected tmp error message, got: %q", output)
+	}
+}
+
+func TestShowCommitHelp(t *testing.T) {
+	// ShowCommitHelp関数が呼び出せることを確認
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("ShowCommitHelp should not panic: %v", r)
+		}
+	}()
+
+	ShowCommitHelp()
+	// 関数が正常に実行されることを確認
+}

@@ -67,3 +67,46 @@ func TestPullRebasePusher_PullRebasePush_Error(t *testing.T) {
 		t.Errorf("unexpected output: got %q", output)
 	}
 }
+
+type mockPullRebasePushGitClientPushError struct {
+	git.Clienter
+	pullCalled bool
+	pullRebase bool
+	pushCalled bool
+	pushForce  bool
+}
+
+func (m *mockPullRebasePushGitClientPushError) Pull(rebase bool) error {
+	m.pullCalled = true
+	m.pullRebase = rebase
+	return nil // Pull成功
+}
+
+func (m *mockPullRebasePushGitClientPushError) Push(force bool) error {
+	m.pushCalled = true
+	m.pushForce = force
+	return errors.New("push failed") // Push失敗
+}
+
+func TestPullRebasePusher_PullRebasePush_PushError(t *testing.T) {
+	mockClient := &mockPullRebasePushGitClientPushError{}
+	var buf bytes.Buffer
+	prp := NewPullRebasePusherWithClient(mockClient)
+	prp.outputWriter = &buf
+	prp.PullRebasePush()
+
+	if !mockClient.pullCalled {
+		t.Error("Pull should be called")
+	}
+	if !mockClient.pullRebase {
+		t.Error("Pull should be called with rebase=true")
+	}
+	if !mockClient.pushCalled {
+		t.Error("Push should be called")
+	}
+
+	output := buf.String()
+	if output != "Error: push failed\n" {
+		t.Errorf("Expected push error, got: %q", output)
+	}
+}

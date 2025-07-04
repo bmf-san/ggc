@@ -83,3 +83,79 @@ func TestStasher_Stash(t *testing.T) {
 		})
 	}
 }
+
+func TestStasher_Stash_Trash(t *testing.T) {
+	var buf bytes.Buffer
+	stasher := &Stasher{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _  ...string) *exec.Cmd {
+			return exec.Command("echo")
+		},
+	}
+	stasher.helper.outputWriter = &buf
+
+	stasher.Stash([]string{"trash"})
+
+	expected := "Dropped refs/stash@{0}\n"
+	if got := buf.String(); got != expected {
+		t.Errorf("Expected %q, got %q", expected, got)
+	}
+}
+
+func TestStasher_Stash_Trash_Error(t *testing.T) {
+	var buf bytes.Buffer
+	stasher := &Stasher{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _  ...string) *exec.Cmd {
+			return exec.Command("false")
+		},
+	}
+	stasher.helper.outputWriter = &buf
+
+	stasher.Stash([]string{"trash"})
+
+	expected := "Error: no stash found\n"
+	if got := buf.String(); got != expected {
+		t.Errorf("Expected %q, got %q", expected, got)
+	}
+}
+
+func TestStasher_Stash_Help(t *testing.T) {
+	var buf bytes.Buffer
+	stasher := &Stasher{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _  ...string) *exec.Cmd {
+			return exec.Command("echo")
+		},
+	}
+	stasher.helper.outputWriter = &buf
+
+	stasher.Stash([]string{})
+
+	output := buf.String()
+	if output == "" || output[:5] != "Usage" {
+		t.Errorf("Usage should be displayed, but got: %s", output)
+	}
+}
+
+func TestStasher_Stash_Unknown(t *testing.T) {
+	var buf bytes.Buffer
+	stasher := &Stasher{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _  ...string) *exec.Cmd {
+			return exec.Command("echo")
+		},
+	}
+	stasher.helper.outputWriter = &buf
+
+	stasher.Stash([]string{"unknown"})
+
+	output := buf.String()
+	if output == "" || output[:5] != "Usage" {
+		t.Errorf("Usage should be displayed for unknown command, but got: %s", output)
+	}
+}

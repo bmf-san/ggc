@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -106,5 +107,150 @@ func TestAdder_Add_POption_CallsGitAddP(t *testing.T) {
 	}
 	if gotName != "git" || len(gotArgs) != 2 || gotArgs[0] != "add" || gotArgs[1] != "-p" {
 		t.Errorf("-pオプション時のコマンド・引数が想定と異なります: name=%s, args=%v", gotName, gotArgs)
+	}
+}
+
+func TestAdder_Add_POption_Error(t *testing.T) {
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	adder := &Adder{
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			cmd := exec.Command("false") // 常にエラーを返すコマンド
+			return cmd
+		},
+	}
+	adder.Add([]string{"-p"})
+	if err := w.Close(); err != nil {
+		t.Fatalf("w.Close() failed: %v", err)
+	}
+	var buf bytes.Buffer
+	_, _ = buf.ReadFrom(r)
+	os.Stdout = oldStdout
+	output := buf.String()
+	if output == "" || output[:5] != "error" {
+		t.Errorf("-pオプションでエラー出力がされていません: %s", output)
+	}
+}
+
+func TestAdder_Add_Interactive(t *testing.T) {
+	var buf bytes.Buffer
+	adder := &Adder{
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			cmd := exec.Command("echo", "interactive add")
+			return cmd
+		},
+	}
+
+	// Capture stdout
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	adder.Add([]string{"-p"})
+
+	_ = w.Close()
+	os.Stdout = oldStdout
+
+	_, _ = buf.ReadFrom(r)
+	output := buf.String()
+	if !strings.Contains(output, "interactive add") {
+		t.Errorf("expected interactive add output, got %q", output)
+	}
+}
+
+func TestAdder_Add(t *testing.T) {
+	cases := []struct {
+		name        string
+		args        []string
+		expectedCmd string
+		expectError bool
+	}{
+		{
+			name:        "add all files",
+			args:        []string{"."},
+			expectedCmd: "git add .",
+			expectError: false,
+		},
+		{
+			name:        "add specific file",
+			args:        []string{"file.txt"},
+			expectedCmd: "git add file.txt",
+			expectError: false,
+		},
+		{
+			name:        "add multiple files",
+			args:        []string{"file1.txt", "file2.txt"},
+			expectedCmd: "git add file1.txt file2.txt",
+			expectError: false,
+		},
+		{
+			name:        "no args",
+			args:        []string{},
+			expectedCmd: "",
+			expectError: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var actualCmd string
+			a := &Adder{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					if tc.expectedCmd != "" {
+						actualCmd = strings.Join(append([]string{name}, args...), " ")
+						if actualCmd != tc.expectedCmd {
+							t.Errorf("expected command %q, got %q", tc.expectedCmd, actualCmd)
+						}
+					}
+					return exec.Command("echo")
+				},
+			}
+
+			// Capture stdout for no args case
+			if len(tc.args) == 0 {
+				oldStdout := os.Stdout
+				r, w, _ := os.Pipe()
+				os.Stdout = w
+
+				a.Add(tc.args)
+
+				_ = w.Close()
+				os.Stdout = oldStdout
+
+				var buf bytes.Buffer
+				_, _ = buf.ReadFrom(r)
+				output := buf.String()
+				if !strings.Contains(output, "Usage:") {
+					t.Errorf("expected usage message, got %q", output)
+				}
+			} else {
+				a.Add(tc.args)
+			}
+		})
+	}
+}
+
+func TestAdder_Add_Error(t *testing.T) {
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	a := &Adder{
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return exec.Command("false") // Command fails
+		},
+	}
+
+	a.Add([]string{"file.txt"})
+
+	_ = w.Close()
+	os.Stdout = oldStdout
+
+	var buf bytes.Buffer
+	_, _ = buf.ReadFrom(r)
+	output := buf.String()
+	if !strings.Contains(output, "error:") {
+		t.Errorf("expected error message, got %q", output)
 	}
 }

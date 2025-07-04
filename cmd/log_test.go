@@ -103,3 +103,19 @@ func TestLogger_Log_Graph_Error(t *testing.T) {
 		t.Errorf("unexpected output: got %q", output)
 	}
 }
+
+func TestLogger_Log_NoArgs(t *testing.T) {
+	var buf bytes.Buffer
+	l := &Logger{
+		gitClient:    &mockLogGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	l.helper.outputWriter = &buf
+	l.Log([]string{})
+
+	output := buf.String()
+	if output == "" || !strings.Contains(output, "Usage") {
+		t.Errorf("Usage should be displayed when no args provided, but got: %s", output)
+	}
+}

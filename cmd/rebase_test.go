@@ -236,7 +236,14 @@ func TestRebaser_Rebase(t *testing.T) {
 		name           string
 		args           []string
 		expectedOutput string
+		mockInput      string
 	}{
+		{
+			name:           "interactive rebase",
+			args:           []string{"interactive"},
+			expectedOutput: "Current branch:",
+			mockInput:      "1\n",
+		},
 		{
 			name:           "no args",
 			args:           []string{},
@@ -255,8 +262,21 @@ func TestRebaser_Rebase(t *testing.T) {
 			r := &Rebaser{
 				outputWriter: &buf,
 				helper:       NewHelper(),
-				execCommand:  exec.Command,
-				inputReader:  bufio.NewReader(strings.NewReader("")),
+				execCommand: func(_ string, args ...string) *exec.Cmd {
+					if len(args) > 0 {
+						switch args[0] {
+						case "rev-parse":
+							if strings.Contains(args[len(args)-1], "@{upstream}") {
+								return exec.Command("echo", "origin/main")
+							}
+							return exec.Command("echo", "feature/test")
+						case "log":
+							return exec.Command("echo", "abc123 commit message")
+						}
+					}
+					return exec.Command("echo", "rebase output")
+				},
+				inputReader: bufio.NewReader(strings.NewReader(tc.mockInput)),
 			}
 			r.helper.outputWriter = &buf
 
@@ -267,5 +287,56 @@ func TestRebaser_Rebase(t *testing.T) {
 				t.Errorf("expected output to contain %q, got %q", tc.expectedOutput, output)
 			}
 		})
+	}
+}
+
+func TestRebaser_Rebase_InteractiveCancel(t *testing.T) {
+	var buf bytes.Buffer
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, args ...string) *exec.Cmd {
+			if len(args) > 0 {
+				switch args[0] {
+				case "rev-parse":
+					if strings.Contains(args[len(args)-1], "@{upstream}") {
+						return exec.Command("echo", "origin/main")
+					}
+					return exec.Command("echo", "feature/test")
+				case "log":
+					return exec.Command("echo", "")
+				}
+			}
+			return exec.Command("echo")
+		},
+		inputReader: bufio.NewReader(strings.NewReader("\n")),
+	}
+	r.helper.outputWriter = &buf
+
+	r.Rebase([]string{"interactive"})
+
+	output := buf.String()
+	if !strings.Contains(output, "Error: no commit history found") {
+		t.Errorf("expected no history message, got %q", output)
+	}
+}
+
+func TestRebaser_Rebase_Error(t *testing.T) {
+	var buf bytes.Buffer
+	r := &Rebaser{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return exec.Command("false") // Command fails
+		},
+		inputReader: bufio.NewReader(strings.NewReader("y\n")),
+	}
+	r.helper.outputWriter = &buf
+
+	r.Rebase([]string{"interactive"})
+
+	output := buf.String()
+	if !strings.Contains(output, "Error:") {
+		t.Errorf("expected error message, got %q", output)
 	}
 }

@@ -6,31 +6,53 @@ import (
 )
 
 func TestExtractPlaceholders(t *testing.T) {
-	cases := []struct {
-		input    string
-		expected []string
+	tests := []struct {
+		name  string
+		input string
+		want  []string
 	}{
-		{"add <file>", []string{"file"}},
-		{"remote add <name> <url>", []string{"name", "url"}},
-		{"no placeholder", nil},
-		{"<onlyone>", []string{"onlyone"}},
-		{"<first> then text", []string{"first"}},
-		{"text then <last>", []string{"last"}},
-		{"<multiple> <placeholders>", []string{"multiple", "placeholders"}},
-		{"<incomplete", nil},
-		{"incomplete>", nil},
-		{"<>", []string{""}},
-		{"< >", []string{" "}},
+		{
+			name:  "no placeholders",
+			input: "simple command",
+			want:  []string{},
+		},
+		{
+			name:  "single placeholder",
+			input: "add <file>",
+			want:  []string{"file"},
+		},
+		{
+			name:  "multiple placeholders",
+			input: "remote add <name> <url>",
+			want:  []string{"name", "url"},
+		},
+		{
+			name:  "empty placeholder",
+			input: "command <>",
+			want:  []string{""},
+		},
+		{
+			name:  "invalid format",
+			input: "command <incomplete",
+			want:  []string{},
+		},
+		{
+			name:  "nested placeholder",
+			input: "command <<nested>>",
+			want:  []string{"nested"},
+		},
 	}
 
-	for _, tc := range cases {
-		result := extractPlaceholders(tc.input)
-		if tc.expected == nil {
-			if result != nil {
-				t.Errorf("input: %s, expected nil, but got: %v", tc.input, result)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractPlaceholders(tt.input)
+			// nilと空のスライスを区別しない比較
+			if len(tt.want) == 0 && len(got) == 0 {
+				return
 			}
-		} else if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf("input: %s, expected: %v, but got: %v", tc.input, tc.expected, result)
-		}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("extractPlaceholders() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

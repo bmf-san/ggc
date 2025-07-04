@@ -63,3 +63,23 @@ func TestFetcher_Fetch(t *testing.T) {
 		})
 	}
 }
+
+func TestFetcher_Fetch_Error(t *testing.T) {
+	var buf bytes.Buffer
+	f := &Fetcher{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _  ...string) *exec.Cmd {
+			return exec.Command("false") // Command that fails
+		},
+	}
+	f.helper.outputWriter = &buf
+
+	f.Fetch([]string{})
+
+	output := buf.String()
+	// When no arguments are provided, it shows help message instead of error
+	if !strings.Contains(output, "Usage: ggc fetch") {
+		t.Errorf("Expected help message, got: %s", output)
+	}
+}

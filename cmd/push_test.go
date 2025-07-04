@@ -85,3 +85,62 @@ func TestPusher_Push_Help(t *testing.T) {
 		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
+
+func TestPusher_Push_Force(t *testing.T) {
+	mockClient := &mockPushGitClient{}
+	var buf bytes.Buffer
+	pusher := &Pusher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	pusher.helper.outputWriter = &buf
+	pusher.Push([]string{"force"})
+
+	if !mockClient.pushCalled {
+		t.Error("Push should be called")
+	}
+	if !mockClient.pushForce {
+		t.Error("Push should be called with force=true")
+	}
+}
+
+func TestPusher_Push_ForceError(t *testing.T) {
+	mockClient := &mockPushGitClient{err: errors.New("force push failed")}
+	var buf bytes.Buffer
+	pusher := &Pusher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	pusher.helper.outputWriter = &buf
+	pusher.Push([]string{"force"})
+
+	if !mockClient.pushCalled {
+		t.Error("Push should be called")
+	}
+	if !mockClient.pushForce {
+		t.Error("Push should be called with force=true")
+	}
+
+	output := buf.String()
+	if output != "Error: force push failed\n" {
+		t.Errorf("Expected error message, got: %s", output)
+	}
+}
+
+func TestPusher_Push_UnknownCommand(t *testing.T) {
+	var buf bytes.Buffer
+	pusher := &Pusher{
+		gitClient:    &mockPushGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	pusher.helper.outputWriter = &buf
+	pusher.Push([]string{"unknown"})
+
+	output := buf.String()
+	if output == "" || !bytes.Contains(buf.Bytes(), []byte("Usage")) {
+		t.Errorf("Usage should be displayed for unknown command, but got: %s", output)
+	}
+}

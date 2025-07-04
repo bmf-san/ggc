@@ -207,3 +207,148 @@ func TestCleaner_CleanInteractive_WithFiles(t *testing.T) {
 		t.Error("Expected output to contain 'Selected files deleted.'")
 	}
 }
+
+func TestCleaner_CleanInteractive_Error(t *testing.T) {
+	var buf bytes.Buffer
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return exec.Command("false")
+		},
+		helper: NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+
+	cleaner.CleanInteractive()
+
+	expected := "Error: failed to get candidates with git clean -nd"
+	if !strings.Contains(buf.String(), expected) {
+		t.Errorf("Expected output to contain %q, got %q", expected, buf.String())
+	}
+}
+
+func TestCleaner_CleanInteractive_Cancel(t *testing.T) {
+	var buf bytes.Buffer
+	inputBuf := strings.NewReader("\n")
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		execCommand: func(_ string, arg ...string) *exec.Cmd {
+			if len(arg) > 0 && arg[0] == "clean" && arg[1] == "-nd" {
+				return exec.Command("echo", "Would remove file1.txt")
+			}
+			return exec.Command("echo", "")
+		},
+		inputReader: bufio.NewReader(inputBuf),
+		helper:      NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+
+	cleaner.CleanInteractive()
+
+	if !strings.Contains(buf.String(), "Cancelled.") {
+		t.Error("Expected output to contain 'Cancelled.'")
+	}
+}
+
+func TestCleaner_CleanInteractive_InvalidNumber(t *testing.T) {
+	var buf bytes.Buffer
+	inputBuf := strings.NewReader("invalid\nnone\nall\n")
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		execCommand: func(_ string, arg ...string) *exec.Cmd {
+			if len(arg) > 0 && arg[0] == "clean" && arg[1] == "-nd" {
+				return exec.Command("echo", "Would remove file1.txt")
+			}
+			return exec.Command("echo", "")
+		},
+		inputReader: bufio.NewReader(inputBuf),
+		helper:      NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+
+	cleaner.CleanInteractive()
+
+	if !strings.Contains(buf.String(), "Invalid number: invalid") {
+		t.Error("Expected output to contain 'Invalid number: invalid'")
+	}
+}
+
+func TestCleaner_CleanInteractive_EmptySelection(t *testing.T) {
+	var buf bytes.Buffer
+	inputBuf := strings.NewReader("\nall\n")
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		execCommand: func(_ string, arg ...string) *exec.Cmd {
+			if len(arg) > 0 && arg[0] == "clean" && arg[1] == "-nd" {
+				return exec.Command("echo", "Would remove file1.txt\nWould remove file2.txt")
+			}
+			return exec.Command("echo", "")
+		},
+		inputReader: bufio.NewReader(inputBuf),
+		helper:      NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+
+	cleaner.CleanInteractive()
+
+	if !strings.Contains(buf.String(), "Cancelled.") {
+		t.Error("Expected output to contain 'Cancelled.' for empty input")
+	}
+}
+
+func TestCleaner_CleanInteractive_FileRejection(t *testing.T) {
+	var buf bytes.Buffer
+	inputBuf := strings.NewReader("1\nn\nall\n")
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		execCommand: func(_ string, arg ...string) *exec.Cmd {
+			if len(arg) > 0 && arg[0] == "clean" && arg[1] == "-nd" {
+				return exec.Command("echo", "Would remove file1.txt")
+			}
+			return exec.Command("echo", "")
+		},
+		inputReader: bufio.NewReader(inputBuf),
+		helper:      NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+
+	cleaner.CleanInteractive()
+
+	output := buf.String()
+	if !strings.Contains(output, "Delete these files? (y/n):") {
+		t.Error("Expected output to contain 'Delete these files? (y/n):'")
+	}
+	if !strings.Contains(output, "Selected files deleted.") {
+		t.Error("Expected final deletion to succeed")
+	}
+}
+
+func TestCleaner_CleanInteractive_NothingSelected(t *testing.T) {
+	var buf bytes.Buffer
+	// Simulate entering an out-of-range number, which results in no actual selection
+	inputBuf := strings.NewReader("10\nall\n")
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		execCommand: func(_ string, arg ...string) *exec.Cmd {
+			if len(arg) > 0 && arg[0] == "clean" && arg[1] == "-nd" {
+				return exec.Command("echo", "Would remove file1.txt")
+			}
+			return exec.Command("echo", "")
+		},
+		inputReader: bufio.NewReader(inputBuf),
+		helper:      NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+
+	cleaner.CleanInteractive()
+
+	if !strings.Contains(buf.String(), "Invalid number: 10") {
+		t.Error("Expected output to contain 'Invalid number: 10'")
+	}
+}
