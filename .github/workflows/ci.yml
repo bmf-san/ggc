@@ -2,28 +2,40 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
-  pull_request:
-    branches: [ main, develop, feature/* ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.1'
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.63.4
-      - name: Lint
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies and tools
+        run: make deps
+
+      - name: Run tests
+        run: make test
+
+      - name: Run linter
         run: make lint
+
       - name: Test with coverage
-        run: |
-          go test ./... -coverprofile=coverage.out
-          go tool cover -func=coverage.out
+        run: make cover
+
       - name: Check coverage threshold
         run: |
           total=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
@@ -31,5 +43,6 @@ jobs:
           awk "BEGIN {exit !(total < threshold)}" && \
             echo "Coverage $total% is below threshold $threshold%" && exit 1 || \
             echo "Coverage $total% is above threshold $threshold%"
+
       - name: Build
         run: make build

@@ -37,6 +37,29 @@ make build
 
 Place the `ggc` binary in a directory included in your PATH.
 
+### Development Setup
+
+For development, you can use the Makefile to install required tools and dependencies:
+
+```sh
+# Install all dependencies and tools
+make deps
+
+# Run tests
+make test
+
+# Run linter
+make lint
+
+# Run tests with coverage
+make cover
+
+# Run tests and lint
+make test-and-lint
+```
+
+The Makefile will automatically install required tools like `golangci-lint` using `go install`.
+
 ### Global install with go install
 
 ```sh
