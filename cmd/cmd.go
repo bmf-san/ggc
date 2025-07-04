@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/bmf-san/ggc/git"
 )
@@ -124,6 +126,18 @@ func (c *Cmd) PullRebasePush() {
 
 // Interactive starts the interactive UI mode.
 func (c *Cmd) Interactive() {
+	// 既存のシグナルハンドラーをリセット
+	signal.Reset(os.Interrupt, syscall.SIGTERM)
+
+	// 全体でのCtrl+C処理を設定
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		fmt.Println("\nExiting...")
+		os.Exit(0)
+	}()
+
 	for {
 		args := InteractiveUI()
 		if args == nil {

@@ -5,9 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"golang.org/x/term"
 )
@@ -63,17 +61,6 @@ func InteractiveUI() []string {
 		}
 	}()
 
-	// For Ctrl+C exit
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		if err := term.Restore(fd, oldState); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
-		}
-		os.Exit(0)
-	}()
-
 	reader := bufio.NewReader(os.Stdin)
 	selected := 0
 	input := ""
@@ -82,7 +69,7 @@ func InteractiveUI() []string {
 		if _, err := os.Stdout.Write([]byte("\033[H\033[2J\033[H")); err != nil {
 			fmt.Fprintln(os.Stderr, "failed to write clear screen sequence:", err)
 		}
-		fmt.Printf("Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, Enter: execute, Ctrl+C: quit)\n")
+		fmt.Printf("Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, enter: execute, ctrl+c: quit)\n")
 		fmt.Printf("\rSearch: %s\n\n", input)
 
 		// Filtering
@@ -118,7 +105,13 @@ func InteractiveUI() []string {
 		if err != nil {
 			continue
 		}
-		if b == 13 { // Enter
+		if b == 3 { // Ctrl+C in raw mode
+			if err := term.Restore(fd, oldState); err != nil {
+				fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
+			}
+			fmt.Println("\nExiting...")
+			os.Exit(0)
+		} else if b == 13 { // Enter
 			if len(filtered) > 0 {
 				fmt.Printf("\nExecute: %s\n", filtered[selected])
 				if err := term.Restore(fd, oldState); err != nil {
