@@ -122,8 +122,8 @@ func TestCommitter_Commit_Normal_Error(t *testing.T) {
 		gitClient:    &mockCommitGitClient{},
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
-			return exec.Command("false") // 失敗するコマンド
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return exec.Command("false") // command that fails
 		},
 	}
 	c.helper.outputWriter = &buf
@@ -153,7 +153,7 @@ func TestCommitter_Commit_Tmp_Error(t *testing.T) {
 }
 
 func TestShowCommitHelp(t *testing.T) {
-	// ShowCommitHelp関数が呼び出せることを確認
+	// Verify that ShowCommitHelp function can be called
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("ShowCommitHelp should not panic: %v", r)
@@ -161,5 +161,5 @@ func TestShowCommitHelp(t *testing.T) {
 	}()
 
 	ShowCommitHelp()
-	// 関数が正常に実行されることを確認
+	// Verify that the function executes normally
 }

@@ -126,10 +126,10 @@ func (c *Cmd) PullRebasePush() {
 
 // Interactive starts the interactive UI mode.
 func (c *Cmd) Interactive() {
-	// 既存のシグナルハンドラーをリセット
+	// Reset existing signal handlers
 	signal.Reset(os.Interrupt, syscall.SIGTERM)
 
-	// 全体でのCtrl+C処理を設定
+	// Set up global Ctrl+C handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -144,14 +144,14 @@ func (c *Cmd) Interactive() {
 			break
 		}
 
-		// "quit" コマンドをチェック
+		// Check for "quit" command
 		if len(args) >= 2 && args[1] == "quit" {
 			break
 		}
 
 		c.Route(args[1:]) // Skip "ggc" in args
 
-		// コマンド実行後、結果を確認するための待機
+		// Wait to check results after command execution
 		c.waitForContinue()
 	}
 }

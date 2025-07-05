@@ -46,7 +46,7 @@ func TestExtractPlaceholders(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := extractPlaceholders(tt.input)
-			// nilと空のスライスを区別しない比較
+			// Compare without distinguishing between nil and empty slice
 			if len(tt.want) == 0 && len(got) == 0 {
 				return
 			}

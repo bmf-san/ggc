@@ -25,7 +25,7 @@ func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {
-		t.Errorf("Usageが出力されていません: %s", output)
+		t.Errorf("Usage not output: %s", output)
 	}
 }
 
@@ -39,7 +39,7 @@ func TestAdder_Add_GitAddCalled(t *testing.T) {
 	}
 	adder.Add([]string{"hoge.txt"})
 	if !called {
-		t.Error("execCommandが呼ばれていません")
+		t.Error("execCommand was not called")
 	}
 }
 
@@ -55,12 +55,12 @@ func TestAdder_Add_GitAddArgs(t *testing.T) {
 	}
 	adder.Add([]string{"foo.txt", "bar.txt"})
 	if gotName != "git" {
-		t.Errorf("コマンド名が想定と異なります: got=%s", gotName)
+		t.Errorf("Command name differs from expected: got=%s", gotName)
 	}
 	wantArgs := []string{"add", "foo.txt", "bar.txt"}
 	for i, a := range wantArgs {
 		if i >= len(gotArgs) || gotArgs[i] != a {
-			t.Errorf("引数が想定と異なります: want=%v, got=%v", wantArgs, gotArgs)
+			t.Errorf("Arguments differ from expected: want=%v, got=%v", wantArgs, gotArgs)
 			break
 		}
 	}
@@ -72,7 +72,7 @@ func TestAdder_Add_RunError_PrintsError(t *testing.T) {
 	os.Stdout = w
 	adder := &Adder{
 		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			cmd := exec.Command("false") // 常にエラーを返すコマンド
+			cmd := exec.Command("false") // command that always returns error
 			return cmd
 		},
 	}
@@ -85,7 +85,7 @@ func TestAdder_Add_RunError_PrintsError(t *testing.T) {
 	os.Stdout = oldStdout
 	output := buf.String()
 	if output == "" || output[:5] != "error" {
-		t.Errorf("エラー出力がされていません: %s", output)
+		t.Errorf("Error output not generated: %s", output)
 	}
 }
 
@@ -103,10 +103,10 @@ func TestAdder_Add_POption_CallsGitAddP(t *testing.T) {
 	}
 	adder.Add([]string{"-p"})
 	if !called {
-		t.Error("-pオプションでexecCommandが呼ばれていません")
+		t.Error("execCommand not called with -p option")
 	}
 	if gotName != "git" || len(gotArgs) != 2 || gotArgs[0] != "add" || gotArgs[1] != "-p" {
-		t.Errorf("-pオプション時のコマンド・引数が想定と異なります: name=%s, args=%v", gotName, gotArgs)
+		t.Errorf("Command/arguments differ from expected for -p option: name=%s, args=%v", gotName, gotArgs)
 	}
 }
 
@@ -116,7 +116,7 @@ func TestAdder_Add_POption_Error(t *testing.T) {
 	os.Stdout = w
 	adder := &Adder{
 		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			cmd := exec.Command("false") // 常にエラーを返すコマンド
+			cmd := exec.Command("false") // command that always returns error
 			return cmd
 		},
 	}
@@ -129,7 +129,7 @@ func TestAdder_Add_POption_Error(t *testing.T) {
 	os.Stdout = oldStdout
 	output := buf.String()
 	if output == "" || output[:5] != "error" {
-		t.Errorf("-pオプションでエラー出力がされていません: %s", output)
+		t.Errorf("Error output not generated with -p option: %s", output)
 	}
 }
 

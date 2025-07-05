@@ -181,7 +181,7 @@ func TestBrancher_Branch_Help(t *testing.T) {
 	}
 	brancher.helper.outputWriter = &buf
 
-	// 引数なしの場合はヘルプを表示
+	// Show help when no arguments provided
 	brancher.Branch([]string{})
 
 	output := buf.String()
@@ -199,7 +199,7 @@ func TestBrancher_Branch_UnknownCommand(t *testing.T) {
 	}
 	brancher.helper.outputWriter = &buf
 
-	// 不明なコマンドの場合はヘルプを表示
+	// Show help for unknown commands
 	brancher.Branch([]string{"unknown"})
 
 	output := buf.String()
@@ -230,7 +230,7 @@ func TestBrancher_branchCheckout_Error(t *testing.T) {
 func TestBrancher_branchCheckout_NoBranches(t *testing.T) {
 	var buf bytes.Buffer
 	mockClient := &mockBranchGitClient{}
-	// ListLocalBranchesをオーバーライドして空のスライスを返す
+	// Override ListLocalBranches to return empty slice
 	mockClient.listLocalBranches = func() ([]string, error) {
 		return []string{}, nil
 	}

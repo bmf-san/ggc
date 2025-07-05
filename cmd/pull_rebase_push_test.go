@@ -79,13 +79,13 @@ type mockPullRebasePushGitClientPushError struct {
 func (m *mockPullRebasePushGitClientPushError) Pull(rebase bool) error {
 	m.pullCalled = true
 	m.pullRebase = rebase
-	return nil // Pull成功
+	return nil // Pull success
 }
 
 func (m *mockPullRebasePushGitClientPushError) Push(force bool) error {
 	m.pushCalled = true
 	m.pushForce = force
-	return errors.New("push failed") // Push失敗
+	return errors.New("push failed") // Push failure
 }
 
 func TestPullRebasePusher_PullRebasePush_PushError(t *testing.T) {
