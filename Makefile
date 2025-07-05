@@ -2,9 +2,7 @@
 
 APP_NAME=ggc
 
-.PHONY: all build run clean test lint cover install-tools deps ci
-
-all: build
+.PHONY: install-tools deps build run test lint clean cover test-and-lint
 
 # Install required tools
 install-tools:
