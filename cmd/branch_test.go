@@ -551,3 +551,82 @@ func TestBrancher_branchCheckoutRemote_InvalidBranchName(t *testing.T) {
 		t.Error("Expected invalid branch name message")
 	}
 }
+
+func TestBrancher_Branch_Create(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedOutput string
+		cmdOutput      string
+		cmdError       bool
+	}{
+		{
+			name:           "Success: Create new branch",
+			input:          "feature/test\n",
+			expectedOutput: "Enter new branch name: \n",
+			cmdOutput:      "",
+			cmdError:       false,
+		},
+		{
+			name:           "Error: Empty branch name",
+			input:          "\n",
+			expectedOutput: "Enter new branch name: Cancelled.\n",
+			cmdOutput:      "",
+			cmdError:       false,
+		},
+		{
+			name:           "Error: Branch creation failed",
+			input:          "feature/test\n",
+			expectedOutput: "Enter new branch name: Error: failed to create and checkout branch: exit status 1\n",
+			cmdOutput:      "",
+			cmdError:       true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+				execCommand: func(_ string, _ ...string) *exec.Cmd {
+					if tt.cmdError {
+						return exec.Command("false")
+					}
+					return exec.Command("echo", tt.cmdOutput)
+				},
+			}
+
+			brancher.Branch([]string{"create"})
+
+			output := buf.String()
+			if output != tt.expectedOutput {
+				t.Errorf("unexpected output:\ngot:  %q\nwant: %q", output, tt.expectedOutput)
+			}
+		})
+	}
+}
+
+func TestBrancher_branchCreate_ExistingBranch(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+		inputReader:  bufio.NewReader(strings.NewReader("main\n")),
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			// Set up git command to return error
+			cmd := exec.Command("echo", "fatal: A branch named 'main' already exists.")
+			cmd.Stderr = cmd.Stdout
+			return cmd
+		},
+	}
+
+	brancher.Branch([]string{"create"})
+
+	output := buf.String()
+	expectedOutput := "Enter new branch name: fatal: A branch named 'main' already exists.\n"
+	if output != expectedOutput {
+		t.Errorf("unexpected output:\ngot:  %q\nwant: %q", output, expectedOutput)
+	}
+}
