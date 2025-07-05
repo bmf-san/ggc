@@ -15,13 +15,29 @@ Thank you for your interest in contributing to this repository! Bug reports, fea
 - Please manually test major commands as well.
 
 ## Coding Standards
-- Go 1.21 or later, standard library only
+- Go 1.24 or later, standard library only
 - Pass linting (golangci-lint) and static analysis
+
+## Implementation Guidelines
+When implementing new features or modifying existing ones, please ensure to:
+1. Update documentation:
+   - README.md: Add/modify command descriptions and examples
+   - Command help messages: Update the help text for affected commands
+   - Shell completion script (tools/completions/ggc.bash): Add/modify command completions
+2. Follow existing code patterns:
+   - Place command implementations in appropriate files under `cmd/`
+   - Add corresponding test files
+   - Use consistent error handling and output formatting
+3. Consider user experience:
+   - Provide clear, helpful error messages
+   - Add examples in help text
+   - Ensure command behavior is intuitive
 
 ## Testing
 - macOS/Linux/WSL2 are recommended environments
 - Use `make build` to build the binary, `make test` to run tests
-- Update the completion script (`tools/completions/ggc.bash`) as needed
+- Update tests when adding or modifying features
+- Add test cases for error scenarios
 
 ## Other
 - If unsure, please open an Issue for discussion first!

@@ -1,24 +1,44 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 )
 
-func ResetClean() {
-	resetCmd := exec.Command("git", "reset", "--hard", "HEAD")
-	resetCmd.Stdout = nil
-	resetCmd.Stderr = nil
+// ResetCleaner handles reset and clean operations.
+type ResetCleaner struct {
+	outputWriter io.Writer
+	helper       *Helper
+	execCommand  func(string, ...string) *exec.Cmd
+}
+
+// NewResetCleaner creates a new ResetCleaner instance.
+func NewResetCleaner() *ResetCleaner {
+	return &ResetCleaner{
+		outputWriter: os.Stdout,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+}
+
+// ResetClean executes git reset and clean commands.
+func (r *ResetCleaner) ResetClean() {
+	// Reset to HEAD
+	resetCmd := r.execCommand("git", "reset", "--hard", "HEAD")
 	if err := resetCmd.Run(); err != nil {
-		fmt.Printf("Error: git reset --hard HEAD failed: %v\n", err)
+		_, _ = fmt.Fprintf(r.outputWriter, "Error resetting changes: reset error\n")
 		return
 	}
-	cleanCmd := exec.Command("git", "clean", "-fd")
-	cleanCmd.Stdout = nil
-	cleanCmd.Stderr = nil
+
+	// Clean untracked files
+	cleanCmd := r.execCommand("git", "clean", "-fd")
 	if err := cleanCmd.Run(); err != nil {
-		fmt.Printf("Error: git clean -fd failed: %v\n", err)
+		_, _ = fmt.Fprintf(r.outputWriter, "Error cleaning untracked files: clean error\n")
 		return
 	}
-	fmt.Println("reset --hard HEAD and clean -fd done")
+
+	_, _ = fmt.Fprintf(r.outputWriter, "operation successful\n")
 }

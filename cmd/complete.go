@@ -8,8 +8,22 @@ import (
 	"github.com/bmf-san/ggc/git"
 )
 
-// Complete handles dynamic completion for subcommands/args
-func Complete(args []string) {
+// Completer handles dynamic completion for subcommands/args
+type Completer struct {
+	gitClient   git.Clienter
+	execCommand func(name string, arg ...string) *exec.Cmd
+}
+
+// NewCompleter creates a new Completer.
+var NewCompleter = func() *Completer {
+	return &Completer{
+		gitClient:   git.NewClient(),
+		execCommand: exec.Command,
+	}
+}
+
+// Complete provides completion for various subcommands.
+func (c *Completer) Complete(args []string) {
 	if len(args) < 1 {
 		return
 	}
@@ -24,7 +38,7 @@ func Complete(args []string) {
 			return
 		}
 		// For the second argument and beyond, suggest local branch names
-		branches, err := git.ListLocalBranches()
+		branches, err := c.gitClient.ListLocalBranches()
 		if err != nil {
 			return
 		}
@@ -33,7 +47,7 @@ func Complete(args []string) {
 		}
 	case "files":
 		// Get list of files managed by git ls-files
-		cmd := exec.Command("git", "ls-files")
+		cmd := c.execCommand("git", "ls-files")
 		out, err := cmd.Output()
 		if err != nil {
 			return

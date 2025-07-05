@@ -6,19 +6,22 @@ import (
 	"testing"
 )
 
-func TestResetClean_ExecutesCorrectCommands(t *testing.T) {
+func TestClient_ResetHardAndClean(t *testing.T) {
 	var gotArgs [][]string
-	origExecCommand := execCommand
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotArgs = append(gotArgs, append([]string{name}, args...))
-		return exec.Command("echo")
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			gotArgs = append(gotArgs, append([]string{name}, args...))
+			return exec.Command("echo")
+		},
+		GetCurrentBranchFunc: func() (string, error) {
+			return "main", nil
+		},
 	}
-	defer func() { execCommand = origExecCommand }()
 
-	_ = ResetClean()
+	_ = client.ResetHardAndClean()
 	want := [][]string{
-		{"git", "reset", "--hard", "HEAD"},
-		{"git", "clean", "-fd"},
+		{"git", "reset", "--hard", "origin/main"},
+		{"git", "clean", "-fdx"},
 	}
 	if !reflect.DeepEqual(gotArgs, want) {
 		t.Errorf("got %v, want %v", gotArgs, want)

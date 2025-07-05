@@ -6,29 +6,41 @@ import (
 	"testing"
 )
 
-func TestPushCurrentBranch_ExecutesCorrectCommand(t *testing.T) {
-	// Mock: getCurrentBranch
-	origGetCurrentBranch := getCurrentBranch
-	getCurrentBranch = func() (string, error) {
-		return "main", nil
+func TestClient_Push(t *testing.T) {
+	cases := []struct {
+		name     string
+		force    bool
+		wantArgs []string
+	}{
+		{
+			name:     "push",
+			force:    false,
+			wantArgs: []string{"git", "push", "origin", "main"},
+		},
+		{
+			name:     "force push",
+			force:    true,
+			wantArgs: []string{"git", "push", "origin", "main", "--force-with-lease"},
+		},
 	}
-	defer func() { getCurrentBranch = origGetCurrentBranch }()
 
-	// Mock: execCommand
-	var gotArgs []string
-	origExecCommand := execCommand
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotArgs = append([]string{name}, args...)
-		return exec.Command("echo") // Actually does nothing
-	}
-	defer func() { execCommand = origExecCommand }()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+				GetCurrentBranchFunc: func() (string, error) {
+					return "main", nil
+				},
+			}
 
-	// Test execution
-	_ = PushCurrentBranch()
-
-	// Verification
-	want := []string{"git", "push", "origin", "main"}
-	if !reflect.DeepEqual(gotArgs, want) {
-		t.Errorf("got %v, want %v", gotArgs, want)
+			_ = client.Push(tc.force)
+			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
+			}
+		})
 	}
 }

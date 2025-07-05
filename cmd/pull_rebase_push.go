@@ -1,43 +1,46 @@
+// Package cmd provides command implementations for the ggc CLI tool.
 package cmd
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
+	"io"
+	"os"
+
+	"github.com/bmf-san/ggc/git"
 )
 
-func PullRebasePush() {
-	// Get current branch name
-	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	branchOut, err := branchCmd.Output()
-	if err != nil {
-		fmt.Printf("Error: Failed to get branch name: %v\n", err)
+// PullRebasePusher provides functionality for the pull-rebase-push command.
+type PullRebasePusher struct {
+	gitClient    git.Clienter
+	outputWriter io.Writer
+}
+
+// NewPullRebasePusher creates a new PullRebasePusher.
+func NewPullRebasePusher() *PullRebasePusher {
+	return NewPullRebasePusherWithClient(git.NewClient())
+}
+
+// NewPullRebasePusherWithClient creates a new PullRebasePusher with the specified git client.
+func NewPullRebasePusherWithClient(client git.Clienter) *PullRebasePusher {
+	return &PullRebasePusher{
+		gitClient:    client,
+		outputWriter: os.Stdout,
+	}
+}
+
+// PullRebasePush executes the pull-rebase-push command.
+func (p *PullRebasePusher) PullRebasePush() {
+	// Pull with rebase
+	if err := p.gitClient.Pull(true); err != nil {
+		_, _ = fmt.Fprintf(p.outputWriter, "Error: %v\n", err)
 		return
 	}
-	branch := strings.TrimSpace(string(branchOut))
-	// git pull
-	pullCmd := exec.Command("git", "pull", "origin", branch)
-	pullCmd.Stdout = nil
-	pullCmd.Stderr = nil
-	if err := pullCmd.Run(); err != nil {
-		fmt.Printf("Error: Failed to git pull: %v\n", err)
+
+	// Push to remote
+	if err := p.gitClient.Push(false); err != nil {
+		_, _ = fmt.Fprintf(p.outputWriter, "Error: %v\n", err)
 		return
 	}
-	// git rebase origin/main
-	rebaseCmd := exec.Command("git", "rebase", "origin/main")
-	rebaseCmd.Stdout = nil
-	rebaseCmd.Stderr = nil
-	if err := rebaseCmd.Run(); err != nil {
-		fmt.Printf("Error: Failed to git rebase: %v\n", err)
-		return
-	}
-	// git push
-	pushCmd := exec.Command("git", "push", "origin", branch)
-	pushCmd.Stdout = nil
-	pushCmd.Stderr = nil
-	if err := pushCmd.Run(); err != nil {
-		fmt.Printf("Error: Failed to git push: %v\n", err)
-		return
-	}
-	fmt.Println("pull→rebase→push completed")
+
+	_, _ = fmt.Fprintln(p.outputWriter, "pull→rebase→push completed")
 }

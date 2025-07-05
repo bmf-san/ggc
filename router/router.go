@@ -1,55 +1,49 @@
+// Package router provides routing functionality for the ggc CLI tool.
 package router
 
 import (
 	"github.com/bmf-san/ggc/cmd"
 )
 
-func Route(args []string) {
-	if len(args) < 2 {
-		cmd.ShowHelp()
+// Router represents the command router.
+type Router struct {
+	Executer cmd.Executer
+}
+
+// NewRouter creates a new Router.
+func NewRouter(e cmd.Executer) *Router {
+	return &Router{
+		Executer: e,
+	}
+}
+
+// Route routes the command to the appropriate handler.
+func (r *Router) Route(args []string) {
+	if len(args) == 0 {
+		r.Executer.Interactive()
 		return
 	}
-	switch args[1] {
-	case "__complete":
-		cmd.Complete(args[2:])
-		return
+
+	switch args[0] {
+	case "help":
+		r.Executer.Help()
 	case "branch":
-		cmd.Branch(args[2:])
-	case "push":
-		cmd.Push(args[2:])
-	case "pull":
-		cmd.Pull(args[2:])
-	case "log":
-		cmd.Log(args[2:])
+		r.Executer.Branch(args[1:])
 	case "commit":
-		cmd.Commit(args[2:])
-	case "add":
-		cmd.Add(args[2:])
-	case "fetch":
-		cmd.Fetch(args[2:])
+		r.Executer.Commit(args[1:])
+	case "log":
+		r.Executer.Log(args[1:])
+	case "pull":
+		r.Executer.Pull(args[1:])
+	case "push":
+		r.Executer.Push(args[1:])
+	case "reset":
+		r.Executer.Reset(args[1:])
 	case "clean":
-		if len(args) > 2 && args[2] == "interactive" {
-			cmd.CleanInteractive()
-		} else {
-			cmd.Clean(args[2:])
-		}
-	case "commit-push":
-		cmd.CommitPushInteractive()
-	case "stash":
-		cmd.Stash(args[2:])
-	case "rebase":
-		cmd.Rebase(args[2:])
-	case "remote":
-		cmd.Remote(args[2:])
-	case "add-commit-push":
-		cmd.AddCommitPush()
+		r.Executer.Clean(args[1:])
 	case "pull-rebase-push":
-		cmd.PullRebasePush()
-	case "stash-pull-pop":
-		cmd.StashPullPop()
-	case "reset-clean":
-		cmd.ResetClean()
+		r.Executer.PullRebasePush()
 	default:
-		cmd.ShowHelp()
+		r.Executer.Help()
 	}
 }
