@@ -121,41 +121,66 @@ ggc
 - Use "quit" command or ctrl+c to exit interactive mode
 - All UI and prompts are in English
 
-### Main Command Examples
+### Available Commands
 
-|     ggc Command Example      |       Actual git Command       |              Description               |
-| --------------------------- | ------------------------------ | -------------------------------------- |
-| ggc add <file>              | git add <file>                 | Stage file(s)                          |
-| ggc add-commit-push         | git add . → git commit ... → git push | Add, commit, and push all at once |
-| ggc branch current          | git rev-parse --abbrev-ref HEAD| Show current branch name               |
-| ggc branch checkout         | git branch ... → git checkout <selected> | Interactive branch switch     |
-| ggc branch checkout-remote  | git branch -r ... → git checkout -b <n> --track <remote>/<branch> | Create local branch from remote and switch to it |
-| ggc branch delete          | git branch ... → git branch -d <selected> | Interactive delete of non-merged local branches |
-| ggc branch delete-merged   | git branch --merged ... → git branch -d <selected> | Interactive delete of already merged local branches |
-| ggc clean files             | git clean -f                    | Clean files                            |
-| ggc clean dirs              | git clean -d                    | Clean directories                      |
-| ggc clean-interactive       | git clean -nd → git clean -f    | Interactive file cleaning              |
-| ggc commit allow-empty      | git commit --allow-empty -m ... | Create empty commit                    |
-| ggc commit tmp              | git commit -m "tmp"             | Temporary commit                       |
-| ggc commit-push-interactive | Interactive add/commit/push     | Select files, commit, and push interactively |
-| ggc complete               | bash/zsh completion            | Generate shell completion script        |
-| ggc fetch --prune          | git fetch --prune              | Fetch and remove stale remote-tracking branches |
-| ggc log simple              | git log --oneline               | Show simple log                        |
-| ggc log graph               | git log --graph                 | Show log with graph                    |
-| ggc pull current            | git pull origin <branch>        | Pull current branch                    |
-| ggc pull rebase             | git pull --rebase origin <branch>| Pull with rebase                      |
-| ggc pull-rebase-push        | git pull → git rebase → git push | Pull with rebase and push all at once |
-| ggc push current            | git push origin <branch>        | Push current branch                    |
-| ggc push force              | git push --force origin <branch>| Force push current branch              |
-| ggc rebase                  | git rebase                      | Rebase current branch                  |
-| ggc remote list             | git remote -v                   | Show remotes                           |
-| ggc remote add <n> <url>    | git remote add <n> <url>       | Add remote                             |
-| ggc remote remove <n>       | git remote remove <n>          | Remove remote                          |
-| ggc remote set-url <n> <url>| git remote set-url <n> <url>   | Change remote URL                      |
-| ggc reset                   | git reset --hard HEAD; git clean -fd | Reset and clean                   |
-| ggc stash                   | git stash                       | Stash changes                          |
-| ggc stash-pull-pop          | git stash → git pull → git stash pop | Stash, pull, and pop all at once  |
-| ggc quit                     | (Exit interactive mode)         | Exit interactive mode              |
+- `add` - Add file contents to the index
+  - `add <file>` - Add a specific file
+  - `add .` - Add all changes
+  - `add -p` - Add changes interactively
+
+- `branch` - List, create, or delete branches
+  - `branch current` - Show current branch
+  - `branch checkout` - Checkout existing branch
+  - `branch checkout-remote` - Checkout remote branch
+  - `branch create` - Create and checkout new branch
+  - `branch delete` - Delete a branch
+  - `branch delete-merged` - Delete merged branches
+  - `branch list-local` - List local branches
+  - `branch list-remote` - List remote branches
+
+- `clean` - Clean untracked files and directories
+  - `clean files` - Clean untracked files
+  - `clean dirs` - Clean untracked directories
+
+- `commit` - Commit staged changes
+  - `commit allow-empty` - Create empty commit
+  - `commit tmp` - Create temporary commit
+
+- `fetch` - Fetch from remote
+  - `fetch --prune` - Fetch and prune remote branches
+
+- `log` - Show commit logs
+  - `log simple` - Show commit logs in a simple format
+  - `log graph` - Show commit logs with a graph
+
+- `pull` - Pull changes from remote
+  - `pull current` - Pull current branch from remote
+  - `pull rebase` - Pull with rebase
+
+- `push` - Push changes to remote
+  - `push current` - Push current branch to remote
+  - `push force` - Force push current branch to remote
+
+- `rebase` - Rebase current branch
+
+- `remote` - Manage set of tracked repositories
+  - `remote list` - List remote repositories
+  - `remote add <name> <url>` - Add a remote repository
+  - `remote remove <name>` - Remove a remote repository
+  - `remote set-url <name> <url>` - Change remote repository URL
+
+- `reset` - Reset and clean
+  - `reset-clean` - Reset to HEAD and clean untracked files and directories
+
+- `stash` - Stash changes
+  - `stash` - Stash current changes
+  - `stash pop` - Apply and remove the latest stash
+  - `stash drop` - Remove the latest stash
+  - `stash-pull-pop` - Stash changes, pull from remote, and pop stashed changes
+
+- `add-commit-push` - Add all changes, commit, and push in one command
+- `commit-push-interactive` - Commit and push interactively
+- `pull-rebase-push` - Pull with rebase and push in one command
 
 ## Directory Structure
 
