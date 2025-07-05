@@ -1,6 +1,6 @@
 module github.com/bmf-san/ggc
 
-go 1.24.1
+go 1.24.4
 
 require golang.org/x/term v0.32.0
 

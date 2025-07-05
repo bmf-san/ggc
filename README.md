@@ -33,26 +33,6 @@ ggc is a Git tool written in Go, providing both a traditional command-line inter
 - Dependencies: Go standard library + golang.org/x/term (no extra packages required)
 - Requirement: `git` command must be installed
 
-## Shell Completion
-
-### Bash
-Add the following to your `~/.bash_profile` or `~/.bashrc`:
-```bash
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
-fi
-```
-
-### Zsh
-Add the following to your `~/.zshrc`:
-```zsh
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
-fi
-```
-
-This setup will automatically find the completion script regardless of the installed version.
-
 ## Installation
 
 ### Build with make
@@ -191,20 +171,25 @@ cmd/                     # Command entry handlers
 git/                     # Git operation wrappers
 ```
 
-## Completion Script
+## Shell Completion
 
-A bash completion script is available at `tools/completions/ggc.bash`.
-
-### How to Enable (bash/zsh)
-
-```sh
-# For bash
-source /path/to/ggc/tools/completions/ggc.bash
-# For zsh, you can also use source
+### Bash
+Add the following to your `~/.bash_profile` or `~/.bashrc`:
+```bash
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
+fi
 ```
 
-- Add the above to your `.bashrc` or `.zshrc` to enable completion automatically on terminal startup.
-- Subcommand completion is supported.
+### Zsh
+Add the following to your `~/.zshrc`:
+```zsh
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
+fi
+```
+
+This setup will automatically find the completion script regardless of the installed version.
 
 ## Contributing
 
