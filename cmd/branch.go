@@ -51,6 +51,9 @@ func (b *Brancher) Branch(args []string) {
 		case "checkout-remote":
 			b.branchCheckoutRemote()
 			return
+		case "create":
+			b.branchCreate()
+			return
 		case "delete":
 			b.branchDelete()
 			return
@@ -128,6 +131,24 @@ func (b *Brancher) branchCheckoutRemote() {
 	cmd.Stderr = b.outputWriter
 	if err := cmd.Run(); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+	}
+}
+
+func (b *Brancher) branchCreate() {
+	_, _ = fmt.Fprint(b.outputWriter, "Enter new branch name: ")
+	input, _ := b.inputReader.ReadString('\n')
+	branchName := strings.TrimSpace(input)
+	if branchName == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+
+	cmd := b.execCommand("git", "checkout", "-b", branchName)
+	cmd.Stdout = b.outputWriter
+	cmd.Stderr = b.outputWriter
+	if err := cmd.Run(); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to create and checkout branch: %v\n", err)
+		return
 	}
 }
 

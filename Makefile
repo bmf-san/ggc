@@ -1,8 +1,9 @@
 # Makefile for Go project
 
 APP_NAME=ggc
+OUT?=coverage.out
 
-.PHONY: install-tools deps build run test lint clean cover test-and-lint
+.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint
 
 # Install required tools
 install-tools:
@@ -35,6 +36,9 @@ clean:
 cover:
 	go test ./... -coverprofile=coverage.out
 	go tool cover -func=coverage.out
+
+test-cover:
+	go test ./... -coverprofile=$(OUT)
 
 test-and-lint: test lint
 	@echo "All tests and lint checks passed"
