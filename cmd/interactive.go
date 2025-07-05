@@ -17,6 +17,7 @@ var commands = []string{
 	"branch current",
 	"branch checkout",
 	"branch checkout-remote",
+	"branch create",
 	"branch delete",
 	"branch delete-merged",
 	"push current",

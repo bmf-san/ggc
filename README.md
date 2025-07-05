@@ -1,4 +1,11 @@
 # ggc
+[![GitHub release](https://img.shields.io/github/release/bmf-san/ggc.svg)](https://github.com/bmf-san/ggc/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bmf-san/ggc)](https://goreportcard.com/report/github.com/bmf-san/ggc)
+[![codecov](https://codecov.io/gh/bmf-san/ggc/branch/main/graph/badge.svg)](https://codecov.io/gh/bmf-san/ggc)
+[![GitHub license](https://img.shields.io/github/license/bmf-san/ggc)](https://github.com/bmf-san/ggc/blob/main/LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/bmf-san/ggc.svg)](https://pkg.go.dev/github.com/bmf-san/ggc)
+[![Sourcegraph](https://sourcegraph.com/github.com/bmf-san/ggc/-/badge.svg)](https://sourcegraph.com/github.com/bmf-san/ggc?badge)
+
 
 A Go Git CLI & CUI.
 
@@ -21,10 +28,30 @@ ggc is a Git tool written in Go, providing both a traditional command-line inter
 - Implemented using only the Go standard library (+ golang.org/x/term)
 
 ## Supported Environments
-- OS: macOS (Apple Silicon/Intel), Linux, WSL2 (Windows Subsystem for Linux)
+- OS: macOS (Apple Silicon/Intel) - Verified
 - Go version: 1.24 or later recommended
 - Dependencies: Go standard library + golang.org/x/term (no extra packages required)
 - Requirement: `git` command must be installed
+
+## Shell Completion
+
+### Bash
+Add the following to your `~/.bash_profile` or `~/.bashrc`:
+```bash
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
+fi
+```
+
+### Zsh
+Add the following to your `~/.zshrc`:
+```zsh
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
+fi
+```
+
+This setup will automatically find the completion script regardless of the installed version.
 
 ## Installation
 

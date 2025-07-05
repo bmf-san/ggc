@@ -54,9 +54,10 @@ func (h *Helper) ShowBranchHelp() {
 		Usage:       "ggc branch <command>",
 		Description: "List, create, or delete branches",
 		Examples: []string{
-			"ggc branch list     # List all branches",
-			"ggc branch new      # Create a new branch",
-			"ggc branch delete   # Delete a branch",
+			"ggc branch current     # Show current branch",
+			"ggc branch checkout    # Checkout existing branch",
+			"ggc branch create      # Create and checkout new branch",
+			"ggc branch delete      # Delete a branch",
 		},
 	})
 }

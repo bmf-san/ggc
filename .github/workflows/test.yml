@@ -1,0 +1,29 @@
+name: Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        go-version: [ '1.24.1' ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Run test
+        run: make test
+      - name: Run coverage
+        run: make test-cover OUT=coverage.out
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4.5.0
+        with:
+          fail_ci_if_error: true
+          file: ./coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
