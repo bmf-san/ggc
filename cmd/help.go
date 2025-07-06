@@ -149,6 +149,18 @@ func (h *Helper) ShowStashHelp() {
 	})
 }
 
+// ShowStatusHelp shows help message for status command.
+func (h *Helper) ShowStatusHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc status [command]",
+		Description: "Show the working tree status",
+		Examples: []string{
+			"ggc status           # Full detailed status output",
+			"ggc status short     # Short, concise output (porcelain format",
+		},
+	})
+}
+
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.ShowCommandHelp(templates.HelpData{
@@ -224,6 +236,19 @@ func (h *Helper) ShowDeleteMergedBranchHelp() {
 		Description: "Delete merged branches",
 		Examples: []string{
 			"ggc branch delete-merged   # Delete all merged branches",
+		},
+	})
+}
+
+// ShowDiffHelp displays help for the git diff command.
+func (h *Helper) ShowDiffHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc diff [options]",
+		Description: "Show changes between commits, commit and working tree, etc",
+		Examples: []string{
+			"ggc diff           # Diff all changes (unstaged and staged)",
+            "ggc diff staged    # Diff only staged changes",
+            "ggc diff unstaged  # Diff only unstaged changes",
 		},
 	})
 }

@@ -38,6 +38,7 @@ Main Commands:
   ggc commit-push-interactive Interactive add/commit/push
   ggc complete <shell>        Generate shell completion script (bash|zsh)
   ggc fetch --prune          Fetch and remove stale remote-tracking branches
+  ggc diff                    Show changes between commits, commit and working tree
   ggc log simple              Show simple log
   ggc log graph               Show log with graph
   ggc pull current            Pull current branch
@@ -54,6 +55,7 @@ Main Commands:
   ggc reset-clean            Reset to HEAD and clean untracked files
   ggc stash                   Stash changes
   ggc stash-pull-pop          Stash, pull, and pop all at once
+  ggc status                  Show the working tree status
 `
 
 	commandHelpTemplate = `Usage: {{.Usage}}
