@@ -126,6 +126,10 @@ ggc
   - `commit allow-empty` - Create empty commit
   - `commit tmp` - Create temporary commit
 
+- `diff` - Show changes between commits, commit and working tree, etc.
+  - `diff staged` - Show staged changes
+  - `diff unstaged` - Show unstaged changes
+
 - `fetch` - Fetch from remote
   - `fetch --prune` - Fetch and prune remote branches
 
@@ -157,6 +161,9 @@ ggc
   - `stash pop` - Apply and remove the latest stash
   - `stash drop` - Remove the latest stash
   - `stash-pull-pop` - Stash changes, pull from remote, and pop stashed changes
+
+- `status` - Show the working tree status
+  - `status short` - Show concise output (porcelain format)
 
 - `add-commit-push` - Add all changes, commit, and push in one command
 - `commit-push-interactive` - Commit and push interactively
