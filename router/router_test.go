@@ -12,6 +12,10 @@ type mockExecuter struct {
 	commitArgs           []string
 	logCalled            bool
 	logArgs              []string
+	diffCalled           bool
+	diffArgs             []string
+	statusCalled         bool
+	statusArgs           []string
 	pullCalled           bool
 	pullArgs             []string
 	pushCalled           bool
@@ -41,6 +45,16 @@ func (m *mockExecuter) Commit(args []string) {
 func (m *mockExecuter) Log(args []string) {
 	m.logCalled = true
 	m.logArgs = args
+}
+
+func (m *mockExecuter) Status(args []string) {
+	m.statusCalled = true
+	m.statusArgs = args
+}
+
+func (m *mockExecuter) Diff(args []string) {
+	m.diffCalled = true
+	m.diffArgs = args
 }
 
 func (m *mockExecuter) Pull(args []string) {
@@ -152,6 +166,66 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.resetCalled {
 					t.Error("Reset should be called")
+				}
+			},
+		},
+        {
+			name: "status no args",
+			args: []string{"status"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called")
+				}
+				if len(m.statusArgs) != 0 {
+					t.Errorf("unexpected status args: got %v, expected empty", m.statusArgs)
+				}
+			},
+		},
+		{
+			name: "status with short arg",
+			args: []string{"status", "short"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called")
+				}
+				if len(m.statusArgs) != 1 || m.statusArgs[0] != "short" {
+					t.Errorf("unexpected status args: got %v, expected [short]", m.statusArgs)
+				}
+			},
+		},
+		{
+			name: "diff no args",
+			args: []string{"diff"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.diffCalled {
+					t.Error("Diff should be called")
+				}
+				if len(m.diffArgs) != 0 {
+					t.Errorf("unexpected diff args: got %v, expected empty", m.diffArgs)
+				}
+			},
+		},
+		{
+			name: "diff unstaged",
+			args: []string{"diff", "unstaged"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.diffCalled {
+					t.Error("Diff should be called")
+				}
+				if len(m.diffArgs) != 1 || m.diffArgs[0] != "unstaged" {
+					t.Errorf("unexpected diff args: got %v, expected [unstaged]", m.diffArgs)
+				}
+			},
+		},
+		{
+			name: "diff staged",
+			args: []string{"diff", "staged"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.diffCalled {
+					t.Error("Diff should be called")
+				}
+				if len(m.diffArgs) != 1 || m.diffArgs[0] != "staged" {
+					t.Errorf("unexpected diff args: got %v, expected [staged]", m.diffArgs)
 				}
 			},
 		},

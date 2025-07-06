@@ -60,6 +60,17 @@ func TestNewFetcher(t *testing.T) {
 	}
 }
 
+func TestNewDiffer(t *testing.T) {
+	differ := NewDiffer()
+	if differ == nil {
+		t.Fatal("Expected Differ, got nil")
+	}
+	// Basic field checks
+	if differ.outputWriter == nil || differ.helper == nil || differ.execCommand == nil {
+		t.Error("Expected all fields to be initialized")
+	}
+}
+
 func TestNewLogger(t *testing.T) {
 	logger := NewLogger()
 	if logger == nil {
@@ -159,6 +170,17 @@ func TestNewStasher(t *testing.T) {
 	}
 }
 
+func TestNewStatuseer(t *testing.T) {
+	statuseer := NewStatuseer()
+	if statuseer == nil {
+		t.Fatal("Expected Statuseer, got nil")
+	}
+	// Basic field checks
+	if statuseer.outputWriter == nil || statuseer.helper == nil || statuseer.execCommand == nil {
+		t.Error("Expected all fields to be initialized")
+	}
+}
+
 func TestNewStashPullPopper(t *testing.T) {
 	popper := NewStashPullPopper()
 	if popper == nil {
@@ -185,7 +207,8 @@ func TestNewCmd_Constructor(t *testing.T) {
 		cmd.cleaner == nil || cmd.pullRebasePusher == nil || cmd.adder == nil ||
 		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
 		cmd.commitPusher == nil || cmd.addCommitPusher == nil || cmd.completer == nil ||
-		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil {
+		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil  ||
+        cmd.statuseer == nil || cmd.differ == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }

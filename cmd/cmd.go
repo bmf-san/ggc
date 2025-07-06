@@ -21,6 +21,8 @@ type Executer interface {
 	Pull(args []string)
 	Push(args []string)
 	Reset(args []string)
+	Diff(args []string)
+	Status(args []string)
 	Clean(args []string)
 	PullRebasePush()
 	Interactive()
@@ -43,9 +45,11 @@ type Cmd struct {
 	remoteer         *Remoteer
 	rebaser          *Rebaser
 	stasher          *Stasher
+    statuseer        *Statuseer
 	commitPusher     *CommitPusher
 	addCommitPusher  *AddCommitPusher
 	completer        *Completer
+    differ           *Differ
 	fetcher          *Fetcher
 	stashPullPopper  *StashPullPopper
 	resetCleaner     *ResetCleaner
@@ -70,9 +74,11 @@ func NewCmd() *Cmd {
 		remoteer:         NewRemoteer(),
 		rebaser:          NewRebaser(),
 		stasher:          NewStasher(),
+        statuseer:        NewStatuseer(),
 		commitPusher:     NewCommitPusher(),
 		addCommitPusher:  NewAddCommitPusher(),
 		completer:        NewCompleter(),
+        differ:           NewDiffer(),
 		fetcher:          NewFetcher(),
 		stashPullPopper:  NewStashPullPopper(),
 		resetCleaner:     NewResetCleaner(),
@@ -97,6 +103,16 @@ func (c *Cmd) Commit(args []string) {
 // Log executes the log command with the given arguments.
 func (c *Cmd) Log(args []string) {
 	c.logger.Log(args)
+}
+
+// Status executes the status command with the given arguments.
+func (c *Cmd) Status(args []string) {
+	c.statuseer.Status(args)
+}
+
+// Diff executes the diff command with the given arguments.
+func (c *Cmd) Diff(args []string) {
+	c.differ.Diff(args)
 }
 
 // Pull executes the pull command with the given arguments.
@@ -192,6 +208,8 @@ func (c *Cmd) Route(args []string) {
 		c.rebaser.Rebase(args[1:])
 	case "stash":
 		c.stasher.Stash(args[1:])
+    case "status":
+        c.statuseer.Status(args[1:])
 	case "commit-push-interactive":
 		c.commitPusher.CommitPushInteractive()
 	case "add-commit-push":
@@ -200,6 +218,8 @@ func (c *Cmd) Route(args []string) {
 		c.completer.Complete(args[1:])
 	case "fetch":
 		c.fetcher.Fetch(args[1:])
+    case "diff":
+        c.differ.Diff(args[1:])
 	case "stash-pull-pop":
 		c.stashPullPopper.StashPullPop()
 	case "reset-clean":
