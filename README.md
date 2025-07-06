@@ -7,7 +7,7 @@
 [![Sourcegraph](https://sourcegraph.com/github.com/bmf-san/ggc/-/badge.svg)](https://sourcegraph.com/github.com/bmf-san/ggc?badge)
 
 
-A Go Git CLI & CUI.
+A Go Git CLI.
 
 <img src="https://storage.googleapis.com/gopherizeme.appspot.com/gophers/22bdcabe630eb8f45ed8c740ea665a8345f1d3f6.png" alt="ggc" title="ggc" width="250px">
 
@@ -15,16 +15,15 @@ This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c
 
 ## Overview
 
-ggc is a Git tool written in Go, providing both a traditional command-line interface (CLI) and an interactive character user interface (CUI) with incremental search. It is designed to be fast, user-friendly, and extensible. (Go Git CLI & CUI)
+ggc is a Git tool written in Go, offering both traditional CLI commands and an interactive interface with incremental search. You can either run subcommands like ggc add directly, or launch the interactive mode by simply typing ggc. Designed to be fast, user-friendly, and extensible.
 
 ## Features
-- Traditional command-line interface (CLI): run `ggc <command> [args]` for direct operations
-- Interactive character user interface (CUI): run `ggc` with no arguments to launch an incremental search UI for command selection
+
+- Traditional command-line interface (CLI): Run ggc <command> [args] to execute specific operations directly.
+- Interactive interface: Run ggc with no arguments to launch an incremental search UI for command selection.
 - Simple commands for common Git operations (add, push, pull, branch, log, etc.)
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
-- All prompts and UI are in English
-- All prompts and command inputs are always aligned to the left (no terminal right-shift issues)
 - Implemented using only the Go standard library (+ golang.org/x/term)
 
 ## Supported Environments
