@@ -156,7 +156,7 @@ func (h *Helper) ShowStatusHelp() {
 		Description: "Show the working tree status",
 		Examples: []string{
 			"ggc status           # Full detailed status output",
-			"ggc status short     # Short, concise output (porcelain format",
+			"ggc status short     # Short, concise output (porcelain format)",
 		},
 	})
 }
@@ -247,8 +247,8 @@ func (h *Helper) ShowDiffHelp() {
 		Description: "Show changes between commits, commit and working tree, etc",
 		Examples: []string{
 			"ggc diff           # Diff all changes (unstaged and staged)",
-            "ggc diff staged    # Diff only staged changes",
-            "ggc diff unstaged  # Diff only unstaged changes",
+			"ggc diff staged    # Diff only staged changes",
+			"ggc diff unstaged  # Diff only unstaged changes",
 		},
 	})
 }
