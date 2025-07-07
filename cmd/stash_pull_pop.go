@@ -24,8 +24,8 @@ func NewStashPullPopper() *StashPullPopper {
 	}
 }
 
-// PullWithAutoStash executes `git pull --autostash`.
-func (s *StashPullPopper) PullWithAutoStash() {
+// StashPullPop executes stash, pull, and pop commands in sequence using --autostash.
+func (s *StashPullPopper) StashPullPop() {
 	pullCmd := s.execCommand("git", "pull", "--autostash")
 	if err := pullCmd.Run(); err != nil {
 		_, _ = fmt.Fprintf(s.outputWriter, "Error pulling changes with autostash: %v\n", err)
