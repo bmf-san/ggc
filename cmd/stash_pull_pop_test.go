@@ -27,8 +27,8 @@ func TestStashPullPopper_StashPullPop(t *testing.T) {
 			name:           "pull with autostash error",
 			expectedCmds:   []string{"git pull --autostash"},
 			mockOutput:     nil,
-			mockError:      errors.New("pull error"),
-			expectedOutput: "Error pulling changes with autostash: pull error",
+			mockError:      errors.New("exit status 1"),
+			expectedOutput: "Error pulling changes with autostash: exit status 1",
 		},
 	}
 
