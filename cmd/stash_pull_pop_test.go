@@ -18,31 +18,17 @@ func TestStashPullPopper_StashPullPop(t *testing.T) {
 	}{
 		{
 			name:           "successful execution",
-			expectedCmds:   []string{"git stash", "git pull", "git stash pop"},
-			mockOutput:     []byte("operation successful"),
+			expectedCmds:   []string{"git pull --autostash"},
+			mockOutput:     []byte("operation successful with autostash"),
 			mockError:      nil,
-			expectedOutput: "operation successful",
+			expectedOutput: "operation successful with autostash",
 		},
 		{
-			name:           "stash error",
-			expectedCmds:   []string{"git stash"},
-			mockOutput:     nil,
-			mockError:      errors.New("stash error"),
-			expectedOutput: "Error stashing changes: stash error",
-		},
-		{
-			name:           "pull error",
-			expectedCmds:   []string{"git stash", "git pull"},
+			name:           "pull with autostash error",
+			expectedCmds:   []string{"git pull --autostash"},
 			mockOutput:     nil,
 			mockError:      errors.New("pull error"),
-			expectedOutput: "Error pulling changes: pull error",
-		},
-		{
-			name:           "pop error",
-			expectedCmds:   []string{"git stash", "git pull", "git stash pop"},
-			mockOutput:     nil,
-			mockError:      errors.New("pop error"),
-			expectedOutput: "Error popping stashed changes: pop error",
+			expectedOutput: "Error pulling changes with autostash: pull error",
 		},
 	}
 
