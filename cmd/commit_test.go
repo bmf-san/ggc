@@ -135,6 +135,67 @@ func TestCommitter_Commit_Normal_Error(t *testing.T) {
 	}
 }
 
+func TestCommitter_Commit_Amend_WithMessage(t *testing.T) {
+	var buf bytes.Buffer
+	commandCalled := false
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(name string, arg ...string) *exec.Cmd {
+            if name == "git" && len(arg) == 4 && arg[0] == "commit" &&
+               arg[1] == "--amend" && arg[2] == "-m" && arg[3] == "updated message" {
+				commandCalled = true
+			}
+			return exec.Command("echo")
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"amend", "updated message"})
+	if !commandCalled {
+		t.Error("git commit --amend -m command should be called")
+	}
+}
+
+func TestCommitter_Commit_Amend_NoEdit(t *testing.T) {
+	var buf bytes.Buffer
+	commandCalled := false
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(name string, arg ...string) *exec.Cmd {
+			if name == "git" && len(arg) == 3 && arg[0] == "commit" && arg[1] == "--amend" && arg[2] == "--no-edit" {
+				commandCalled = true
+			}
+			return exec.Command("echo")
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"amend", "--no-edit"})
+	if !commandCalled {
+		t.Error("git commit --amend --no-edit command should be called")
+	}
+}
+
+func TestCommitter_Commit_Amend_Error(t *testing.T) {
+	var buf bytes.Buffer
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
+			return exec.Command("false") // command that fails
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"amend", "test message"})
+	output := buf.String()
+	if !strings.Contains(output, "Error:") {
+		t.Errorf("Expected error message, got: %s", output)
+	}
+}
+
 func TestCommitter_Commit_Tmp_Error(t *testing.T) {
 	var buf bytes.Buffer
 	c := &Committer{

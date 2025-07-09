@@ -51,6 +51,27 @@ func (c *Committer) Commit(args []string) {
 		if err := c.gitClient.CommitTmp(); err != nil {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
+	case "amend":
+		var cmd *exec.Cmd
+
+		if len(args) == 1 {
+			cmd = c.execCommand("git", "commit", "--amend")
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		} else if args[1] == "--no-edit" {
+			cmd = c.execCommand("git", "commit", "--amend", "--no-edit")
+			cmd.Stdout = c.outputWriter
+			cmd.Stderr = c.outputWriter
+		} else {
+			cmd = c.execCommand("git", "commit", "--amend", "-m", args[1])
+			cmd.Stdout = c.outputWriter
+			cmd.Stderr = c.outputWriter
+		}
+
+		if err := cmd.Run(); err != nil {
+			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		}
 	default:
 		// Handle normal commit with message
 		cmd := c.execCommand("git", "commit", "-m", args[0])
@@ -64,5 +85,5 @@ func (c *Committer) Commit(args []string) {
 
 // ShowCommitHelp displays help for the commit command.
 func ShowCommitHelp() {
-	fmt.Println("Usage: ggc commit <message> | ggc commit allow-empty | ggc commit tmp")
+	fmt.Println("Usage: ggc commit <message> | ggc commit amend <message> | ggc commit allow-empty | ggc commit tmp")
 }

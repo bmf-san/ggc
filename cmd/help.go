@@ -80,8 +80,10 @@ func (h *Helper) ShowCommitHelp() {
 		Usage:       "ggc commit <message>",
 		Description: "Commit staged changes",
 		Examples: []string{
-			"ggc commit allow-empty   # Create empty commit",
-			"ggc commit tmp           # Create temporary commit",
+			"ggc commit amend <message>    # Amend to previous commit",
+			"ggc commit amend --no-edit    # Amend without editing commit message",
+			"ggc commit allow-empty        # Create empty commit",
+			"ggc commit tmp                # Create temporary commit",
 		},
 	})
 }

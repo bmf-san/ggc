@@ -15,7 +15,7 @@ _ggc()
             return 0
             ;;
         commit)
-            subopts="allow-empty tmp"
+            subopts="allow-empty tmp amend"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -51,6 +51,11 @@ _ggc()
             ;;
         fetch)
             subopts="--prune"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        amend)
+            subopts="--no-edit"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
