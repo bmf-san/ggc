@@ -122,6 +122,8 @@ ggc
   - `clean dirs` - Clean untracked directories
 
 - `commit` - Commit staged changes
+  - `commit amend <message>` - Amend to previous commit
+  - `commit amend --no-edit` - Amend without editing commit message
   - `commit allow-empty` - Create empty commit
   - `commit tmp` - Create temporary commit
 

@@ -33,6 +33,8 @@ Main Commands:
   ggc clean files             Clean files
   ggc clean dirs              Clean directories
   ggc clean-interactive       Interactive file cleaning
+  ggc commit amend <message>  Amend to previous commit
+  ggc commit amend --no-edit  Amend without editing commit message
   ggc commit allow-empty      Create empty commit
   ggc commit tmp              Temporary commit
   ggc commit-push-interactive Interactive add/commit/push
