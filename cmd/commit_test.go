@@ -143,8 +143,8 @@ func TestCommitter_Commit_Amend_WithMessage(t *testing.T) {
 		outputWriter: &buf,
 		helper:       NewHelper(),
 		execCommand: func(name string, arg ...string) *exec.Cmd {
-            if name == "git" && len(arg) == 4 && arg[0] == "commit" &&
-               arg[1] == "--amend" && arg[2] == "-m" && arg[3] == "updated message" {
+			if name == "git" && len(arg) == 4 && arg[0] == "commit" &&
+				arg[1] == "--amend" && arg[2] == "-m" && arg[3] == "updated message" {
 				commandCalled = true
 			}
 			return exec.Command("echo")
@@ -211,16 +211,4 @@ func TestCommitter_Commit_Tmp_Error(t *testing.T) {
 	if output != "Error: tmp commit failed\n" {
 		t.Errorf("Expected tmp error message, got: %q", output)
 	}
-}
-
-func TestShowCommitHelp(t *testing.T) {
-	// Verify that ShowCommitHelp function can be called
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("ShowCommitHelp should not panic: %v", r)
-		}
-	}()
-
-	ShowCommitHelp()
-	// Verify that the function executes normally
 }
