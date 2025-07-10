@@ -41,6 +41,7 @@ Main Commands:
   ggc complete <shell>        Generate shell completion script (bash|zsh)
   ggc fetch --prune          Fetch and remove stale remote-tracking branches
   ggc diff                    Show changes between commits, commit and working tree
+  ggc tag                     Create, list, and delete tags
   ggc log simple              Show simple log
   ggc log graph               Show log with graph
   ggc pull current            Pull current branch

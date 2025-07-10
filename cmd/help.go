@@ -163,6 +163,26 @@ func (h *Helper) ShowStatusHelp() {
 	})
 }
 
+// ShowTagHelp shows help message for tag command.
+func (h *Helper) ShowTagHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc tag [command] [options]",
+		Description: "Create, list, delete and verify tags",
+		Examples: []string{
+			"ggc tag                                   # List all tags",
+			"ggc tag list                              # List all tags (sorted)",
+			"ggc tag list v1.*                         # List tags matching pattern",
+			"ggc tag create v1.0.0                     # Create tag",
+			"ggc tag create v1.0.0 abc123              # Tag specific commit",
+			"ggc tag annotated v1.0.0 'Release notes'  # Create annotated tag",
+			"ggc tag delete v1.0.0                     # Delete tag",
+			"ggc tag push                              # Push all tags to origin",
+			"ggc tag push v1.0.0                       # Push specific tag",
+			"ggc tag show v1.0.0                       # Show tag information",
+		},
+	})
+}
+
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.ShowCommandHelp(templates.HelpData{

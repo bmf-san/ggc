@@ -22,6 +22,8 @@ type mockExecuter struct {
 	pushArgs             []string
 	resetCalled          bool
 	resetArgs            []string
+	tagCalled            bool
+	tagArgs              []string
 	cleanCalled          bool
 	cleanArgs            []string
 	pullRebasePushCalled bool
@@ -55,6 +57,11 @@ func (m *mockExecuter) Status(args []string) {
 func (m *mockExecuter) Diff(args []string) {
 	m.diffCalled = true
 	m.diffArgs = args
+}
+
+func (m *mockExecuter) Tag(args []string) {
+	m.tagCalled = true
+	m.tagArgs = args
 }
 
 func (m *mockExecuter) Pull(args []string) {
@@ -190,6 +197,30 @@ func TestRouter(t *testing.T) {
 				}
 				if len(m.statusArgs) != 1 || m.statusArgs[0] != "short" {
 					t.Errorf("unexpected status args: got %v, expected [short]", m.statusArgs)
+				}
+			},
+		},
+        {
+			name: "tag no args",
+			args: []string{"tag"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.tagCalled {
+					t.Error("Tag should be called")
+				}
+				if len(m.tagArgs) != 0 {
+					t.Errorf("unexpected status args: got %v, expected empty", m.tagArgs)
+				}
+			},
+		},
+		{
+			name: "tag with arg",
+			args: []string{"tag", "list"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.tagCalled {
+					t.Error("Tag should be called")
+				}
+				if len(m.tagArgs) != 1 || m.tagArgs[0] != "list" {
+					t.Errorf("unexpected tag args: got %v, expected [list]", m.tagArgs)
 				}
 			},
 		},
