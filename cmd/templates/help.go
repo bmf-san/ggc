@@ -53,6 +53,7 @@ Main Commands:
   ggc remote add <n> <url>    Add remote
   ggc remote remove <n>       Remove remote
   ggc remote set-url <n> <url> Change remote URL
+  ggc version                 Show current ggc version
   ggc reset                   Reset and clean
   ggc reset-clean            Reset to HEAD and clean untracked files
   ggc stash                   Stash changes
