@@ -7,18 +7,60 @@ import (
 )
 
 func TestRenderMainHelp(t *testing.T) {
-	result := RenderMainHelp()
-
-	if result == "" {
-		t.Error("RenderMainHelp should return non-empty string")
+	tests := []struct {
+		name     string
+		logo     string
+		expected []string
+	}{
+		{
+			name: "full logo",
+			logo: Logo,
+			expected: []string{
+				"ggc: A Go-based CLI tool to streamline Git operations",
+				"Usage:",
+			},
+		},
+		{
+			name: "small logo",
+			logo: SmallLogo,
+			expected: []string{
+				"ggc: A Go-based CLI tool",
+				"Usage:",
+				"ggc <command>",
+			},
+		},
 	}
 
-	if !strings.Contains(result, "ggc") {
-		t.Error("RenderMainHelp should contain 'ggc' in output")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := RenderMainHelp()
+			if err != nil {
+				t.Fatalf("RenderMainHelp() should not return error: %v", err)
+			}
+			for _, want := range tt.expected {
+				if !strings.Contains(result, want) {
+					t.Errorf("expected help output to contain %q", want)
+				}
+			}
+		})
+	}
+}
+
+func TestLogoConstants(t *testing.T) {
+	if Logo == "" {
+		t.Error("Logo constant should not be empty")
 	}
 
-	if !strings.Contains(result, "Usage:") {
-		t.Error("RenderMainHelp should contain 'Usage:' in output")
+	if SmallLogo == "" {
+		t.Error("SmallLogo constant should not be empty")
+	}
+
+	if !strings.Contains(Logo, "_") {
+		t.Error("Logo should contain ASCII art characters")
+	}
+
+	if !strings.Contains(SmallLogo, "ggc") {
+		t.Error("SmallLogo should contain 'ggc'")
 	}
 }
 

@@ -23,7 +23,12 @@ func NewHelper() *Helper {
 
 // ShowHelp shows the main help message.
 func (h *Helper) ShowHelp() {
-	_, _ = fmt.Fprint(h.outputWriter, templates.RenderMainHelp())
+	helpMsg, err := templates.RenderMainHelp()
+	if err != nil {
+		_, _ = fmt.Fprintf(h.outputWriter, "Error: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprint(h.outputWriter, helpMsg)
 }
 
 // ShowCommandHelp shows help message for a command.
