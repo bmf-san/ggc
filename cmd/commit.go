@@ -82,8 +82,3 @@ func (c *Committer) Commit(args []string) {
 		}
 	}
 }
-
-// ShowCommitHelp displays help for the commit command.
-func ShowCommitHelp() {
-	fmt.Println("Usage: ggc commit <message> | ggc commit amend <message> | ggc commit allow-empty | ggc commit tmp")
-}
