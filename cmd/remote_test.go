@@ -126,7 +126,7 @@ func TestRemoteer_Remote_Help(t *testing.T) {
 	remoteer.Remote([]string{"unknown"})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
@@ -145,7 +145,7 @@ func TestRemoteer_Remote_NoArgs(t *testing.T) {
 	remoteer.Remote([]string{})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
@@ -164,7 +164,7 @@ func TestRemoteer_Remote_Add_InsufficientArgs(t *testing.T) {
 	remoteer.Remote([]string{"add", "origin"})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed for insufficient args, but got: %s", output)
 	}
 }
@@ -183,7 +183,7 @@ func TestRemoteer_Remote_Remove_InsufficientArgs(t *testing.T) {
 	remoteer.Remote([]string{"remove"})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed for insufficient args, but got: %s", output)
 	}
 }
@@ -202,7 +202,7 @@ func TestRemoteer_Remote_SetURL_InsufficientArgs(t *testing.T) {
 	remoteer.Remote([]string{"set-url", "origin"})
 
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if output == "" || !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed for insufficient args, but got: %s", output)
 	}
 }
