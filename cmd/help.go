@@ -23,7 +23,12 @@ func NewHelper() *Helper {
 
 // ShowHelp shows the main help message.
 func (h *Helper) ShowHelp() {
-	_, _ = fmt.Fprint(h.outputWriter, templates.RenderMainHelp())
+	helpMsg, err := templates.RenderMainHelp()
+	if err != nil {
+		_, _ = fmt.Fprintf(h.outputWriter, "Error: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprint(h.outputWriter, helpMsg)
 }
 
 // ShowCommandHelp shows help message for a command.
@@ -179,6 +184,17 @@ func (h *Helper) ShowTagHelp() {
 			"ggc tag push                              # Push all tags to origin",
 			"ggc tag push v1.0.0                       # Push specific tag",
 			"ggc tag show v1.0.0                       # Show tag information",
+		},
+	})
+}
+
+// ShowVersionHelp shows help message for Version command.
+func (h *Helper) ShowVersionHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc version",
+		Description: "Show current ggc version",
+		Examples: []string{
+			"ggc version           # Shows build time, latest commit and version number",
 		},
 	})
 }

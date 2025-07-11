@@ -39,12 +39,14 @@ func (r *Router) Route(args []string) {
 		r.Executer.Push(args[1:])
 	case "reset":
 		r.Executer.Reset(args[1:])
-    case "diff":
+  case "diff":
 		r.Executer.Diff(args[1:])
 	case "tag":
 		r.Executer.Tag(args[1:])
-    case "status":
+	case "status":
 		r.Executer.Status(args[1:])
+	case "version":
+		r.Executer.Version(args[1:])
 	case "clean":
 		r.Executer.Clean(args[1:])
 	case "pull-rebase-push":

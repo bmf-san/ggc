@@ -6,7 +6,8 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add add-commit-push branch clean diff status clean-interactive commit commit-push-interactive complete tag fetch log pull pull-rebase-push push rebase remote reset reset-clean stash stash-pull-pop"
+
+    opts="add add-commit-push branch clean version diff status clean-interactive commit commit-push-interactive complete tag fetch log pull pull-rebase-push push rebase remote reset reset-clean stash stash-pull-pop"
 
     case ${prev} in
         branch)

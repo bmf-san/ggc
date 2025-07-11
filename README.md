@@ -177,6 +177,8 @@ ggc
 - `status` - Show the working tree status
   - `status short` - Show concise output (porcelain format)
 
+- `version` - Show the currently installed ggc version
+
 - `add-commit-push` - Add all changes, commit, and push in one command
 - `commit-push-interactive` - Commit and push interactively
 - `pull-rebase-push` - Pull with rebase and push in one command

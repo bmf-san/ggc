@@ -24,6 +24,8 @@ type mockExecuter struct {
 	resetArgs            []string
 	tagCalled            bool
 	tagArgs              []string
+	versionCalled        bool
+	versionArgs          []string
 	cleanCalled          bool
 	cleanArgs            []string
 	pullRebasePushCalled bool
@@ -52,6 +54,11 @@ func (m *mockExecuter) Log(args []string) {
 func (m *mockExecuter) Status(args []string) {
 	m.statusCalled = true
 	m.statusArgs = args
+}
+
+func (m *mockExecuter) Version(args []string) {
+	m.versionCalled = true
+	m.versionArgs = args
 }
 
 func (m *mockExecuter) Diff(args []string) {
@@ -221,6 +228,15 @@ func TestRouter(t *testing.T) {
 				}
 				if len(m.tagArgs) != 1 || m.tagArgs[0] != "list" {
 					t.Errorf("unexpected tag args: got %v, expected [list]", m.tagArgs)
+				}
+			},
+		},
+		{
+			name: "version",
+			args: []string{"version"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.versionCalled {
+					t.Error("Version should be called")
 				}
 			},
 		},

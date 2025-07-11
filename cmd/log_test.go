@@ -119,3 +119,107 @@ func TestLogger_Log_NoArgs(t *testing.T) {
 		t.Errorf("Usage should be displayed when no args provided, but got: %s", output)
 	}
 }
+
+func TestLogger_Log_Simple_OutputFormat(t *testing.T) {
+	tests := []struct {
+		name        string
+		shouldError bool
+		errorMsg    string
+	}{
+		{
+			name:        "Successful simple log",
+			shouldError: false,
+		},
+		{
+			name:        "Error during simple log",
+			shouldError: true,
+			errorMsg:    "git error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockLogGitClient{}
+			
+			if tt.shouldError {
+				mockClient.err = errors.New(tt.errorMsg)
+			}
+			
+			l := &Logger{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				helper:       NewHelper(),
+			}
+			l.helper.outputWriter = &buf
+			
+			l.Log([]string{"simple"})
+			
+			if tt.shouldError {
+				output := buf.String()
+				if !strings.Contains(output, "Error:") {
+					t.Errorf("Expected error message, got: %s", output)
+				}
+				if !strings.Contains(output, tt.errorMsg) {
+					t.Errorf("Expected error message to contain %q, got: %s", tt.errorMsg, output)
+				}
+			} else {
+				if !mockClient.logSimpleCalled {
+					t.Error("LogSimple should be called")
+				}
+			}
+		})
+	}
+}
+
+func TestLogger_Log_Graph_OutputFormat(t *testing.T) {
+	tests := []struct {
+		name        string
+		shouldError bool
+		errorMsg    string
+	}{
+		{
+			name:        "Successful graph log",
+			shouldError: false,
+		},
+		{
+			name:        "Error during graph log",
+			shouldError: true,
+			errorMsg:    "git error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockLogGitClient{}
+			
+			if tt.shouldError {
+				mockClient.err = errors.New(tt.errorMsg)
+			}
+			
+			l := &Logger{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				helper:       NewHelper(),
+			}
+			l.helper.outputWriter = &buf
+			
+			l.Log([]string{"graph"})
+			
+			if tt.shouldError {
+				output := buf.String()
+				if !strings.Contains(output, "Error:") {
+					t.Errorf("Expected error message, got: %s", output)
+				}
+				if !strings.Contains(output, tt.errorMsg) {
+					t.Errorf("Expected error message to contain %q, got: %s", tt.errorMsg, output)
+				}
+			} else {
+				if !mockClient.logGraphCalled {
+					t.Error("LogGraph should be called")
+				}
+			}
+		})
+	}
+}
