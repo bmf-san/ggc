@@ -116,6 +116,28 @@ func TestCommitter_Commit_Normal(t *testing.T) {
 	}
 }
 
+func TestCommitter_Commit_Normal_WithBrackets(t *testing.T) {
+	var buf bytes.Buffer
+	commandCalled := false
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(name string, arg ...string) *exec.Cmd {
+			if name == "git" && len(arg) == 3 && arg[0] == "commit" && arg[1] == "-m" && arg[2] == "[update] test message" {
+				commandCalled = true
+			}
+			return exec.Command("echo")
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"[update]", "test", "message"})
+
+	if !commandCalled {
+		t.Error("git commit command should be called with the correct message including brackets")
+	}
+}
+
 func TestCommitter_Commit_Normal_Error(t *testing.T) {
 	var buf bytes.Buffer
 	c := &Committer{
@@ -210,5 +232,49 @@ func TestCommitter_Commit_Tmp_Error(t *testing.T) {
 	output := buf.String()
 	if output != "Error: tmp commit failed\n" {
 		t.Errorf("Expected tmp error message, got: %q", output)
+	}
+}
+
+func TestCommitter_Commit_Normal_NoSpace(t *testing.T) {
+	var buf bytes.Buffer
+	commandCalled := false
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(name string, arg ...string) *exec.Cmd {
+			if name == "git" && len(arg) == 3 && arg[0] == "commit" && arg[1] == "-m" && arg[2] == "[update]hoge" {
+				commandCalled = true
+			}
+			return exec.Command("echo")
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"[update]hoge"})
+
+	if !commandCalled {
+		t.Error("git commit command should be called with the correct message without spaces")
+	}
+}
+
+func TestCommitter_Commit_Amend_WithMultiWordMessage(t *testing.T) {
+	var buf bytes.Buffer
+	commandCalled := false
+	c := &Committer{
+		gitClient:    &mockCommitGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand: func(name string, arg ...string) *exec.Cmd {
+			if name == "git" && len(arg) == 4 && arg[0] == "commit" &&
+				arg[1] == "--amend" && arg[2] == "-m" && arg[3] == "[update] message with spaces" {
+				commandCalled = true
+			}
+			return exec.Command("echo")
+		},
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"amend", "[update]", "message", "with", "spaces"})
+	if !commandCalled {
+		t.Error("git commit --amend -m command should be called with the complete message")
 	}
 }

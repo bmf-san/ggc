@@ -3,9 +3,9 @@ package templates
 
 import (
 	"bytes"
-	"text/template"
 	"golang.org/x/term"
 	"os"
+	"text/template"
 )
 
 // HelpData contains data for help message templates.
@@ -97,16 +97,16 @@ func RenderMainHelp() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	var buf bytes.Buffer
 	data := MainHelpData{
 		Logo: selectLogo(),
 	}
-	
+
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", err
 	}
-	
+
 	return buf.String(), nil
 }
 

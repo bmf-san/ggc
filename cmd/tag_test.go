@@ -166,7 +166,7 @@ func TestTagger_Tag(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			cmdIndex := 0
-			
+
 			tagger := &Tagger{
 				outputWriter: &buf,
 				helper:       NewHelper(),
@@ -178,7 +178,7 @@ func TestTagger_Tag(t *testing.T) {
 						}
 					}
 					cmdIndex++
-					
+
 					if tc.mockError != nil {
 						return exec.Command("false")
 					}
@@ -186,9 +186,9 @@ func TestTagger_Tag(t *testing.T) {
 				},
 			}
 			tagger.helper.outputWriter = &buf
-			
+
 			tagger.Tag(tc.args)
-			
+
 			output := buf.String()
 			if !strings.Contains(output, tc.expectedOutput) {
 				t.Errorf("expected output to contain %q, got %q", tc.expectedOutput, output)
@@ -230,7 +230,7 @@ func TestTagger_GetLatestTag(t *testing.T) {
 					if gotCmd != expectedCmd {
 						t.Errorf("expected command %q, got %q", expectedCmd, gotCmd)
 					}
-					
+
 					if tc.mockError != nil {
 						return exec.Command("false")
 					}
@@ -239,7 +239,7 @@ func TestTagger_GetLatestTag(t *testing.T) {
 			}
 
 			result, err := tagger.GetLatestTag()
-			
+
 			if tc.expectedError && err == nil {
 				t.Error("expected error but got nil")
 			}
@@ -293,7 +293,7 @@ func TestTagger_TagExists(t *testing.T) {
 					if gotCmd != expectedCmd {
 						t.Errorf("expected command %q, got %q", expectedCmd, gotCmd)
 					}
-					
+
 					if tc.mockError != nil {
 						return exec.Command("false")
 					}
@@ -302,7 +302,7 @@ func TestTagger_TagExists(t *testing.T) {
 			}
 
 			result := tagger.TagExists(tc.tagName)
-			
+
 			if result != tc.expectedResult {
 				t.Errorf("expected result %t, got %t", tc.expectedResult, result)
 			}
@@ -346,7 +346,7 @@ func TestTagger_GetTagCommit(t *testing.T) {
 					if gotCmd != expectedCmd {
 						t.Errorf("expected command %q, got %q", expectedCmd, gotCmd)
 					}
-					
+
 					if tc.mockError != nil {
 						return exec.Command("false")
 					}
@@ -355,7 +355,7 @@ func TestTagger_GetTagCommit(t *testing.T) {
 			}
 
 			result, err := tagger.GetTagCommit(tc.tagName)
-			
+
 			if tc.expectedError && err == nil {
 				t.Error("expected error but got nil")
 			}

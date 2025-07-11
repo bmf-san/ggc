@@ -11,7 +11,7 @@ Thank you for your interest in contributing to this repository! Bug reports, fea
 ## Pull Requests (PR)
 - Do not commit directly to the `main` branch. Always create a new branch and submit a PR.
 - Each PR should focus on a single purpose (e.g., separate bug fixes and new features).
-- Run `make lint` and `make test` before submitting, and ensure there are no errors.
+- Run `make fmt` and `make lint` and `make test` before submitting, and ensure there are no errors.
 - Please manually test major commands as well.
 
 ## Coding Standards

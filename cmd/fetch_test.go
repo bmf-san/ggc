@@ -69,7 +69,7 @@ func TestFetcher_Fetch_Error(t *testing.T) {
 	f := &Fetcher{
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("false") // Command that fails
 		},
 	}

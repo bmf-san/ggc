@@ -229,8 +229,8 @@ func TestNewCmd_Constructor(t *testing.T) {
 		cmd.cleaner == nil || cmd.pullRebasePusher == nil || cmd.adder == nil ||
 		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
 		cmd.commitPusher == nil || cmd.addCommitPusher == nil || cmd.completer == nil ||
-		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil  ||
-    cmd.statuseer == nil || cmd.differ == nil || cmd.tagger == nil ||  cmd.versioneer == nil {
+		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil ||
+		cmd.statuseer == nil || cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }

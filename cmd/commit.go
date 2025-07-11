@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/bmf-san/ggc/git"
 )
@@ -64,7 +65,9 @@ func (c *Committer) Commit(args []string) {
 			cmd.Stdout = c.outputWriter
 			cmd.Stderr = c.outputWriter
 		} else {
-			cmd = c.execCommand("git", "commit", "--amend", "-m", args[1])
+			// Join all arguments after "amend" as the commit message
+			msg := strings.Join(args[1:], " ")
+			cmd = c.execCommand("git", "commit", "--amend", "-m", msg)
 			cmd.Stdout = c.outputWriter
 			cmd.Stderr = c.outputWriter
 		}
@@ -74,7 +77,8 @@ func (c *Committer) Commit(args []string) {
 		}
 	default:
 		// Handle normal commit with message
-		cmd := c.execCommand("git", "commit", "-m", args[0])
+		msg := strings.Join(args, " ")
+		cmd := c.execCommand("git", "commit", "-m", msg)
 		cmd.Stdout = c.outputWriter
 		cmd.Stderr = c.outputWriter
 		if err := cmd.Run(); err != nil {

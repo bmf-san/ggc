@@ -53,7 +53,7 @@ type Cmd struct {
 	commitPusher     *CommitPusher
 	addCommitPusher  *AddCommitPusher
 	completer        *Completer
-    differ           *Differ
+	differ           *Differ
 	fetcher          *Fetcher
 	stashPullPopper  *StashPullPopper
 	resetCleaner     *ResetCleaner
@@ -84,7 +84,7 @@ func NewCmd() *Cmd {
 		commitPusher:     NewCommitPusher(),
 		addCommitPusher:  NewAddCommitPusher(),
 		completer:        NewCompleter(),
-        differ:           NewDiffer(),
+		differ:           NewDiffer(),
 		fetcher:          NewFetcher(),
 		stashPullPopper:  NewStashPullPopper(),
 		resetCleaner:     NewResetCleaner(),
@@ -228,8 +228,8 @@ func (c *Cmd) Route(args []string) {
 		c.stasher.Stash(args[1:])
 	case "tag":
 		c.tagger.Tag(args[1:])
-    case "status":
-        c.statuseer.Status(args[1:])
+	case "status":
+		c.statuseer.Status(args[1:])
 	case "commit-push-interactive":
 		c.commitPusher.CommitPushInteractive()
 	case "add-commit-push":
@@ -238,8 +238,8 @@ func (c *Cmd) Route(args []string) {
 		c.completer.Complete(args[1:])
 	case "fetch":
 		c.fetcher.Fetch(args[1:])
-    case "diff":
-        c.differ.Diff(args[1:])
+	case "diff":
+		c.differ.Diff(args[1:])
 	case "stash-pull-pop":
 		c.stashPullPopper.StashPullPop()
 	case "reset-clean":

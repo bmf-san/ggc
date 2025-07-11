@@ -89,7 +89,7 @@ func TestStasher_Stash_Trash(t *testing.T) {
 	stasher := &Stasher{
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("echo")
 		},
 	}
@@ -108,7 +108,7 @@ func TestStasher_Stash_Trash_Error(t *testing.T) {
 	stasher := &Stasher{
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("false")
 		},
 	}
@@ -127,7 +127,7 @@ func TestStasher_Stash_Help(t *testing.T) {
 	stasher := &Stasher{
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("echo")
 		},
 	}
@@ -144,7 +144,7 @@ func TestStasher_Stash_Unknown(t *testing.T) {
 	stasher := &Stasher{
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("echo")
 		},
 	}
