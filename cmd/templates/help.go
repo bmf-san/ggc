@@ -4,10 +4,13 @@ package templates
 import (
 	"bytes"
 	"text/template"
+	"golang.org/x/term"
+	"os"
 )
 
 // HelpData contains data for help message templates.
 type HelpData struct {
+	Logo        string
 	Usage       string
 	Description string
 	Examples    []string
@@ -15,7 +18,7 @@ type HelpData struct {
 
 // Templates for help messages.
 var (
-	mainHelpTemplate = `ggc: A Go-based CLI tool to streamline Git operations
+	mainHelpTemplate = `{{.Logo}}ggc: A Go-based CLI tool to streamline Git operations
 
 Usage:
   ggc <command> [subcommand] [options]
@@ -60,7 +63,8 @@ Main Commands:
   ggc status                  Show the working tree status
 `
 
-	commandHelpTemplate = `Usage: {{.Usage}}
+	commandHelpTemplate = `{{.Logo}}
+Usage: {{.Usage}}
 
 Description:
   {{.Description}}
@@ -71,9 +75,37 @@ Examples:
 `
 )
 
+// MainHelpData contains data for main help message.
+type MainHelpData struct {
+	Logo string
+}
+
+func selectLogo() string {
+	if termWidth, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
+		if termWidth < 50 {
+			return SmallLogo
+		}
+	}
+	return Logo
+}
+
 // RenderMainHelp renders the main help message.
-func RenderMainHelp() string {
-	return mainHelpTemplate
+func RenderMainHelp() (string, error) {
+	tmpl, err := template.New("mainHelp").Parse(mainHelpTemplate)
+	if err != nil {
+		return "", err
+	}
+	
+	var buf bytes.Buffer
+	data := MainHelpData{
+		Logo: selectLogo(),
+	}
+	
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	
+	return buf.String(), nil
 }
 
 // RenderCommandHelp renders help message for a specific command.
