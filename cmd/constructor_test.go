@@ -181,10 +181,21 @@ func TestNewStatuseer(t *testing.T) {
 	}
 }
 
+func TestNewTagger(t *testing.T) {
+	tagger := NewTagger()
+	if tagger == nil {
+		t.Fatal("Expected Tagger, got nil")
+	}
+	// Basic field checks
+	if tagger.outputWriter == nil || tagger.helper == nil || tagger.execCommand == nil {
+		t.Error("Expected all fields to be initialized")
+	}
+}
+
 func TestNewVersioneer(t *testing.T) {
 	versioneer := NewVersioneer()
 	if versioneer == nil {
-		t.Fatal("Expected Statuseer, got nil")
+		t.Fatal("Expected Versioneer, got nil")
 	}
 	// Basic field checks
 	if versioneer.outputWriter == nil || versioneer.helper == nil || versioneer.execCommand == nil {
@@ -219,7 +230,7 @@ func TestNewCmd_Constructor(t *testing.T) {
 		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
 		cmd.commitPusher == nil || cmd.addCommitPusher == nil || cmd.completer == nil ||
 		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil  ||
-        cmd.statuseer == nil || cmd.differ == nil || cmd.versioneer == nil {
+    cmd.statuseer == nil || cmd.differ == nil || cmd.tagger == nil ||  cmd.versioneer == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }
