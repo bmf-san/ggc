@@ -215,7 +215,7 @@ fi
 
 This setup will automatically find the completion script regardless of the installed version.
 
-## Contributing
+# Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.
 
