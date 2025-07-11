@@ -10,6 +10,12 @@ import (
 	"golang.org/x/term"
 )
 
+// CommandInfo contiene información sobre un comando
+type CommandInfo struct {
+	Command     string
+	Description string
+}
+
 var commands = []string{
 	"add <file>",
 	"add .",
@@ -60,6 +66,57 @@ var commands = []string{
 	"quit",
 }
 
+// commandDescriptions mapea cada comando con su descripción
+var commandDescriptions = map[string]string{
+	"add <file>":                    "Añadir archivo específico al índice",
+	"add .":                         "Añadir todos los cambios al índice",
+	"add -p":                        "Añadir cambios interactivamente",
+	"branch current":                "Mostrar nombre de la rama actual",
+	"branch checkout":               "Cambiar a rama existente",
+	"branch checkout-remote":        "Crear y cambiar a rama local desde remota",
+	"branch create":                 "Crear y cambiar a nueva rama",
+	"branch delete":                 "Eliminar rama local",
+	"branch delete-merged":          "Eliminar ramas locales fusionadas",
+	"push current":                  "Enviar rama actual al remoto",
+	"push force":                    "Forzar envío de rama actual",
+	"pull current":                  "Obtener rama actual del remoto",
+	"pull rebase":                   "Obtener con rebase",
+	"log simple":                    "Mostrar historial simple",
+	"log graph":                     "Mostrar historial con gráfico",
+	"commit <message>":              "Crear commit con mensaje",
+	"commit allow-empty":            "Crear commit vacío",
+	"commit tmp":                    "Crear commit temporal",
+	"commit amend <message>":        "Modificar commit anterior",
+	"fetch --prune":                 "Obtener y limpiar referencias obsoletas",
+	"tag list":                      "Listar todas las etiquetas",
+	"tag annotated <tag> <message>": "Crear etiqueta anotada",
+	"tag delete <tag>":              "Eliminar etiqueta",
+	"tag show <tag>":                "Mostrar información de etiqueta",
+	"tag push":                      "Enviar etiquetas al remoto",
+	"tag create <tag>":              "Crear etiqueta",
+	"diff":                          "Mostrar diferencias",
+	"diff unstaged":                 "Mostrar cambios no preparados",
+	"diff staged":                   "Mostrar cambios preparados",
+	"version":                       "Mostrar versión actual",
+	"clean files":                   "Limpiar archivos no rastreados",
+	"clean dirs":                    "Limpiar directorios no rastreados",
+	"clean-interactive":             "Limpiar archivos interactivamente",
+	"reset-clean":                   "Resetear y limpiar",
+	"commit-push-interactive":       "Commit y push interactivo",
+	"stash trash":                   "Eliminar stash",
+	"status":                        "Mostrar estado del árbol de trabajo",
+	"status short":                  "Mostrar estado conciso",
+	"rebase interactive":            "Rebase interactivo",
+	"remote list":                   "Listar repositorios remotos",
+	"remote add <n> <url>":          "Añadir repositorio remoto",
+	"remote remove <n>":             "Eliminar repositorio remoto",
+	"remote set-url <n> <url>":      "Cambiar URL del repositorio remoto",
+	"add-commit-push":               "Añadir, commit y push en una operación",
+	"pull-rebase-push":              "Pull con rebase y push",
+	"stash-pull-pop":                "Stash, pull y pop en secuencia",
+	"quit":                          "Salir del modo interactivo",
+}
+
 // InteractiveUI provides an incremental search interactive UI for command selection.
 // Returns the selected command as []string (nil if nothing selected)
 func InteractiveUI() []string {
@@ -105,11 +162,27 @@ func InteractiveUI() []string {
 			if selected < 0 {
 				selected = 0
 			}
+
+			// Encontrar el comando más largo para alineación
+			maxCmdLen := 0
+			for _, cmd := range filtered {
+				if len(cmd) > maxCmdLen {
+					maxCmdLen = len(cmd)
+				}
+			}
+
 			for i, cmd := range filtered {
+				description := commandDescriptions[cmd]
+				if description == "" {
+					description = "Sin descripción"
+				}
+
+				// Formatear con alineación
+				padding := strings.Repeat(" ", maxCmdLen-len(cmd))
 				if i == selected {
-					fmt.Printf("\r> %s\n", cmd)
+					fmt.Printf("\r> %s%s  %s\n", cmd, padding, description)
 				} else {
-					fmt.Printf("\r  %s\n", cmd)
+					fmt.Printf("\r  %s%s  %s\n", cmd, padding, description)
 				}
 			}
 		}
