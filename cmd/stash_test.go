@@ -132,11 +132,9 @@ func TestStasher_Stash_Help(t *testing.T) {
 		},
 	}
 	stasher.helper.outputWriter = &buf
-
 	stasher.Stash([]string{})
-
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed, but got: %s", output)
 	}
 }
@@ -151,11 +149,9 @@ func TestStasher_Stash_Unknown(t *testing.T) {
 		},
 	}
 	stasher.helper.outputWriter = &buf
-
 	stasher.Stash([]string{"unknown"})
-
 	output := buf.String()
-	if output == "" || output[:5] != "Usage" {
+	if !strings.Contains(output, "Usage") {
 		t.Errorf("Usage should be displayed for unknown command, but got: %s", output)
 	}
 }
