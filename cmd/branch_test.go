@@ -630,3 +630,439 @@ func TestBrancher_branchCreate_ExistingBranch(t *testing.T) {
 		t.Errorf("unexpected output:\ngot:  %q\nwant: %q", output, expectedOutput)
 	}
 }
+
+func TestBrancher_Branch_BoundaryInputValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Single character input",
+			input:    "1\n",
+			expected: "main",
+		},
+		{
+			name:     "Maximum integer input",
+			input:    "999999\n",
+			expected: "Invalid number",
+		},
+		{
+			name:     "Negative number input",
+			input:    "-1\n",
+			expected: "Invalid number",
+		},
+		{
+			name:     "Zero input",
+			input:    "0\n",
+			expected: "Invalid number",
+		},
+		{
+			name:     "Leading zeros",
+			input:    "001\n",
+			expected: "main",
+		},
+		{
+			name:     "Floating point number",
+			input:    "1.5\n",
+			expected: "Invalid number",
+		},
+		{
+			name:     "Scientific notation",
+			input:    "1e2\n",
+			expected: "Invalid number",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{}
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				execCommand:  func(_ string, _ ...string) *exec.Cmd { return exec.Command("echo") },
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchCheckout()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
+	tests := []struct {
+		name         string
+		branchName   string
+		expectedPass bool
+		description  string
+	}{
+		{
+			name:         "Single character branch name",
+			branchName:   "a",
+			expectedPass: true,
+			description:  "Minimum length branch name",
+		},
+		{
+			name:         "Maximum length branch name",
+			branchName:   strings.Repeat("a", 255),
+			expectedPass: false,
+			description:  "Very long branch name",
+		},
+		{
+			name:         "Branch name with dots",
+			branchName:   "feature.test",
+			expectedPass: true,
+			description:  "Branch name with dots",
+		},
+		{
+			name:         "Branch name with hyphens",
+			branchName:   "feature-test",
+			expectedPass: true,
+			description:  "Branch name with hyphens",
+		},
+		{
+			name:         "Branch name with underscores",
+			branchName:   "feature_test",
+			expectedPass: true,
+			description:  "Branch name with underscores",
+		},
+		{
+			name:         "Branch name with slashes",
+			branchName:   "feature/test",
+			expectedPass: true,
+			description:  "Branch name with slashes",
+		},
+		{
+			name:         "Branch name starting with dot",
+			branchName:   ".test",
+			expectedPass: false,
+			description:  "Invalid: starts with dot",
+		},
+		{
+			name:         "Branch name ending with dot",
+			branchName:   "test.",
+			expectedPass: false,
+			description:  "Invalid: ends with dot",
+		},
+		{
+			name:         "Branch name with consecutive dots",
+			branchName:   "test..branch",
+			expectedPass: false,
+			description:  "Invalid: consecutive dots",
+		},
+		{
+			name:         "Branch name with spaces",
+			branchName:   "test branch",
+			expectedPass: false,
+			description:  "Invalid: contains spaces",
+		},
+		{
+			name:         "Branch name with special characters",
+			branchName:   "test@#$%",
+			expectedPass: false,
+			description:  "Invalid: special characters",
+		},
+		{
+			name:         "Branch name with control characters",
+			branchName:   "test\x00branch",
+			expectedPass: false,
+			description:  "Invalid: control characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.branchName + "\n")),
+				execCommand: func(_ string, _ ...string) *exec.Cmd {
+					if tt.expectedPass {
+						return exec.Command("echo")
+					}
+					return exec.Command("false")
+				},
+			}
+
+			brancher.branchCreate()
+
+			output := buf.String()
+			if tt.expectedPass {
+				if strings.Contains(output, "Error:") {
+					t.Errorf("Expected success for %s, but got error: %s", tt.description, output)
+				}
+			} else {
+				if !strings.Contains(output, "Error:") && !strings.Contains(output, "fatal:") {
+					t.Errorf("Expected error for %s, but got success: %s", tt.description, output)
+				}
+			}
+		})
+	}
+}
+
+func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Empty input",
+			input:    "\n",
+			expected: "Cancelled",
+		},
+		{
+			name:     "Whitespace only",
+			input:    "   \n",
+			expected: "Cancelled",
+		},
+		{
+			name:     "Tab characters",
+			input:    "\t\t\n",
+			expected: "Cancelled",
+		},
+		{
+			name:     "Multiple newlines",
+			input:    "\n\n\n",
+			expected: "Cancelled",
+		},
+		{
+			name:     "Very long input",
+			input:    strings.Repeat("a", 1000) + "\n",
+			expected: "Error:",
+		},
+		{
+			name:     "Input with trailing spaces",
+			input:    "branch   \n",
+			expected: "", // Should be trimmed and work
+		},
+		{
+			name:     "Input with leading spaces",
+			input:    "   branch\n",
+			expected: "", // Should be trimmed and work
+		},
+		{
+			name:     "Unicode characters",
+			input:    "brαnch\n",
+			expected: "Error:",
+		},
+		{
+			name:     "Mixed case input",
+			input:    "BrAnCh\n",
+			expected: "", // Should work
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+				execCommand: func(_ string, _ ...string) *exec.Cmd {
+					if strings.Contains(tt.expected, "Error:") {
+						return exec.Command("false")
+					}
+					return exec.Command("echo")
+				},
+			}
+
+			brancher.branchCreate()
+
+			output := buf.String()
+			if tt.expected != "" {
+				if !strings.Contains(output, tt.expected) {
+					t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+				}
+			}
+		})
+	}
+}
+
+func TestBrancher_Branch_BoundaryListOperations(t *testing.T) {
+	tests := []struct {
+		name          string
+		localBranches []string
+		input         string
+		expected      string
+	}{
+		{
+			name:          "Empty branch list",
+			localBranches: []string{},
+			input:         "1\n",
+			expected:      "No local branches found",
+		},
+		{
+			name:          "Single branch",
+			localBranches: []string{"main"},
+			input:         "1\n",
+			expected:      "main",
+		},
+		{
+			name:          "Branch with very long name",
+			localBranches: []string{"main", strings.Repeat("feature-", 30)},
+			input:         "2\n",
+			expected:      strings.Repeat("feature-", 30),
+		},
+		{
+			name:          "Branches with special naming patterns",
+			localBranches: []string{"main", "feature/ABC-123", "bugfix/fix-issue-456", "release/v1.0.0"},
+			input:         "3\n",
+			expected:      "bugfix/fix-issue-456",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				listLocalBranches: func() ([]string, error) {
+					return tt.localBranches, nil
+				},
+			}
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				execCommand:  func(_ string, _ ...string) *exec.Cmd { return exec.Command("echo") },
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchCheckout()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+func TestBrancher_Branch_BoundaryDeleteOperations(t *testing.T) {
+	tests := []struct {
+		name          string
+		localBranches []string
+		input         string
+		expected      string
+	}{
+		{
+			name:          "Delete single branch with boundary input",
+			localBranches: []string{"main", "feature", "bugfix"},
+			input:         "1\n",
+			expected:      "Selected branches deleted",
+		},
+		{
+			name:          "Delete multiple branches",
+			localBranches: []string{"main", "feature", "bugfix", "hotfix"},
+			input:         "1 2 3\n",
+			expected:      "Selected branches deleted",
+		},
+		{
+			name:          "Delete all branches",
+			localBranches: []string{"feature", "bugfix", "hotfix"},
+			input:         "all\n",
+			expected:      "All branches deleted",
+		},
+		{
+			name:          "Delete with out-of-range numbers",
+			localBranches: []string{"main", "feature"},
+			input:         "1 5 10\n",
+			expected:      "Invalid number:",
+		},
+		{
+			name:          "Delete with mixed valid/invalid input",
+			localBranches: []string{"main", "feature", "bugfix"},
+			input:         "1 invalid 2\n",
+			expected:      "Invalid number:",
+		},
+		{
+			name:          "Delete with very large numbers",
+			localBranches: []string{"main", "feature"},
+			input:         "999999 1000000\n",
+			expected:      "Invalid number:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				listLocalBranches: func() ([]string, error) {
+					return tt.localBranches, nil
+				},
+			}
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				execCommand:  func(_ string, _ ...string) *exec.Cmd { return exec.Command("echo") },
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchDelete()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
+	tests := []struct {
+		name           string
+		remoteBranches []string
+		input          string
+		expected       string
+	}{
+		{
+			name:           "Empty remote branches",
+			remoteBranches: []string{},
+			input:          "1\n",
+			expected:       "Selected branches deleted.",
+		},
+		{
+			name:           "Single remote branch",
+			remoteBranches: []string{"origin/main"},
+			input:          "1\n",
+			expected:       "main",
+		},
+		{
+			name:           "Multiple remote origins",
+			remoteBranches: []string{"origin/main", "upstream/main", "fork/main"},
+			input:          "2\n",
+			expected:       "main",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				listRemoteBranches: func() ([]string, error) {
+					return tt.remoteBranches, nil
+				},
+			}
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				execCommand:  func(_ string, _ ...string) *exec.Cmd { return exec.Command("echo") },
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchDelete()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
