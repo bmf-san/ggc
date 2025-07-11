@@ -34,6 +34,7 @@ var commands = []string{
 	"diff",
 	"diff unstaged",
 	"diff staged",
+	"version",
 	"clean files",
 	"clean dirs",
 	"clean-interactive",

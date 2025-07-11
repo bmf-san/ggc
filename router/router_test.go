@@ -22,6 +22,8 @@ type mockExecuter struct {
 	pushArgs             []string
 	resetCalled          bool
 	resetArgs            []string
+	versionCalled        bool
+	versionArgs          []string
 	cleanCalled          bool
 	cleanArgs            []string
 	pullRebasePushCalled bool
@@ -50,6 +52,11 @@ func (m *mockExecuter) Log(args []string) {
 func (m *mockExecuter) Status(args []string) {
 	m.statusCalled = true
 	m.statusArgs = args
+}
+
+func (m *mockExecuter) Version(args []string) {
+	m.versionCalled = true
+	m.versionArgs = args
 }
 
 func (m *mockExecuter) Diff(args []string) {
@@ -190,6 +197,15 @@ func TestRouter(t *testing.T) {
 				}
 				if len(m.statusArgs) != 1 || m.statusArgs[0] != "short" {
 					t.Errorf("unexpected status args: got %v, expected [short]", m.statusArgs)
+				}
+			},
+		},
+		{
+			name: "version",
+			args: []string{"version"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.versionCalled {
+					t.Error("Version should be called")
 				}
 			},
 		},

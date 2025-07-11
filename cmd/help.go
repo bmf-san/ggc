@@ -168,6 +168,17 @@ func (h *Helper) ShowStatusHelp() {
 	})
 }
 
+// ShowVersionHelp shows help message for Version command.
+func (h *Helper) ShowVersionHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc version",
+		Description: "Show current ggc version",
+		Examples: []string{
+			"ggc version           # Shows build time, latest commit and version number",
+		},
+	})
+}
+
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.ShowCommandHelp(templates.HelpData{

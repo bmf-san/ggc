@@ -22,6 +22,7 @@ type Executer interface {
 	Push(args []string)
 	Reset(args []string)
 	Diff(args []string)
+	Version(args []string)
 	Status(args []string)
 	Clean(args []string)
 	PullRebasePush()
@@ -45,7 +46,8 @@ type Cmd struct {
 	remoteer         *Remoteer
 	rebaser          *Rebaser
 	stasher          *Stasher
-    statuseer        *Statuseer
+	statuseer        *Statuseer
+	versioneer       *Versioneer
 	commitPusher     *CommitPusher
 	addCommitPusher  *AddCommitPusher
 	completer        *Completer
@@ -74,7 +76,8 @@ func NewCmd() *Cmd {
 		remoteer:         NewRemoteer(),
 		rebaser:          NewRebaser(),
 		stasher:          NewStasher(),
-        statuseer:        NewStatuseer(),
+		statuseer:        NewStatuseer(),
+		versioneer:       NewVersioneer(),
 		commitPusher:     NewCommitPusher(),
 		addCommitPusher:  NewAddCommitPusher(),
 		completer:        NewCompleter(),
@@ -113,6 +116,11 @@ func (c *Cmd) Status(args []string) {
 // Diff executes the diff command with the given arguments.
 func (c *Cmd) Diff(args []string) {
 	c.differ.Diff(args)
+}
+
+// Version executes the version command with the given arguments.
+func (c *Cmd) Version(args []string) {
+	c.versioneer.Version(args)
 }
 
 // Pull executes the pull command with the given arguments.
@@ -198,6 +206,8 @@ func (c *Cmd) Route(args []string) {
 		c.Reset(args[1:])
 	case "clean":
 		c.Clean(args[1:])
+	case "version":
+		c.Version(args[1:])
 	case "clean-interactive":
 		c.cleaner.CleanInteractive()
 	case "pull-rebase-push":
