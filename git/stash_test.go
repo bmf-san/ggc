@@ -32,7 +32,7 @@ func TestClient_StashPullPop(t *testing.T) {
 
 func TestStashPullPop_Error(t *testing.T) {
 	client := &Client{
-		execCommand: func(_ string, _  ...string) *exec.Cmd {
+		execCommand: func(_ string, _ ...string) *exec.Cmd {
 			return exec.Command("false") // Always fails
 		},
 	}

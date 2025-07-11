@@ -51,6 +51,9 @@ For development, you can use the Makefile to install required tools and dependen
 # Install all dependencies and tools
 make deps
 
+# Run formatter
+make fmt
+
 # Run tests
 make test
 
@@ -214,7 +217,21 @@ This setup will automatically find the completion script regardless of the insta
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.
+
+# Sponsor
+
+If you’d like to support my work, please consider sponsoring me!
+
+[GitHub Sponsors – bmf-san](https://github.com/sponsors/bmf-san)
+
+Or simply giving ⭐ on GitHub is greatly appreciated—it keeps me motivated to maintain and improve the project! :D
+
+# Stargazers
+[![Stargazers repo roster for @bmf-san/ggc](https://reporoster.com/stars/bmf-san/ggc)](https://github.com/bmf-san/ggc/stargazers)
+
+# Forkers
+[![Forkers repo roster for @bmf-san/ggc](https://reporoster.com/forks/bmf-san/ggc)](https://github.com/bmf-san/ggc/network/members)
 
 ## License
 

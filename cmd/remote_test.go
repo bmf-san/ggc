@@ -3,8 +3,8 @@ package cmd
 import (
 	"bytes"
 	"os/exec"
-	"testing"
 	"strings"
+	"testing"
 )
 
 type noopCmd struct {

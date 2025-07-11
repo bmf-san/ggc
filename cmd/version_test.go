@@ -15,8 +15,8 @@ func TestVersioneer_Version(t *testing.T) {
 		expectedOutput []string
 	}{
 		{
-			name: "version no args with default values",
-			args: []string{},
+			name:          "version no args with default values",
+			args:          []string{},
 			versionGetter: nil,
 			expectedOutput: []string{
 				"ggc version dev",
@@ -49,8 +49,8 @@ func TestVersioneer_Version(t *testing.T) {
 			},
 		},
 		{
-			name: "version with multiple args shows help",
-			args: []string{"invalid", "args"},
+			name:          "version with multiple args shows help",
+			args:          []string{"invalid", "args"},
 			versionGetter: nil,
 			expectedOutput: []string{
 				"Usage:",
@@ -64,16 +64,16 @@ func TestVersioneer_Version(t *testing.T) {
 			originalGetter := getVersionInfo
 			SetVersionGetter(tc.versionGetter)
 			defer SetVersionGetter(originalGetter)
-			
+
 			v := &Versioneer{
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,
 			}
-			
+
 			v.helper.outputWriter = &buf
 			v.Version(tc.args)
-			
+
 			output := buf.String()
 			for _, expected := range tc.expectedOutput {
 				if !strings.Contains(output, expected) {
@@ -88,20 +88,20 @@ func TestVersioneer_Version(t *testing.T) {
 func TestSetVersionGetter(t *testing.T) {
 	originalGetter := getVersionInfo
 	defer SetVersionGetter(originalGetter)
-	
+
 	customGetter := func() (version, commit, date string) {
 		return "test-version", "test-commit", "test-date"
 	}
-	
+
 	SetVersionGetter(customGetter)
-	
+
 	if getVersionInfo == nil {
 		t.Error("expected getVersionInfo to be set")
 	}
-	
+
 	version, commit, date := getVersionInfo()
 	if version != "test-version" || commit != "test-commit" || date != "test-date" {
-		t.Errorf("expected version info (test-version, test-commit, test-date), got (%s, %s, %s)", 
+		t.Errorf("expected version info (test-version, test-commit, test-date), got (%s, %s, %s)",
 			version, commit, date)
 	}
 }

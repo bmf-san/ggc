@@ -27,7 +27,7 @@ func NewTagger() *Tagger {
 // Tag executes git tag operations with the given arguments.
 func (t *Tagger) Tag(args []string) {
 	var cmd *exec.Cmd
-	
+
 	if len(args) == 0 {
 		cmd = t.execCommand("git", "tag")
 	} else {
@@ -55,7 +55,7 @@ func (t *Tagger) Tag(args []string) {
 			return
 		}
 	}
-	
+
 	if err := t.runCommand(cmd); err != nil {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
 		return
@@ -65,7 +65,7 @@ func (t *Tagger) Tag(args []string) {
 // listTags lists tags with optional pattern matching
 func (t *Tagger) listTags(args []string) {
 	var cmd *exec.Cmd
-	
+
 	if len(args) == 0 {
 		cmd = t.execCommand("git", "tag", "--sort=-version:refname")
 	} else {
@@ -73,7 +73,7 @@ func (t *Tagger) listTags(args []string) {
 		gitArgs := append([]string{"tag", "--sort=-version:refname", "-l"}, args...)
 		cmd = t.execCommand("git", gitArgs...)
 	}
-	
+
 	if err := t.runCommand(cmd); err != nil {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error listing tags: %v\n", err)
 	}
@@ -85,10 +85,10 @@ func (t *Tagger) createTag(args []string) {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name is required\n")
 		return
 	}
-	
+
 	tagName := args[0]
 	var cmd *exec.Cmd
-	
+
 	if len(args) > 1 {
 		// tag specific commit
 		cmd = t.execCommand("git", "tag", tagName, args[1])
@@ -96,12 +96,12 @@ func (t *Tagger) createTag(args []string) {
 		// tag current commit
 		cmd = t.execCommand("git", "tag", tagName)
 	}
-	
+
 	if err := t.runCommand(cmd); err != nil {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error creating tag: %v\n", err)
 		return
 	}
-	
+
 	_, _ = fmt.Fprintf(t.outputWriter, "Tag '%s' created successfully\n", tagName)
 }
 
@@ -111,10 +111,10 @@ func (t *Tagger) deleteTag(args []string) {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name(s) required\n")
 		return
 	}
-	
+
 	for _, tagName := range args {
 		cmd := t.execCommand("git", "tag", "-d", tagName)
-		
+
 		if err := t.runCommand(cmd); err != nil {
 			_, _ = fmt.Fprintf(t.outputWriter, "Error deleting tag '%s': %v\n", tagName, err)
 		} else {
@@ -126,7 +126,7 @@ func (t *Tagger) deleteTag(args []string) {
 // pushTags pushes tags to remote repository
 func (t *Tagger) pushTags(args []string) {
 	var cmd *exec.Cmd
-	
+
 	if len(args) == 0 {
 		// push all tags
 		cmd = t.execCommand("git", "push", "origin", "--tags")
@@ -139,12 +139,12 @@ func (t *Tagger) pushTags(args []string) {
 		}
 		cmd = t.execCommand("git", "push", remote, tagName)
 	}
-	
+
 	if err := t.runCommand(cmd); err != nil {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error pushing tags: %v\n", err)
 		return
 	}
-	
+
 	_, _ = fmt.Fprintf(t.outputWriter, "Tags pushed successfully\n")
 }
 
@@ -154,10 +154,10 @@ func (t *Tagger) showTag(args []string) {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name is required\n")
 		return
 	}
-	
+
 	tagName := args[0]
 	cmd := t.execCommand("git", "show", tagName)
-	
+
 	if err := t.runCommand(cmd); err != nil {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error showing tag '%s': %v\n", tagName, err)
 	}
@@ -206,10 +206,10 @@ func (t *Tagger) createAnnotatedTag(args []string) {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name is required\n")
 		return
 	}
-	
+
 	tagName := args[0]
 	var cmd *exec.Cmd
-	
+
 	if len(args) > 1 {
 		// Use provided message
 		message := strings.Join(args[1:], " ")
@@ -218,11 +218,11 @@ func (t *Tagger) createAnnotatedTag(args []string) {
 		// Open editor for message
 		cmd = t.execCommand("git", "tag", "-a", tagName)
 	}
-	
+
 	if err := t.runCommand(cmd); err != nil {
 		_, _ = fmt.Fprintf(t.outputWriter, "Error creating annotated tag: %v\n", err)
 		return
 	}
-	
+
 	_, _ = fmt.Fprintf(t.outputWriter, "Annotated tag '%s' created successfully\n", tagName)
 }

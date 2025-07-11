@@ -183,7 +183,7 @@ func TestRouter(t *testing.T) {
 				}
 			},
 		},
-        {
+		{
 			name: "status no args",
 			args: []string{"status"},
 			validate: func(t *testing.T, m *mockExecuter) {
@@ -207,7 +207,7 @@ func TestRouter(t *testing.T) {
 				}
 			},
 		},
-        {
+		{
 			name: "tag no args",
 			args: []string{"tag"},
 			validate: func(t *testing.T, m *mockExecuter) {

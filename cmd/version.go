@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"runtime"
 	"os"
 	"os/exec"
+	"runtime"
 )
 
 // VersionGetter is a function type for getting version info

@@ -1,10 +1,10 @@
 package cmd
 
 import (
-    "fmt"
-    "io"
-    "os"
-    "os/exec"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
 )
 
 // Statuseer handles status operations.
@@ -27,7 +27,7 @@ func NewStatuseer() *Statuseer {
 func (s *Statuseer) Status(args []string) {
 	var cmd *exec.Cmd
 	if len(args) == 0 {
-        // Add '-c color.status=always' to ensure colour showing up in 'less'
+		// Add '-c color.status=always' to ensure colour showing up in 'less'
 		cmd = s.execCommand("git", "-c", "color.status=always", "status")
 	} else {
 		switch args[0] {
@@ -49,7 +49,7 @@ func (s *Statuseer) Status(args []string) {
 		return
 	}
 
-    // Setup 'less' pipeline
+	// Setup 'less' pipeline
 	lessCmd := exec.Command("less", "-R")
 	gitStdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -68,13 +68,13 @@ func (s *Statuseer) Status(args []string) {
 	}
 	if err := lessCmd.Start(); err != nil {
 		_, _ = fmt.Fprintf(s.outputWriter, "Error starting less command: %v\n", err)
-        // Drain output to avoid deadlocking
-        if _, err := io.Copy(io.Discard, gitStdoutPipe); err != nil {
-            _, _ = fmt.Fprintf(s.outputWriter, "Error discarding output: %v\n", err)
-        }
-        if err := cmd.Wait(); err != nil {
-            _, _ = fmt.Fprintf(s.outputWriter, "Error waiting for git command: %v\n", err)
-        }
+		// Drain output to avoid deadlocking
+		if _, err := io.Copy(io.Discard, gitStdoutPipe); err != nil {
+			_, _ = fmt.Fprintf(s.outputWriter, "Error discarding output: %v\n", err)
+		}
+		if err := cmd.Wait(); err != nil {
+			_, _ = fmt.Fprintf(s.outputWriter, "Error waiting for git command: %v\n", err)
+		}
 		return
 	}
 

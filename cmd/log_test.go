@@ -141,20 +141,20 @@ func TestLogger_Log_Simple_OutputFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			mockClient := &mockLogGitClient{}
-			
+
 			if tt.shouldError {
 				mockClient.err = errors.New(tt.errorMsg)
 			}
-			
+
 			l := &Logger{
 				gitClient:    mockClient,
 				outputWriter: &buf,
 				helper:       NewHelper(),
 			}
 			l.helper.outputWriter = &buf
-			
+
 			l.Log([]string{"simple"})
-			
+
 			if tt.shouldError {
 				output := buf.String()
 				if !strings.Contains(output, "Error:") {
@@ -193,20 +193,20 @@ func TestLogger_Log_Graph_OutputFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			mockClient := &mockLogGitClient{}
-			
+
 			if tt.shouldError {
 				mockClient.err = errors.New(tt.errorMsg)
 			}
-			
+
 			l := &Logger{
 				gitClient:    mockClient,
 				outputWriter: &buf,
 				helper:       NewHelper(),
 			}
 			l.helper.outputWriter = &buf
-			
+
 			l.Log([]string{"graph"})
-			
+
 			if tt.shouldError {
 				output := buf.String()
 				if !strings.Contains(output, "Error:") {
