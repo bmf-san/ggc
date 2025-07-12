@@ -34,6 +34,34 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 
 ## Installation
 
+### Quick Install with Script
+
+The easiest way to install `ggc` is using the provided installation script:
+
+```sh
+# Download and run the installation script
+curl -sSL https://raw.githubusercontent.com/bmf-san/ggc/main/install.sh | bash
+```
+
+Or download and run it manually:
+
+```sh
+# Download the script
+curl -O https://raw.githubusercontent.com/bmf-san/ggc/main/install.sh
+
+# Make it executable
+chmod +x install.sh
+
+# Run the script
+./install.sh
+```
+
+The script will:
+- Detect your operating system and architecture
+- Download the appropriate binary for your system
+- Install using `go install`, manual install fallback
+- Verify the installation 
+
 ### Build with make
 
 ```sh
