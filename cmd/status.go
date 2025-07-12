@@ -52,13 +52,14 @@ func (s *Statuseer) getUpstreamStatus(branch string) string {
 
 		if ahead == "0" && behind == "0" {
 			return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
-		} else if ahead != "0" && behind == "0" {
+		} 
+		if ahead != "0" && behind == "0" {
 			return fmt.Sprintf("Your branch is ahead of '%s' by %s commit(s)", upstream, ahead)
-		} else if ahead == "0" && behind != "0" {
+		} 
+		if ahead == "0" && behind != "0" {
 			return fmt.Sprintf("Your branch is behind '%s' by %s commit(s)", upstream, behind)
-		} else {
-			return fmt.Sprintf("Your branch and '%s' have diverged", upstream)
 		}
+		return fmt.Sprintf("Your branch and '%s' have diverged", upstream)
 	}
 
 	return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
@@ -147,7 +148,11 @@ func (s *Statuseer) Status(args []string) {
 	_, _ = fmt.Fprintf(lessStdinPipe, "\n")
 
 	go func() {
-		defer lessStdinPipe.Close()
+		defer func() {
+			if err := lessStdinPipe.Close(); err != nil {
+				_, _ = fmt.Fprintf(s.outputWriter, "Error closing lessStdinPipe: %v\n", err)
+			}
+		}()
 		if _, err := io.Copy(lessStdinPipe, gitStdoutPipe); err != nil {
 			_, _ = fmt.Fprintf(s.outputWriter, "Error copying git output: %v\n", err)
 		}
