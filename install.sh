@@ -140,6 +140,51 @@ install_from_source() {
     return 0
 }
 
+create_fish_completion() {
+    local fish_completions_dir="$HOME/.config/fish/completions"
+    local fish_completion_file="$fish_completions_dir/ggc.fish"
+    
+    # Create completions directory if it doesn't exist
+    mkdir -p "$fish_completions_dir"
+    
+    # Create the fish completion loader
+    cat > "$fish_completion_file" << 'EOF'
+# Fish completion loader for ggc
+
+function __ggc_load_completion
+    # Try to find the ggc.fish completion file in go modules
+    set -l gopath (go env GOPATH 2>/dev/null)
+    if test -z "$gopath"
+        return 1
+    end
+    
+    # Look for completion file in go modules
+    for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.fish
+        if test -f "$completion_file"
+            source "$completion_file"
+            return 0
+        end
+    end
+    
+    # Fallback: find completion file
+    set -l completion_file (find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.fish" -path "*/tools/completions/*" 2>/dev/null | head -1)
+    if test -n "$completion_file"; and test -f "$completion_file"
+        source "$completion_file"
+        return 0
+    end
+    
+    return 1
+end
+
+# Load completion if go is available
+if command -v go >/dev/null 2>&1
+    __ggc_load_completion
+end
+EOF
+
+    print_success "Created fish completion loader at $fish_completion_file"
+}
+
 setup_shell_completion() {
     print_info "Setting up shell completion..."
     
@@ -222,8 +267,9 @@ EOF
             fi
             ;;
         fish)
-            print_info "Fish shell detected. ggc uses bash completion scripts."
-            print_info "You may need to install bash completion support for fish."
+            print_info "Fish shell detected. Creating native fish completion..."
+            create_fish_completion
+            print_info "Fish completion installed. Restart your terminal or run 'fish' to enable completion"
             ;;
         *)
             print_info "Shell completion setup for $current_shell not automated."

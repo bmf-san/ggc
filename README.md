@@ -241,6 +241,14 @@ if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc
 fi
 ```
 
+### Fish
+Add the following to your `~/.config/fish/config.fish`:
+```fish
+if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.fish
+    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.fish
+end
+```
+
 This setup will automatically find the completion script regardless of the installed version.
 
 # Contributing
