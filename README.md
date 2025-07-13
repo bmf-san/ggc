@@ -188,16 +188,16 @@ ggc
 - `reset` - Reset and clean
   - `reset-clean` - Reset to HEAD and clean untracked files and directories
 
-- `ggc tag` - List all tags
-    - `ggc tag list` - List all tags (sorted)
-        - `ggc tag list v1.*` - List tags matching pattern
-    - `ggc tag create v1.0.0` - Create tag
-        - `ggc tag create v1.0.0 abc123` - Tag specific commit
-    - `ggc tag annotated v1.0.0 'Release notes'` - Create annotated tag
-    - `ggc tag delete v1.0.0` - Delete tag
-    - `ggc tag push` - Push all tags to origin
-        - `ggc tag push v1.0.0` - Push specific tag
-    - `ggc tag show v1.0.0` - Show tag information
+- `tag` - List all tags
+    - `tag list` - List all tags (sorted)
+        - `tag list v1.*` - List tags matching pattern
+    - `tag create v1.0.0` - Create tag
+        - `tag create v1.0.0 abc123` - Tag specific commit
+    - `tag annotated v1.0.0 'Release notes'` - Create annotated tag
+    - `tag delete v1.0.0` - Delete tag
+    - `tag push` - Push all tags to origin
+        - `tag push v1.0.0` - Push specific tag
+    - `tag show v1.0.0` - Show tag information
 
 - `stash` - Stash changes
   - `stash` - Stash current changes
