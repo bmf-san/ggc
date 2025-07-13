@@ -28,6 +28,8 @@ type mockExecuter struct {
 	versionArgs          []string
 	cleanCalled          bool
 	cleanArgs            []string
+	configCalled         bool
+	configArgs           []string
 	pullRebasePushCalled bool
 	interactiveCalled    bool
 }
@@ -49,6 +51,11 @@ func (m *mockExecuter) Commit(args []string) {
 func (m *mockExecuter) Log(args []string) {
 	m.logCalled = true
 	m.logArgs = args
+}
+
+func (m *mockExecuter) Config(args []string) {
+	m.configCalled = true
+	m.configArgs = args
 }
 
 func (m *mockExecuter) Status(args []string) {
@@ -180,6 +187,24 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.resetCalled {
 					t.Error("Reset should be called")
+				}
+			},
+		},
+		{
+			name: "config no args",
+			args: []string{"config"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.configCalled {
+					t.Error("config should be called")
+				}
+			},
+		},
+		{
+			name: "config with list",
+			args: []string{"config", "list"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.configCalled {
+					t.Error("config should be called")
 				}
 			},
 		},

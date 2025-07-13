@@ -170,6 +170,17 @@ func TestNewStasher(t *testing.T) {
 	}
 }
 
+func TestNewConfigureer(t *testing.T) {
+	configureer := NewConfigureer()
+	if configureer == nil {
+		t.Fatal("Expected configureer, got nil")
+	}
+	// Basic field checks
+	if configureer.outputWriter == nil || configureer.helper == nil || configureer.execCommand == nil {
+		t.Error("Expected all fields to be initialized")
+	}
+}
+
 func TestNewStatuseer(t *testing.T) {
 	statuseer := NewStatuseer()
 	if statuseer == nil {
@@ -230,7 +241,8 @@ func TestNewCmd_Constructor(t *testing.T) {
 		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
 		cmd.commitPusher == nil || cmd.addCommitPusher == nil || cmd.completer == nil ||
 		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil ||
-		cmd.statuseer == nil || cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil {
+		cmd.statuseer == nil || cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil ||
+		cmd.configureer == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }

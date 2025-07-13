@@ -188,6 +188,11 @@ ggc
 - `reset` - Reset and clean
   - `reset-clean` - Reset to HEAD and clean untracked files and directories
 
+- `config` - Manage ggc configuration file
+  - `config list` - List all variables in ggc configuration file 
+  - `config get <key>` - Get configuration variable from key
+  - `config set <key> <value>` - Set configuration variable from key and value
+
 - `tag` - List all tags
     - `tag list` - List all tags (sorted)
         - `tag list v1.*` - List tags matching pattern
