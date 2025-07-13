@@ -193,6 +193,14 @@ ggc
   - `config get <key>` - Get configuration variable from key
   - `config set <key> <value>` - Set configuration variable from key and value
 
+- `hook` - Manage ggc hooks (integrates with `git hooks`)
+  - `hook list` -	List all hooks
+  - `hook install <hook>` - Adds a new hook script from a sample or blank template
+  - `hook enable <hook>` - Makes the hook executable
+  - `hook disable <hook>` - Makes the hook non-executable
+  - `hook uninstall <hook>` - Removes the hook file
+  - `hook edit <hook>` - Opens the hook file in your config editor (`default.editor` in `~/.ggcconfig.yaml`) 
+
 - `tag` - List all tags
     - `tag list` - List all tags (sorted)
         - `tag list v1.*` - List tags matching pattern
