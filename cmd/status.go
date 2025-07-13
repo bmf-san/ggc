@@ -52,10 +52,10 @@ func (s *Statuseer) getUpstreamStatus(branch string) string {
 
 		if ahead == "0" && behind == "0" {
 			return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
-		} 
+		}
 		if ahead != "0" && behind == "0" {
 			return fmt.Sprintf("Your branch is ahead of '%s' by %s commit(s)", upstream, ahead)
-		} 
+		}
 		if ahead == "0" && behind != "0" {
 			return fmt.Sprintf("Your branch is behind '%s' by %s commit(s)", upstream, behind)
 		}

@@ -7,7 +7,7 @@ _ggc()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
 
-    opts="add add-commit-push branch clean version diff status clean-interactive commit commit-push-interactive complete tag fetch log pull pull-rebase-push push rebase remote reset reset-clean stash stash-pull-pop"
+    opts="add add-commit-push branch clean version config diff status clean-interactive commit commit-push-interactive complete tag fetch log pull pull-rebase-push push rebase remote reset reset-clean stash stash-pull-pop"
 
     case ${prev} in
         branch)
@@ -62,6 +62,11 @@ _ggc()
             ;;
         tag)
             subopts="create delete show list annotated push"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        config)
+            subopts="list set get"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

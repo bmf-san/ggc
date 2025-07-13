@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/bmf-san/ggc/cmd"
+	"github.com/bmf-san/ggc/config"
 	"github.com/bmf-san/ggc/router"
 )
 
@@ -20,6 +21,7 @@ func GetVersionInfo() (string, string, string) {
 }
 
 func main() {
+	config.NewConfigManager().LoadConfig()
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd()
 	r := router.NewRouter(c)

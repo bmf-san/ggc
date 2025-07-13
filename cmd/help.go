@@ -156,6 +156,19 @@ func (h *Helper) ShowStashHelp() {
 	})
 }
 
+// ShowConfigHelp shows help message for config command.
+func (h *Helper) ShowConfigHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc config [command]",
+		Description: "Get, set, and list configuration values for ggc (file located at ~/.ggcconfig.yaml or ~/.config/ggc/config.yaml)",
+		Examples: []string{
+			"ggc config list                  # List all configuration values",
+			"ggc config get <key>             # Get a config value by key path (e.g., 'ui.color', 'default.branch')",
+			"ggc config set <key> <value>     # Set a config value by key path (e.g., 'ui.color true', 'default.branch main')",
+		},
+	})
+}
+
 // ShowStatusHelp shows help message for status command.
 func (h *Helper) ShowStatusHelp() {
 	h.ShowCommandHelp(templates.HelpData{
