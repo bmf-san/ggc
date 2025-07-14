@@ -34,6 +34,19 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 
 ## Installation
 
+### Pre-compiled Binaries (Recommended)
+
+Pre-compiled binaries are available for multiple platforms and architectures. This is the fastest way to get started with `ggc`.
+
+#### Download from Releases
+Visit the [Releases](https://github.com/bmf-san/ggc/releases/) page to download the latest binary for your platform:
+
+#### Supported Platforms:
+
+- macOS: `darwin_amd64` (Intel), `darwin_arm64` (Apple Silicon)
+- Linux: `linux_amd64`, `linux_arm64`
+- Windows: `windows_amd64`
+
 ### Quick Install with Script
 
 The easiest way to install `ggc` is using the provided installation script:
