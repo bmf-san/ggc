@@ -94,17 +94,11 @@ make cover
 # Run tests and lint
 make test-and-lint
 
-# Full build with version info (for releases)
+# Build with go build
 make build
-
-# Fast build for development (no version info, faster compilation)
-make build-fast
 
 # Build and run with version info
 make run
-
-# Fast build and run for development
-make run-fast
 ```
 
 The Makefile will automatically install required tools like `golangci-lint` using `go install`.
