@@ -10,6 +10,7 @@ Example: close #123
 - [ ] I have added or updated tests
 - [ ] I have updated the documentation (if required)
 - [ ] Code is formatted with `make fmt`
+- [ ] Code passes linter checks via `make lint`
 - [ ] All tests are passing
 
 ## Screenshots (if appropriate)
