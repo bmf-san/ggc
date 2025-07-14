@@ -18,8 +18,12 @@ deps: install-tools
 	go mod tidy
 	@echo "Dependencies installed successfully"
 
+VERSION := $(shell git describe --tags --always --dirty)
+COMMIT := $(shell git rev-parse --short HEAD)
+
+# Full build with version info
 build:
-	go build -o $(APP_NAME) main.go
+	go build -ldflags="-X main.version=${VERSION} -X main.commit=${COMMIT}" -o $(APP_NAME)
 
 run: build
 	./$(APP_NAME)

@@ -59,7 +59,7 @@ chmod +x install.sh
 The script will:
 - Detect your operating system and architecture
 - Download the appropriate binary for your system
-- Install using `go install`, manual install fallback
+- Install using `git`, manual `go install` fallback
 - Verify the installation
 
 ### Build with make
@@ -112,6 +112,9 @@ go install github.com/bmf-san/ggc@latest
 - The `ggc` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
 - If `$GOBIN` is in your `PATH`, you can use `ggc` from anywhere.
 - If not, add it to your `PATH`:
+
+> [!NOTE]
+> When using `go install`, you may get limited version info due to `ldflags` not working with `go install`. It is recommended to build with make build or use the install script or binaries.
 
 ```sh
 export PATH=$PATH:$(go env GOBIN)
