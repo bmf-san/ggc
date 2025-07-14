@@ -9,7 +9,7 @@
 
 A Go Git CLI.
 
-<img src="https://storage.googleapis.com/gopherizeme.appspot.com/gophers/22bdcabe630eb8f45ed8c740ea665a8345f1d3f6.png" alt="ggc" title="ggc" width="250px">
+<img src="./docs/icon.png" alt="ggc" title="ggc" width="100px">
 
 This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c2b4123684f93071af0cf559eb0b5).
 
@@ -60,7 +60,7 @@ The script will:
 - Detect your operating system and architecture
 - Download the appropriate binary for your system
 - Install using `go install`, manual install fallback
-- Verify the installation 
+- Verify the installation
 
 ### Build with make
 
@@ -201,7 +201,7 @@ ggc
   - `reset-clean` - Reset to HEAD and clean untracked files and directories
 
 - `config` - Manage ggc configuration file
-  - `config list` - List all variables in ggc configuration file 
+  - `config list` - List all variables in ggc configuration file
   - `config get <key>` - Get configuration variable from key
   - `config set <key> <value>` - Set configuration variable from key and value
 
@@ -211,7 +211,7 @@ ggc
   - `hook enable <hook>` - Makes the hook executable
   - `hook disable <hook>` - Makes the hook non-executable
   - `hook uninstall <hook>` - Removes the hook file
-  - `hook edit <hook>` - Opens the hook file in your config editor (`default.editor` in `~/.ggcconfig.yaml`) 
+  - `hook edit <hook>` - Opens the hook file in your config editor (`default.editor` in `~/.ggcconfig.yaml`)
 
 - `tag` - List all tags
     - `tag list` - List all tags (sorted)
