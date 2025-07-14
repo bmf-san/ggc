@@ -41,6 +41,8 @@ func (r *Router) Route(args []string) {
 		r.Executer.Reset(args[1:])
 	case "config":
 		r.Executer.Config(args[1:])
+	case "hook":
+		r.Executer.Hook(args[1:])
 	case "diff":
 		r.Executer.Diff(args[1:])
 	case "tag":
