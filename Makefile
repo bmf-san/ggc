@@ -3,7 +3,7 @@
 APP_NAME=ggc
 OUT?=coverage.out
 
-.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint
+.PHONY: install-tools deps build build-fast run run-fast test lint clean cover test-cover test-and-lint fmt
 
 # Install required tools
 install-tools:
@@ -18,10 +18,23 @@ deps: install-tools
 	go mod tidy
 	@echo "Dependencies installed successfully"
 
+# Build variables
+VERSION := $(shell git describe --tags --always --dirty)
+COMMIT := $(shell git rev-parse --short HEAD)
+DATE := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+
+# Full build with version info
 build:
-	go build -o ggc
+	go build -ldflags="-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" -o $(APP_NAME)
+
+# Fast build for development (no version info, faster compilation)
+build-fast:
+	go build -o $(APP_NAME) main.go
 
 run: build
+	./$(APP_NAME)
+
+run-fast: build-fast
 	./$(APP_NAME)
 
 fmt:
