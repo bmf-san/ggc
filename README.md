@@ -24,12 +24,15 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 - Simple commands for common Git operations (add, push, pull, branch, log, etc.)
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
-- Implemented using only the Go standard library (+ golang.org/x/term)
+- Implemented using the Go standard library and:
+    - [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) – for terminal interaction
+    - [golang.org/x/sys](https://pkg.go.dev/golang.org/x/sys) – for low-level OS interaction
+    - [gopkg.in/yaml.v3](https://pkg.go.dev/gopkg.in/yaml.v3) – for parsing `~/.ggcconfig.yaml`
 
 ## Supported Environments
 - OS: macOS (Apple Silicon/Intel) - Verified
 - Go version: 1.24 or later recommended
-- Dependencies: Go standard library + golang.org/x/term (no extra packages required)
+- Dependencies: Go standard library, `golang.org/x/term`, `golang.org/x/sys`, `gopkg.in/yaml.v3`
 - Requirement: `git` command must be installed
 
 ## Installation
@@ -139,99 +142,66 @@ ggc
 
 ### Available Commands
 
-- `add` - Add file contents to the index
-  - `add <file>` - Add a specific file
-  - `add .` - Add all changes
-  - `add -p` - Add changes interactively
-
-- `branch` - List, create, or delete branches
-  - `branch current` - Show current branch
-  - `branch checkout` - Checkout existing branch
-  - `branch checkout-remote` - Checkout remote branch
-  - `branch create` - Create and checkout new branch
-  - `branch delete` - Delete a branch
-  - `branch delete-merged` - Delete merged branches
-  - `branch list-local` - List local branches
-  - `branch list-remote` - List remote branches
-
-- `clean` - Clean untracked files and directories
-  - `clean files` - Clean untracked files
-  - `clean dirs` - Clean untracked directories
-
-- `commit` - Commit staged changes
-  - `commit amend <message>` - Amend to previous commit
-  - `commit amend --no-edit` - Amend without editing commit message
-  - `commit allow-empty` - Create empty commit
-  - `commit tmp` - Create temporary commit
-
-- `diff` - Show changes between commits, commit and working tree, etc.
-  - `diff staged` - Show staged changes
-  - `diff unstaged` - Show unstaged changes
-
-- `fetch` - Fetch from remote
-  - `fetch --prune` - Fetch and prune remote branches
-
-- `log` - Show commit logs
-  - `log simple` - Show commit logs in a simple format
-  - `log graph` - Show commit logs with a graph
-
-- `pull` - Pull changes from remote
-  - `pull current` - Pull current branch from remote
-  - `pull rebase` - Pull with rebase
-
-- `push` - Push changes to remote
-  - `push current` - Push current branch to remote
-  - `push force` - Force push current branch to remote
-
-- `rebase` - Rebase current branch
-
-- `remote` - Manage set of tracked repositories
-  - `remote list` - List remote repositories
-  - `remote add <name> <url>` - Add a remote repository
-  - `remote remove <name>` - Remove a remote repository
-  - `remote set-url <name> <url>` - Change remote repository URL
-
-- `reset` - Reset and clean
-  - `reset-clean` - Reset to HEAD and clean untracked files and directories
-
-- `config` - Manage ggc configuration file
-  - `config list` - List all variables in ggc configuration file
-  - `config get <key>` - Get configuration variable from key
-  - `config set <key> <value>` - Set configuration variable from key and value
-
-- `hook` - Manage ggc hooks (integrates with `git hooks`)
-  - `hook list` -	List all hooks
-  - `hook install <hook>` - Adds a new hook script from a sample or blank template
-  - `hook enable <hook>` - Makes the hook executable
-  - `hook disable <hook>` - Makes the hook non-executable
-  - `hook uninstall <hook>` - Removes the hook file
-  - `hook edit <hook>` - Opens the hook file in your config editor (`default.editor` in `~/.ggcconfig.yaml`)
-
-- `tag` - List all tags
-    - `tag list` - List all tags (sorted)
-        - `tag list v1.*` - List tags matching pattern
-    - `tag create v1.0.0` - Create tag
-        - `tag create v1.0.0 abc123` - Tag specific commit
-    - `tag annotated v1.0.0 'Release notes'` - Create annotated tag
-    - `tag delete v1.0.0` - Delete tag
-    - `tag push` - Push all tags to origin
-        - `tag push v1.0.0` - Push specific tag
-    - `tag show v1.0.0` - Show tag information
-
-- `stash` - Stash changes
-  - `stash` - Stash current changes
-  - `stash pop` - Apply and remove the latest stash
-  - `stash drop` - Remove the latest stash
-  - `stash-pull-pop` - Stash changes, pull from remote, and pop stashed changes
-
-- `status` - Show the working tree status
-  - `status short` - Show concise output (porcelain format)
-
-- `version` - Show the currently installed ggc version
-
-- `add-commit-push` - Add all changes, commit, and push in one command
-- `commit-push-interactive` - Commit and push interactively
-- `pull-rebase-push` - Pull with rebase and push in one command
+| Command | Description |
+|--------|-------------|
+| `add <file>` | Add specific file to the index |
+| `add .` | Add all changes |
+| `add -p` | Add changes interactively |
+| `branch current` | Show current branch |
+| `branch checkout` | Checkout existing branch |
+| `branch checkout-remote` | Checkout remote branch |
+| `branch create` | Create and checkout new branch |
+| `branch delete` | Delete a branch |
+| `branch delete-merged` | Delete merged branches |
+| `branch list-local` | List local branches |
+| `branch list-remote` | List remote branches |
+| `clean files` | Clean untracked files |
+| `clean dirs` | Clean untracked directories |
+| `commit` | Commit staged changes |
+| `commit amend <message>` | Amend previous commit |
+| `commit amend --no-edit` | Amend without editing message |
+| `commit allow-empty` | Create an empty commit |
+| `commit tmp` | Create temporary commit |
+| `diff staged` | Show staged changes |
+| `diff unstaged` | Show unstaged changes |
+| `fetch --prune` | Fetch and prune remotes |
+| `log simple` | Show commit logs in simple format |
+| `log graph` | Show commit logs with a graph |
+| `pull current` | Pull current branch |
+| `pull rebase` | Pull with rebase |
+| `push current` | Push current branch |
+| `push force` | Force push current branch |
+| `rebase` | Rebase current branch |
+| `remote list` | List remotes |
+| `remote add <name> <url>` | Add a new remote |
+| `remote remove <name>` | Remove a remote |
+| `remote set-url <name> <url>` | Change remote URL |
+| `reset-clean` | Reset and clean untracked changes |
+| `config list` | List config variables |
+| `config get <key>` | Get value for config key |
+| `config set <key> <value>` | Set config key and value |
+| `hook list` | List all hooks |
+| `hook install <hook>` | Install a hook |
+| `hook enable <hook>` | Enable a hook |
+| `hook disable <hook>` | Disable a hook |
+| `hook uninstall <hook>` | Remove a hook |
+| `hook edit <hook>` | Edit a hook |
+| `tag list` | List all tags |
+| `tag create <v>` | Create a tag |
+| `tag annotated <v> <msg>` | Create annotated tag |
+| `tag delete <v>` | Delete a tag |
+| `tag push` | Push all tags |
+| `tag push <v>` | Push specific tag |
+| `tag show <v>` | Show tag details |
+| `stash` | Stash current changes |
+| `stash pop` | Apply and remove latest stash |
+| `stash drop` | Remove latest stash |
+| `stash-pull-pop` | Stash, pull, and pop |
+| `status short` | Show concise status |
+| `version` | Show current ggc version |
+| `add-commit-push` | Add, commit, and push |
+| `commit-push-interactive` | Commit and push interactively |
+| `pull-rebase-push` | Pull with rebase and push |
 
 ## Directory Structure
 
