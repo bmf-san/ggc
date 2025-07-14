@@ -3,7 +3,7 @@
 APP_NAME=ggc
 OUT?=coverage.out
 
-.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint
+.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint fmt
 
 # Install required tools
 install-tools:
@@ -19,7 +19,7 @@ deps: install-tools
 	@echo "Dependencies installed successfully"
 
 build:
-	go build -o ggc
+	go build -o $(APP_NAME) main.go
 
 run: build
 	./$(APP_NAME)

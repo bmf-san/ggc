@@ -156,6 +156,35 @@ func (h *Helper) ShowStashHelp() {
 	})
 }
 
+// ShowHookHelp displays help information for hook commands.
+func (h *Helper) ShowHookHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc hook [command]",
+		Description: "Manage Git hooks",
+		Examples: []string{
+			"ggc hook list                    # List all hooks and their status",
+			"ggc hook install <hook>          # Install a hook from sample or create template",
+			"ggc hook enable <hook>           # Make a hook executable",
+			"ggc hook edit <hook>             # Edit a hook in default.editor in config",
+			"ggc hook disable <hook>          # Make a hook non-executable",
+			"ggc hook uninstall <hook>        # Remove a hook",
+		},
+	})
+}
+
+// ShowConfigHelp shows help message for config command.
+func (h *Helper) ShowConfigHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc config [command]",
+		Description: "Get, set, and list configuration values for ggc (file located at ~/.ggcconfig.yaml or ~/.config/ggc/config.yaml)",
+		Examples: []string{
+			"ggc config list                  # List all configuration values",
+			"ggc config get <key>             # Get a config value by key path (e.g., 'ui.color', 'default.branch')",
+			"ggc config set <key> <value>     # Set a config value by key path (e.g., 'ui.color true', 'default.branch main')",
+		},
+	})
+}
+
 // ShowStatusHelp shows help message for status command.
 func (h *Helper) ShowStatusHelp() {
 	h.ShowCommandHelp(templates.HelpData{

@@ -22,6 +22,8 @@ type Executer interface {
 	Push(args []string)
 	Reset(args []string)
 	Diff(args []string)
+	Config(args []string)
+	Hook(args []string)
 	Version(args []string)
 	Status(args []string)
 	Tag(args []string)
@@ -47,6 +49,8 @@ type Cmd struct {
 	remoteer         *Remoteer
 	rebaser          *Rebaser
 	stasher          *Stasher
+	configureer      *Configureer
+	hooker           *Hooker
 	tagger           *Tagger
 	statuseer        *Statuseer
 	versioneer       *Versioneer
@@ -78,6 +82,8 @@ func NewCmd() *Cmd {
 		remoteer:         NewRemoteer(),
 		rebaser:          NewRebaser(),
 		stasher:          NewStasher(),
+		configureer:      NewConfigureer(),
+		hooker:           NewHooker(),
 		tagger:           NewTagger(),
 		statuseer:        NewStatuseer(),
 		versioneer:       NewVersioneer(),
@@ -114,6 +120,16 @@ func (c *Cmd) Log(args []string) {
 // Status executes the status command with the given arguments.
 func (c *Cmd) Status(args []string) {
 	c.statuseer.Status(args)
+}
+
+// Config executes the status command with the given arguments.
+func (c *Cmd) Config(args []string) {
+	c.configureer.Config(args)
+}
+
+// Hook executes the hook command with the given arguments.
+func (c *Cmd) Hook(args []string) {
+	c.hooker.Hook(args)
 }
 
 // Tag executes the tag command with the given arguments.
@@ -226,6 +242,10 @@ func (c *Cmd) Route(args []string) {
 		c.rebaser.Rebase(args[1:])
 	case "stash":
 		c.stasher.Stash(args[1:])
+	case "config":
+		c.configureer.Config(args[1:])
+	case "hook":
+		c.hooker.Hook(args[1:])
 	case "tag":
 		c.tagger.Tag(args[1:])
 	case "status":
