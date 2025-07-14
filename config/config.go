@@ -14,6 +14,13 @@ import (
 
 // Config represents the complete configuration structure
 type Config struct {
+	Meta struct {
+		Version    string `yaml:"version"`
+		Commit     string `yaml:"commit"`
+		CreatedAt  string `yaml:"created-at"`
+		ConfigVersion string `yaml:"config-version"`
+	} `yaml:"meta"`
+
 	Default struct {
 		Branch    string `yaml:"branch"`
 		Editor    string `yaml:"editor"`
@@ -58,6 +65,37 @@ func NewConfigManager() *Manager {
 	}
 }
 
+func getGitVersion() string {
+    cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
+    output, err := cmd.Output()
+    if err != nil {
+		fmt.Println(err)
+        return "dev"
+    }
+    return strings.TrimSpace(string(output))
+}
+
+func getGitCommit() string {
+    cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
+    output, err := cmd.Output()
+    if err != nil {
+		fmt.Println(err)
+        return "unknown"
+    }
+    return strings.TrimSpace(string(output))
+}
+
+func (c *Config) updateMeta() {
+	version, commit  := getGitVersion(), getGitCommit()
+
+	c.Meta.Version = version
+	c.Meta.Commit = commit
+
+	if c.Meta.ConfigVersion == "" {
+		c.Meta.ConfigVersion = "1.0"
+	}
+}
+
 // getDefaultConfig returns the default configuration values
 func getDefaultConfig() *Config {
 	config := &Config{
@@ -84,6 +122,8 @@ func getDefaultConfig() *Config {
 	config.Aliases["ci"] = "commit"
 
 	config.Integration.Github.DefaultRemote = "origin"
+
+	config.updateMeta()
 
 	return config
 }

@@ -30,6 +30,8 @@ type mockExecuter struct {
 	cleanArgs            []string
 	configCalled         bool
 	configArgs           []string
+	hookerCalled         bool
+	hookerArgs           []string
 	pullRebasePushCalled bool
 	interactiveCalled    bool
 }
@@ -56,6 +58,11 @@ func (m *mockExecuter) Log(args []string) {
 func (m *mockExecuter) Config(args []string) {
 	m.configCalled = true
 	m.configArgs = args
+}
+
+func (m *mockExecuter) Hook(args []string) {
+	m.hookerCalled = true
+	m.hookerArgs = args
 }
 
 func (m *mockExecuter) Status(args []string) {
@@ -187,6 +194,24 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.resetCalled {
 					t.Error("Reset should be called")
+				}
+			},
+		},
+		{
+			name: "hooker no args",
+			args: []string{"hook"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.hookerCalled {
+					t.Error("Hooker should be called")
+				}
+			},
+		},
+		{
+			name: "hooker list",
+			args: []string{"hook", "list"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.hookerCalled {
+					t.Error("Hooker should be called")
 				}
 			},
 		},

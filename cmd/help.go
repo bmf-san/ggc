@@ -156,6 +156,22 @@ func (h *Helper) ShowStashHelp() {
 	})
 }
 
+// ShowHookHelp displays help information for hook commands.
+func (h *Helper) ShowHookHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc hook [command]",
+		Description: "Manage Git hooks",
+		Examples: []string{
+			"ggc hook list                    # List all hooks and their status",
+			"ggc hook install <hook>          # Install a hook from sample or create template",
+			"ggc hook enable <hook>           # Make a hook executable",
+			"ggc hook edit <hook>             # Edit a hook in default.editor in config",
+			"ggc hook disable <hook>          # Make a hook non-executable",
+			"ggc hook uninstall <hook>        # Remove a hook",
+		},
+	})
+}
+
 // ShowConfigHelp shows help message for config command.
 func (h *Helper) ShowConfigHelp() {
 	h.ShowCommandHelp(templates.HelpData{

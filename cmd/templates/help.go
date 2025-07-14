@@ -59,6 +59,7 @@ Main Commands:
   ggc remote set-url <n> <url> Change remote URL
   ggc version                 Show current ggc version
   ggc config                  Manage ggc configuration
+  ggc hook                    Manage Git hooks
   ggc reset                   Reset and clean
   ggc reset-clean            Reset to HEAD and clean untracked files
   ggc stash                   Stash changes
