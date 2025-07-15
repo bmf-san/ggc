@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"io"
-	"os/exec"
 	"testing"
 
 	"github.com/bmf-san/ggc/git"
@@ -23,8 +22,6 @@ type mockGitClient struct {
 	resetHardAndCleanCalled bool
 	cleanFilesCalled        bool
 	cleanDirsCalled         bool
-	stashPullPopCalled      bool
-	stashPullPopErr         error
 }
 
 func (m *mockGitClient) GetCurrentBranch() (string, error) {
@@ -101,11 +98,6 @@ func (m *mockGitClient) GetGitStatus() (string, error) {
 
 func (m *mockGitClient) CheckoutNewBranch(_ string) error {
 	return nil
-}
-
-func (m *mockGitClient) StashPullPop() error {
-	m.stashPullPopCalled = true
-	return m.stashPullPopErr
 }
 
 type mockCmdGitClient struct {
@@ -297,29 +289,6 @@ func TestCmd_Clean(t *testing.T) {
 	}
 }
 
-func TestCmd_PullRebasePush(t *testing.T) {
-	mc := &mockGitClient{}
-	cmd := &Cmd{
-		outputWriter:     io.Discard,
-		gitClient:        mc,
-		pullRebasePusher: NewPullRebasePusherWithClient(mc),
-	}
-	cmd.PullRebasePush()
-
-	if !mc.pullCalled {
-		t.Error("gitClient.Pull should be called")
-	}
-	if !mc.pullRebase {
-		t.Error("gitClient.Pull should be called with rebase=true")
-	}
-	if !mc.pushCalled {
-		t.Error("gitClient.Push should be called")
-	}
-	if mc.pushForce {
-		t.Error("gitClient.Push should be called with force=false")
-	}
-}
-
 func TestNewCmd(t *testing.T) {
 	cmd := NewCmd()
 
@@ -356,21 +325,6 @@ func TestNewCmd(t *testing.T) {
 	}
 	if cmd.fetcher == nil {
 		t.Error("fetcher should not be nil")
-	}
-	if cmd.stashPullPopper == nil {
-		t.Error("stashPullPopper should not be nil")
-	}
-	if cmd.resetCleaner == nil {
-		t.Error("resetCleaner should not be nil")
-	}
-	if cmd.addCommitPusher == nil {
-		t.Error("addCommitPusher should not be nil")
-	}
-	if cmd.commitPusher == nil {
-		t.Error("commitPusher should not be nil")
-	}
-	if cmd.pullRebasePusher == nil {
-		t.Error("pullRebasePusher should not be nil")
 	}
 	if cmd.completer == nil {
 		t.Error("completer should not be nil")
@@ -427,16 +381,11 @@ func TestCmd_Route(t *testing.T) {
 		{"push", []string{"push", "current"}},
 		{"reset", []string{"reset"}},
 		{"clean", []string{"clean", "files"}},
-		{"pull-rebase-push", []string{"pull-rebase-push"}},
-		{"add-commit-push", []string{"add-commit-push"}},
-		{"commit-push-interactive", []string{"commit-push-interactive"}},
 		{"complete", []string{"complete", "bash"}},
 		{"fetch", []string{"fetch", "--prune"}},
 		{"remote", []string{"remote", "list"}},
 		{"rebase", []string{"rebase", "interactive"}},
 		{"stash", []string{"stash", "trash"}},
-		{"stash-pull-pop", []string{"stash-pull-pop"}},
-		{"reset-clean", []string{"reset-clean"}},
 		{"unknown", []string{"unknown"}},
 	}
 
@@ -452,21 +401,6 @@ func TestCmd_Route(t *testing.T) {
 			cmd.Route(tc.args)
 		})
 	}
-}
-
-func TestCmd_Route_ResetClean(_ *testing.T) {
-	var buf bytes.Buffer
-	cmd := &Cmd{
-		outputWriter: &buf,
-		resetCleaner: &ResetCleaner{
-			outputWriter: &buf,
-			helper:       NewHelper(),
-			execCommand:  exec.Command,
-		},
-	}
-	cmd.Route([]string{"reset-clean"})
-	// Verify that ResetCleaner is called
-	// Actual behavior is verified in other tests
 }
 
 func TestCmd_waitForContinue(t *testing.T) {

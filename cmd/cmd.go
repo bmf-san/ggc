@@ -28,72 +28,61 @@ type Executer interface {
 	Status(args []string)
 	Tag(args []string)
 	Clean(args []string)
-	PullRebasePush()
 	Interactive()
 }
 
 // Cmd represents the command-line interface.
 type Cmd struct {
-	gitClient        git.Clienter
-	outputWriter     io.Writer
-	helper           *Helper
-	brancher         *Brancher
-	committer        *Committer
-	logger           *Logger
-	puller           *Puller
-	pusher           *Pusher
-	resetter         *Resetter
-	cleaner          *Cleaner
-	pullRebasePusher *PullRebasePusher
-	adder            *Adder
-	remoteer         *Remoteer
-	rebaser          *Rebaser
-	stasher          *Stasher
-	configureer      *Configureer
-	hooker           *Hooker
-	tagger           *Tagger
-	statuseer        *Statuseer
-	versioneer       *Versioneer
-	commitPusher     *CommitPusher
-	addCommitPusher  *AddCommitPusher
-	completer        *Completer
-	differ           *Differ
-	fetcher          *Fetcher
-	stashPullPopper  *StashPullPopper
-	resetCleaner     *ResetCleaner
+	gitClient    git.Clienter
+	outputWriter io.Writer
+	helper       *Helper
+	brancher     *Brancher
+	committer    *Committer
+	logger       *Logger
+	puller       *Puller
+	pusher       *Pusher
+	resetter     *Resetter
+	cleaner      *Cleaner
+	adder        *Adder
+	remoteer     *Remoteer
+	rebaser      *Rebaser
+	stasher      *Stasher
+	configureer  *Configureer
+	hooker       *Hooker
+	tagger       *Tagger
+	statuseer    *Statuseer
+	versioneer   *Versioneer
+	completer    *Completer
+	differ       *Differ
+	fetcher      *Fetcher
 }
 
 // NewCmd creates a new Cmd.
 func NewCmd() *Cmd {
 	client := git.NewClient()
 	return &Cmd{
-		gitClient:        client,
-		outputWriter:     os.Stdout,
-		helper:           NewHelper(),
-		brancher:         NewBrancher(),
-		committer:        NewCommitter(),
-		logger:           NewLogger(),
-		puller:           NewPuller(),
-		pusher:           NewPusher(),
-		resetter:         NewResetter(),
-		cleaner:          NewCleaner(),
-		pullRebasePusher: NewPullRebasePusher(),
-		adder:            NewAdder(),
-		remoteer:         NewRemoteer(),
-		rebaser:          NewRebaser(),
-		stasher:          NewStasher(),
-		configureer:      NewConfigureer(),
-		hooker:           NewHooker(),
-		tagger:           NewTagger(),
-		statuseer:        NewStatuseer(),
-		versioneer:       NewVersioneer(),
-		commitPusher:     NewCommitPusher(),
-		addCommitPusher:  NewAddCommitPusher(),
-		completer:        NewCompleter(),
-		differ:           NewDiffer(),
-		fetcher:          NewFetcher(),
-		stashPullPopper:  NewStashPullPopper(),
-		resetCleaner:     NewResetCleaner(),
+		gitClient:    client,
+		outputWriter: os.Stdout,
+		helper:       NewHelper(),
+		brancher:     NewBrancher(),
+		committer:    NewCommitter(),
+		logger:       NewLogger(),
+		puller:       NewPuller(),
+		pusher:       NewPusher(),
+		resetter:     NewResetter(),
+		cleaner:      NewCleaner(),
+		adder:        NewAdder(),
+		remoteer:     NewRemoteer(),
+		rebaser:      NewRebaser(),
+		stasher:      NewStasher(),
+		configureer:  NewConfigureer(),
+		hooker:       NewHooker(),
+		tagger:       NewTagger(),
+		statuseer:    NewStatuseer(),
+		versioneer:   NewVersioneer(),
+		completer:    NewCompleter(),
+		differ:       NewDiffer(),
+		fetcher:      NewFetcher(),
 	}
 }
 
@@ -167,11 +156,6 @@ func (c *Cmd) Clean(args []string) {
 	c.cleaner.Clean(args)
 }
 
-// PullRebasePush executes the pull-rebase-push command.
-func (c *Cmd) PullRebasePush() {
-	c.pullRebasePusher.PullRebasePush()
-}
-
 // Interactive starts the interactive UI mode.
 func (c *Cmd) Interactive() {
 	// Reset existing signal handlers
@@ -234,8 +218,6 @@ func (c *Cmd) Route(args []string) {
 		c.Version(args[1:])
 	case "clean-interactive":
 		c.cleaner.CleanInteractive()
-	case "pull-rebase-push":
-		c.PullRebasePush()
 	case "remote":
 		c.remoteer.Remote(args[1:])
 	case "rebase":
@@ -250,20 +232,12 @@ func (c *Cmd) Route(args []string) {
 		c.tagger.Tag(args[1:])
 	case "status":
 		c.statuseer.Status(args[1:])
-	case "commit-push-interactive":
-		c.commitPusher.CommitPushInteractive()
-	case "add-commit-push":
-		c.addCommitPusher.AddCommitPush()
 	case "complete":
 		c.completer.Complete(args[1:])
 	case "fetch":
 		c.fetcher.Fetch(args[1:])
 	case "diff":
 		c.differ.Diff(args[1:])
-	case "stash-pull-pop":
-		c.stashPullPopper.StashPullPop()
-	case "reset-clean":
-		c.resetCleaner.ResetClean()
 	default:
 		c.Help()
 	}

@@ -196,7 +196,6 @@ ggc
 | `remote add <name> <url>` | Add a new remote |
 | `remote remove <name>` | Remove a remote |
 | `remote set-url <name> <url>` | Change remote URL |
-| `reset-clean` | Reset and clean untracked changes |
 | `config list` | List config variables |
 | `config get <key>` | Get value for config key |
 | `config set <key> <value>` | Set config key and value |
@@ -216,12 +215,8 @@ ggc
 | `stash` | Stash current changes |
 | `stash pop` | Apply and remove latest stash |
 | `stash drop` | Remove latest stash |
-| `stash-pull-pop` | Stash, pull, and pop |
 | `status short` | Show concise status |
 | `version` | Show current ggc version |
-| `add-commit-push` | Add, commit, and push |
-| `commit-push-interactive` | Commit and push interactively |
-| `pull-rebase-push` | Pull with rebase and push |
 
 ## Directory Structure
 

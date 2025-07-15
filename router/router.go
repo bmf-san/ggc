@@ -53,8 +53,6 @@ func (r *Router) Route(args []string) {
 		r.Executer.Version(args[1:])
 	case "clean":
 		r.Executer.Clean(args[1:])
-	case "pull-rebase-push":
-		r.Executer.PullRebasePush()
 	default:
 		r.Executer.Help()
 	}

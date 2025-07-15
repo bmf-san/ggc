@@ -250,28 +250,6 @@ func (h *Helper) ShowResetHelp() {
 	})
 }
 
-// ShowStashPullPopHelp shows help message for stash-pull-pop command.
-func (h *Helper) ShowStashPullPopHelp() {
-	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc stash-pull-pop",
-		Description: "Stash changes, pull from remote, and pop stashed changes",
-		Examples: []string{
-			"ggc stash-pull-pop   # Stash changes, pull from remote, and pop stashed changes",
-		},
-	})
-}
-
-// ShowResetCleanHelp shows help message for reset-clean command.
-func (h *Helper) ShowResetCleanHelp() {
-	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc reset-clean",
-		Description: "Reset to HEAD and clean untracked files and directories",
-		Examples: []string{
-			"ggc reset-clean   # Reset to HEAD and clean untracked files and directories",
-		},
-	})
-}
-
 // ShowListBranchesHelp displays help for the list branches command.
 func (h *Helper) ShowListBranchesHelp() {
 	h.ShowCommandHelp(templates.HelpData{
