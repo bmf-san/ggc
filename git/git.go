@@ -29,7 +29,6 @@ type Clienter interface {
 	CleanDirs() error
 	GetGitStatus() (string, error)
 	GetBranchName() (string, error)
-	StashPullPop() error
 }
 
 // NewClient creates a new Client.

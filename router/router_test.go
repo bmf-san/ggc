@@ -5,35 +5,34 @@ import (
 )
 
 type mockExecuter struct {
-	helpCalled           bool
-	branchCalled         bool
-	branchArgs           []string
-	commitCalled         bool
-	commitArgs           []string
-	logCalled            bool
-	logArgs              []string
-	diffCalled           bool
-	diffArgs             []string
-	statusCalled         bool
-	statusArgs           []string
-	pullCalled           bool
-	pullArgs             []string
-	pushCalled           bool
-	pushArgs             []string
-	resetCalled          bool
-	resetArgs            []string
-	tagCalled            bool
-	tagArgs              []string
-	versionCalled        bool
-	versionArgs          []string
-	cleanCalled          bool
-	cleanArgs            []string
-	configCalled         bool
-	configArgs           []string
-	hookerCalled         bool
-	hookerArgs           []string
-	pullRebasePushCalled bool
-	interactiveCalled    bool
+	helpCalled        bool
+	branchCalled      bool
+	branchArgs        []string
+	commitCalled      bool
+	commitArgs        []string
+	logCalled         bool
+	logArgs           []string
+	diffCalled        bool
+	diffArgs          []string
+	statusCalled      bool
+	statusArgs        []string
+	pullCalled        bool
+	pullArgs          []string
+	pushCalled        bool
+	pushArgs          []string
+	resetCalled       bool
+	resetArgs         []string
+	tagCalled         bool
+	tagArgs           []string
+	versionCalled     bool
+	versionArgs       []string
+	cleanCalled       bool
+	cleanArgs         []string
+	configCalled      bool
+	configArgs        []string
+	hookerCalled      bool
+	hookerArgs        []string
+	interactiveCalled bool
 }
 
 func (m *mockExecuter) Help() {
@@ -103,10 +102,6 @@ func (m *mockExecuter) Reset(args []string) {
 func (m *mockExecuter) Clean(args []string) {
 	m.cleanCalled = true
 	m.cleanArgs = args
-}
-
-func (m *mockExecuter) PullRebasePush() {
-	m.pullRebasePushCalled = true
 }
 
 func (m *mockExecuter) Interactive() {
@@ -335,15 +330,6 @@ func TestRouter(t *testing.T) {
 				}
 				if len(m.cleanArgs) != 1 || m.cleanArgs[0] != "files" {
 					t.Errorf("unexpected clean args: got %v", m.cleanArgs)
-				}
-			},
-		},
-		{
-			name: "pull-rebase-push",
-			args: []string{"pull-rebase-push"},
-			validate: func(t *testing.T, m *mockExecuter) {
-				if !m.pullRebasePushCalled {
-					t.Error("PullRebasePush should be called")
 				}
 			},
 		},

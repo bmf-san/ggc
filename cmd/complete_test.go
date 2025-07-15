@@ -38,7 +38,6 @@ func (m *mockCompleteGitClient) ResetHardAndClean() error              { return 
 func (m *mockCompleteGitClient) CleanFiles() error                     { return nil }
 func (m *mockCompleteGitClient) CleanDirs() error                      { return nil }
 func (m *mockCompleteGitClient) CheckoutNewBranch(_ string) error      { return nil }
-func (m *mockCompleteGitClient) StashPullPop() error                   { return nil }
 func (m *mockCompleteGitClient) FetchPrune() error                     { return nil }
 
 func TestCompleter_Complete_Branch(t *testing.T) {

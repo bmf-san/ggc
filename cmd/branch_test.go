@@ -42,10 +42,6 @@ func (m *mockBranchGitClient) LogGraph() error {
 	return nil
 }
 
-func (m *mockBranchGitClient) StashPullPop() error {
-	return nil
-}
-
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer
 	mockClient := &mockBranchGitClient{
