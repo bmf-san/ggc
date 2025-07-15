@@ -21,7 +21,7 @@ jobs:
       - name: Run coverage
         run: make test-cover OUT=coverage.out
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.5.0
+        uses: codecov/codecov-action@v5.4.3
         with:
           fail_ci_if_error: true
           file: ./coverage.out
