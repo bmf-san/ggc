@@ -35,6 +35,39 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 - Dependencies: Go standard library, `golang.org/x/term`, `golang.org/x/sys`, `gopkg.in/yaml.v3`
 - Requirement: `git` command must be installed
 
+
+## 🔽 Binary Downloads
+
+Pre-compiled binaries are now available for **Windows**, **macOS**, and **Linux**!  
+This is the **recommended installation method** for most users.
+
+➡️ **[Download the latest release here](https://github.com/bmf-san/ggc/releases)**
+
+### ✅ Available Platforms
+
+| OS       | Architecture | Filename                            |
+|----------|--------------|-------------------------------------|
+| macOS    | amd64        | [`ggc_2.0.2_darwin_amd64.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_darwin_amd64.tar.gz)     |
+| macOS    | arm64        |  [`ggc_2.0.2_darwin_arm64.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_darwin_arm64.tar.gz)    |
+| Linux    | 386          |   [`ggc_2.0.2_linux_386.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_linux_386.tar.gz)     |
+| Linux    | amd64        |  [`ggc_2.0.2_linux_amd64.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_linux_amd64.tar.gz)     |
+| Linux    | arm64        |   [`ggc_2.0.2_linux_arm64.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_linux_arm64.tar.gz)    |
+| Windows  | 386          |   [`ggc_2.0.2_windows_386.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_windows_386.tar.gz)    |
+| Windows  | amd64        |  [`ggc_2.0.2_windows_amd64.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_windows_amd64.tar.gz)   |
+| Windows  | arm64        | [`ggc_2.0.2_windows_arm64.tar.gz`](https://github.com/bmf-san/ggc/releases/download/2.0.2/ggc_2.0.2_windows_arm64.tar.gz)|
+
+### 📦 Verifying Binary Integrity
+
+You can verify the integrity of the downloaded files using the SHA256 checksums provided in [`ggc_2.0.2_checksums.txt`](https://github.com/bmf-san/ggc/releases/download/v2.0.2/ggc_2.0.2_checksums.txt):
+
+```sh
+# Example
+sha256sum ggc_2.0.2_linux_amd64.tar.gz
+```
+```
+# Compare with:
+# 97ac5503e05ae613c9f4e50eb2abc872ea33443616a2a466dfeb49054a10a17f
+```
 ## Installation
 
 ### Pre-compiled Binaries (Recommended)
