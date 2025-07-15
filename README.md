@@ -13,6 +13,10 @@ A Go Git CLI.
 
 This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c2b4123684f93071af0cf559eb0b5).
 
+## Demo
+
+![Demo](docs/demo.gif)
+
 ## Overview
 
 ggc is a Git tool written in Go, offering both traditional CLI commands and an interactive interface with incremental search. You can either run subcommands like ggc add directly, or launch the interactive mode by simply typing ggc. Designed to be fast, user-friendly, and extensible.
