@@ -14,8 +14,8 @@ func TestVersioneer_Version(t *testing.T) {
 		expectedOutput []string
 	}{
 		{
-			name:          "version no args with default values",
-			args:          []string{},
+			name: "version no args with default values",
+			args: []string{},
 			expectedOutput: []string{
 				"ggc version",
 				"commit:",
@@ -41,8 +41,8 @@ func TestVersioneer_Version(t *testing.T) {
 			},
 		},
 		{
-			name:          "version with multiple args shows help",
-			args:          []string{"invalid", "args"},
+			name: "version with multiple args shows help",
+			args: []string{"invalid", "args"},
 			expectedOutput: []string{
 				"Usage:",
 			},

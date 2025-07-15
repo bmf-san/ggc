@@ -5,11 +5,21 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"time"
 	"runtime"
+	"time"
 
 	"github.com/bmf-san/ggc/config"
 )
+
+// VersionGetter is a function type for getting version info
+type VersionGetter func() (version, commit string)
+
+var getVersionInfo VersionGetter
+
+// SetVersionGetter sets the version getter function
+func SetVersionGetter(getter VersionGetter) {
+	getVersionInfo = getter
+}
 
 // Versioneer handles version operations.
 type Versioneer struct {
@@ -32,9 +42,9 @@ func (v *Versioneer) Version(args []string) {
 	if len(args) == 0 {
 		configManager := config.NewConfigManager()
 		configManager.LoadConfig()
-		
+
 		loadedConfig := configManager.GetConfig()
-		
+
 		if loadedConfig.Meta.CreatedAt == "" {
 			createdAt := time.Now().UTC().Format("2006-01-02_15:04:05")
 			if err := configManager.Set("meta.created-at", createdAt); err != nil {
@@ -43,8 +53,27 @@ func (v *Versioneer) Version(args []string) {
 				loadedConfig = configManager.GetConfig()
 			}
 		}
-		_, _ = fmt.Fprintf(v.outputWriter, "ggc version %s\n", loadedConfig.Meta.Version)
-		_, _ = fmt.Fprintf(v.outputWriter, "commit: %s\n", loadedConfig.Meta.Commit)
+		if loadedConfig.Meta.Version == "dev" || loadedConfig.Meta.Commit == "unknown" {
+			version, commit := getVersionInfo()
+			if err := configManager.Set("meta.version", version); err != nil {
+				_, _ = fmt.Fprintf(v.outputWriter, "warn: failed to set version: %v\n", err)
+			}
+			if err := configManager.Set("meta.commit", commit); err != nil {
+				_, _ = fmt.Fprintf(v.outputWriter, "warn: failed to set commit: %v\n", err)
+			}
+		}
+
+		version := loadedConfig.Meta.Version
+		commit := loadedConfig.Meta.Commit
+		if version == "" {
+			version = "(devel)"
+		}
+		if commit == "" {
+			commit = "unknown"
+		}
+
+		_, _ = fmt.Fprintf(v.outputWriter, "ggc version %s\n", version)
+		_, _ = fmt.Fprintf(v.outputWriter, "commit: %s\n", commit)
 		_, _ = fmt.Fprintf(v.outputWriter, "built: %s\n", loadedConfig.Meta.CreatedAt)
 		_, _ = fmt.Fprintf(v.outputWriter, "config version: %s\n", loadedConfig.Meta.ConfigVersion)
 		_, _ = fmt.Fprintf(v.outputWriter, "os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)

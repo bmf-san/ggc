@@ -63,39 +63,8 @@ detect_platform() {
     echo "${os}_${arch}"
 }
 
-install_with_go() {
-    print_info "Installing ggc using 'go install'..."
-    
-    if ! command_exists go; then
-        print_error "Go is not installed. Please install Go first or use binary installation."
-        return 1
-    fi
-    
-    go install github.com/bmf-san/ggc@latest
-    
-    local gobin
-    gobin=$(go env GOBIN)
-    if [ -z "$gobin" ]; then
-        gobin="$(go env GOPATH)/bin"
-    fi
-    
-    if [ -f "$gobin/ggc" ]; then
-        print_success "ggc installed successfully to $gobin/ggc"
-        
-        if ! echo "$PATH" | grep -q "$gobin"; then
-            print_warning "Go bin directory not in PATH. Adding it automatically..."
-            add_to_path "$gobin"
-        fi
-        
-        return 0
-    else
-        print_error "Installation failed"
-        return 1
-    fi
-}
-
 install_from_source() {
-    print_info "Installing ggc from source..."
+    print_info "Installing ggc from source (recommended for full version info)..."
     
     if ! command_exists go; then
         print_error "Go is not installed. Please install Go first."
@@ -111,24 +80,57 @@ install_from_source() {
     temp_dir=$(mktemp -d)
     
     print_info "Cloning repository to $temp_dir..."
-    git clone "$REPO_URL" "$temp_dir"
+    if ! git clone "$REPO_URL" "$temp_dir"; then
+        print_error "Failed to clone repository"
+        rm -rf "$temp_dir"
+        return 1
+    fi
     
     cd "$temp_dir"
     
-    print_info "Building ggc..."
+    print_info "Building ggc with full version information..."
+    
+    # Try to build with make first (preferred for version info)
     if [ -f "Makefile" ]; then
-        make build
+        print_info "Using Makefile for build (includes version information)..."
+        if make build; then
+            print_success "Built successfully with make"
+        else
+            print_warning "Make build failed, trying go build..."
+            if ! go build -o ggc .; then
+                print_error "Build failed"
+                cd ..
+                rm -rf "$temp_dir"
+                return 1
+            fi
+        fi
     else
-        go build -o ggc .
+        print_info "No Makefile found, using go build..."
+        if ! go build -o ggc .; then
+            print_error "Build failed"
+            cd ..
+            rm -rf "$temp_dir"
+            return 1
+        fi
     fi
     
+    # Create install directory
     mkdir -p "$INSTALL_DIR"
     
-    mv ggc "$INSTALL_DIR/$BINARY_NAME"
+    # Move binary to install directory
+    if ! mv ggc "$INSTALL_DIR/$BINARY_NAME"; then
+        print_error "Failed to move binary to install directory"
+        cd ..
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
     chmod +x "$INSTALL_DIR/$BINARY_NAME"
     
     print_success "ggc installed successfully to $INSTALL_DIR/$BINARY_NAME"
+    print_info "This installation includes full version and commit information"
     
+    # Check if install directory is in PATH
     if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
         print_warning "Install directory not in PATH. Adding it automatically..."
         add_to_path "$INSTALL_DIR"
@@ -138,6 +140,44 @@ install_from_source() {
     rm -rf "$temp_dir"
     
     return 0
+}
+
+install_with_go() {
+    print_warning "Installing ggc using 'go install' (fallback method)..."
+    print_warning "Note: This method provides limited version information compared to source installation"
+    print_warning "Version may show as development build."
+    
+    if ! command_exists go; then
+        print_error "Go is not installed. Please install Go first."
+        return 1
+    fi
+    
+    print_info "Running go install..."
+    if ! go install github.com/bmf-san/ggc@latest; then
+        print_error "go install failed"
+        return 1
+    fi
+    
+    local gobin
+    gobin=$(go env GOBIN)
+    if [ -z "$gobin" ]; then
+        gobin="$(go env GOPATH)/bin"
+    fi
+    
+    if [ -f "$gobin/ggc" ]; then
+        print_success "ggc installed successfully to $gobin/ggc"
+        print_warning "This installation has limited version information due to go install limitations"
+        
+        if ! echo "$PATH" | grep -q "$gobin"; then
+            print_warning "Go bin directory not in PATH. Adding it automatically..."
+            add_to_path "$gobin"
+        fi
+        
+        return 0
+    else
+        print_error "Installation failed - binary not found"
+        return 1
+    fi
 }
 
 create_fish_completion() {
@@ -368,51 +408,99 @@ add_to_path() {
     esac
 }
 
+check_dependencies() {
+    local missing_deps=()
+    
+    if ! command_exists go; then
+        missing_deps+=("go")
+    fi
+    
+    if ! command_exists git; then
+        missing_deps+=("git")
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        print_error "Missing required dependencies: ${missing_deps[*]}"
+        print_info "For source installation (recommended), you need both Go and Git"
+        print_info "For fallback installation, you only need Go (but with limited version info)"
+        return 1
+    fi
+    
+    return 0
+}
+
 main() {
     echo "ggc Installation Script"
     echo "======================="
     
-    if command_exists go; then
-        INSTALL_METHOD="go"
-    else
-        INSTALL_METHOD="source"
-    fi
-    
-    print_info "Installation method: $INSTALL_METHOD"
     print_info "Installation directory: $INSTALL_DIR"
     
-    installation_success=false   
-    if [ "$INSTALL_METHOD" = "go" ] && command_exists go; then
-        print_info "Attempting installation with 'go install'..."
-        if install_with_go; then
-            installation_success=true
-        else
-            print_warning "Go install failed. Falling back to source installation..."
-            if command_exists git; then
-                INSTALL_METHOD="source"
-                print_info "Attempting installation from source..."
-                if install_from_source; then
-                    installation_success=true
-                fi
-            else
-                print_error "Git is not installed. Cannot fall back to source installation."
-            fi
-        fi
-    else
+    installation_success=false
+    
+    # Check if we have the basic requirements
+    if command_exists go && command_exists git; then
+        print_info "✅ Go and Git detected - proceeding with source installation"
+        print_info "This will provide full version and commit information"
+        
         if install_from_source; then
             installation_success=true
+        else
+            print_warning "❌ Source installation failed"
+            print_info "Falling back to 'go install' method..."
+            
+            if install_with_go; then
+                installation_success=true
+            fi
         fi
+    elif command_exists go; then
+        print_warning "⚠️  Git not found - source installation unavailable"
+        print_info "Falling back to 'go install' method (limited version info)"
+        
+        if install_with_go; then
+            installation_success=true
+        fi
+    else
+        print_error "❌ Go is not installed"
+        print_error "Please install Go first: https://golang.org/doc/install"
+        print_info "For best results, also install Git for source installation"
+        exit 1
     fi
     
     if [ "$installation_success" = true ]; then
         echo ""
         print_success "✅ Installation completed successfully!"
-        print_info "Run 'ggc --help' or just 'ggc' to get started."
+        
+        # Test the installation
+        local installed_binary
+        if [ -f "$INSTALL_DIR/$BINARY_NAME" ]; then
+            installed_binary="$INSTALL_DIR/$BINARY_NAME"
+        else
+            local gobin
+            gobin=$(go env GOBIN 2>/dev/null)
+            if [ -z "$gobin" ]; then
+                gobin="$(go env GOPATH)/bin"
+            fi
+            if [ -f "$gobin/ggc" ]; then
+                installed_binary="$gobin/ggc"
+            fi
+        fi
+        
+        if [ -n "$installed_binary" ]; then
+            print_info "Testing installation..."
+            if "$installed_binary" version >/dev/null 2>&1; then
+                print_success "✅ ggc is working correctly"
+            else
+                print_warning "⚠️  ggc installed but version command failed"
+            fi
+        fi
+        
+        print_info "Run 'ggc --help' or just 'ggc' to get started"
         
         echo ""
         setup_shell_completion
     else
-        print_error "Installation failed"
+        print_error "❌ Installation failed"
+        print_info "Please check the error messages above and try again"
         exit 1
     fi
 }
