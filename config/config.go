@@ -15,9 +15,9 @@ import (
 // Config represents the complete configuration structure
 type Config struct {
 	Meta struct {
-		Version    string `yaml:"version"`
-		Commit     string `yaml:"commit"`
-		CreatedAt  string `yaml:"created-at"`
+		Version       string `yaml:"version"`
+		Commit        string `yaml:"commit"`
+		CreatedAt     string `yaml:"created-at"`
 		ConfigVersion string `yaml:"config-version"`
 	} `yaml:"meta"`
 
@@ -66,27 +66,25 @@ func NewConfigManager() *Manager {
 }
 
 func getGitVersion() string {
-    cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
-    output, err := cmd.Output()
-    if err != nil {
-		fmt.Println(err)
-        return "dev"
-    }
-    return strings.TrimSpace(string(output))
+	cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
+	output, err := cmd.Output()
+	if err != nil {
+		return "dev"
+	}
+	return strings.TrimSpace(string(output))
 }
 
 func getGitCommit() string {
-    cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
-    output, err := cmd.Output()
-    if err != nil {
-		fmt.Println(err)
-        return "unknown"
-    }
-    return strings.TrimSpace(string(output))
+	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "unknown"
+	}
+	return strings.TrimSpace(string(output))
 }
 
 func (c *Config) updateMeta() {
-	version, commit  := getGitVersion(), getGitCommit()
+	version, commit := getGitVersion(), getGitCommit()
 
 	c.Meta.Version = version
 	c.Meta.Commit = commit

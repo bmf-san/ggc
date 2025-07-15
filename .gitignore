@@ -33,3 +33,6 @@ go.work.sum
 
 # ggc
 ggc
+
+# Compiled binaries from goreleaser
+dist/
