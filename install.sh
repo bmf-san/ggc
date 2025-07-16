@@ -232,36 +232,69 @@ setup_shell_completion() {
     local current_shell
     current_shell=$(basename "$SHELL" 2>/dev/null || echo "unknown")
 
-	local completion_line
-	completion_line=$(cat <<-'EOF'
-	# ggc completion loader
-	load_ggc_completion() {
-		local gopath completion_file
-		gopath=$(go env GOPATH 2>/dev/null)
-		if [ -z "$gopath" ]; then
-			return 1
-		fi
+    local bash_completion_line
+    bash_completion_line=$(cat <<-'EOF'
+# ggc completion loader
+load_ggc_completion() {
+	local gopath completion_file
+	gopath=$(go env GOPATH 2>/dev/null)
+	if [ -z "$gopath" ]; then
+		return 1
+	fi
 
-		for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash; do
-			if [ -f "$completion_file" ]; then
-				source "$completion_file"
-				return 0
-			fi
-		done
-
-		completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.bash" -path "*/tools/completions/*" 2>/dev/null | head -1)
-		if [ -n "$completion_file" ] && [ -f "$completion_file" ]; then
+	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash; do
+		if [ -f "$completion_file" ]; then
 			source "$completion_file"
 			return 0
 		fi
+	done
 
-		return 1
-	}
-
-	# Load completion if go is available
-	if command -v go >/dev/null 2>&1; then
-		load_ggc_completion
+	completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.bash" -path "*/tools/completions/*" 2>/dev/null | head -1)
+	if [ -n "$completion_file" ] && [ -f "$completion_file" ]; then
+		source "$completion_file"
+		return 0
 	fi
+
+	return 1
+}
+
+# Load completion if go is available
+if command -v go >/dev/null 2>&1; then
+	load_ggc_completion
+fi
+EOF
+)
+
+    local zsh_completion_line
+    zsh_completion_line=$(cat <<-'EOF'
+# ggc completion loader for zsh
+load_ggc_completion() {
+	local gopath completion_file
+	gopath=$(go env GOPATH 2>/dev/null)
+	if [ -z "$gopath" ]; then
+		return 1
+	fi
+
+	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.zsh; do
+		if [ -f "$completion_file" ]; then
+			source "$completion_file"
+			return 0
+		fi
+	done
+
+	completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.zsh" -path "*/tools/completions/*" 2>/dev/null | head -1)
+	if [ -n "$completion_file" ] && [ -f "$completion_file" ]; then
+		source "$completion_file"
+		return 0
+	fi
+
+	return 1
+}
+
+# Load completion if go is available
+if command -v go >/dev/null 2>&1; then
+	load_ggc_completion
+fi
 EOF
 )
     
@@ -279,7 +312,7 @@ EOF
             if [ -f "$bash_profile" ]; then
                 if ! grep -q "load_ggc_completion" "$bash_profile"; then
                     echo "" >> "$bash_profile"
-                    echo "$completion_line" >> "$bash_profile"
+                    echo "$bash_completion_line" >> "$bash_profile"
                     print_success "Added ggc completion to $bash_profile"
                     print_info "Restart your terminal or run 'source $bash_profile' to enable completion"
                 else
@@ -287,7 +320,7 @@ EOF
                 fi
             else
                 print_warning "Could not find $bash_profile. Please add the following manually:"
-                echo "$completion_line"
+                echo "$bash_completion_line"
             fi
             ;;
         zsh)
@@ -295,7 +328,7 @@ EOF
             if [ -f "$zsh_profile" ]; then
                 if ! grep -q "load_ggc_completion" "$zsh_profile"; then
                     echo "" >> "$zsh_profile"
-                    echo "$completion_line" >> "$zsh_profile"
+                    echo "$zsh_completion_line" >> "$zsh_profile"
                     print_success "Added ggc completion to $zsh_profile"
                     print_info "Restart your terminal or run 'source $zsh_profile' to enable completion"
                 else
@@ -303,7 +336,7 @@ EOF
                 fi
             else
                 print_warning "Could not find $zsh_profile. Please add the following manually:"
-                echo "$completion_line"
+                echo "$zsh_completion_line"
             fi
             ;;
         fish)
@@ -313,13 +346,8 @@ EOF
             ;;
         *)
             print_info "Shell completion setup for $current_shell not automated."
-            print_info "To enable shell completion, add the following to your shell profile:"
-            echo ""
-            echo "For Bash (~/.bashrc or ~/.bash_profile):"
-            echo "$completion_line"
-            echo ""
-            echo "For Zsh (~/.zshrc):"
-            echo "$completion_line"
+            print_info "To enable shell completion, run this ggc command and add the output to your shell profile:"
+            echo "ggc completion $current_shell"
             ;;
     esac
 }
