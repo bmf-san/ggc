@@ -67,14 +67,6 @@ func (s *Statuseer) getUpstreamStatus(branch string) string {
 
 // Status executes git status with the given arguments.
 func (s *Statuseer) Status(args []string) {
-	branch, err := s.gitClient.GetCurrentBranch()
-	if err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error getting current branch: %v\n", err)
-		return
-	}
-
-	upstreamStatus := s.getUpstreamStatus(branch)
-
 	var cmd *exec.Cmd
 	if len(args) == 0 {
 		// Add '-c color.status=always' to ensure colour showing up in 'less'
@@ -88,6 +80,13 @@ func (s *Statuseer) Status(args []string) {
 			return
 		}
 	}
+
+	branch, err := s.gitClient.GetCurrentBranch()
+	if err != nil {
+		_, _ = fmt.Fprintf(s.outputWriter, "Error getting current branch: %v\n", err)
+		return
+	}
+	upstreamStatus := s.getUpstreamStatus(branch)
 
 	if _, err := exec.LookPath("less"); err != nil {
 		// Fallback: If 'less' is not available, direct output to outputWriter

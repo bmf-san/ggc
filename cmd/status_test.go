@@ -119,8 +119,7 @@ func TestStatuseer_Status(t *testing.T) {
 		{
 			name: "status no args",
 			args: []string{},
-			expectedCmds: []string{"git rev-parse --abbrev-ref main@{upstream}", "git rev-list --left-right --count main...On branch main\nChanges not staged for commit:\n  modified:   modified_file.go\n\nUntracked files:\n  untracked_file.go",
-				"git -c color.status=always status"},
+			expectedCmds: []string{"git -c color.status=always status", "git rev-parse --abbrev-ref main@{upstream}", "git rev-list --left-right --count main...On branch main\nChanges not staged for commit:\n  modified:   modified_file.go\n\nUntracked files:\n  untracked_file.go"},
 			mockOutput:     []byte("On branch main\nChanges not staged for commit:\n  modified:   modified_file.go\n\nUntracked files:\n  untracked_file.go\n"),
 			mockError:      nil,
 			expectedOutput: "On branch main",
@@ -128,8 +127,7 @@ func TestStatuseer_Status(t *testing.T) {
 		{
 			name: "status short",
 			args: []string{"short"},
-			expectedCmds: []string{"git rev-parse --abbrev-ref main@{upstream}", "git rev-list --left-right --count main...M  modified_file.go\n?? untracked_file.go",
-				"git -c color.status=always status --short"},
+			expectedCmds: []string{"git -c color.status=always status --short", "git rev-parse --abbrev-ref main@{upstream}", "git rev-list --left-right --count main...M  modified_file.go\n?? untracked_file.go"},
 			mockOutput:     []byte("M  modified_file.go\n?? untracked_file.go\n"),
 			mockError:      nil,
 			expectedOutput: "M  modified_file.go",
