@@ -5,11 +5,14 @@ package git
 func (c *Client) ResetHardAndClean() error {
 	branch, err := c.GetCurrentBranch()
 	if err != nil {
-		return err
+		return NewError("reset hard and clean", "get current branch", err)
 	}
 	cmd := c.execCommand("git", "reset", "--hard", "origin/"+branch)
 	if err := cmd.Run(); err != nil {
-		return err
+		return NewError("reset hard and clean", "git reset --hard origin/"+branch, err)
 	}
-	return c.CleanDirs()
+	if err := c.CleanDirs(); err != nil {
+		return NewError("reset hard and clean", "clean directories", err)
+	}
+	return nil
 }
