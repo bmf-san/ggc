@@ -255,6 +255,62 @@ end
 
 This setup will automatically find the completion script regardless of the installed version.
 
+# References
+
+## Official Git Documentation
+- [Git Documentation](https://git-scm.com/docs) - Complete Git reference documentation
+- [Git Tutorial](https://git-scm.com/docs/gittutorial) - Official Git tutorial for beginners
+- [Git User Manual](https://git-scm.com/docs/user-manual) - Comprehensive Git user guide
+
+## Implemented Git Commands
+Below are the Git commands that ggc wraps, along with links to their official documentation:
+
+### File Operations
+- [`git add`](https://git-scm.com/docs/git-add) - Add file contents to the index
+- [`git clean`](https://git-scm.com/docs/git-clean) - Remove untracked files from the working tree
+
+### Branch Operations
+- [`git branch`](https://git-scm.com/docs/git-branch) - List, create, or delete branches
+- [`git checkout`](https://git-scm.com/docs/git-checkout) - Switch branches or restore working tree files
+
+### Commit Operations
+- [`git commit`](https://git-scm.com/docs/git-commit) - Record changes to the repository
+- [`git log`](https://git-scm.com/docs/git-log) - Show commit logs
+
+### Remote Operations
+- [`git push`](https://git-scm.com/docs/git-push) - Update remote refs along with associated objects
+- [`git pull`](https://git-scm.com/docs/git-pull) - Fetch from and integrate with another repository or a local branch
+- [`git fetch`](https://git-scm.com/docs/git-fetch) - Download objects and refs from another repository
+- [`git remote`](https://git-scm.com/docs/git-remote) - Manage set of tracked repositories
+
+### Repository State
+- [`git status`](https://git-scm.com/docs/git-status) - Show the working tree status
+- [`git diff`](https://git-scm.com/docs/git-diff) - Show changes between commits, commit and working tree, etc
+- [`git stash`](https://git-scm.com/docs/git-stash) - Stash the changes in a dirty working directory away
+
+### Configuration and Maintenance
+- [`git config`](https://git-scm.com/docs/git-config) - Get and set repository or global options
+- [`git tag`](https://git-scm.com/docs/git-tag) - Create, list, delete or verify a tag object signed with GPG
+- [`git rebase`](https://git-scm.com/docs/git-rebase) - Reapply commits on top of another base tip
+
+## Git Workflow Resources
+- [Git Workflow](https://git-scm.com/docs/gitworkflows) - Official Git workflow documentation
+- [Git Best Practices](https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows) - Branching workflows from Pro Git book
+- [Conventional Commits](https://www.conventionalcommits.org/) - Specification for commit message format
+- [Git Hooks](https://git-scm.com/docs/githooks) - Customizing Git with hooks
+
+## Related Tools and Resources
+- [Pro Git Book](https://git-scm.com/book) - Free online book about Git
+- [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf) - Quick reference for Git commands
+- [GitHub Git Handbook](https://guides.github.com/introduction/git-handbook/) - Introduction to Git and GitHub
+- [Atlassian Git Tutorials](https://www.atlassian.com/git/tutorials) - Comprehensive Git tutorials and guides
+
+## Alternative Git Tools
+- [lazygit](https://github.com/jesseduffield/lazygit) - Simple terminal UI for Git commands
+- [tig](https://jonas.github.io/tig/) - Text-mode interface for Git
+- [gitui](https://github.com/extrawurst/gitui) - Blazing fast terminal-ui for Git
+- [magit](https://magit.vc/) - Git interface for Emacs
+
 # Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.
