@@ -1,7 +1,6 @@
 package git
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -27,10 +26,3 @@ func NewError(op string, command string, err error) error {
 		Err:     err,
 	}
 }
-
-var (
-	// ErrCleanFiles is returned when cleaning files fails.
-	ErrCleanFiles = errors.New("failed to clean files")
-	// ErrCleanDirs is returned when cleaning directories fails.
-	ErrCleanDirs = errors.New("failed to clean directories")
-)
