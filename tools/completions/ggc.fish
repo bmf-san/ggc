@@ -8,7 +8,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean version hook diff status clean-interactive commit complete tag fetch log pull push rebase remote reset stash"
+complete -c ggc -f -a "add branch clean version restore hook diff status clean-interactive commit complete tag fetch log pull push rebase remote reset stash"
 
 # Branch subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout checkout-remote delete delete-merged list-local list-remote"
@@ -48,6 +48,9 @@ complete -c ggc -f -n "__fish_seen_subcommand_from tag" -a "create delete show l
 
 # Hook subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "list edit install uninstall enable disable"
+
+# Restore subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from restore" -a "staged"
 
 # Add command with file completion
 complete -c ggc -f -n "__fish_seen_subcommand_from add" -a "(__ggc_complete_files)"

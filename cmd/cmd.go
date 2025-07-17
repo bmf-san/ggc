@@ -28,6 +28,7 @@ type Executer interface {
 	Status(args []string)
 	Tag(args []string)
 	Clean(args []string)
+	Restore(args []string)
 	Interactive()
 }
 
@@ -54,6 +55,7 @@ type Cmd struct {
 	versioneer   *Versioneer
 	completer    *Completer
 	differ       *Differ
+	restoreer    *Restoreer
 	fetcher      *Fetcher
 }
 
@@ -82,6 +84,7 @@ func NewCmd() *Cmd {
 		versioneer:   NewVersioneer(),
 		completer:    NewCompleter(),
 		differ:       NewDiffer(),
+		restoreer:    NewRestoreer(),
 		fetcher:      NewFetcher(),
 	}
 }
@@ -129,6 +132,11 @@ func (c *Cmd) Tag(args []string) {
 // Diff executes the diff command with the given arguments.
 func (c *Cmd) Diff(args []string) {
 	c.differ.Diff(args)
+}
+
+// Restore executes the restore command with the given arguments.
+func (c *Cmd) Restore(args []string) {
+	c.restoreer.Restore(args)
 }
 
 // Version executes the version command with the given arguments.
@@ -238,6 +246,8 @@ func (c *Cmd) Route(args []string) {
 		c.fetcher.Fetch(args[1:])
 	case "diff":
 		c.differ.Diff(args[1:])
+	case "restore":
+		c.restoreer.Restore(args[1:])
 	default:
 		c.Help()
 	}

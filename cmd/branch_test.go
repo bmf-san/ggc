@@ -38,7 +38,28 @@ func (m *mockBranchGitClient) ListRemoteBranches() ([]string, error) {
 	return []string{"origin/main", "origin/feature/test"}, nil
 }
 
+// define other functions as nil except branch testing ones
 func (m *mockBranchGitClient) LogGraph() error {
+	return nil
+}
+
+func (m *mockBranchGitClient) RestoreAll() error {
+	return nil
+}
+
+func (m *mockBranchGitClient) RestoreAllStaged() error {
+	return nil
+}
+
+func (m *mockBranchGitClient) RestoreStaged(...string) error {
+	return nil
+}
+
+func (m *mockBranchGitClient) RestoreWorkingDir(...string) error {
+	return nil
+}
+
+func (m *mockBranchGitClient) RestoreFromCommit(string, ...string) error {
 	return nil
 }
 

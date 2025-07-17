@@ -208,6 +208,11 @@ ggc
 | `hook disable <hook>` | Disable a hook |
 | `hook uninstall <hook>` | Remove a hook |
 | `hook edit <hook>` | Edit a hook |
+| `restore <file>` | Restore file in working directory from index
+| `restore .` | Restore all files in working directory from index
+| `restore staged <file>` | Unstage file (restore from HEAD to index)
+| `restore staged .` | Unstage all files
+| `restore <commit> <file>` | Restore file from specific commit
 | `tag list` | List all tags |
 | `tag create <v>` | Create a tag |
 | `tag annotated <v> <msg>` | Create annotated tag |
@@ -271,6 +276,7 @@ Below are the Git commands that ggc wraps, along with links to their official do
 ### File Operations
 - [`git add`](https://git-scm.com/docs/git-add) - Add file contents to the index
 - [`git clean`](https://git-scm.com/docs/git-clean) - Remove untracked files from the working tree
+- [`git restore`](https://git-scm.com/docs/git-restore) - Restore files in the working tree
 
 ### Branch Operations
 - [`git branch`](https://git-scm.com/docs/git-branch) - List, create, or delete branches

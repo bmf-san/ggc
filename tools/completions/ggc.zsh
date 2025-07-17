@@ -32,6 +32,9 @@ _ggc() {
                 diff)
                     _ggc_diff
                     ;;
+                restore)
+                    _ggc_restore
+                    ;;
                 log)
                     _ggc_log
                     ;;
@@ -84,6 +87,7 @@ _ggc_commands() {
         'remote:Remote repository management'
         'reset:Reset changes'
         'stash:Stash changes'
+		'restore:Restore working tree files'
     )
     _describe 'commands' commands
 }
@@ -243,6 +247,14 @@ _ggc_config() {
         'get:Get configuration value'
     )
     _describe 'config subcommands' subcommands
+}
+
+_ggc_restore() {
+    local subcommands
+    subcommands=(
+        'staged:Restore staged files'
+    )
+    _describe 'restore subcommands' subcommands
 }
 
 _ggc_add() {

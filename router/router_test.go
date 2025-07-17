@@ -32,6 +32,8 @@ type mockExecuter struct {
 	configArgs        []string
 	hookerCalled      bool
 	hookerArgs        []string
+	restoreCalled     bool
+	restoreArgs       []string
 	interactiveCalled bool
 }
 
@@ -77,6 +79,11 @@ func (m *mockExecuter) Version(args []string) {
 func (m *mockExecuter) Diff(args []string) {
 	m.diffCalled = true
 	m.diffArgs = args
+}
+
+func (m *mockExecuter) Restore(args []string) {
+	m.restoreCalled = true
+	m.restoreArgs = args
 }
 
 func (m *mockExecuter) Tag(args []string) {
@@ -207,6 +214,24 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.hookerCalled {
 					t.Error("Hooker should be called")
+				}
+			},
+		},
+		{
+			name: "restore no args",
+			args: []string{"restore"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.restoreCalled {
+					t.Error("restore should be called")
+				}
+			},
+		},
+		{
+			name: "restore all",
+			args: []string{"restore", "."},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.restoreCalled {
+					t.Error("restore should be called")
 				}
 			},
 		},

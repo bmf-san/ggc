@@ -54,6 +54,11 @@ Main Commands:
   ggc remote add <n> <url>    Add remote
   ggc remote remove <n>       Remove remote
   ggc remote set-url <n> <url> Change remote URL
+  ggc restore <file>          Restore file in working directory from index
+  ggc restore .               Restore all files in working directory from index
+  ggc restore staged <file>   Unstage file (restore from HEAD to index)
+  ggc restore staged .        Unstage all files
+  ggc restore <commit> <file> Restore file from specific commit
   ggc version                 Show current ggc version
   ggc config                  Manage ggc configuration
   ggc hook                    Manage Git hooks
