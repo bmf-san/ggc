@@ -53,6 +53,8 @@ func (r *Router) Route(args []string) {
 		r.Executer.Version(args[1:])
 	case "clean":
 		r.Executer.Clean(args[1:])
+	case "restore":
+		r.Executer.Restore(args[1:])
 	default:
 		r.Executer.Help()
 	}

@@ -100,6 +100,26 @@ func (m *mockGitClient) CheckoutNewBranch(_ string) error {
 	return nil
 }
 
+func (m *mockGitClient) RestoreAll() error {
+	return nil
+}
+
+func (m *mockGitClient) RestoreAllStaged() error {
+	return nil
+}
+
+func (m *mockGitClient) RestoreStaged(...string) error {
+	return nil
+}
+
+func (m *mockGitClient) RestoreWorkingDir(...string) error {
+	return nil
+}
+
+func (m *mockGitClient) RestoreFromCommit(string, ...string) error {
+	return nil
+}
+
 type mockCmdGitClient struct {
 	git.Clienter
 	pullCalled bool

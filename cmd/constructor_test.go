@@ -159,6 +159,17 @@ func TestNewStatuseer(t *testing.T) {
 	}
 }
 
+func TestNewRestoreer(t *testing.T) {
+	restoreer := NewRestoreer()
+	if restoreer == nil {
+		t.Fatal("Expected Restoreer, got nil")
+	}
+	// Basic field checks
+	if restoreer.outputWriter == nil || restoreer.helper == nil || restoreer.execCommand == nil {
+		t.Error("Expected all fields to be initialized")
+	}
+}
+
 func TestNewTagger(t *testing.T) {
 	tagger := NewTagger()
 	if tagger == nil {
@@ -197,7 +208,7 @@ func TestNewCmd_Constructor(t *testing.T) {
 		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
 		cmd.completer == nil || cmd.fetcher == nil || cmd.statuseer == nil ||
 		cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil ||
-		cmd.configureer == nil || cmd.hooker == nil {
+		cmd.configureer == nil || cmd.hooker == nil || cmd.restoreer == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }
