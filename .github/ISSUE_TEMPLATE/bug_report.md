@@ -26,6 +26,7 @@ If applicable, add screenshots to help explain your problem.
 - OS: [e.g. macOS 12.0]
 - Go Version: [e.g. 1.21.0]
 - ggc Version: [e.g. v1.0.0]
+- git Version (run `git --version`): [e.g. 2.30.0]
 
 ## Additional Context
 Add any other context about the problem here.
