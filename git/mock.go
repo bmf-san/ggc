@@ -23,7 +23,6 @@ type MockClient struct {
 	DeleteMergedBranchFunc func() error
 	GetGitStatusFunc       func() (string, error)
 	GetBranchNameFunc      func() (string, error)
-	StashPullPopFunc       func() error
 }
 
 // GetCurrentBranch is a mock of GetCurrentBranch.
@@ -117,9 +116,4 @@ func (m *MockClient) GetGitStatus() (string, error) {
 // GetBranchName is a mock of GetBranchName.
 func (m *MockClient) GetBranchName() (string, error) {
 	return m.GetBranchNameFunc()
-}
-
-// StashPullPop is a mock of StashPullPop.
-func (m *MockClient) StashPullPop() error {
-	return m.StashPullPopFunc()
 }

@@ -4,17 +4,6 @@ import (
 	"testing"
 )
 
-func TestNewAddCommitPusher(t *testing.T) {
-	pusher := NewAddCommitPusher()
-	if pusher == nil {
-		t.Fatal("Expected AddCommitPusher, got nil")
-	}
-	// Basic field checks
-	if pusher.execCommand == nil || pusher.inputReader == nil || pusher.outputWriter == nil {
-		t.Error("Expected all fields to be initialized")
-	}
-}
-
 func TestNewBrancher(t *testing.T) {
 	brancher := NewBrancher()
 	if brancher == nil {
@@ -34,17 +23,6 @@ func TestNewCommitter(t *testing.T) {
 	}
 	// Basic field checks
 	if committer.gitClient == nil || committer.outputWriter == nil || committer.helper == nil || committer.execCommand == nil {
-		t.Error("Expected all fields to be initialized")
-	}
-}
-
-func TestNewCommitPusher(t *testing.T) {
-	pusher := NewCommitPusher()
-	if pusher == nil {
-		t.Fatal("Expected CommitPusher, got nil")
-	}
-	// Basic field checks
-	if pusher.execCommand == nil || pusher.inputReader == nil || pusher.outputWriter == nil {
 		t.Error("Expected all fields to be initialized")
 	}
 }
@@ -93,17 +71,6 @@ func TestNewPuller(t *testing.T) {
 	}
 }
 
-func TestNewPullRebasePusher(t *testing.T) {
-	pusher := NewPullRebasePusher()
-	if pusher == nil {
-		t.Fatal("Expected PullRebasePusher, got nil")
-	}
-	// Basic field checks
-	if pusher.gitClient == nil || pusher.outputWriter == nil {
-		t.Error("Expected all fields to be initialized")
-	}
-}
-
 func TestNewPusher(t *testing.T) {
 	pusher := NewPusher()
 	if pusher == nil {
@@ -144,17 +111,6 @@ func TestNewResetter(t *testing.T) {
 	}
 	// Basic field checks
 	if resetter.outputWriter == nil || resetter.helper == nil || resetter.execCommand == nil {
-		t.Error("Expected all fields to be initialized")
-	}
-}
-
-func TestNewResetCleaner(t *testing.T) {
-	cleaner := NewResetCleaner()
-	if cleaner == nil {
-		t.Fatal("Expected ResetCleaner, got nil")
-	}
-	// Basic field checks
-	if cleaner.outputWriter == nil || cleaner.helper == nil || cleaner.execCommand == nil {
 		t.Error("Expected all fields to be initialized")
 	}
 }
@@ -203,6 +159,17 @@ func TestNewStatuseer(t *testing.T) {
 	}
 }
 
+func TestNewRestoreer(t *testing.T) {
+	restoreer := NewRestoreer()
+	if restoreer == nil {
+		t.Fatal("Expected Restoreer, got nil")
+	}
+	// Basic field checks
+	if restoreer.outputWriter == nil || restoreer.helper == nil || restoreer.execCommand == nil {
+		t.Error("Expected all fields to be initialized")
+	}
+}
+
 func TestNewTagger(t *testing.T) {
 	tagger := NewTagger()
 	if tagger == nil {
@@ -225,17 +192,6 @@ func TestNewVersioneer(t *testing.T) {
 	}
 }
 
-func TestNewStashPullPopper(t *testing.T) {
-	popper := NewStashPullPopper()
-	if popper == nil {
-		t.Fatal("Expected StashPullPopper, got nil")
-	}
-	// Basic field checks
-	if popper.outputWriter == nil || popper.helper == nil || popper.execCommand == nil {
-		t.Error("Expected all fields to be initialized")
-	}
-}
-
 func TestNewCmd_Constructor(t *testing.T) {
 	cmd := NewCmd()
 	if cmd == nil {
@@ -248,12 +204,11 @@ func TestNewCmd_Constructor(t *testing.T) {
 	// Verify all command handlers are initialized
 	if cmd.brancher == nil || cmd.committer == nil || cmd.logger == nil ||
 		cmd.puller == nil || cmd.pusher == nil || cmd.resetter == nil ||
-		cmd.cleaner == nil || cmd.pullRebasePusher == nil || cmd.adder == nil ||
+		cmd.cleaner == nil || cmd.adder == nil ||
 		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
-		cmd.commitPusher == nil || cmd.addCommitPusher == nil || cmd.completer == nil ||
-		cmd.fetcher == nil || cmd.stashPullPopper == nil || cmd.resetCleaner == nil ||
-		cmd.statuseer == nil || cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil ||
-		cmd.configureer == nil || cmd.hooker == nil {
+		cmd.completer == nil || cmd.fetcher == nil || cmd.statuseer == nil ||
+		cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil ||
+		cmd.configureer == nil || cmd.hooker == nil || cmd.restoreer == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }

@@ -5,6 +5,9 @@
 [![GitHub license](https://img.shields.io/github/license/bmf-san/ggc)](https://github.com/bmf-san/ggc/blob/main/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/bmf-san/ggc.svg)](https://pkg.go.dev/github.com/bmf-san/ggc)
 [![Sourcegraph](https://sourcegraph.com/github.com/bmf-san/ggc/-/badge.svg)](https://sourcegraph.com/github.com/bmf-san/ggc?badge)
+[![CI](https://github.com/bmf-san/ggc/actions/workflows/ci.yml/badge.svg)](https://github.com/bmf-san/ggc/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/bmf-san/ggc/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/bmf-san/ggc/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/bmf-san/ggc/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/bmf-san/ggc/actions/workflows/dependabot/dependabot-updates)
 
 
 A Go Git CLI.
@@ -225,7 +228,6 @@ ggc
 | `remote add <name> <url>` | Add a new remote |
 | `remote remove <name>` | Remove a remote |
 | `remote set-url <name> <url>` | Change remote URL |
-| `reset-clean` | Reset and clean untracked changes |
 | `config list` | List config variables |
 | `config get <key>` | Get value for config key |
 | `config set <key> <value>` | Set config key and value |
@@ -235,6 +237,11 @@ ggc
 | `hook disable <hook>` | Disable a hook |
 | `hook uninstall <hook>` | Remove a hook |
 | `hook edit <hook>` | Edit a hook |
+| `restore <file>` | Restore file in working directory from index
+| `restore .` | Restore all files in working directory from index
+| `restore staged <file>` | Unstage file (restore from HEAD to index)
+| `restore staged .` | Unstage all files
+| `restore <commit> <file>` | Restore file from specific commit
 | `tag list` | List all tags |
 | `tag create <v>` | Create a tag |
 | `tag annotated <v> <msg>` | Create annotated tag |
@@ -245,12 +252,8 @@ ggc
 | `stash` | Stash current changes |
 | `stash pop` | Apply and remove latest stash |
 | `stash drop` | Remove latest stash |
-| `stash-pull-pop` | Stash, pull, and pop |
 | `status short` | Show concise status |
 | `version` | Show current ggc version |
-| `add-commit-push` | Add, commit, and push |
-| `commit-push-interactive` | Commit and push interactively |
-| `pull-rebase-push` | Pull with rebase and push |
 
 ## Directory Structure
 
@@ -274,8 +277,8 @@ fi
 ### Zsh
 Add the following to your `~/.zshrc`:
 ```zsh
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.bash
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.zsh" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc@*/tools/completions/ggc.zsh
 fi
 ```
 
@@ -288,6 +291,63 @@ end
 ```
 
 This setup will automatically find the completion script regardless of the installed version.
+
+# References
+
+## Official Git Documentation
+- [Git Documentation](https://git-scm.com/docs) - Complete Git reference documentation
+- [Git Tutorial](https://git-scm.com/docs/gittutorial) - Official Git tutorial for beginners
+- [Git User Manual](https://git-scm.com/docs/user-manual) - Comprehensive Git user guide
+
+## Implemented Git Commands
+Below are the Git commands that ggc wraps, along with links to their official documentation:
+
+### File Operations
+- [`git add`](https://git-scm.com/docs/git-add) - Add file contents to the index
+- [`git clean`](https://git-scm.com/docs/git-clean) - Remove untracked files from the working tree
+- [`git restore`](https://git-scm.com/docs/git-restore) - Restore files in the working tree
+
+### Branch Operations
+- [`git branch`](https://git-scm.com/docs/git-branch) - List, create, or delete branches
+- [`git checkout`](https://git-scm.com/docs/git-checkout) - Switch branches or restore working tree files
+
+### Commit Operations
+- [`git commit`](https://git-scm.com/docs/git-commit) - Record changes to the repository
+- [`git log`](https://git-scm.com/docs/git-log) - Show commit logs
+
+### Remote Operations
+- [`git push`](https://git-scm.com/docs/git-push) - Update remote refs along with associated objects
+- [`git pull`](https://git-scm.com/docs/git-pull) - Fetch from and integrate with another repository or a local branch
+- [`git fetch`](https://git-scm.com/docs/git-fetch) - Download objects and refs from another repository
+- [`git remote`](https://git-scm.com/docs/git-remote) - Manage set of tracked repositories
+
+### Repository State
+- [`git status`](https://git-scm.com/docs/git-status) - Show the working tree status
+- [`git diff`](https://git-scm.com/docs/git-diff) - Show changes between commits, commit and working tree, etc
+- [`git stash`](https://git-scm.com/docs/git-stash) - Stash the changes in a dirty working directory away
+
+### Configuration and Maintenance
+- [`git config`](https://git-scm.com/docs/git-config) - Get and set repository or global options
+- [`git tag`](https://git-scm.com/docs/git-tag) - Create, list, delete or verify a tag object signed with GPG
+- [`git rebase`](https://git-scm.com/docs/git-rebase) - Reapply commits on top of another base tip
+
+## Git Workflow Resources
+- [Git Workflow](https://git-scm.com/docs/gitworkflows) - Official Git workflow documentation
+- [Git Best Practices](https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows) - Branching workflows from Pro Git book
+- [Conventional Commits](https://www.conventionalcommits.org/) - Specification for commit message format
+- [Git Hooks](https://git-scm.com/docs/githooks) - Customizing Git with hooks
+
+## Related Tools and Resources
+- [Pro Git Book](https://git-scm.com/book) - Free online book about Git
+- [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf) - Quick reference for Git commands
+- [GitHub Git Handbook](https://guides.github.com/introduction/git-handbook/) - Introduction to Git and GitHub
+- [Atlassian Git Tutorials](https://www.atlassian.com/git/tutorials) - Comprehensive Git tutorials and guides
+
+## Alternative Git Tools
+- [lazygit](https://github.com/jesseduffield/lazygit) - Simple terminal UI for Git commands
+- [tig](https://jonas.github.io/tig/) - Text-mode interface for Git
+- [gitui](https://github.com/extrawurst/gitui) - Blazing fast terminal-ui for Git
+- [magit](https://magit.vc/) - Git interface for Emacs
 
 # Contributing
 

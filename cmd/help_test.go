@@ -151,32 +151,6 @@ func TestShowAddHelp(t *testing.T) {
 	}
 }
 
-func TestShowStashPullPopHelp(t *testing.T) {
-	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
-
-	helper.ShowStashPullPopHelp()
-
-	if buf.Len() == 0 {
-		t.Error("Expected help message, got empty output")
-	}
-}
-
-func TestShowResetCleanHelp(t *testing.T) {
-	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
-
-	helper.ShowResetCleanHelp()
-
-	if buf.Len() == 0 {
-		t.Error("Expected help message, got empty output")
-	}
-}
-
 func TestShowListBranchesHelp(t *testing.T) {
 	var buf bytes.Buffer
 	helper := &Helper{

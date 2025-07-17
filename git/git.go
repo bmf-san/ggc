@@ -29,7 +29,11 @@ type Clienter interface {
 	CleanDirs() error
 	GetGitStatus() (string, error)
 	GetBranchName() (string, error)
-	StashPullPop() error
+	RestoreWorkingDir(paths ...string) error
+	RestoreStaged(paths ...string) error
+	RestoreFromCommit(commit string, paths ...string) error
+	RestoreAll() error
+	RestoreAllStaged() error
 }
 
 // NewClient creates a new Client.

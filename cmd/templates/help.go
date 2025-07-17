@@ -27,7 +27,6 @@ Main Commands:
   ggc add <file>              Stage file(s)
   ggc add .                   Stage all changes
   ggc add -p                  Stage changes interactively
-  ggc add-commit-push         Add, commit, and push all at once
   ggc branch current          Show current branch name
   ggc branch checkout         Interactive branch switch
   ggc branch checkout-remote  Create and checkout new local branch from remote
@@ -40,7 +39,6 @@ Main Commands:
   ggc commit amend --no-edit  Amend without editing commit message
   ggc commit allow-empty      Create empty commit
   ggc commit tmp              Temporary commit
-  ggc commit-push-interactive Interactive add/commit/push
   ggc complete <shell>        Generate shell completion script (bash|zsh)
   ggc fetch --prune          Fetch and remove stale remote-tracking branches
   ggc diff                    Show changes between commits, commit and working tree
@@ -49,7 +47,6 @@ Main Commands:
   ggc log graph               Show log with graph
   ggc pull current            Pull current branch
   ggc pull rebase             Pull with rebase
-  ggc pull-rebase-push        Pull with rebase and push all at once
   ggc push current            Push current branch
   ggc push force              Force push current branch
   ggc rebase                  Rebase current branch
@@ -57,13 +54,16 @@ Main Commands:
   ggc remote add <n> <url>    Add remote
   ggc remote remove <n>       Remove remote
   ggc remote set-url <n> <url> Change remote URL
+  ggc restore <file>          Restore file in working directory from index
+  ggc restore .               Restore all files in working directory from index
+  ggc restore staged <file>   Unstage file (restore from HEAD to index)
+  ggc restore staged .        Unstage all files
+  ggc restore <commit> <file> Restore file from specific commit
   ggc version                 Show current ggc version
   ggc config                  Manage ggc configuration
   ggc hook                    Manage Git hooks
   ggc reset                   Reset and clean
-  ggc reset-clean            Reset to HEAD and clean untracked files
   ggc stash                   Stash changes
-  ggc stash-pull-pop          Stash, pull, and pop all at once
   ggc status                  Show the working tree status
 `
 

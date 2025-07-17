@@ -185,6 +185,21 @@ func (h *Helper) ShowConfigHelp() {
 	})
 }
 
+// ShowRestoreHelp shows help message for restore command.
+func (h *Helper) ShowRestoreHelp() {
+	h.ShowCommandHelp(templates.HelpData{
+		Usage:       "ggc restore [command]",
+		Description: "Restore working tree files",
+		Examples: []string{
+			"restore <file>                # Restore file in working directory from index",
+			"restore <commit> <file>       # Restore file from specific commit",
+			"restore .                     # Restore all files in working directory from index",
+			"restore staged <file>         # Unstage file (restore from HEAD to index)",
+			"restore staged .              # Unstage all files",
+		},
+	})
+}
+
 // ShowStatusHelp shows help message for status command.
 func (h *Helper) ShowStatusHelp() {
 	h.ShowCommandHelp(templates.HelpData{
@@ -246,28 +261,6 @@ func (h *Helper) ShowResetHelp() {
 		Description: "Reset and clean",
 		Examples: []string{
 			"ggc reset   # Reset and clean",
-		},
-	})
-}
-
-// ShowStashPullPopHelp shows help message for stash-pull-pop command.
-func (h *Helper) ShowStashPullPopHelp() {
-	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc stash-pull-pop",
-		Description: "Stash changes, pull from remote, and pop stashed changes",
-		Examples: []string{
-			"ggc stash-pull-pop   # Stash changes, pull from remote, and pop stashed changes",
-		},
-	})
-}
-
-// ShowResetCleanHelp shows help message for reset-clean command.
-func (h *Helper) ShowResetCleanHelp() {
-	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc reset-clean",
-		Description: "Reset to HEAD and clean untracked files and directories",
-		Examples: []string{
-			"ggc reset-clean   # Reset to HEAD and clean untracked files and directories",
 		},
 	})
 }

@@ -53,8 +53,6 @@ var commands = []string{
 	"clean files",
 	"clean dirs",
 	"clean-interactive",
-	"reset-clean",
-	"commit-push-interactive",
 	"stash trash",
 	"status",
 	"status short",
@@ -63,9 +61,6 @@ var commands = []string{
 	"remote add <n> <url>",
 	"remote remove <n>",
 	"remote set-url <n> <url>",
-	"add-commit-push",
-	"pull-rebase-push",
-	"stash-pull-pop",
 	"quit",
 }
 

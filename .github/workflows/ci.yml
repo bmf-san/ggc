@@ -3,16 +3,25 @@ name: CI
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go-version: ['1.24.4']
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.4'
+          go-version: ${{ matrix.go-version }}
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -36,7 +45,16 @@ jobs:
       - name: Test with coverage
         run: make cover
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5.4.3
+        with:
+          fail_ci_if_error: true
+          file: ./coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
       - name: Check coverage threshold
+        if: matrix.os == 'ubuntu-latest'
         run: |
           total=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
           threshold=80.0

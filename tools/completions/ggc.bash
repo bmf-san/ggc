@@ -7,7 +7,7 @@ _ggc()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
 
-    opts="add add-commit-push branch clean version config hook diff status clean-interactive commit commit-push-interactive complete tag fetch log pull pull-rebase-push push rebase remote reset reset-clean stash stash-pull-pop"
+    opts="add branch clean version config hook restore diff status clean-interactive commit complete tag fetch log pull push rebase remote reset stash"
 
     case ${prev} in
         branch)
@@ -72,6 +72,11 @@ _ggc()
             ;;
         config)
             subopts="list set get"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        restore)
+            subopts="staged"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

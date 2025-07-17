@@ -21,25 +21,29 @@ func (m *mockCompleteGitClient) ListLocalBranches() ([]string, error) {
 	return []string{"main", "feature/test"}, nil
 }
 
-// Implement other required methods to satisfy git.Clienter interface
-func (m *mockCompleteGitClient) GetCurrentBranch() (string, error)     { return "main", nil }
-func (m *mockCompleteGitClient) GetGitStatus() (string, error)         { return "", nil }
-func (m *mockCompleteGitClient) GetBranchName() (string, error)        { return "main", nil }
-func (m *mockCompleteGitClient) ListRemoteBranches() ([]string, error) { return nil, nil }
-func (m *mockCompleteGitClient) AddFiles(_ []string) error             { return nil }
-func (m *mockCompleteGitClient) CommitAllowEmpty() error               { return nil }
-func (m *mockCompleteGitClient) CommitTmp() error                      { return nil }
-func (m *mockCompleteGitClient) Commit(_ string) error                 { return nil }
-func (m *mockCompleteGitClient) Push(_ bool) error                     { return nil }
-func (m *mockCompleteGitClient) Pull(_ bool) error                     { return nil }
-func (m *mockCompleteGitClient) LogSimple() error                      { return nil }
-func (m *mockCompleteGitClient) LogGraph() error                       { return nil }
-func (m *mockCompleteGitClient) ResetHardAndClean() error              { return nil }
-func (m *mockCompleteGitClient) CleanFiles() error                     { return nil }
-func (m *mockCompleteGitClient) CleanDirs() error                      { return nil }
-func (m *mockCompleteGitClient) CheckoutNewBranch(_ string) error      { return nil }
-func (m *mockCompleteGitClient) StashPullPop() error                   { return nil }
-func (m *mockCompleteGitClient) FetchPrune() error                     { return nil }
+// Implement other required methods to satisfy git Clienter interface
+func (m *mockCompleteGitClient) GetCurrentBranch() (string, error)         { return "main", nil }
+func (m *mockCompleteGitClient) GetGitStatus() (string, error)             { return "", nil }
+func (m *mockCompleteGitClient) GetBranchName() (string, error)            { return "main", nil }
+func (m *mockCompleteGitClient) ListRemoteBranches() ([]string, error)     { return nil, nil }
+func (m *mockCompleteGitClient) AddFiles(_ []string) error                 { return nil }
+func (m *mockCompleteGitClient) CommitAllowEmpty() error                   { return nil }
+func (m *mockCompleteGitClient) CommitTmp() error                          { return nil }
+func (m *mockCompleteGitClient) Commit(_ string) error                     { return nil }
+func (m *mockCompleteGitClient) Push(_ bool) error                         { return nil }
+func (m *mockCompleteGitClient) Pull(_ bool) error                         { return nil }
+func (m *mockCompleteGitClient) LogSimple() error                          { return nil }
+func (m *mockCompleteGitClient) LogGraph() error                           { return nil }
+func (m *mockCompleteGitClient) ResetHardAndClean() error                  { return nil }
+func (m *mockCompleteGitClient) CleanFiles() error                         { return nil }
+func (m *mockCompleteGitClient) CleanDirs() error                          { return nil }
+func (m *mockCompleteGitClient) CheckoutNewBranch(_ string) error          { return nil }
+func (m *mockCompleteGitClient) FetchPrune() error                         { return nil }
+func (m *mockCompleteGitClient) RestoreAll() error                         { return nil }
+func (m *mockCompleteGitClient) RestoreAllStaged() error                   { return nil }
+func (m *mockCompleteGitClient) RestoreStaged(...string) error             { return nil }
+func (m *mockCompleteGitClient) RestoreWorkingDir(...string) error         { return nil }
+func (m *mockCompleteGitClient) RestoreFromCommit(string, ...string) error { return nil }
 
 func TestCompleter_Complete_Branch(t *testing.T) {
 	// Capture stdout

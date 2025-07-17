@@ -34,10 +34,6 @@ func (m *mockCleanGitClient) LogGraph() error {
 	return nil
 }
 
-func (m *mockCleanGitClient) StashPullPop() error {
-	return nil
-}
-
 func TestCleaner_Clean(t *testing.T) {
 	tests := []struct {
 		name           string

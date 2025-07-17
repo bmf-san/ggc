@@ -5,35 +5,36 @@ import (
 )
 
 type mockExecuter struct {
-	helpCalled           bool
-	branchCalled         bool
-	branchArgs           []string
-	commitCalled         bool
-	commitArgs           []string
-	logCalled            bool
-	logArgs              []string
-	diffCalled           bool
-	diffArgs             []string
-	statusCalled         bool
-	statusArgs           []string
-	pullCalled           bool
-	pullArgs             []string
-	pushCalled           bool
-	pushArgs             []string
-	resetCalled          bool
-	resetArgs            []string
-	tagCalled            bool
-	tagArgs              []string
-	versionCalled        bool
-	versionArgs          []string
-	cleanCalled          bool
-	cleanArgs            []string
-	configCalled         bool
-	configArgs           []string
-	hookerCalled         bool
-	hookerArgs           []string
-	pullRebasePushCalled bool
-	interactiveCalled    bool
+	helpCalled        bool
+	branchCalled      bool
+	branchArgs        []string
+	commitCalled      bool
+	commitArgs        []string
+	logCalled         bool
+	logArgs           []string
+	diffCalled        bool
+	diffArgs          []string
+	statusCalled      bool
+	statusArgs        []string
+	pullCalled        bool
+	pullArgs          []string
+	pushCalled        bool
+	pushArgs          []string
+	resetCalled       bool
+	resetArgs         []string
+	tagCalled         bool
+	tagArgs           []string
+	versionCalled     bool
+	versionArgs       []string
+	cleanCalled       bool
+	cleanArgs         []string
+	configCalled      bool
+	configArgs        []string
+	hookerCalled      bool
+	hookerArgs        []string
+	restoreCalled     bool
+	restoreArgs       []string
+	interactiveCalled bool
 }
 
 func (m *mockExecuter) Help() {
@@ -80,6 +81,11 @@ func (m *mockExecuter) Diff(args []string) {
 	m.diffArgs = args
 }
 
+func (m *mockExecuter) Restore(args []string) {
+	m.restoreCalled = true
+	m.restoreArgs = args
+}
+
 func (m *mockExecuter) Tag(args []string) {
 	m.tagCalled = true
 	m.tagArgs = args
@@ -103,10 +109,6 @@ func (m *mockExecuter) Reset(args []string) {
 func (m *mockExecuter) Clean(args []string) {
 	m.cleanCalled = true
 	m.cleanArgs = args
-}
-
-func (m *mockExecuter) PullRebasePush() {
-	m.pullRebasePushCalled = true
 }
 
 func (m *mockExecuter) Interactive() {
@@ -212,6 +214,24 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.hookerCalled {
 					t.Error("Hooker should be called")
+				}
+			},
+		},
+		{
+			name: "restore no args",
+			args: []string{"restore"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.restoreCalled {
+					t.Error("restore should be called")
+				}
+			},
+		},
+		{
+			name: "restore all",
+			args: []string{"restore", "."},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.restoreCalled {
+					t.Error("restore should be called")
 				}
 			},
 		},
@@ -335,15 +355,6 @@ func TestRouter(t *testing.T) {
 				}
 				if len(m.cleanArgs) != 1 || m.cleanArgs[0] != "files" {
 					t.Errorf("unexpected clean args: got %v", m.cleanArgs)
-				}
-			},
-		},
-		{
-			name: "pull-rebase-push",
-			args: []string{"pull-rebase-push"},
-			validate: func(t *testing.T, m *mockExecuter) {
-				if !m.pullRebasePushCalled {
-					t.Error("PullRebasePush should be called")
 				}
 			},
 		},
