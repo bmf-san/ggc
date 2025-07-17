@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -542,4 +543,91 @@ func TestTypeConversion(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when setting invalid type")
 	}
+}
+
+func TestConfig_Validate(t *testing.T) {
+	t.Run("Valid config", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Default.Branch = "main"
+		cfg.Default.Editor = "vim"
+		cfg.Default.MergeTool = "meld"
+		cfg.UI.Color = true
+		cfg.UI.Pager = false
+		cfg.Behavior.AutoPush = true
+		cfg.Behavior.ConfirmDestructive = "simple"
+		cfg.Behavior.AutoFetch = true
+		cfg.Behavior.StashBeforeSwitch = true
+		cfg.Aliases = map[string]string{"co": "checkout"}
+		cfg.Integration.Github.Token = "ghp_1234567890asdflkasfdasf"
+		cfg.Integration.Github.DefaultRemote = "origin"
+		cfg.Integration.Gitlab.Token = "glpat-abc123asdlfkasjdflasfdasdf"
+
+		err := cfg.Validate()
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("Invalid confirm-destructive", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Behavior.ConfirmDestructive = "maybe"
+		cfg.Default.Branch = "main"
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid value") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Invalid alias name", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Behavior.ConfirmDestructive = "never"
+		cfg.Default.Branch = "main"
+		cfg.Default.Editor = "vim"
+		cfg.Default.Branch = "main"
+		cfg.Aliases = map[string]string{"invalid alias": "checkout"}
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid value") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Invalid GitHub token", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Behavior.ConfirmDestructive = "always"
+		cfg.Default.Editor = "vim"
+		cfg.Integration.Github.Token = "bad-token"
+		cfg.Default.Branch = "main"
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid value") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Invalid GitLab token", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Behavior.ConfirmDestructive = "always"
+		cfg.Default.Editor = "vim"
+		cfg.Integration.Gitlab.Token = "bad-token"
+		cfg.Default.Branch = "main"
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid value") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
 }
