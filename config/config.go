@@ -65,6 +65,109 @@ func NewConfigManager() *Manager {
 	}
 }
 
+// ValidationError creates a new error manager for validation operations
+type ValidationError struct {
+	Field   string
+	Value   any
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("invalid value for '%s': %v (%s)", e.Field, e.Value, e.Message)
+}
+
+// Validator creates an interface for validating config
+type Validator interface {
+	Validate() error
+}
+
+func (c *Config) validateBranch() error {
+	branch := c.Default.Branch
+	if strings.TrimSpace(branch) == "" || strings.Contains(branch, " ") {
+		return &ValidationError{"default.branch", branch, "must not contain spaces or be empty"}
+	}
+	return nil
+}
+
+func (c *Config) validateEditor() error {
+	editor := c.Default.Editor
+	_, err := exec.LookPath(editor)
+	if err != nil {
+		return &ValidationError{"default.editor", editor, "command not found in PATH"}
+	}
+	return nil
+}
+
+func (c *Config) validateConfirmDestructive() error {
+	val := c.Behavior.ConfirmDestructive
+	valid := map[string]bool{"simple": true, "always": true, "never": true}
+	if !valid[val] {
+		return &ValidationError{"behavior.confirm-destructive", val, "must be one of: simple, always, never"}
+	}
+	return nil
+}
+
+func (c *Config) validateIntegrationTokens() error {
+	ghToken := c.Integration.Github.Token
+	if ghToken != "" && !strings.HasPrefix(ghToken, "ghp_") {
+		return &ValidationError{
+			Field:   "integration.github.token",
+			Value:   ghToken,
+			Message: "GitHub token must start with 'ghp_'",
+		}
+	}
+
+	glToken := c.Integration.Gitlab.Token
+	if glToken != "" && len(glToken) < 20 {
+		return &ValidationError{
+			Field:   "integration.gitlab.token",
+			Value:   glToken,
+			Message: "GitLab token seems too short to be valid",
+		}
+	}
+
+	if remote := c.Integration.Github.DefaultRemote; remote != "" {
+		if strings.Contains(remote, " ") || strings.Contains(remote, "/") {
+			return &ValidationError{
+				Field:   "integration.github.default-remote",
+				Value:   remote,
+				Message: "Default remote must be a valid Git remote name (no spaces or slashes)",
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *Config) validateAliases() error {
+	for name := range c.Aliases {
+		if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
+			return &ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
+		}
+	}
+	return nil
+}
+
+// Validate is a function that handles validation operations
+func (c *Config) Validate() error {
+	if err := c.validateBranch(); err != nil {
+		return err
+	}
+	if err := c.validateEditor(); err != nil {
+		return err
+	}
+	if err := c.validateConfirmDestructive(); err != nil {
+		return err
+	}
+	if err := c.validateIntegrationTokens(); err != nil {
+		return err
+	}
+	if err := c.validateAliases(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func getGitVersion() string {
 	cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
 	output, err := cmd.Output()
@@ -147,6 +250,9 @@ func (cm *Manager) Load() error {
 		}
 	}
 
+	if err := cm.config.Validate(); err != nil {
+		return err
+	}
 	cm.configPath = paths[0]
 	return nil
 }
@@ -298,6 +404,9 @@ func (cm *Manager) Save() error {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
+	if err := cm.config.Validate(); err != nil {
+		return fmt.Errorf("cannot save invalid config: %w", err)
+	}
 	return cm.syncToGitConfig()
 }
 
@@ -309,6 +418,9 @@ func (cm *Manager) Get(key string) (any, error) {
 // Set sets a configuration value by key path
 func (cm *Manager) Set(key string, value any) error {
 	if err := cm.setValueByPath(cm.config, key, value); err != nil {
+		return err
+	}
+	if err := cm.config.Validate(); err != nil {
 		return err
 	}
 	return cm.Save()
