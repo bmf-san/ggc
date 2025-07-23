@@ -17,7 +17,7 @@ type mockTerminal struct {
 	shouldFailRest bool
 }
 
-func (m *mockTerminal) makeRaw(fd int) (*term.State, error) {
+func (m *mockTerminal) makeRaw(_ int) (*term.State, error) {
 	m.makeRawCalled = true
 	if m.shouldFailRaw {
 		return nil, fmt.Errorf("mock makeRaw error")
@@ -25,7 +25,7 @@ func (m *mockTerminal) makeRaw(fd int) (*term.State, error) {
 	return &term.State{}, nil
 }
 
-func (m *mockTerminal) restore(fd int, state *term.State) error {
+func (m *mockTerminal) restore(_ int, _ *term.State) error {
 	m.restoreCalled = true
 	if m.shouldFailRest {
 		return fmt.Errorf("mock restore error")

@@ -114,6 +114,21 @@ func InteractiveUI() []string {
 	return ui.Run()
 }
 
+// writeError writes an error message to stderr
+func (ui *UI) writeError(format string, a ...interface{}) {
+	_, _ = fmt.Fprintf(ui.stderr, format+"\n", a...)
+}
+
+// write writes a message to stdout
+func (ui *UI) write(format string, a ...interface{}) {
+	_, _ = fmt.Fprintf(ui.stdout, format, a...)
+}
+
+// writeln writes a message with newline to stdout
+func (ui *UI) writeln(format string, a ...interface{}) {
+	_, _ = fmt.Fprintf(ui.stdout, format+"\n", a...)
+}
+
 // Run executes the interactive UI
 func (ui *UI) Run() []string {
 	// Only set raw mode if stdin is a terminal
@@ -123,12 +138,12 @@ func (ui *UI) Run() []string {
 		var err error
 		oldState, err = ui.term.makeRaw(fd)
 		if err != nil {
-			fmt.Fprintln(ui.stderr, "Failed to set terminal to raw mode:", err)
+			ui.writeError("Failed to set terminal to raw mode: %v", err)
 			return nil
 		}
 		defer func() {
 			if err := ui.term.restore(fd, oldState); err != nil {
-				fmt.Fprintln(ui.stderr, "failed to restore terminal state:", err)
+				ui.writeError("failed to restore terminal state: %v", err)
 			}
 		}()
 	}
@@ -138,9 +153,9 @@ func (ui *UI) Run() []string {
 	input := ""
 
 	for {
-		fmt.Fprint(ui.stdout, "\033[H\033[2J\033[H") // Clear screen
-		fmt.Fprintf(ui.stdout, "Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, enter: execute, ctrl+c: quit)\n")
-		fmt.Fprintf(ui.stdout, "\rSearch: %s\n\n", input)
+		ui.write("\033[H\033[2J\033[H") // Clear screen
+		ui.writeln("Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, enter: execute, ctrl+c: quit)")
+		ui.writeln("\rSearch: %s\n", input)
 
 		// Filtering
 		filtered := []CommandInfo{}
@@ -150,10 +165,10 @@ func (ui *UI) Run() []string {
 			}
 		}
 		if input == "" {
-			fmt.Fprintln(ui.stdout, "(Type to filter commands...)")
+			ui.writeln("(Type to filter commands...)")
 		} else {
 			if len(filtered) == 0 {
-				fmt.Fprintln(ui.stdout, "  (No matching command)")
+				ui.writeln("  (No matching command)")
 			}
 			if selected >= len(filtered) {
 				selected = len(filtered) - 1
@@ -176,13 +191,13 @@ func (ui *UI) Run() []string {
 				paddingLen := int(math.Max(0, float64(maxCmdLen-len(cmd.Command))))
 				padding := strings.Repeat(" ", paddingLen)
 				if i == selected {
-					fmt.Fprintf(ui.stdout, "\r> %s%s  %s\n", cmd.Command, padding, desc)
+					ui.writeln("\r> %s%s  %s", cmd.Command, padding, desc)
 				} else {
-					fmt.Fprintf(ui.stdout, "\r  %s%s  %s\n", cmd.Command, padding, desc)
+					ui.writeln("\r  %s%s  %s", cmd.Command, padding, desc)
 				}
 			}
 		}
-		fmt.Fprint(ui.stdout, "\n\r") // Ensure next output starts at left edge
+		ui.write("\n\r") // Ensure next output starts at left edge
 
 		b, err := reader.ReadByte()
 		if err != nil {
@@ -195,22 +210,22 @@ func (ui *UI) Run() []string {
 			if oldState != nil {
 				if f, ok := ui.stdin.(*os.File); ok {
 					if err := ui.term.restore(int(f.Fd()), oldState); err != nil {
-						fmt.Fprintln(ui.stderr, "failed to restore terminal state:", err)
+						ui.writeError("failed to restore terminal state: %v", err)
 					}
 				}
 			}
-			fmt.Fprintln(ui.stdout, "\nExiting...")
+			ui.writeln("\nExiting...")
 			os.Exit(0)
 		} else if b == 13 { // Enter
 			if input == "" {
 				continue
 			}
 			if len(filtered) > 0 {
-				fmt.Fprintf(ui.stdout, "\nExecute: %s\n", filtered[selected].Command)
+				ui.writeln("\nExecute: %s", filtered[selected].Command)
 				if oldState != nil {
 					if f, ok := ui.stdin.(*os.File); ok {
 						if err := ui.term.restore(int(f.Fd()), oldState); err != nil {
-							fmt.Fprintln(ui.stderr, "failed to restore terminal state:", err)
+							ui.writeError("failed to restore terminal state: %v", err)
 						}
 					}
 				}
@@ -220,8 +235,8 @@ func (ui *UI) Run() []string {
 				inputs := make(map[string]string)
 				readerStdin := bufio.NewReader(ui.stdin)
 				for _, ph := range placeholders {
-					fmt.Fprint(ui.stdout, "\n\r") // Newline + carriage return
-					fmt.Fprintf(ui.stdout, "Enter value for %s: ", ph)
+					ui.write("\n\r") // Newline + carriage return
+					ui.write("Enter value for %s: ", ph)
 					val, _ := readerStdin.ReadString('\n')
 					val = strings.TrimSpace(val)
 					inputs[ph] = val
