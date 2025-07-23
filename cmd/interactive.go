@@ -4,6 +4,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strings"
@@ -17,7 +18,42 @@ type CommandInfo struct {
 	Description string
 }
 
+// UI represents the interface for terminal UI operations
+type UI struct {
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+	term   terminal
+}
+
+// terminal represents terminal operations
+type terminal interface {
+	makeRaw(fd int) (*term.State, error)
+	restore(fd int, state *term.State) error
+}
+
+type defaultTerminal struct{}
+
+func (t *defaultTerminal) makeRaw(fd int) (*term.State, error) {
+	return term.MakeRaw(fd)
+}
+
+func (t *defaultTerminal) restore(fd int, state *term.State) error {
+	return term.Restore(fd, state)
+}
+
+// NewUI creates a new UI with default settings
+func NewUI() *UI {
+	return &UI{
+		stdin:  os.Stdin,
+		stdout: os.Stdout,
+		stderr: os.Stderr,
+		term:   &defaultTerminal{},
+	}
+}
+
 var commands = []CommandInfo{
+	{"help", "Show help message"},
 	{"add <file>", "Add a specific file to the index"},
 	{"add .", "Add all changes to index"},
 	{"add -p", "Add changes interactively"},
@@ -74,41 +110,50 @@ var commands = []CommandInfo{
 // InteractiveUI provides an incremental search interactive UI for command selection.
 // Returns the selected command as []string (nil if nothing selected)
 func InteractiveUI() []string {
-	fd := int(os.Stdin.Fd())
-	oldState, err := term.MakeRaw(fd)
-	if err != nil {
-		fmt.Println("Failed to set terminal to raw mode:", err)
-		return nil
-	}
-	defer func() {
-		if err := term.Restore(fd, oldState); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
-		}
-	}()
+	ui := NewUI()
+	return ui.Run()
+}
 
-	reader := bufio.NewReader(os.Stdin)
+// Run executes the interactive UI
+func (ui *UI) Run() []string {
+	// Only set raw mode if stdin is a terminal
+	var oldState *term.State
+	if f, ok := ui.stdin.(*os.File); ok {
+		fd := int(f.Fd())
+		var err error
+		oldState, err = ui.term.makeRaw(fd)
+		if err != nil {
+			fmt.Fprintln(ui.stderr, "Failed to set terminal to raw mode:", err)
+			return nil
+		}
+		defer func() {
+			if err := ui.term.restore(fd, oldState); err != nil {
+				fmt.Fprintln(ui.stderr, "failed to restore terminal state:", err)
+			}
+		}()
+	}
+
+	reader := bufio.NewReader(ui.stdin)
 	selected := 0
 	input := ""
 
 	for {
-		if _, err := os.Stdout.Write([]byte("\033[H\033[2J\033[H")); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to write clear screen sequence:", err)
-		}
-		fmt.Printf("Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, enter: execute, ctrl+c: quit)\n")
-		fmt.Printf("\rSearch: %s\n\n", input)
+		fmt.Fprint(ui.stdout, "\033[H\033[2J\033[H") // Clear screen
+		fmt.Fprintf(ui.stdout, "Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, enter: execute, ctrl+c: quit)\n")
+		fmt.Fprintf(ui.stdout, "\rSearch: %s\n\n", input)
 
 		// Filtering
 		filtered := []CommandInfo{}
 		for _, cmd := range commands {
-			if strings.Contains(cmd.Command, input) {
+			if strings.HasPrefix(cmd.Command, input) {
 				filtered = append(filtered, cmd)
 			}
 		}
 		if input == "" {
-			fmt.Println("(Type to filter commands...)")
+			fmt.Fprintln(ui.stdout, "(Type to filter commands...)")
 		} else {
 			if len(filtered) == 0 {
-				fmt.Println("  (No matching command)")
+				fmt.Fprintln(ui.stdout, "  (No matching command)")
 			}
 			if selected >= len(filtered) {
 				selected = len(filtered) - 1
@@ -131,41 +176,52 @@ func InteractiveUI() []string {
 				paddingLen := int(math.Max(0, float64(maxCmdLen-len(cmd.Command))))
 				padding := strings.Repeat(" ", paddingLen)
 				if i == selected {
-					fmt.Printf("\r> %s%s  %s\n", cmd.Command, padding, desc)
+					fmt.Fprintf(ui.stdout, "\r> %s%s  %s\n", cmd.Command, padding, desc)
 				} else {
-					fmt.Printf("\r  %s%s  %s\n", cmd.Command, padding, desc)
+					fmt.Fprintf(ui.stdout, "\r  %s%s  %s\n", cmd.Command, padding, desc)
 				}
 			}
 		}
-		fmt.Print("\n\r") // Ensure next output starts at left edge
+		fmt.Fprint(ui.stdout, "\n\r") // Ensure next output starts at left edge
 
 		b, err := reader.ReadByte()
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			continue
 		}
 		if b == 3 { // Ctrl+C in raw mode
-			if err := term.Restore(fd, oldState); err != nil {
-				fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
+			if oldState != nil {
+				if f, ok := ui.stdin.(*os.File); ok {
+					if err := ui.term.restore(int(f.Fd()), oldState); err != nil {
+						fmt.Fprintln(ui.stderr, "failed to restore terminal state:", err)
+					}
+				}
 			}
-			fmt.Println("\nExiting...")
+			fmt.Fprintln(ui.stdout, "\nExiting...")
 			os.Exit(0)
 		} else if b == 13 { // Enter
 			if input == "" {
 				continue
 			}
 			if len(filtered) > 0 {
-				fmt.Printf("\nExecute: %s\n", filtered[selected].Command)
-				if err := term.Restore(fd, oldState); err != nil {
-					fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
+				fmt.Fprintf(ui.stdout, "\nExecute: %s\n", filtered[selected].Command)
+				if oldState != nil {
+					if f, ok := ui.stdin.(*os.File); ok {
+						if err := ui.term.restore(int(f.Fd()), oldState); err != nil {
+							fmt.Fprintln(ui.stderr, "failed to restore terminal state:", err)
+						}
+					}
 				}
 				// Placeholder detection
 				cmdTemplate := filtered[selected].Command
 				placeholders := extractPlaceholders(cmdTemplate)
 				inputs := make(map[string]string)
-				readerStdin := bufio.NewReader(os.Stdin)
+				readerStdin := bufio.NewReader(ui.stdin)
 				for _, ph := range placeholders {
-					fmt.Print("\n\r") // Newline + carriage return
-					fmt.Printf("Enter value for %s: ", ph)
+					fmt.Fprint(ui.stdout, "\n\r") // Newline + carriage return
+					fmt.Fprintf(ui.stdout, "Enter value for %s: ", ph)
 					val, _ := readerStdin.ReadString('\n')
 					val = strings.TrimSpace(val)
 					inputs[ph] = val

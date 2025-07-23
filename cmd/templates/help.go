@@ -3,9 +3,10 @@ package templates
 
 import (
 	"bytes"
-	"golang.org/x/term"
 	"os"
 	"text/template"
+
+	"golang.org/x/term"
 )
 
 // HelpData contains data for help message templates.
@@ -24,6 +25,7 @@ Usage:
   ggc <command> [subcommand] [options]
 
 Main Commands:
+  ggc help                    Show help message
   ggc add <file>              Stage file(s)
   ggc add .                   Stage all changes
   ggc add -p                  Stage changes interactively

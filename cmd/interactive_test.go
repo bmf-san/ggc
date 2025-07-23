@@ -1,9 +1,113 @@
 package cmd
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
+
+	"golang.org/x/term"
 )
+
+// mockTerminal mocks terminal operations
+type mockTerminal struct {
+	makeRawCalled  bool
+	restoreCalled  bool
+	shouldFailRaw  bool
+	shouldFailRest bool
+}
+
+func (m *mockTerminal) makeRaw(fd int) (*term.State, error) {
+	m.makeRawCalled = true
+	if m.shouldFailRaw {
+		return nil, fmt.Errorf("mock makeRaw error")
+	}
+	return &term.State{}, nil
+}
+
+func (m *mockTerminal) restore(fd int, state *term.State) error {
+	m.restoreCalled = true
+	if m.shouldFailRest {
+		return fmt.Errorf("mock restore error")
+	}
+	return nil
+}
+
+// testUI is a test structure for UI
+type testUI struct {
+	UI
+	inputBytes []byte
+}
+
+func (ui *testUI) Run() []string {
+	// Simulate standard input
+	ui.stdin = bytes.NewReader(ui.inputBytes)
+	ui.stdout = &bytes.Buffer{}
+	ui.stderr = &bytes.Buffer{}
+	return ui.UI.Run()
+}
+
+func TestUI_Run(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        []byte
+		expectedArgs []string
+		expectNil    bool
+	}{
+		{
+			name:      "press Enter with empty input",
+			input:     []byte{13}, // Enter key
+			expectNil: true,
+		},
+		{
+			name:         "type 'help' and press Enter",
+			input:        []byte{'h', 'e', 'l', 'p', 13}, // 'h','e','l','p' + Enter
+			expectedArgs: []string{"ggc", "help"},
+			expectNil:    false,
+		},
+		{
+			name:      "type non-existent command",
+			input:     []byte{'x', 'y', 'z', 13}, // 'x','y','z' + Enter
+			expectNil: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create test UI
+			ui := &testUI{
+				UI: UI{
+					term: &mockTerminal{},
+				},
+				inputBytes: tt.input,
+			}
+
+			// Execute test
+			result := ui.Run()
+
+			// Verify results
+			if tt.expectNil && result != nil {
+				t.Errorf("expected: nil, got: %v", result)
+			}
+
+			if !tt.expectNil {
+				if result == nil {
+					t.Error("expected: not nil, got: nil")
+					return
+				}
+				if len(result) != len(tt.expectedArgs) {
+					t.Errorf("expected length: %d, got length: %d", len(tt.expectedArgs), len(result))
+					return
+				}
+				for i, arg := range tt.expectedArgs {
+					if result[i] != arg {
+						t.Errorf("expected[%d]: %s, got[%d]: %s", i, arg, i, result[i])
+					}
+				}
+			}
+		})
+	}
+}
 
 func TestExtractPlaceholders(t *testing.T) {
 	tests := []struct {
