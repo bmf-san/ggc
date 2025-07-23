@@ -150,6 +150,9 @@ func InteractiveUI() []string {
 			fmt.Println("\nExiting...")
 			os.Exit(0)
 		} else if b == 13 { // Enter
+			if input == "" {
+				continue
+			}
 			if len(filtered) > 0 {
 				fmt.Printf("\nExecute: %s\n", filtered[selected].Command)
 				if err := term.Restore(fd, oldState); err != nil {
