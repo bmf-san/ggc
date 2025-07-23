@@ -4,64 +4,71 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
 	"golang.org/x/term"
 )
 
-var commands = []string{
-	"add <file>",
-	"add .",
-	"add -p",
-	"branch current",
-	"branch checkout",
-	"branch checkout-remote",
-	"branch create",
-	"branch delete",
-	"branch delete-merged",
-	"push current",
-	"push force",
-	"pull current",
-	"pull rebase",
-	"log simple",
-	"log graph",
-	"commit <message>",
-	"commit allow-empty",
-	"commit tmp",
-	"commit amend <message>",
-	"fetch --prune",
-	"tag list",
-	"tag annotated <tag> <message>",
-	"tag delete <tag>",
-	"tag show <tag>",
-	"tag push",
-	"tag create <tag>",
-	"config list",
-	"config get <key>",
-	"config set <key> <value>",
-	"hook list",
-	"hook install <hook>",
-	"hook enable <hook>",
-	"hook disable <hook>",
-	"hook uninstall <hook>",
-	"hook edit <hook>",
-	"diff",
-	"diff unstaged",
-	"diff staged",
-	"version",
-	"clean files",
-	"clean dirs",
-	"clean-interactive",
-	"stash trash",
-	"status",
-	"status short",
-	"rebase interactive",
-	"remote list",
-	"remote add <n> <url>",
-	"remote remove <n>",
-	"remote set-url <n> <url>",
-	"quit",
+// CommandInfo contains the name and description of the command
+type CommandInfo struct {
+	Command     string
+	Description string
+}
+
+var commands = []CommandInfo{
+	{"add <file>", "Add a specific file to the index"},
+	{"add .", "Add all changes to index"},
+	{"add -p", "Add changes interactively"},
+	{"branch current", "Show current branch name"},
+	{"branch checkout", "Switch to an existing branch"},
+	{"branch checkout-remote", "Create and checkout a local branch from the remote"},
+	{"branch create", "Create and checkout new branch"},
+	{"branch delete", "Delete local branch"},
+	{"branch delete-merged", "Delete local merged branch"},
+	{"push current", "Push current branch from remote repository"},
+	{"push force", "Force push current branch"},
+	{"pull current", "Pull current branch from remote repository"},
+	{"pull rebase", "Pull and rebase"},
+	{"log simple", "Show simple historical log"},
+	{"log graph", "Show log with graph"},
+	{"commit <message>", "Create commit with a message"},
+	{"commit allow-empty", "Create an empty commit"},
+	{"commit tmp", "Create a temporary commit"},
+	{"commit amend <message>", "Amend a previous commit"},
+	{"fetch --prune", "Fetch and clean stale references"},
+	{"tag list", "List all tags"},
+	{"tag annotated <tag> <message>", "Create annotated tag"},
+	{"tag delete <tag>", "Delete tag"},
+	{"tag show <tag>", "Show tag information"},
+	{"tag push", "Push tags to remote"},
+	{"tag create <tag>", "Create tag"},
+	{"config list", "List all configuration"},
+	{"config get <key>", "Get a specific config value"},
+	{"config set <key> <value>", "Set a configuration value"},
+	{"hook list", "List all hooks"},
+	{"hook install <hook>", "Install a hook"},
+	{"hook enable <hook>", "Enable/Turn on a hook"},
+	{"hook disable <hook>", "Disable/Turn off a hook"},
+	{"hook uninstall <hook>", "Uninstall an existing hook"},
+	{"hook edit <hook>", "Edit a hook's contents"},
+	{"diff", "Show changes (git diff HEAD)"},
+	{"diff unstaged", "Show unstaged changes"},
+	{"diff staged", "Show staged changes"},
+	{"version", "Show current version"},
+	{"clean files", "Clean untracked files"},
+	{"clean dirs", "Clean untracked directories"},
+	{"clean-interactive", "Clean files interactively"},
+	{"stash trash", "Delete stash"},
+	{"status", "Show working tree status"},
+	{"status short", "Show concise status (porcelain format)"},
+	{"rebase interactive", "Interactive rebase"},
+	{"remote list", "List all remote repositories"},
+	{"remote add <name> <url>", "Add remote repository"},
+	{"remote remove <name>", "Remove remote repository"},
+	{"remote set-url <name> <url>", "Change remote URL"},
+	{"quit", "Exit interactive mode"},
 }
 
 // InteractiveUI provides an incremental search interactive UI for command selection.
@@ -91,9 +98,9 @@ func InteractiveUI() []string {
 		fmt.Printf("\rSearch: %s\n\n", input)
 
 		// Filtering
-		filtered := []string{}
+		filtered := []CommandInfo{}
 		for _, cmd := range commands {
-			if strings.Contains(cmd, input) {
+			if strings.Contains(cmd.Command, input) {
 				filtered = append(filtered, cmd)
 			}
 		}
@@ -109,11 +116,24 @@ func InteractiveUI() []string {
 			if selected < 0 {
 				selected = 0
 			}
+			maxCmdLen := 0
+			for _, cmd := range filtered {
+				if len(cmd.Command) > maxCmdLen {
+					maxCmdLen = len(cmd.Command)
+				}
+			}
+
 			for i, cmd := range filtered {
+				desc := cmd.Description
+				if desc == "" {
+					desc = "No description"
+				}
+				paddingLen := int(math.Max(0, float64(maxCmdLen-len(cmd.Command))))
+				padding := strings.Repeat(" ", paddingLen)
 				if i == selected {
-					fmt.Printf("\r> %s\n", cmd)
+					fmt.Printf("\r> %s%s  %s\n", cmd.Command, padding, desc)
 				} else {
-					fmt.Printf("\r  %s\n", cmd)
+					fmt.Printf("\r  %s%s  %s\n", cmd.Command, padding, desc)
 				}
 			}
 		}
@@ -131,12 +151,12 @@ func InteractiveUI() []string {
 			os.Exit(0)
 		} else if b == 13 { // Enter
 			if len(filtered) > 0 {
-				fmt.Printf("\nExecute: %s\n", filtered[selected])
+				fmt.Printf("\nExecute: %s\n", filtered[selected].Command)
 				if err := term.Restore(fd, oldState); err != nil {
 					fmt.Fprintln(os.Stderr, "failed to restore terminal state:", err)
 				}
 				// Placeholder detection
-				cmdTemplate := filtered[selected]
+				cmdTemplate := filtered[selected].Command
 				placeholders := extractPlaceholders(cmdTemplate)
 				inputs := make(map[string]string)
 				readerStdin := bufio.NewReader(os.Stdin)

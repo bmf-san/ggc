@@ -56,3 +56,39 @@ func TestExtractPlaceholders(t *testing.T) {
 		})
 	}
 }
+
+func TestCommandDescriptions(t *testing.T) {
+	// Ensure that all commands have a description (catch in tests)
+	for _, cmd := range commands {
+		description := cmd.Description
+		if description == "" {
+			t.Errorf("Command '%s' has no description", cmd.Command)
+		}
+	}
+}
+
+func TestCommandDescriptionsContent(t *testing.T) {
+	// Test description content updated + showing correctly
+	expectedDescriptions := map[string]string{
+		"add <file>":       "Add a specific file to the index",
+		"status":           "Show working tree status",
+		"commit <message>": "Create commit with a message",
+		"quit":             "Exit interactive mode",
+	}
+
+	for cmdStr, expectedDesc := range expectedDescriptions {
+		found := false
+		for _, cmd := range commands {
+			if cmd.Command == cmdStr {
+				if cmd.Description != expectedDesc {
+					t.Errorf("Description for '%s' is '%s', expected '%s'", cmdStr, cmd.Description, expectedDesc)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Command '%s' not found in commandList", cmdStr)
+		}
+	}
+}
