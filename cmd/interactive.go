@@ -160,7 +160,7 @@ func (ui *UI) Run() []string {
 		// Filtering
 		filtered := []CommandInfo{}
 		for _, cmd := range commands {
-			if strings.HasPrefix(cmd.Command, input) {
+			if strings.Contains(cmd.Command, input) {
 				filtered = append(filtered, cmd)
 			}
 		}
