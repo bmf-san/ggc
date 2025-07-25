@@ -190,9 +190,11 @@ func (c *Cmd) Interactive() {
 		}
 
 		c.Route(args[1:]) // Skip "ggc" in args
-
-		// Wait to check results after command execution
-		c.waitForContinue()
+		
+		// Smart wait: only pause for commands that need it
+		if len(args) >= 2 {
+			c.smartWaitForContinue(args[1])
+		}
 	}
 }
 
@@ -253,8 +255,31 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
-func (c *Cmd) waitForContinue() {
-	fmt.Println("\nPress Enter to continue...")
-	reader := bufio.NewReader(os.Stdin)
-	_, _ = reader.ReadString('\n')
+// smartWaitForContinue only pauses for commands that need user attention
+func (c *Cmd) smartWaitForContinue(command string) {
+	// Commands that DO need a pause (user should see results)
+	waitCommands := map[string]bool{
+		"status":  true,  // Status shows important info
+		"log":     true,  // Log can be long
+		"diff":    true,  // Diff can be long
+		"branch":  true,  // Branch operations show results
+		"commit":  true,  // Commit shows confirmation
+		"reset":   true,  // Reset is destructive
+		"clean":   true,  // Clean is destructive
+		"stash":   true,  // Stash shows what was stashed
+		"tag":     true,  // Tag operations show results
+		"remote":  true,  // Remote operations show results
+		"rebase":  true,  // Rebase can be complex
+		"config":  true,  // Config shows current settings
+		"hook":    true,  // Hook operations show results
+		"restore": true,  // Restore is important
+	}
+	
+	// If it's a wait command, pause
+	if waitCommands[command] {
+		fmt.Println("\nPress Enter to continue...")
+		reader := bufio.NewReader(os.Stdin)
+		_, _ = reader.ReadString('\n')
+	}
+	// If it's not a wait command or unknown command, continue immediately
 }

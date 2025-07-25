@@ -423,22 +423,7 @@ func TestCmd_Route(t *testing.T) {
 	}
 }
 
-func TestCmd_waitForContinue(t *testing.T) {
-	// waitForContinue reads from standard input, making direct testing difficult
-	// However, verify the function exists (and doesn't panic)
-	cmd := &Cmd{}
 
-	// Indirectly verify that the function exists
-	// Don't actually call it since it requires standard input
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("waitForContinue should not panic when defined, got panic: %v", r)
-		}
-	}()
-
-	// Use type assertion to verify the function is defined
-	_ = cmd.waitForContinue
-}
 
 // Test some behavior of Interactive by mocking InteractiveUI
 func TestCmd_Interactive_Existence(t *testing.T) {
@@ -455,4 +440,20 @@ func TestCmd_Interactive_Existence(t *testing.T) {
 
 	// Use type assertion to verify the function is defined
 	_ = cmd.Interactive
+}
+
+func TestCmd_smartWaitForContinue(t *testing.T) {
+	// smartWaitForContinue reads from standard input, making direct testing difficult
+	// However, verify the function exists (and doesn't panic)
+	cmd := &Cmd{}
+
+	// Indirectly verify that the function exists
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("smartWaitForContinue should not panic when defined, got panic: %v", r)
+		}
+	}()
+
+	// Use type assertion to verify the function is defined
+	_ = cmd.smartWaitForContinue
 }
