@@ -13,7 +13,7 @@ func TestClient_LogSimple(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "正常系：シンプルログ表示",
+			name:    "success_simple_log_display",
 			err:     nil,
 			wantErr: false,
 		},
