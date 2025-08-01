@@ -12,7 +12,7 @@ func TestError_Error(t *testing.T) {
 		want string
 	}{
 		{
-			name: "コマンドありのエラー",
+			name: "error_with_command",
 			err: &Error{
 				Op:      "test operation",
 				Command: "git test",
@@ -21,7 +21,7 @@ func TestError_Error(t *testing.T) {
 			want: "git: test operation failed: test error (command: git test)",
 		},
 		{
-			name: "コマンドなしのエラー",
+			name: "error_without_command",
 			err: &Error{
 				Op:      "test operation",
 				Command: "",

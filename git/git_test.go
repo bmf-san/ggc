@@ -612,7 +612,7 @@ func TestClient_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("unicode_in_branch_name", func(t *testing.T) {
-		unicodeBranch := "feature/测试分支"
+		unicodeBranch := "feature/test-branch"
 		c := &Client{
 			execCommand: func(_ string, _ ...string) *exec.Cmd {
 				return helperCommand(t, "", nil)

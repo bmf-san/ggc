@@ -15,7 +15,7 @@ updates:
       include: "scope"
     open-pull-requests-limit: 10
 
-  # GitHub Actions の依存関係を管理
+  # Manage GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

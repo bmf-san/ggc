@@ -15,13 +15,13 @@ func TestClient_ListLocalBranches(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "正常系：複数ブランチ",
+			name:    "success_multiple_branches",
 			output:  "main\nfeature/test\ndevelop",
 			want:    []string{"main", "feature/test", "develop"},
 			wantErr: false,
 		},
 		{
-			name:    "正常系：単一ブランチ",
+			name:    "success_single_branch",
 			output:  "main",
 			want:    []string{"main"},
 			wantErr: false,
@@ -59,13 +59,13 @@ func TestClient_ListRemoteBranches(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "正常系：HEADを除外",
+			name:    "success_exclude_head",
 			output:  "origin/main\norigin/HEAD -> origin/main\norigin/feature/test",
 			want:    []string{"origin/main", "origin/feature/test"},
 			wantErr: false,
 		},
 		{
-			name:    "正常系：単一ブランチ",
+			name:    "success_single_remote_branch",
 			output:  "origin/main",
 			want:    []string{"origin/main"},
 			wantErr: false,
