@@ -2,6 +2,8 @@ package router
 
 import (
 	"testing"
+
+	"github.com/bmf-san/ggc/config"
 )
 
 type mockExecuter struct {
@@ -34,6 +36,16 @@ type mockExecuter struct {
 	hookerArgs        []string
 	restoreCalled     bool
 	restoreArgs       []string
+	addCalled         bool
+	addArgs           []string
+	remoteCalled      bool
+	remoteArgs        []string
+	rebaseCalled      bool
+	rebaseArgs        []string
+	stashCalled       bool
+	stashArgs         []string
+	fetchCalled       bool
+	fetchArgs         []string
 	interactiveCalled bool
 }
 
@@ -79,6 +91,31 @@ func (m *mockExecuter) Version(args []string) {
 func (m *mockExecuter) Diff(args []string) {
 	m.diffCalled = true
 	m.diffArgs = args
+}
+
+func (m *mockExecuter) Add(args []string) {
+	m.addCalled = true
+	m.addArgs = args
+}
+
+func (m *mockExecuter) Remote(args []string) {
+	m.remoteCalled = true
+	m.remoteArgs = args
+}
+
+func (m *mockExecuter) Rebase(args []string) {
+	m.rebaseCalled = true
+	m.rebaseArgs = args
+}
+
+func (m *mockExecuter) Stash(args []string) {
+	m.stashCalled = true
+	m.stashArgs = args
+}
+
+func (m *mockExecuter) Fetch(args []string) {
+	m.fetchCalled = true
+	m.fetchArgs = args
 }
 
 func (m *mockExecuter) Restore(args []string) {
@@ -359,6 +396,54 @@ func TestRouter(t *testing.T) {
 			},
 		},
 		{
+			name: "add",
+			args: []string{"add", "."},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.addCalled {
+					t.Error("Add should be called")
+				}
+				if len(m.addArgs) != 1 || m.addArgs[0] != "." {
+					t.Errorf("unexpected add args: got %v", m.addArgs)
+				}
+			},
+		},
+		{
+			name: "remote",
+			args: []string{"remote"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.remoteCalled {
+					t.Error("remote should be called")
+				}
+			},
+		},
+		{
+			name: "rebase",
+			args: []string{"rebase"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.rebaseCalled {
+					t.Error("Rebase should be called")
+				}
+			},
+		},
+		{
+			name: "stash",
+			args: []string{"stash"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.stashCalled {
+					t.Error("stash should be called")
+				}
+			},
+		},
+		{
+			name: "fetch",
+			args: []string{"fetch"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.fetchCalled {
+					t.Error("fetch should be called")
+				}
+			},
+		},
+		{
 			name: "unknown",
 			args: []string{"unknown"},
 			validate: func(t *testing.T, m *mockExecuter) {
@@ -381,7 +466,7 @@ func TestRouter(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &mockExecuter{}
-			r := NewRouter(m)
+			r := NewRouter(m, config.NewConfigManager())
 			r.Route(tc.args)
 			tc.validate(t, m)
 		})

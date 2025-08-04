@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/bmf-san/ggc/config"
 )
@@ -37,6 +38,32 @@ func (c *Configureer) LoadConfig() *config.Manager {
 	return cm
 }
 
+func parseAliasValue(v interface{}) ([]string, error) {
+	switch val := v.(type) {
+	case string:
+		return []string{val}, nil
+	case []interface{}:
+		var result []string
+		for _, item := range val {
+			str, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("non-string in alias list: %v", item)
+			}
+			result = append(result, str)
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("unexpected type: %T", v)
+	}
+}
+
+func formatAliasValue(commands []string) string {
+	if len(commands) == 1 {
+		return commands[0]
+	}
+	return fmt.Sprintf("[%s]", strings.Join(commands, " -> "))
+}
+
 // Config executes config command operations with the given arguments.
 func (c *Configureer) Config(args []string) {
 	if len(args) == 0 {
@@ -55,7 +82,24 @@ func (c *Configureer) Config(args []string) {
 		sort.Strings(keys)
 
 		for _, key := range keys {
-			_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", key, formatValue(configs[key]))
+			val := configs[key]
+
+			if key == "aliases" {
+				if aliasMap, ok := val.(map[string]any); ok {
+					for aliasName, raw := range aliasMap {
+						commands, err := parseAliasValue(raw)
+						if err != nil {
+							_, _ = fmt.Fprintf(c.outputWriter, "%-30s = <invalid alias: %v>\n", "aliases."+aliasName, err)
+							continue
+						}
+						formatted := formatAliasValue(commands)
+						_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", "aliases."+aliasName, formatted)
+					}
+					continue
+				}
+			}
+
+			_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", key, formatValue(val))
 		}
 		return
 	case "get":

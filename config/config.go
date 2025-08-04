@@ -39,7 +39,7 @@ type Config struct {
 		StashBeforeSwitch  bool   `yaml:"stash-before-switch"`
 	} `yaml:"behavior"`
 
-	Aliases map[string]string `yaml:"aliases"`
+	Aliases map[string]interface{} `yaml:"aliases"`
 
 	Integration struct {
 		Github struct {
@@ -50,6 +50,22 @@ type Config struct {
 			Token string `yaml:"token"`
 		} `yaml:"gitlab"`
 	} `yaml:"integration"`
+}
+
+// AliasType represents the type of alias
+type AliasType int
+
+const (
+	// SimpleAlias represents a simple string alias
+	SimpleAlias AliasType = iota
+	// SequenceAlias represents an array string alias
+	SequenceAlias
+)
+
+// ParsedAlias represents a parsed alias with its type and commands
+type ParsedAlias struct {
+	Type     AliasType
+	Commands []string
 }
 
 // Manager handles configuration loading, saving, and operations
@@ -140,9 +156,65 @@ func (c *Config) validateIntegrationTokens() error {
 }
 
 func (c *Config) validateAliases() error {
-	for name := range c.Aliases {
+	validCommands := map[string]bool{
+		"add": true, "branch": true, "clean": true, "commit": true, "config": true,
+		"diff": true, "fetch": true, "help": true, "hook": true, "interactive": true,
+		"log": true, "pull": true, "push": true, "rebase": true, "remote": true,
+		"reset": true, "restore": true, "stash": true, "status": true, "tag": true,
+		"version": true,
+	}
+
+	for name, value := range c.Aliases {
 		if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
 			return &ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
+		}
+
+		switch v := value.(type) {
+		case string:
+			// Simple alias validation
+			if strings.TrimSpace(v) == "" {
+				return &ValidationError{"aliases." + name, v, "alias command cannot be empty"}
+			}
+			if !validCommands[v] {
+				return &ValidationError{"aliases." + name, v, fmt.Sprintf("unknown command '%s'", v)}
+			}
+
+		case []interface{}:
+			// Sequence alias validation
+			if len(v) == 0 {
+				return &ValidationError{"aliases." + name, v, "alias sequence cannot be empty"}
+			}
+			for i, cmd := range v {
+				cmdStr, ok := cmd.(string)
+				if !ok {
+					return &ValidationError{
+						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
+						Value:   cmd,
+						Message: "sequence commands must be strings",
+					}
+				}
+				if strings.TrimSpace(cmdStr) == "" {
+					return &ValidationError{
+						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
+						Value:   cmdStr,
+						Message: "command in sequence cannot be empty",
+					}
+				}
+				if !validCommands[strings.Split(cmdStr, " ")[0]] {
+					return &ValidationError{
+						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
+						Value:   cmdStr,
+						Message: fmt.Sprintf("unknown command '%s'", cmdStr),
+					}
+				}
+			}
+
+		default:
+			return &ValidationError{
+				Field:   "aliases." + name,
+				Value:   value,
+				Message: "alias must be either a string or array of strings",
+			}
 		}
 	}
 	return nil
@@ -166,6 +238,65 @@ func (c *Config) Validate() error {
 		return err
 	}
 	return nil
+}
+
+// ParseAlias parses an alias value and returns its type and commands
+func (c *Config) ParseAlias(name string) (*ParsedAlias, error) {
+	value, exists := c.Aliases[name]
+	if !exists {
+		return nil, fmt.Errorf("alias '%s' not found", name)
+	}
+
+	switch v := value.(type) {
+	case string:
+		return &ParsedAlias{
+			Type:     SimpleAlias,
+			Commands: []string{v},
+		}, nil
+
+	case []interface{}:
+		commands := make([]string, len(v))
+		for i, cmd := range v {
+			cmdStr, ok := cmd.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid command type in alias '%s'", name)
+			}
+			commands[i] = cmdStr
+		}
+		return &ParsedAlias{
+			Type:     SequenceAlias,
+			Commands: commands,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("invalid alias type for '%s'", name)
+	}
+}
+
+// IsAlias checks if a given name is an alias
+func (c *Config) IsAlias(name string) bool {
+	_, exists := c.Aliases[name]
+	return exists
+}
+
+// GetAliasCommands returns the commands for a given alias
+func (c *Config) GetAliasCommands(name string) ([]string, error) {
+	parsed, err := c.ParseAlias(name)
+	if err != nil {
+		return nil, err
+	}
+	return parsed.Commands, nil
+}
+
+// GetAllAliases returns all aliases with their parsed commands
+func (c *Config) GetAllAliases() map[string]*ParsedAlias {
+	result := make(map[string]*ParsedAlias)
+	for name := range c.Aliases {
+		if parsed, err := c.ParseAlias(name); err == nil {
+			result[name] = parsed
+		}
+	}
+	return result
 }
 
 func getGitVersion() string {
@@ -200,7 +331,7 @@ func (c *Config) updateMeta() {
 // getDefaultConfig returns the default configuration values
 func getDefaultConfig() *Config {
 	config := &Config{
-		Aliases: make(map[string]string),
+		Aliases: make(map[string]interface{}),
 	}
 
 	// Set default values
@@ -216,11 +347,14 @@ func getDefaultConfig() *Config {
 	config.Behavior.AutoFetch = true
 	config.Behavior.StashBeforeSwitch = true
 
-	// Default aliases
+	// Default simple aliases
 	config.Aliases["st"] = "status"
-	config.Aliases["co"] = "checkout"
 	config.Aliases["br"] = "branch"
 	config.Aliases["ci"] = "commit"
+
+	config.Aliases["ac"] = []interface{}{"add .", "commit tmp"}
+	config.Aliases["sync"] = []interface{}{"pull current", "add .", "commit tmp", "push current"}
+	config.Aliases["quick"] = []interface{}{"status", "add .", "commit tmp"}
 
 	config.Integration.Github.DefaultRemote = "origin"
 
@@ -377,9 +511,9 @@ func (cm *Manager) syncToGitConfig() error {
 		}
 	}
 
-	if len(config.Aliases) != 0 {
-		for alias, command := range config.Aliases {
-			if err := cm.setGitConfig(fmt.Sprintf("alias.%s", alias), command); err != nil {
+	for alias, value := range config.Aliases {
+		if cmdStr, ok := value.(string); ok {
+			if err := cm.setGitConfig(fmt.Sprintf("alias.%s", alias), cmdStr); err != nil {
 				return fmt.Errorf("failed to set git alias.%s: %w", alias, err)
 			}
 		}
@@ -584,7 +718,7 @@ func (cm *Manager) flattenConfig(obj any, prefix string, result map[string]any) 
 				key = prefix + "." + fieldName
 			}
 
-			if field.Kind() == reflect.Struct || (field.Kind() == reflect.Map && field.Type().Elem().Kind() == reflect.String) {
+			if field.Kind() == reflect.Struct || (field.Kind() == reflect.Map && field.Type().Elem().Kind() != reflect.Interface) {
 				cm.flattenConfig(field.Interface(), key, result)
 			} else {
 				result[key] = field.Interface()
@@ -606,7 +740,7 @@ func (cm *Manager) flattenConfig(obj any, prefix string, result map[string]any) 
 // LoadConfig loads and saves the configuration file.
 func (cm *Manager) LoadConfig() {
 	if err := cm.Load(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Failed to save config: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 	}
 	if err := cm.Save(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to save config: %v\n", err)

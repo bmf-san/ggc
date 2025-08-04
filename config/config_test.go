@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -50,7 +51,6 @@ func TestGetDefaultConfig(t *testing.T) {
 	// Test default aliases
 	expectedAliases := map[string]string{
 		"st": "status",
-		"co": "checkout",
 		"br": "branch",
 		"ci": "commit",
 	}
@@ -203,7 +203,7 @@ func TestSave(t *testing.T) {
 
 	cm.config.Default.Branch = "development"
 	cm.config.UI.Color = false
-	cm.config.Aliases["test"] = "test-command"
+	cm.config.Aliases["test"] = "help"
 
 	err := cm.Save()
 	if err != nil {
@@ -231,8 +231,8 @@ func TestSave(t *testing.T) {
 	if loadedConfig.UI.Color {
 		t.Error("Expected saved color to be false")
 	}
-	if loadedConfig.Aliases["test"] != "test-command" {
-		t.Errorf("Expected saved alias to be 'test-command', got %s", loadedConfig.Aliases["test"])
+	if loadedConfig.Aliases["test"] != "help" {
+		t.Errorf("Expected saved alias to be 'help', got %s", loadedConfig.Aliases["test"])
 	}
 }
 
@@ -366,13 +366,12 @@ func TestList(t *testing.T) {
 		"default.editor",
 		"ui.color",
 		"behavior.auto-push",
-		"aliases.st",
 		"integration.github.default-remote",
 	}
 
 	for _, key := range expectedKeys {
 		if _, exists := list[key]; !exists {
-			t.Errorf("Expected key %s to exist in list", key)
+			t.Errorf("Expected key %s to exist in list: %s", key, list)
 		}
 	}
 
@@ -381,6 +380,10 @@ func TestList(t *testing.T) {
 	}
 	if list["ui.color"] != true {
 		t.Errorf("Expected ui.color to be true, got %v", list["ui.color"])
+	}
+
+	if !strings.Contains(stringifyAnyMap(list), "aliases") {
+		t.Errorf("Expected list to contain aliases, got %v", list)
 	}
 }
 
@@ -429,13 +432,16 @@ func TestFlattenConfig(t *testing.T) {
 		"default.editor",
 		"ui.color",
 		"behavior.auto-push",
-		"aliases.st",
 	}
 
 	for _, key := range expectedKeys {
 		if _, exists := result[key]; !exists {
 			t.Errorf("Expected key %s to exist in flattened config", key)
 		}
+	}
+
+	if !strings.Contains(stringifyAnyMap(result), "aliases") {
+		t.Errorf("Expected list to contain aliases, got %v", result)
 	}
 
 	result2 := make(map[string]any)
@@ -557,7 +563,7 @@ func TestConfig_Validate(t *testing.T) {
 		cfg.Behavior.ConfirmDestructive = "simple"
 		cfg.Behavior.AutoFetch = true
 		cfg.Behavior.StashBeforeSwitch = true
-		cfg.Aliases = map[string]string{"co": "checkout"}
+		cfg.Aliases = map[string]any{"st": "status"}
 		cfg.Integration.Github.Token = "ghp_1234567890asdflkasfdasf"
 		cfg.Integration.Github.DefaultRemote = "origin"
 		cfg.Integration.Gitlab.Token = "glpat-abc123asdlfkasjdflasfdasdf"
@@ -588,7 +594,7 @@ func TestConfig_Validate(t *testing.T) {
 		cfg.Default.Branch = "main"
 		cfg.Default.Editor = "vim"
 		cfg.Default.Branch = "main"
-		cfg.Aliases = map[string]string{"invalid alias": "checkout"}
+		cfg.Aliases = map[string]any{"invalid alias": "status"}
 
 		err := cfg.Validate()
 		if err == nil {
@@ -630,4 +636,361 @@ func TestConfig_Validate(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
+}
+func TestConfig_ParseAlias(t *testing.T) {
+	config := &Config{
+		Aliases: map[string]interface{}{
+			"st":   "status",
+			"acp":  []interface{}{"add", "commit", "push"},
+			"sync": []interface{}{"pull", "add", "commit", "push"},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		aliasName    string
+		wantType     AliasType
+		wantCommands []string
+		wantError    bool
+	}{
+		{
+			name:         "simple alias",
+			aliasName:    "st",
+			wantType:     SimpleAlias,
+			wantCommands: []string{"status"},
+			wantError:    false,
+		},
+		{
+			name:         "sequence alias - short",
+			aliasName:    "acp",
+			wantType:     SequenceAlias,
+			wantCommands: []string{"add", "commit", "push"},
+			wantError:    false,
+		},
+		{
+			name:         "sequence alias - long",
+			aliasName:    "sync",
+			wantType:     SequenceAlias,
+			wantCommands: []string{"pull", "add", "commit", "push"},
+			wantError:    false,
+		},
+		{
+			name:         "non-existent alias",
+			aliasName:    "nonexistent",
+			wantType:     SimpleAlias,
+			wantCommands: nil,
+			wantError:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parsed, err := config.ParseAlias(tt.aliasName)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("ParseAlias() expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("ParseAlias() unexpected error: %v", err)
+				return
+			}
+
+			if parsed.Type != tt.wantType {
+				t.Errorf("ParseAlias() type = %v, want %v", parsed.Type, tt.wantType)
+			}
+
+			if len(parsed.Commands) != len(tt.wantCommands) {
+				t.Errorf("ParseAlias() commands length = %v, want %v", len(parsed.Commands), len(tt.wantCommands))
+				return
+			}
+
+			for i, cmd := range parsed.Commands {
+				if cmd != tt.wantCommands[i] {
+					t.Errorf("ParseAlias() commands[%d] = %v, want %v", i, cmd, tt.wantCommands[i])
+				}
+			}
+		})
+	}
+}
+
+func TestConfig_IsAlias(t *testing.T) {
+	config := &Config{
+		Aliases: map[string]interface{}{
+			"st":  "status",
+			"acp": []interface{}{"add", "commit", "push"},
+		},
+	}
+
+	tests := []struct {
+		name      string
+		aliasName string
+		want      bool
+	}{
+		{"existing simple alias", "st", true},
+		{"existing sequence alias", "acp", true},
+		{"non-existing alias", "nonexistent", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := config.IsAlias(tt.aliasName); got != tt.want {
+				t.Errorf("IsAlias() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConfig_GetAliasCommands(t *testing.T) {
+	config := &Config{
+		Aliases: map[string]interface{}{
+			"st":    "status",
+			"acp":   []interface{}{"add", "commit", "push"},
+			"quick": []interface{}{"status", "add", "commit"},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		aliasName    string
+		wantCommands []string
+		wantError    bool
+	}{
+		{
+			name:         "simple alias",
+			aliasName:    "st",
+			wantCommands: []string{"status"},
+			wantError:    false,
+		},
+		{
+			name:         "sequence alias",
+			aliasName:    "acp",
+			wantCommands: []string{"add", "commit", "push"},
+			wantError:    false,
+		},
+		{
+			name:         "another sequence alias",
+			aliasName:    "quick",
+			wantCommands: []string{"status", "add", "commit"},
+			wantError:    false,
+		},
+		{
+			name:         "non-existent alias",
+			aliasName:    "nonexistent",
+			wantCommands: nil,
+			wantError:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			commands, err := config.GetAliasCommands(tt.aliasName)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("GetAliasCommands() expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("GetAliasCommands() unexpected error: %v", err)
+				return
+			}
+
+			if len(commands) != len(tt.wantCommands) {
+				t.Errorf("GetAliasCommands() commands length = %v, want %v", len(commands), len(tt.wantCommands))
+				return
+			}
+
+			for i, cmd := range commands {
+				if cmd != tt.wantCommands[i] {
+					t.Errorf("GetAliasCommands() commands[%d] = %v, want %v", i, cmd, tt.wantCommands[i])
+				}
+			}
+		})
+	}
+}
+
+func TestConfig_validateAliases(t *testing.T) {
+	tests := []struct {
+		name      string
+		aliases   map[string]interface{}
+		wantError bool
+		errorMsg  string
+	}{
+		{
+			name: "valid simple aliases",
+			aliases: map[string]interface{}{
+				"st": "status",
+				"br": "branch",
+			},
+			wantError: false,
+		},
+		{
+			name: "valid sequence aliases",
+			aliases: map[string]interface{}{
+				"acp":  []interface{}{"add", "commit", "push"},
+				"sync": []interface{}{"pull", "status"},
+			},
+			wantError: false,
+		},
+		{
+			name: "mixed valid aliases",
+			aliases: map[string]interface{}{
+				"st":  "status",
+				"acp": []interface{}{"add", "commit", "push"},
+			},
+			wantError: false,
+		},
+		{
+			name: "invalid alias name with space",
+			aliases: map[string]interface{}{
+				"bad name": "status",
+			},
+			wantError: true,
+			errorMsg:  "alias names must not contain spaces",
+		},
+		{
+			name: "empty alias name",
+			aliases: map[string]interface{}{
+				"": "status",
+			},
+			wantError: true,
+			errorMsg:  "alias names must not contain spaces",
+		},
+		{
+			name: "invalid command in simple alias",
+			aliases: map[string]interface{}{
+				"bad": "nonexistent",
+			},
+			wantError: true,
+			errorMsg:  "unknown command 'nonexistent'",
+		},
+		{
+			name: "invalid command in sequence alias",
+			aliases: map[string]interface{}{
+				"bad": []interface{}{"add", "nonexistent", "push"},
+			},
+			wantError: true,
+			errorMsg:  "unknown command 'nonexistent'",
+		},
+		{
+			name: "empty sequence alias",
+			aliases: map[string]interface{}{
+				"empty": []interface{}{},
+			},
+			wantError: true,
+			errorMsg:  "alias sequence cannot be empty",
+		},
+		{
+			name: "invalid alias type",
+			aliases: map[string]interface{}{
+				"bad": 123,
+			},
+			wantError: true,
+			errorMsg:  "alias must be either a string or array of strings",
+		},
+		{
+			name: "non-string command in sequence",
+			aliases: map[string]interface{}{
+				"bad": []interface{}{"add", 123, "push"},
+			},
+			wantError: true,
+			errorMsg:  "sequence commands must be strings",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{
+				Aliases: tt.aliases,
+			}
+
+			err := config.validateAliases()
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("validateAliases() expected error, got nil")
+					return
+				}
+				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("validateAliases() error = %v, want to contain %v", err.Error(), tt.errorMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("validateAliases() unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestConfig_GetAllAliases(t *testing.T) {
+	config := &Config{
+		Aliases: map[string]interface{}{
+			"st":    "status",
+			"acp":   []interface{}{"add", "commit", "push"},
+			"quick": []interface{}{"status", "add"},
+		},
+	}
+
+	aliases := config.GetAllAliases()
+
+	expectedCount := 3
+	if len(aliases) != expectedCount {
+		t.Errorf("GetAllAliases() returned %d aliases, want %d", len(aliases), expectedCount)
+	}
+
+	// Check simple alias
+	if parsed, ok := aliases["st"]; !ok {
+		t.Errorf("GetAllAliases() missing 'st' alias")
+	} else if parsed.Type != SimpleAlias {
+		t.Errorf("GetAllAliases() 'st' alias type = %v, want %v", parsed.Type, SimpleAlias)
+	}
+
+	if parsed, ok := aliases["acp"]; !ok {
+		t.Errorf("GetAllAliases() missing 'acp' alias")
+	} else if parsed.Type != SequenceAlias {
+		t.Errorf("GetAllAliases() 'acp' alias type = %v, want %v", parsed.Type, SequenceAlias)
+	} else if len(parsed.Commands) != 3 {
+		t.Errorf("GetAllAliases() 'acp' alias commands length = %v, want 3", len(parsed.Commands))
+	}
+}
+
+func stringifyAnyMap(m map[string]any) string {
+	var b strings.Builder
+	b.WriteString("{")
+	first := true
+	for key, val := range m {
+		if !first {
+			b.WriteString(" ")
+		}
+		first = false
+		b.WriteString(fmt.Sprintf("%s: %s", key, stringifyValue(val)))
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func stringifyValue(val any) string {
+	switch v := val.(type) {
+	case string:
+		return v
+	case []any:
+		strs := make([]string, len(v))
+		for i, item := range v {
+			strs[i] = stringifyValue(item)
+		}
+		return "[" + strings.Join(strs, " ") + "]"
+	case []string:
+		return "[" + strings.Join(v, " ") + "]"
+	case map[string]any:
+		return stringifyAnyMap(v)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
