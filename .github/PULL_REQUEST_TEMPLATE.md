@@ -6,7 +6,7 @@ Please link any related issue here.
 Example: close #123
 
 ## Checklist
-- [ ] I have read the [CONTRIBUTING.md](https://github.com/ggc-dev/ggc/blob/main/CONTRIBUTING.md)
+- [ ] I have read the [CONTRIBUTING.md](https://github.com/bmf-san/ggc/blob/main/CONTRIBUTING.md)
 - [ ] I have added or updated tests
 - [ ] I have updated the documentation (if required)
 - [ ] Code is formatted with `make fmt`
