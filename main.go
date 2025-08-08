@@ -20,9 +20,10 @@ func GetVersionInfo() (string, string) {
 }
 
 func main() {
-	config.NewConfigManager().LoadConfig()
+	cm := config.NewConfigManager()
+	cm.LoadConfig()
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd()
-	r := router.NewRouter(c)
+	r := router.NewRouter(c, cm)
 	r.Route(os.Args[1:])
 }

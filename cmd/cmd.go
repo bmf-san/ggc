@@ -24,11 +24,16 @@ type Executer interface {
 	Diff(args []string)
 	Config(args []string)
 	Hook(args []string)
+	Rebase(args []string)
+	Remote(args []string)
 	Version(args []string)
+	Stash(args []string)
+	Fetch(args []string)
 	Status(args []string)
 	Tag(args []string)
 	Clean(args []string)
 	Restore(args []string)
+	Add(args []string)
 	Interactive()
 }
 
@@ -99,6 +104,26 @@ func (c *Cmd) Branch(args []string) {
 	c.brancher.Branch(args)
 }
 
+// Remote executes the remote command with the given arguments.
+func (c *Cmd) Remote(args []string) {
+	c.remoteer.Remote(args)
+}
+
+// Rebase executes the rebase command with the given arguments.
+func (c *Cmd) Rebase(args []string) {
+	c.rebaser.Rebase(args)
+}
+
+// Stash executes the stash command with the given arguments.
+func (c *Cmd) Stash(args []string) {
+	c.stasher.Stash(args)
+}
+
+// Fetch executes the fetch command with the given arguments.
+func (c *Cmd) Fetch(args []string) {
+	c.fetcher.Fetch(args)
+}
+
 // Commit executes the commit command with the given arguments.
 func (c *Cmd) Commit(args []string) {
 	c.committer.Commit(args)
@@ -107,6 +132,11 @@ func (c *Cmd) Commit(args []string) {
 // Log executes the log command with the given arguments.
 func (c *Cmd) Log(args []string) {
 	c.logger.Log(args)
+}
+
+// Add executes the add command with the given arguments.
+func (c *Cmd) Add(args []string) {
+	c.adder.Add(args)
 }
 
 // Status executes the status command with the given arguments.
