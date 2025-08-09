@@ -13,7 +13,7 @@ func TestSelectLogo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RenderMainHelp() should not return error: %v", err)
 	}
-	
+
 	// ロゴが含まれていることを確認
 	hasLogo := strings.Contains(result, "__ _") || strings.Contains(result, "╔═════════════════════╗")
 	if !hasLogo {
@@ -125,19 +125,26 @@ func TestRenderCommandHelpEmptyData(t *testing.T) {
 	}
 }
 
-func TestRenderMainHelpAlwaysSucceeds(t *testing.T) {
-	// Test multiple calls to ensure consistent behavior
-	for i := 0; i < 3; i++ {
-		result, err := RenderMainHelp()
-		if err != nil {
-			t.Errorf("RenderMainHelp call %d should not return error: %v", i+1, err)
-		}
-		if result == "" {
-			t.Errorf("RenderMainHelp call %d should return non-empty string", i+1)
-		}
-		if !strings.Contains(result, "ggc:") {
-			t.Errorf("RenderMainHelp call %d should contain 'ggc:' in output", i+1)
-		}
+func TestRenderMainHelpConsistency(t *testing.T) {
+	// Test that the function returns consistent results
+	result1, err1 := RenderMainHelp()
+	result2, err2 := RenderMainHelp()
+
+	if err1 != nil || err2 != nil {
+		t.Errorf("RenderMainHelp should not return error: err1=%v, err2=%v", err1, err2)
+	}
+
+	if result1 != result2 {
+		t.Error("RenderMainHelp should return consistent results across calls")
+	}
+
+	// Verify essential content
+	if !strings.Contains(result1, "ggc:") {
+		t.Error("RenderMainHelp should contain 'ggc:' in output")
+	}
+
+	if !strings.Contains(result1, "Usage:") {
+		t.Error("RenderMainHelp should contain 'Usage:' in output")
 	}
 }
 
@@ -316,7 +323,7 @@ func TestRenderCommandHelp_ManyExamples(t *testing.T) {
 func TestRenderCommandHelp_LongStrings(t *testing.T) {
 	longUsage := strings.Repeat("very long usage string ", 50)
 	longDescription := strings.Repeat("very long description ", 100)
-	
+
 	data := HelpData{
 		Usage:       longUsage,
 		Description: longDescription,
@@ -342,7 +349,7 @@ func TestRenderCommandHelp_UnicodeCharacters(t *testing.T) {
 	data := HelpData{
 		Usage:       "ggc test --option='special chars: åäö'",
 		Description: "Description with unicode: 🚀 and symbols: @#$%",
-		Examples:    []string{
+		Examples: []string{
 			"ggc test --unicode='åäö'",
 			"ggc test --symbols='@#$%'",
 			"ggc test --emoji='🚀'",
@@ -372,7 +379,7 @@ func TestRenderCommandHelp_NewlineHandling(t *testing.T) {
 	data := HelpData{
 		Usage:       "ggc test\n[options]",
 		Description: "Description with\nmultiple lines\nfor testing",
-		Examples:    []string{
+		Examples: []string{
 			"ggc test --example1",
 			"ggc test --example2\nwith newline",
 		},
