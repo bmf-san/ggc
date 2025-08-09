@@ -103,7 +103,7 @@ _ggc_branch() {
         'list-local:List local branches'
         'list-remote:List remote branches'
     )
-    
+
     if [[ $CURRENT == 2 ]]; then
         _describe 'branch subcommands' subcommands
     elif [[ $words[2] == "checkout" && $CURRENT == 3 ]]; then
@@ -118,10 +118,9 @@ _ggc_commit() {
     local subcommands
     subcommands=(
         'allow-empty:Allow empty commit'
-        'tmp:Create temporary commit'
         'amend:Amend last commit'
     )
-    
+
     if [[ $CURRENT == 2 ]]; then
         _describe 'commit subcommands' subcommands
     elif [[ $words[2] == "amend" && $CURRENT == 3 ]]; then
