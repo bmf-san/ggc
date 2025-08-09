@@ -16,7 +16,7 @@ _ggc()
             return 0
             ;;
         commit)
-            subopts="allow-empty tmp amend"
+            subopts="allow-empty amend"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

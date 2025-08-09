@@ -12,7 +12,6 @@ type MockClient struct {
 	CleanFilesFunc         func() error
 	CleanDirsFunc          func() error
 	CommitAllowEmptyFunc   func() error
-	CommitTmpFunc          func() error
 	FetchPruneFunc         func() error
 	LogSimpleFunc          func() error
 	LogGraphFunc           func() error
@@ -58,11 +57,6 @@ func (m *MockClient) CleanDirs() error {
 // CommitAllowEmpty is a mock of CommitAllowEmpty.
 func (m *MockClient) CommitAllowEmpty() error {
 	return m.CommitAllowEmptyFunc()
-}
-
-// CommitTmp is a mock of CommitTmp.
-func (m *MockClient) CommitTmp() error {
-	return m.CommitTmpFunc()
 }
 
 // FetchPrune is a mock of FetchPrune.

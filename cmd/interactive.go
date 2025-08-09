@@ -71,7 +71,6 @@ var commands = []CommandInfo{
 	{"log graph", "Show log with graph"},
 	{"commit <message>", "Create commit with a message"},
 	{"commit allow-empty", "Create an empty commit"},
-	{"commit tmp", "Create a temporary commit"},
 	{"commit amend <message>", "Amend a previous commit"},
 	{"fetch --prune", "Fetch and clean stale references"},
 	{"tag list", "List all tags"},

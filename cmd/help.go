@@ -88,7 +88,6 @@ func (h *Helper) ShowCommitHelp() {
 			"ggc commit amend <message>    # Amend to previous commit",
 			"ggc commit amend --no-edit    # Amend without editing commit message",
 			"ggc commit allow-empty        # Create empty commit",
-			"ggc commit tmp                # Create temporary commit",
 		},
 	})
 }
