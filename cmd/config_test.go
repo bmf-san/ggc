@@ -234,6 +234,15 @@ func TestConfigureer_LoadConfig(t *testing.T) {
 			expectedOutput: []string{},
 			expectNil:      false,
 		},
+		{
+			name: "load config error",
+			mockConfig: &mockConfigManager{
+				configs:   map[string]any{},
+				loadError: errors.New("failed to load config file"),
+			},
+			expectedOutput: []string{"failed to load config"},
+			expectNil:      true,
+		},
 	}
 
 	for _, tc := range cases {
