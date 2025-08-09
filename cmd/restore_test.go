@@ -221,10 +221,6 @@ func (m *MockGitClient) CommitAllowEmpty() error {
 	return nil
 }
 
-func (m *MockGitClient) CommitTmp() error {
-	return nil
-}
-
 func (m *MockGitClient) ResetHardAndClean() error {
 	return nil
 }

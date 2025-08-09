@@ -28,7 +28,6 @@ func (m *mockCompleteGitClient) GetBranchName() (string, error)            { ret
 func (m *mockCompleteGitClient) ListRemoteBranches() ([]string, error)     { return nil, nil }
 func (m *mockCompleteGitClient) AddFiles(_ []string) error                 { return nil }
 func (m *mockCompleteGitClient) CommitAllowEmpty() error                   { return nil }
-func (m *mockCompleteGitClient) CommitTmp() error                          { return nil }
 func (m *mockCompleteGitClient) Commit(_ string) error                     { return nil }
 func (m *mockCompleteGitClient) Push(_ bool) error                         { return nil }
 func (m *mockCompleteGitClient) Pull(_ bool) error                         { return nil }

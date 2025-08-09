@@ -23,7 +23,6 @@ type Clienter interface {
 	LogSimple() error
 	LogGraph() error
 	CommitAllowEmpty() error
-	CommitTmp() error
 	ResetHardAndClean() error
 	CleanFiles() error
 	CleanDirs() error

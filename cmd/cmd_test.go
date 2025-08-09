@@ -18,7 +18,6 @@ type mockGitClient struct {
 	logSimpleCalled         bool
 	logGraphCalled          bool
 	commitAllowEmptyCalled  bool
-	commitTmpCalled         bool
 	resetHardAndCleanCalled bool
 	cleanFilesCalled        bool
 	cleanDirsCalled         bool
@@ -65,11 +64,6 @@ func (m *mockGitClient) LogGraph() error {
 
 func (m *mockGitClient) CommitAllowEmpty() error {
 	m.commitAllowEmptyCalled = true
-	return nil
-}
-
-func (m *mockGitClient) CommitTmp() error {
-	m.commitTmpCalled = true
 	return nil
 }
 
@@ -228,13 +222,6 @@ func TestCmd_Commit(t *testing.T) {
 			args: []string{"allow-empty"},
 			wantCalled: func(mc *mockGitClient) bool {
 				return mc.commitAllowEmptyCalled
-			},
-		},
-		{
-			name: "tmp",
-			args: []string{"tmp"},
-			wantCalled: func(mc *mockGitClient) bool {
-				return mc.commitTmpCalled
 			},
 		},
 	}
