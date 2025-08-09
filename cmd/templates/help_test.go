@@ -111,6 +111,36 @@ func TestRenderCommandHelp(t *testing.T) {
 	}
 }
 
+func TestRenderCommandHelpEmptyData(t *testing.T) {
+	data := HelpData{}
+
+	result, err := RenderCommandHelp(data)
+
+	if err != nil {
+		t.Errorf("RenderCommandHelp should not return error with empty data: %v", err)
+	}
+
+	if result == "" {
+		t.Error("RenderCommandHelp should return non-empty string even with empty data")
+	}
+}
+
+func TestRenderMainHelpAlwaysSucceeds(t *testing.T) {
+	// Test multiple calls to ensure consistent behavior
+	for i := 0; i < 3; i++ {
+		result, err := RenderMainHelp()
+		if err != nil {
+			t.Errorf("RenderMainHelp call %d should not return error: %v", i+1, err)
+		}
+		if result == "" {
+			t.Errorf("RenderMainHelp call %d should return non-empty string", i+1)
+		}
+		if !strings.Contains(result, "ggc:") {
+			t.Errorf("RenderMainHelp call %d should contain 'ggc:' in output", i+1)
+		}
+	}
+}
+
 func TestRenderCommandHelp_EmptyData(t *testing.T) {
 	data := HelpData{}
 
