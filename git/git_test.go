@@ -7,6 +7,19 @@ import (
 	"testing"
 )
 
+func TestNewClient(t *testing.T) {
+	client := NewClient()
+
+	if client == nil {
+		t.Error("NewClient() should return a non-nil client")
+		return
+	}
+
+	if client.execCommand == nil {
+		t.Error("NewClient() should set execCommand field")
+	}
+}
+
 func TestClient_GetGitStatus(t *testing.T) {
 	tests := []struct {
 		name    string
