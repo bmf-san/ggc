@@ -86,6 +86,67 @@ func TestStatuseer_getUpstreamStatus(t *testing.T) {
 			},
 			expected: "Your branch is up to date with 'origin/main'",
 		},
+		{
+			name:   "branch ahead of upstream",
+			branch: "feature",
+			execCommand: func(command string, args ...string) *exec.Cmd {
+				if command == "git" && len(args) >= 3 {
+					if args[0] == "rev-parse" && args[1] == "--abbrev-ref" && strings.Contains(args[2], "@{upstream}") {
+						return exec.Command("echo", "origin/feature")
+					}
+					if args[0] == "rev-list" && args[1] == "--left-right" && args[2] == "--count" {
+						return exec.Command("echo", "2 0")
+					}
+				}
+				return exec.Command("echo", "mock")
+			},
+			expected: "Your branch is ahead of 'origin/feature' by 2 commit(s)",
+		},
+		{
+			name:   "branch behind upstream",
+			branch: "feature",
+			execCommand: func(command string, args ...string) *exec.Cmd {
+				if command == "git" && len(args) >= 3 {
+					if args[0] == "rev-parse" && args[1] == "--abbrev-ref" && strings.Contains(args[2], "@{upstream}") {
+						return exec.Command("echo", "origin/feature")
+					}
+					if args[0] == "rev-list" && args[1] == "--left-right" && args[2] == "--count" {
+						return exec.Command("echo", "0 3")
+					}
+				}
+				return exec.Command("echo", "mock")
+			},
+			expected: "Your branch is behind 'origin/feature' by 3 commit(s)",
+		},
+		{
+			name:   "diverged branches",
+			branch: "feature",
+			execCommand: func(command string, args ...string) *exec.Cmd {
+				if command == "git" && len(args) >= 3 {
+					if args[0] == "rev-parse" && args[1] == "--abbrev-ref" && strings.Contains(args[2], "@{upstream}") {
+						return exec.Command("echo", "origin/feature")
+					}
+					if args[0] == "rev-list" && args[1] == "--left-right" && args[2] == "--count" {
+						return exec.Command("echo", "2 1")
+					}
+				}
+				return exec.Command("echo", "mock")
+			},
+			expected: "Your branch and 'origin/feature' have diverged",
+		},
+		{
+			name:   "no upstream branch",
+			branch: "local-branch",
+			execCommand: func(command string, args ...string) *exec.Cmd {
+				if command == "git" && len(args) >= 3 {
+					if args[0] == "rev-parse" && args[1] == "--abbrev-ref" && strings.Contains(args[2], "@{upstream}") {
+						return exec.Command("false") // Command that returns error
+					}
+				}
+				return exec.Command("echo", "mock")
+			},
+			expected: "",
+		},
 	}
 
 	for _, tt := range tests {
