@@ -184,7 +184,6 @@ ggc
 | `commit amend <message>` | Amend previous commit |
 | `commit amend --no-edit` | Amend without editing message |
 | `commit allow-empty` | Create an empty commit |
-| `commit tmp` | Create temporary commit |
 | `diff staged` | Show staged changes |
 | `diff unstaged` | Show unstaged changes |
 | `fetch --prune` | Fetch and prune remotes |
