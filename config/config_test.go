@@ -976,6 +976,7 @@ func stringifyValue(val any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
 
 // TestManagerLoadConfig tests the LoadConfig method error paths
 func TestManagerLoadConfig(t *testing.T) {
