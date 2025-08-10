@@ -228,7 +228,7 @@ ggc
 
 ## Command Aliases
 
-Chain multiple `ggc` commands together with custom aliases you define. Here is the default aliases in your `~/.ggcconfig.yaml` file:
+Chain multiple `ggc` commands together with custom aliases you define. Here is an example of aliases in your `~/.ggcconfig.yaml` file:
 ```yaml
 aliases:
     ac:

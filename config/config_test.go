@@ -48,19 +48,6 @@ func TestGetDefaultConfig(t *testing.T) {
 		t.Error("Expected stash-before-switch to be true")
 	}
 
-	// Test default aliases
-	expectedAliases := map[string]string{
-		"st": "status",
-		"br": "branch",
-		"ci": "commit",
-	}
-	for alias, command := range expectedAliases {
-		if config.Aliases[alias] != command {
-			t.Errorf("Expected alias '%s' to be '%s', got '%s'", alias, command, config.Aliases[alias])
-		}
-	}
-
-	// Test integration defaults
 	if config.Integration.Github.DefaultRemote != "origin" {
 		t.Errorf("Expected default remote to be 'origin', got %s", config.Integration.Github.DefaultRemote)
 	}
@@ -248,7 +235,6 @@ func TestGetValueByPath(t *testing.T) {
 		{"default.editor", "vim"},
 		{"ui.color", true},
 		{"behavior.auto-push", false},
-		{"aliases.st", "status"},
 		{"integration.github.default-remote", "origin"},
 	}
 
@@ -861,22 +847,6 @@ func TestConfig_validateAliases(t *testing.T) {
 			},
 			wantError: true,
 			errorMsg:  "alias names must not contain spaces",
-		},
-		{
-			name: "invalid command in simple alias",
-			aliases: map[string]interface{}{
-				"bad": "nonexistent",
-			},
-			wantError: true,
-			errorMsg:  "unknown command 'nonexistent'",
-		},
-		{
-			name: "invalid command in sequence alias",
-			aliases: map[string]interface{}{
-				"bad": []interface{}{"add", "nonexistent", "push"},
-			},
-			wantError: true,
-			errorMsg:  "unknown command 'nonexistent'",
 		},
 		{
 			name: "empty sequence alias",

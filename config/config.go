@@ -156,14 +156,6 @@ func (c *Config) validateIntegrationTokens() error {
 }
 
 func (c *Config) validateAliases() error {
-	validCommands := map[string]bool{
-		"add": true, "branch": true, "clean": true, "commit": true, "config": true,
-		"diff": true, "fetch": true, "help": true, "hook": true, "interactive": true,
-		"log": true, "pull": true, "push": true, "rebase": true, "remote": true,
-		"reset": true, "restore": true, "stash": true, "status": true, "tag": true,
-		"version": true,
-	}
-
 	for name, value := range c.Aliases {
 		if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
 			return &ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
@@ -174,9 +166,6 @@ func (c *Config) validateAliases() error {
 			// Simple alias validation
 			if strings.TrimSpace(v) == "" {
 				return &ValidationError{"aliases." + name, v, "alias command cannot be empty"}
-			}
-			if !validCommands[v] {
-				return &ValidationError{"aliases." + name, v, fmt.Sprintf("unknown command '%s'", v)}
 			}
 
 		case []interface{}:
@@ -198,13 +187,6 @@ func (c *Config) validateAliases() error {
 						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
 						Value:   cmdStr,
 						Message: "command in sequence cannot be empty",
-					}
-				}
-				if !validCommands[strings.Split(cmdStr, " ")[0]] {
-					return &ValidationError{
-						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
-						Value:   cmdStr,
-						Message: fmt.Sprintf("unknown command '%s'", cmdStr),
 					}
 				}
 			}
@@ -346,15 +328,6 @@ func getDefaultConfig() *Config {
 	config.Behavior.ConfirmDestructive = "simple"
 	config.Behavior.AutoFetch = true
 	config.Behavior.StashBeforeSwitch = true
-
-	// Default simple aliases
-	config.Aliases["st"] = "status"
-	config.Aliases["br"] = "branch"
-	config.Aliases["ci"] = "commit"
-
-	config.Aliases["ac"] = []interface{}{"add .", "commit tmp"}
-	config.Aliases["sync"] = []interface{}{"pull current", "add .", "commit tmp", "push current"}
-	config.Aliases["quick"] = []interface{}{"status", "add .", "commit tmp"}
 
 	config.Integration.Github.DefaultRemote = "origin"
 
