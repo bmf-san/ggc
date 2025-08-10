@@ -17,7 +17,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout 
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from checkout" -a "(__ggc_complete_branches)"
 
 # Commit subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow-empty tmp amend"
+complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow-empty amend"
 
 # Push subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from push" -a "current force"

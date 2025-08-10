@@ -340,6 +340,18 @@ func TestSet(t *testing.T) {
 	if value != "develop" {
 		t.Errorf("Expected 'develop', got %s", value)
 	}
+
+	// Test error case: invalid path
+	err = cm.Set("invalid.nonexistent.path", "value")
+	if err == nil {
+		t.Error("Expected error when setting invalid path, but got nil")
+	}
+
+	// Test error case: invalid value type
+	err = cm.Set("ui.color", "not_a_boolean")
+	if err == nil {
+		t.Error("Expected error when setting invalid boolean value, but got nil")
+	}
 }
 
 // TestList tests the List method
@@ -623,6 +635,7 @@ func TestConfig_Validate(t *testing.T) {
 		}
 	})
 }
+
 func TestConfig_ParseAlias(t *testing.T) {
 	config := &Config{
 		Aliases: map[string]interface{}{
@@ -963,4 +976,39 @@ func stringifyValue(val any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+
+// TestManagerLoadConfig tests the LoadConfig method error paths
+func TestManagerLoadConfig(t *testing.T) {
+	t.Run("LoadConfig with invalid path executes without panic", func(t *testing.T) {
+		cm := NewConfigManager()
+		cm.configPath = "/nonexistent/directory/config.yaml"
+
+		// This should not panic, even if file operations fail
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("LoadConfig should not panic, but got: %v", r)
+			}
+		}()
+
+		cm.LoadConfig()
+
+		// Verify that config is still accessible (default config should be loaded)
+		config := cm.GetConfig()
+		if config == nil {
+			t.Error("Config should not be nil after LoadConfig, even with invalid path")
+		}
+	})
+
+	t.Run("LoadConfig handles missing directory gracefully", func(t *testing.T) {
+		cm := NewConfigManager()
+		cm.configPath = "/definitely/nonexistent/path/config.yaml"
+
+		// Should not panic or crash
+		cm.LoadConfig()
+
+		// Should still have a valid config object
+		if cm.GetConfig() == nil {
+			t.Error("Should have valid config even with missing directory")
+		}
+	})
 }

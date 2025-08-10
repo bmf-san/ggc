@@ -51,6 +51,11 @@ func TestVersioneer_Version(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Mock getVersionInfo function
+			SetVersionGetter(func() (string, string) {
+				return "v1.0.0", "abc123"
+			})
+
 			var buf bytes.Buffer
 			v := &Versioneer{
 				outputWriter: &buf,

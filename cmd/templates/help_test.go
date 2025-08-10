@@ -6,6 +6,21 @@ import (
 	"testing"
 )
 
+func TestSelectLogo(t *testing.T) {
+	// テスト用の関数として selectLogo を public にする必要がないので、
+	// RenderMainHelp を通してテストします
+	result, err := RenderMainHelp()
+	if err != nil {
+		t.Fatalf("RenderMainHelp() should not return error: %v", err)
+	}
+
+	// ロゴが含まれていることを確認
+	hasLogo := strings.Contains(result, "__ _") || strings.Contains(result, "╔═════════════════════╗")
+	if !hasLogo {
+		t.Error("Result should contain either full logo or small logo")
+	}
+}
+
 func TestRenderMainHelp(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -93,6 +108,43 @@ func TestRenderCommandHelp(t *testing.T) {
 		if !strings.Contains(result, example) {
 			t.Errorf("RenderCommandHelp should contain example '%s' in output", example)
 		}
+	}
+}
+
+func TestRenderCommandHelpEmptyData(t *testing.T) {
+	data := HelpData{}
+
+	result, err := RenderCommandHelp(data)
+
+	if err != nil {
+		t.Errorf("RenderCommandHelp should not return error with empty data: %v", err)
+	}
+
+	if result == "" {
+		t.Error("RenderCommandHelp should return non-empty string even with empty data")
+	}
+}
+
+func TestRenderMainHelpConsistency(t *testing.T) {
+	// Test that the function returns consistent results
+	result1, err1 := RenderMainHelp()
+	result2, err2 := RenderMainHelp()
+
+	if err1 != nil || err2 != nil {
+		t.Errorf("RenderMainHelp should not return error: err1=%v, err2=%v", err1, err2)
+	}
+
+	if result1 != result2 {
+		t.Error("RenderMainHelp should return consistent results across calls")
+	}
+
+	// Verify essential content
+	if !strings.Contains(result1, "ggc:") {
+		t.Error("RenderMainHelp should contain 'ggc:' in output")
+	}
+
+	if !strings.Contains(result1, "Usage:") {
+		t.Error("RenderMainHelp should contain 'Usage:' in output")
 	}
 }
 
@@ -264,5 +316,109 @@ func TestRenderCommandHelp_ManyExamples(t *testing.T) {
 		if !strings.Contains(result, example) {
 			t.Errorf("RenderCommandHelp should contain example %d: '%s'", i+1, example)
 		}
+	}
+}
+
+// Test edge cases for better coverage
+func TestRenderCommandHelp_LongStrings(t *testing.T) {
+	longUsage := strings.Repeat("very long usage string ", 50)
+	longDescription := strings.Repeat("very long description ", 100)
+
+	data := HelpData{
+		Usage:       longUsage,
+		Description: longDescription,
+		Examples:    []string{"short example"},
+	}
+
+	result, err := RenderCommandHelp(data)
+
+	if err != nil {
+		t.Errorf("RenderCommandHelp should handle long strings: %v", err)
+	}
+
+	if !strings.Contains(result, "very long usage string") {
+		t.Error("Result should contain parts of long usage")
+	}
+
+	if !strings.Contains(result, "very long description") {
+		t.Error("Result should contain parts of long description")
+	}
+}
+
+func TestRenderCommandHelp_UnicodeCharacters(t *testing.T) {
+	data := HelpData{
+		Usage:       "ggc test --option='special chars: åäö'",
+		Description: "Description with unicode: 🚀 and symbols: @#$%",
+		Examples: []string{
+			"ggc test --unicode='åäö'",
+			"ggc test --symbols='@#$%'",
+			"ggc test --emoji='🚀'",
+		},
+	}
+
+	result, err := RenderCommandHelp(data)
+
+	if err != nil {
+		t.Errorf("RenderCommandHelp should handle special characters: %v", err)
+	}
+
+	if !strings.Contains(result, "åäö") {
+		t.Error("Result should contain unicode characters")
+	}
+
+	if !strings.Contains(result, "🚀") {
+		t.Error("Result should contain emoji")
+	}
+
+	if !strings.Contains(result, "@#$%") {
+		t.Error("Result should contain special symbols")
+	}
+}
+
+func TestRenderCommandHelp_NewlineHandling(t *testing.T) {
+	data := HelpData{
+		Usage:       "ggc test\n[options]",
+		Description: "Description with\nmultiple lines\nfor testing",
+		Examples: []string{
+			"ggc test --example1",
+			"ggc test --example2\nwith newline",
+		},
+	}
+
+	result, err := RenderCommandHelp(data)
+
+	if err != nil {
+		t.Errorf("RenderCommandHelp should handle newlines: %v", err)
+	}
+
+	if !strings.Contains(result, "multiple lines") {
+		t.Error("Result should handle multiline description")
+	}
+}
+
+func TestLogoConstants_Properties(t *testing.T) {
+	// Test Logo properties
+	if len(Logo) < 10 {
+		t.Error("Logo should have reasonable length")
+	}
+
+	logoLines := strings.Split(Logo, "\n")
+	if len(logoLines) < 3 {
+		t.Error("Logo should have multiple lines")
+	}
+
+	// Test SmallLogo properties
+	if len(SmallLogo) < 10 {
+		t.Error("SmallLogo should have reasonable length")
+	}
+
+	smallLogoLines := strings.Split(SmallLogo, "\n")
+	if len(smallLogoLines) < 3 {
+		t.Error("SmallLogo should have multiple lines")
+	}
+
+	// Verify they are different
+	if Logo == SmallLogo {
+		t.Error("Logo and SmallLogo should be different")
 	}
 }

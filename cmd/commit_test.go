@@ -14,17 +14,11 @@ import (
 type mockCommitGitClient struct {
 	git.Clienter
 	commitAllowEmptyCalled bool
-	commitTmpCalled        bool
 	err                    error
 }
 
 func (m *mockCommitGitClient) CommitAllowEmpty() error {
 	m.commitAllowEmptyCalled = true
-	return m.err
-}
-
-func (m *mockCommitGitClient) CommitTmp() error {
-	m.commitTmpCalled = true
 	return m.err
 }
 
@@ -41,22 +35,6 @@ func TestCommitter_Commit_AllowEmpty(t *testing.T) {
 	c.Commit([]string{"allow-empty"})
 	if !mockClient.commitAllowEmptyCalled {
 		t.Error("CommitAllowEmpty should be called")
-	}
-}
-
-func TestCommitter_Commit_Tmp(t *testing.T) {
-	mockClient := &mockCommitGitClient{}
-	var buf bytes.Buffer
-	c := &Committer{
-		gitClient:    mockClient,
-		outputWriter: &buf,
-		helper:       NewHelper(),
-		execCommand:  exec.Command,
-	}
-	c.helper.outputWriter = &buf
-	c.Commit([]string{"tmp"})
-	if !mockClient.commitTmpCalled {
-		t.Error("CommitTmp should be called")
 	}
 }
 
@@ -215,23 +193,6 @@ func TestCommitter_Commit_Amend_Error(t *testing.T) {
 	output := buf.String()
 	if !strings.Contains(output, "Error:") {
 		t.Errorf("Expected error message, got: %s", output)
-	}
-}
-
-func TestCommitter_Commit_Tmp_Error(t *testing.T) {
-	var buf bytes.Buffer
-	c := &Committer{
-		gitClient:    &mockCommitGitClient{err: errors.New("tmp commit failed")},
-		outputWriter: &buf,
-		helper:       NewHelper(),
-		execCommand:  exec.Command,
-	}
-	c.helper.outputWriter = &buf
-	c.Commit([]string{"tmp"})
-
-	output := buf.String()
-	if output != "Error: tmp commit failed\n" {
-		t.Errorf("Expected tmp error message, got: %q", output)
 	}
 }
 

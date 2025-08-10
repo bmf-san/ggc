@@ -48,10 +48,6 @@ func (c *Committer) Commit(args []string) {
 		if err := c.gitClient.CommitAllowEmpty(); err != nil {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
-	case "tmp":
-		if err := c.gitClient.CommitTmp(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
-		}
 	case "amend":
 		var cmd *exec.Cmd
 
