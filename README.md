@@ -225,6 +225,29 @@ ggc
 | `status short` | Show concise status |
 | `version` | Show current ggc version |
 
+## Command Aliases
+
+Chain multiple `ggc` commands together with custom aliases you define. Here is an example of aliases in your `~/.ggcconfig.yaml` file:
+```yaml
+aliases:
+    ac:
+        - add .
+        - commit tmp
+    br: branch
+    ci: commit
+    quick:
+        - status
+        - add .
+        - commit tmp
+    st: status
+    sync:
+        - pull current
+        - add .
+        - commit tmp
+        - push current
+```
+For example, running `ggc ac` will execute first `ggc add .` then `ggc commit tmp` and terminate.
+
 ## Directory Structure
 
 ```
