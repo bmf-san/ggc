@@ -38,7 +38,7 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 
 ## Supported Environments
 - OS: macOS (Apple Silicon/Intel) - Verified
-- Go version: 1.24 or later recommended
+- Go version: 1.25 or later recommended
 - Dependencies: Go standard library, `golang.org/x/term`, `golang.org/x/sys`, `gopkg.in/yaml.v3`
 - Requirement: `git` command must be installed
 

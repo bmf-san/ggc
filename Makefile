@@ -9,7 +9,7 @@ OUT?=coverage.out
 install-tools:
 	@if ! command -v golangci-lint &> /dev/null; then \
 		echo "Installing required tools..."; \
-		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.2.1; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest; \
 		echo "Tools installed successfully"; \
 	else \
 		echo "Tools already installed"; \
