@@ -5,9 +5,9 @@ setup() {
     export ORIGINAL_HOME="$HOME"
     export ORIGINAL_PATH="$PATH"
     export HOME="$TEST_DIR"
-    
+
     source install.sh
-    
+
     export PATH="$TEST_DIR/bin:$PATH"
     mkdir -p "$TEST_DIR/bin"
 }
@@ -21,7 +21,7 @@ teardown() {
 @test "command_exists returns true for existing command" {
     echo '#!/bin/bash' > "$TEST_DIR/bin/test_cmd"
     chmod +x "$TEST_DIR/bin/test_cmd"
-    
+
     run command_exists test_cmd
     [ "$status" -eq 0 ]
 }
@@ -58,20 +58,20 @@ teardown() {
 @test "add_to_path adds to bashrc when using bash" {
     export SHELL="/bin/bash"
     touch "$HOME/.bashrc"
-    
+
     run add_to_path "/test/path"
     [ "$status" -eq 0 ]
-    
+
     grep -q "/test/path" "$HOME/.bashrc"
 }
 
 @test "add_to_path adds to zshrc when using zsh" {
     export SHELL="/bin/zsh"
     touch "$HOME/.zshrc"
-    
+
     run add_to_path "/test/path"
     [ "$status" -eq 0 ]
-    
+
     grep -q "/test/path" "$HOME/.zshrc"
 }
 
@@ -81,17 +81,17 @@ teardown() {
 echo "/fake/gopath"' > "$TEST_DIR/bin/go"
     chmod +x "$TEST_DIR/bin/go"
     touch "$HOME/.bashrc"
-    
+
     run setup_shell_completion
     [ "$status" -eq 0 ]
-    
+
     grep -q "load_ggc_completion" "$HOME/.bashrc"
 }
 
 @test "install_with_go fails when go is not available" {
     mkdir -p "$TEST_DIR/empty"
     export PATH="$TEST_DIR/empty"
-    
+
     run install_with_go
     [ "$status" -eq 1 ]
 }
@@ -99,7 +99,7 @@ echo "/fake/gopath"' > "$TEST_DIR/bin/go"
 @test "install_from_source fails when go is not available" {
     mkdir -p "$TEST_DIR/empty"
     export PATH="$TEST_DIR/empty"
-    
+
     run install_from_source
     [ "$status" -eq 1 ]
 }
@@ -107,12 +107,12 @@ echo "/fake/gopath"' > "$TEST_DIR/bin/go"
 @test "install_from_source fails when git is not available" {
     mkdir -p "$TEST_DIR/bin"
     echo '#!/bin/bash
-echo "go version go1.21.0 linux/amd64"' > "$TEST_DIR/bin/go"
+echo "go version go1.25.0 linux/amd64"' > "$TEST_DIR/bin/go"
     chmod +x "$TEST_DIR/bin/go"
-    
+
     mkdir -p "$TEST_DIR/empty"
     export PATH="$TEST_DIR/bin:$TEST_DIR/empty"
-    
+
     run install_from_source
     [ "$status" -eq 1 ]
 }

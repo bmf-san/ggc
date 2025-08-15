@@ -29,7 +29,7 @@ func TestGetVersionInfo(t *testing.T) {
 	// This test ensures the function signature is correct
 	versionType := len(version) >= 0 // All strings have len >= 0
 	commitType := len(commit) >= 0   // All strings have len >= 0
-	
+
 	if !versionType || !commitType {
 		t.Error("GetVersionInfo should return two string values")
 	}
