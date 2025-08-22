@@ -148,9 +148,18 @@ func (h *Helper) ShowStashHelp() {
 		Usage:       "ggc stash [command]",
 		Description: "Stash changes",
 		Examples: []string{
-			"ggc stash          # Stash current changes",
-			"ggc stash pop      # Apply and remove the latest stash",
-			"ggc stash drop     # Remove the latest stash",
+			"ggc stash                              # Stash current changes",
+			"ggc stash list                         # List all stashes",
+			"ggc stash show [stash]                 # Show changes in stash",
+			"ggc stash apply [stash]                # Apply stash without removing it",
+			"ggc stash pop [stash]                  # Apply and remove stash",
+			"ggc stash drop [stash]                 # Remove stash",
+			"ggc stash branch <branch> [stash]      # Create branch from stash",
+			"ggc stash push [-m message] [files]    # Save changes to new stash",
+			"ggc stash save [message]               # Save changes to new stash",
+			"ggc stash clear                        # Remove all stashes",
+			"ggc stash create [message]             # Create stash and return object name",
+			"ggc stash store <object> [message]     # Store stash object",
 		},
 	})
 }

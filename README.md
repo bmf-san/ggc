@@ -220,8 +220,17 @@ ggc
 | `tag push <v>` | Push specific tag |
 | `tag show <v>` | Show tag details |
 | `stash` | Stash current changes |
-| `stash pop` | Apply and remove latest stash |
-| `stash drop` | Remove latest stash |
+| `stash list` | List all stashes |
+| `stash show [stash]` | Show changes in stash |
+| `stash apply [stash]` | Apply stash without removing it |
+| `stash pop [stash]` | Apply and remove stash |
+| `stash drop [stash]` | Remove stash |
+| `stash branch <name> [stash]` | Create branch from stash |
+| `stash push [-m message] [files]` | Save changes to new stash |
+| `stash save [message]` | Save changes to new stash with message |
+| `stash clear` | Remove all stashes |
+| `stash create [message]` | Create stash and return object name |
+| `stash store <object> [message]` | Store stash object |
 | `status short` | Show concise status |
 | `version` | Show current ggc version |
 

@@ -49,6 +49,9 @@ complete -c ggc -f -n "__fish_seen_subcommand_from tag" -a "create delete show l
 # Hook subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "list edit install uninstall enable disable"
 
+# Stash subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "list show apply pop drop branch push save clear create store"
+
 # Restore subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from restore" -a "staged"
 
