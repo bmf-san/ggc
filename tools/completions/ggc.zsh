@@ -59,6 +59,9 @@ _ggc() {
                 add)
                     _ggc_add
                     ;;
+                stash)
+                    _ggc_stash
+                    ;;
             esac
             ;;
     esac
@@ -265,6 +268,24 @@ _ggc_add() {
     else
         _files
     fi
+}
+
+_ggc_stash() {
+    local subcommands
+    subcommands=(
+        'list:List all stashes'
+        'show:Show changes in stash'
+        'apply:Apply stash without removing it'
+        'pop:Apply and remove stash'
+        'drop:Remove stash'
+        'branch:Create branch from stash'
+        'push:Save changes to new stash'
+        'save:Save changes to new stash with message'
+        'clear:Remove all stashes'
+        'create:Create stash and return object name'
+        'store:Store stash object'
+    )
+    _describe 'stash subcommands' subcommands
 }
 
 compdef _ggc ggc
