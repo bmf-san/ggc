@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/ggc/config"
+	"github.com/bmf-san/ggc/v3/config"
 )
 
 // Configureer handles config operations.

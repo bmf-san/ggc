@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/git"
+	"github.com/bmf-san/ggc/v3/git"
 )
 
 type mockLogGitClient struct {

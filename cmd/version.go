@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/bmf-san/ggc/config"
+	"github.com/bmf-san/ggc/v3/config"
 )
 
 // VersionGetter is a function type for getting version info

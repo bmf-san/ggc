@@ -1,4 +1,4 @@
-module github.com/bmf-san/ggc
+module github.com/bmf-san/ggc/v3
 
 go 1.25.0
 

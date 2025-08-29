@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/bmf-san/ggc/git"
 	"io"
 	"os"
 	"os/exec"
+
+	"github.com/bmf-san/ggc/v3/git"
 )
 
 // Restoreer handles restore operations.

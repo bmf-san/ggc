@@ -3,7 +3,7 @@ package router
 import (
 	"testing"
 
-	"github.com/bmf-san/ggc/config"
+	"github.com/bmf-san/ggc/v3/config"
 )
 
 type mockExecuter struct {

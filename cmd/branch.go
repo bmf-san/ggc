@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/ggc/git"
+	"github.com/bmf-san/ggc/v3/git"
 )
 
 // Brancher provides functionality for the branch command.
