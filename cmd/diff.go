@@ -4,45 +4,49 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Differ handles git diff operations.
 type Differ struct {
+	gitClient    git.Clienter
 	outputWriter io.Writer
 	helper       *Helper
-	execCommand  func(string, ...string) *exec.Cmd
 }
 
 // NewDiffer creates a new Differ instance.
 func NewDiffer() *Differ {
 	return &Differ{
+		gitClient:    git.NewClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		execCommand:  exec.Command,
 	}
 }
 
 // Diff executes git diff with the given arguments.
 func (d *Differ) Diff(args []string) {
-	var cmd *exec.Cmd
+	var output string
+	var err error
+
 	if len(args) == 0 {
-		cmd = d.execCommand("git", "diff", "HEAD")
+		output, err = d.gitClient.DiffHead()
 	} else {
 		switch args[0] {
 		case "unstaged":
-			cmd = d.execCommand("git", "diff")
+			output, err = d.gitClient.Diff()
 		case "staged":
-			cmd = d.execCommand("git", "diff", "--staged")
+			output, err = d.gitClient.DiffStaged()
 		default:
 			d.helper.ShowDiffHelp()
 			return
 		}
 	}
 
-	cmd.Stdout = d.outputWriter
-	cmd.Stderr = d.outputWriter
-	if err := cmd.Run(); err != nil {
+	if err != nil {
 		_, _ = fmt.Fprintf(d.outputWriter, "Error: %v\n", err)
+		return
 	}
+
+	_, _ = fmt.Fprint(d.outputWriter, output)
 }

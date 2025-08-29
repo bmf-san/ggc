@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -16,7 +15,6 @@ import (
 // Brancher provides functionality for the branch command.
 type Brancher struct {
 	gitClient    git.Clienter
-	execCommand  func(name string, arg ...string) *exec.Cmd
 	inputReader  *bufio.Reader
 	outputWriter io.Writer
 	helper       *Helper
@@ -26,7 +24,6 @@ type Brancher struct {
 func NewBrancher() *Brancher {
 	return &Brancher{
 		gitClient:    git.NewClient(),
-		execCommand:  exec.Command,
 		inputReader:  bufio.NewReader(os.Stdin),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
@@ -88,10 +85,7 @@ func (b *Brancher) branchCheckout() {
 		return
 	}
 	branch := branches[idx-1]
-	cmd := b.execCommand("git", "checkout", branch)
-	cmd.Stdout = b.outputWriter
-	cmd.Stderr = b.outputWriter
-	if err := cmd.Run(); err != nil {
+	if err := b.gitClient.CheckoutBranch(branch); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
 }
@@ -126,10 +120,7 @@ func (b *Brancher) branchCheckoutRemote() {
 		return
 	}
 	localBranch := parts[1]
-	cmd := b.execCommand("git", "checkout", "-b", localBranch, "--track", remoteBranch)
-	cmd.Stdout = b.outputWriter
-	cmd.Stderr = b.outputWriter
-	if err := cmd.Run(); err != nil {
+	if err := b.gitClient.CheckoutNewBranchFromRemote(localBranch, remoteBranch); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
 }
@@ -143,10 +134,7 @@ func (b *Brancher) branchCreate() {
 		return
 	}
 
-	cmd := b.execCommand("git", "checkout", "-b", branchName)
-	cmd.Stdout = b.outputWriter
-	cmd.Stderr = b.outputWriter
-	if err := cmd.Run(); err != nil {
+	if err := b.gitClient.CheckoutNewBranch(branchName); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to create and checkout branch: %v\n", err)
 		return
 	}
@@ -176,11 +164,8 @@ func (b *Brancher) branchDelete() {
 		}
 		if input == "all" {
 			for _, br := range branches {
-				cmd := b.execCommand("git", "branch", "-d", br)
-				cmd.Stdout = b.outputWriter
-				cmd.Stderr = b.outputWriter
-				if err := cmd.Run(); err != nil {
-					_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to delete %s: %v\n", br, err)
+				if err := b.gitClient.DeleteBranch(br); err != nil {
+					_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 				}
 			}
 			_, _ = fmt.Fprintln(b.outputWriter, "All branches deleted.")
@@ -205,11 +190,8 @@ func (b *Brancher) branchDelete() {
 			continue
 		}
 		for _, br := range tmp {
-			cmd := b.execCommand("git", "branch", "-d", br)
-			cmd.Stdout = b.outputWriter
-			cmd.Stderr = b.outputWriter
-			if err := cmd.Run(); err != nil {
-				_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to delete %s: %v\n", br, err)
+			if err := b.gitClient.DeleteBranch(br); err != nil {
+				_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 			}
 		}
 		_, _ = fmt.Fprintln(b.outputWriter, "Selected branches deleted.")
@@ -223,17 +205,15 @@ func (b *Brancher) branchDeleteMerged() {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to get current branch: %v\n", err)
 		return
 	}
-	cmd := b.execCommand("git", "branch", "--merged")
-	out, err := cmd.Output()
+	mergedBranches, err := b.gitClient.ListMergedBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to get merged branches: %v\n", err)
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 		return
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+
 	branches := []string{}
-	for _, l := range lines {
-		br := strings.TrimSpace(strings.TrimPrefix(l, "* "))
-		if br != "" && br != current {
+	for _, br := range mergedBranches {
+		if br != current {
 			branches = append(branches, br)
 		}
 	}
@@ -255,11 +235,8 @@ func (b *Brancher) branchDeleteMerged() {
 		}
 		if input == "all" {
 			for _, br := range branches {
-				cmd := b.execCommand("git", "branch", "-d", br)
-				cmd.Stdout = b.outputWriter
-				cmd.Stderr = b.outputWriter
-				if err := cmd.Run(); err != nil {
-					_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to delete %s: %v\n", br, err)
+				if err := b.gitClient.DeleteBranch(br); err != nil {
+					_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 				}
 			}
 			_, _ = fmt.Fprintln(b.outputWriter, "All merged branches deleted.")
@@ -284,11 +261,8 @@ func (b *Brancher) branchDeleteMerged() {
 			continue
 		}
 		for _, br := range tmp {
-			cmd := b.execCommand("git", "branch", "-d", br)
-			cmd.Stdout = b.outputWriter
-			cmd.Stderr = b.outputWriter
-			if err := cmd.Run(); err != nil {
-				_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to delete %s: %v\n", br, err)
+			if err := b.gitClient.DeleteBranch(br); err != nil {
+				_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 			}
 		}
 		_, _ = fmt.Fprintln(b.outputWriter, "Selected merged branches deleted.")

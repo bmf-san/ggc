@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -17,7 +16,6 @@ import (
 type Cleaner struct {
 	gitClient    git.Clienter
 	outputWriter io.Writer
-	execCommand  func(name string, arg ...string) *exec.Cmd
 	inputReader  *bufio.Reader
 	helper       *Helper
 }
@@ -32,7 +30,6 @@ func NewCleanerWithClient(client git.Clienter) *Cleaner {
 	c := &Cleaner{
 		gitClient:    client,
 		outputWriter: os.Stdout,
-		execCommand:  exec.Command,
 		inputReader:  bufio.NewReader(os.Stdin),
 		helper:       NewHelper(),
 	}
@@ -63,10 +60,9 @@ func (c *Cleaner) Clean(args []string) {
 
 // CleanInteractive interactively selects files to clean.
 func (c *Cleaner) CleanInteractive() {
-	cmd := c.execCommand("git", "clean", "-nd") // get candidates with dry-run
-	out, err := cmd.Output()
+	out, err := c.gitClient.CleanDryRun()
 	if err != nil {
-		_, _ = fmt.Fprintf(c.outputWriter, "Error: failed to get candidates with git clean -nd: %v\n", err)
+		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -94,12 +90,8 @@ func (c *Cleaner) CleanInteractive() {
 			return
 		}
 		if input == "all" {
-			args := append([]string{"clean", "-f", "--"}, files...)
-			cleanCmd := c.execCommand("git", args...)
-			cleanCmd.Stdout = c.outputWriter
-			cleanCmd.Stderr = c.outputWriter
-			if err := cleanCmd.Run(); err != nil {
-				_, _ = fmt.Fprintf(c.outputWriter, "Error: failed to clean files: %v\n", err)
+			if err := c.gitClient.CleanFilesForce(files); err != nil {
+				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 				return
 			}
 			_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
@@ -132,12 +124,8 @@ func (c *Cleaner) CleanInteractive() {
 		ans, _ := c.inputReader.ReadString('\n')
 		ans = strings.TrimSpace(ans)
 		if ans == "y" || ans == "Y" {
-			args := append([]string{"clean", "-f", "--"}, tmp...)
-			cleanCmd := c.execCommand("git", args...)
-			cleanCmd.Stdout = c.outputWriter
-			cleanCmd.Stderr = c.outputWriter
-			if err := cleanCmd.Run(); err != nil {
-				_, _ = fmt.Fprintf(c.outputWriter, "Error: failed to clean files: %v\n", err)
+			if err := c.gitClient.CleanFilesForce(tmp); err != nil {
+				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 				return
 			}
 			_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")

@@ -85,6 +85,11 @@ _ggc()
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
+        rebase)
+            subopts="interactive"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
     esac
 
     if [[ ${COMP_CWORD} == 1 ]] ; then

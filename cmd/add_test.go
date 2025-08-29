@@ -2,26 +2,20 @@ package cmd
 
 import (
 	"bytes"
-	"os"
-	"os/exec"
+	"errors"
 	"strings"
 	"testing"
 )
 
 func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
-	adder := NewAdder()
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	mockClient := &mockAddGitClient{}
+	var buf bytes.Buffer
+	adder := &Adder{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+	}
 
 	adder.Add([]string{})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
 
 	output := buf.String()
 	if output == "" || output[:5] != "Usage" {
@@ -29,133 +23,250 @@ func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
 	}
 }
 
+// mockGitClient for testing
+type mockAddGitClient struct {
+	addCalled             bool
+	addInteractiveCalled  bool
+	addFiles              []string
+	addError              error
+	addInteractiveError   error
+	GetCurrentBranchFunc  func() (string, error)
+	LogOnelineFunc        func(from, to string) (string, error)
+	RebaseInteractiveFunc func(commitCount int) error
+}
+
+func (m *mockAddGitClient) Add(files ...string) error {
+	m.addCalled = true
+	m.addFiles = files
+	return m.addError
+}
+
+func (m *mockAddGitClient) AddInteractive() error {
+	m.addInteractiveCalled = true
+	return m.addInteractiveError
+}
+
+// Repository Information methods
+func (m *mockAddGitClient) GetCurrentBranch() (string, error) {
+	if m.GetCurrentBranchFunc != nil {
+		return m.GetCurrentBranchFunc()
+	}
+	return "feature/test", nil
+}
+func (m *mockAddGitClient) GetBranchName() (string, error) { return "main", nil }
+func (m *mockAddGitClient) GetGitStatus() (string, error)  { return "", nil }
+
+// Status Operations methods
+func (m *mockAddGitClient) Status() (string, error)               { return "", nil }
+func (m *mockAddGitClient) StatusShort() (string, error)          { return "", nil }
+func (m *mockAddGitClient) StatusWithColor() (string, error)      { return "", nil }
+func (m *mockAddGitClient) StatusShortWithColor() (string, error) { return "", nil }
+
+// Commit Operations methods
+func (m *mockAddGitClient) Commit(_ string) error                 { return nil }
+func (m *mockAddGitClient) CommitAmend() error                    { return nil }
+func (m *mockAddGitClient) CommitAmendNoEdit() error              { return nil }
+func (m *mockAddGitClient) CommitAmendWithMessage(_ string) error { return nil }
+func (m *mockAddGitClient) CommitAllowEmpty() error               { return nil }
+
+// Diff Operations methods
+func (m *mockAddGitClient) Diff() (string, error)       { return "", nil }
+func (m *mockAddGitClient) DiffStaged() (string, error) { return "", nil }
+func (m *mockAddGitClient) DiffHead() (string, error)   { return "", nil }
+
+// Branch Operations methods
+func (m *mockAddGitClient) ListLocalBranches() ([]string, error) { return []string{"main"}, nil }
+func (m *mockAddGitClient) ListRemoteBranches() ([]string, error) {
+	return []string{"origin/main"}, nil
+}
+func (m *mockAddGitClient) CheckoutNewBranch(_ string) error { return nil }
+func (m *mockAddGitClient) CheckoutBranch(_ string) error    { return nil }
+func (m *mockAddGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
+	return nil
+}
+func (m *mockAddGitClient) DeleteBranch(_ string) error           { return nil }
+func (m *mockAddGitClient) ListMergedBranches() ([]string, error) { return []string{}, nil }
+
+// Remote Operations methods
+func (m *mockAddGitClient) Push(_ bool) error              { return nil }
+func (m *mockAddGitClient) Pull(_ bool) error              { return nil }
+func (m *mockAddGitClient) Fetch(_ bool) error             { return nil }
+func (m *mockAddGitClient) RemoteList() error              { return nil }
+func (m *mockAddGitClient) RemoteAdd(_, _ string) error    { return nil }
+func (m *mockAddGitClient) RemoteRemove(_ string) error    { return nil }
+func (m *mockAddGitClient) RemoteSetURL(_, _ string) error { return nil }
+
+// Tag Operations methods
+func (m *mockAddGitClient) TagList(_ []string) error              { return nil }
+func (m *mockAddGitClient) TagCreate(_, _ string) error           { return nil }
+func (m *mockAddGitClient) TagCreateAnnotated(_, _ string) error  { return nil }
+func (m *mockAddGitClient) TagDelete(_ []string) error            { return nil }
+func (m *mockAddGitClient) TagPush(_, _ string) error             { return nil }
+func (m *mockAddGitClient) TagPushAll(_ string) error             { return nil }
+func (m *mockAddGitClient) TagShow(_ string) error                { return nil }
+func (m *mockAddGitClient) GetLatestTag() (string, error)         { return "v1.0.0", nil }
+func (m *mockAddGitClient) TagExists(_ string) bool               { return false }
+func (m *mockAddGitClient) GetTagCommit(_ string) (string, error) { return "abc123", nil }
+
+// Log Operations methods
+func (m *mockAddGitClient) LogSimple() error { return nil }
+func (m *mockAddGitClient) LogGraph() error  { return nil }
+func (m *mockAddGitClient) LogOneline(from, to string) (string, error) {
+	if m.LogOnelineFunc != nil {
+		return m.LogOnelineFunc(from, to)
+	}
+	return "abc123 First commit\ndef456 Second commit\nghi789 Third commit", nil
+}
+
+// Rebase Operations methods
+func (m *mockAddGitClient) RebaseInteractive(commitCount int) error {
+	if m.RebaseInteractiveFunc != nil {
+		return m.RebaseInteractiveFunc(commitCount)
+	}
+	return nil
+}
+func (m *mockAddGitClient) GetUpstreamBranch(_ string) (string, error) {
+	return "origin/main", nil
+}
+
+// Stash Operations methods
+func (m *mockAddGitClient) Stash() error               { return nil }
+func (m *mockAddGitClient) StashList() (string, error) { return "", nil }
+func (m *mockAddGitClient) StashShow(_ string) error   { return nil }
+func (m *mockAddGitClient) StashApply(_ string) error  { return nil }
+func (m *mockAddGitClient) StashPop(_ string) error    { return nil }
+func (m *mockAddGitClient) StashDrop(_ string) error   { return nil }
+func (m *mockAddGitClient) StashClear() error          { return nil }
+
+// Restore Operations methods
+func (m *mockAddGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
+func (m *mockAddGitClient) RestoreStaged(_ ...string) error               { return nil }
+func (m *mockAddGitClient) RestoreFromCommit(_ string, _ ...string) error { return nil }
+func (m *mockAddGitClient) RestoreAll() error                             { return nil }
+func (m *mockAddGitClient) RestoreAllStaged() error                       { return nil }
+
+// Reset and Clean Operations methods
+func (m *mockAddGitClient) ResetHardAndClean() error         { return nil }
+func (m *mockAddGitClient) ResetHard(_ string) error         { return nil }
+func (m *mockAddGitClient) CleanFiles() error                { return nil }
+func (m *mockAddGitClient) CleanDirs() error                 { return nil }
+func (m *mockAddGitClient) CleanDryRun() (string, error)     { return "", nil }
+func (m *mockAddGitClient) CleanFilesForce(_ []string) error { return nil }
+
+// Utility Operations methods
+func (m *mockAddGitClient) ListFiles() (string, error) { return "", nil }
+func (m *mockAddGitClient) GetUpstreamBranchName(_ string) (string, error) {
+	return "origin/main", nil
+}
+func (m *mockAddGitClient) GetAheadBehindCount(_, _ string) (string, error) {
+	return "0	0", nil
+}
+func (m *mockAddGitClient) RevParseVerify(_ string) bool { return true }
+
 func TestAdder_Add_GitAddCalled(t *testing.T) {
-	called := false
+	mockClient := &mockAddGitClient{}
 	adder := &Adder{
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			called = true
-			return exec.Command("echo")
-		},
+		gitClient:    mockClient,
+		outputWriter: &bytes.Buffer{},
 	}
 	adder.Add([]string{"hoge.txt"})
-	if !called {
-		t.Error("execCommand was not called")
+	if !mockClient.addCalled {
+		t.Error("Add was not called")
+	}
+	if len(mockClient.addFiles) != 1 || mockClient.addFiles[0] != "hoge.txt" {
+		t.Errorf("Expected files [hoge.txt], got %v", mockClient.addFiles)
 	}
 }
 
 func TestAdder_Add_GitAddArgs(t *testing.T) {
-	var gotName string
-	var gotArgs []string
+	mockClient := &mockAddGitClient{}
 	adder := &Adder{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			gotName = name
-			gotArgs = arg
-			return exec.Command("echo")
-		},
+		gitClient:    mockClient,
+		outputWriter: &bytes.Buffer{},
 	}
 	adder.Add([]string{"foo.txt", "bar.txt"})
-	if gotName != "git" {
-		t.Errorf("Command name differs from expected: got=%s", gotName)
+
+	if !mockClient.addCalled {
+		t.Error("Add was not called")
 	}
-	wantArgs := []string{"add", "foo.txt", "bar.txt"}
-	for i, a := range wantArgs {
-		if i >= len(gotArgs) || gotArgs[i] != a {
-			t.Errorf("Arguments differ from expected: want=%v, got=%v", wantArgs, gotArgs)
-			break
+
+	wantFiles := []string{"foo.txt", "bar.txt"}
+	if len(mockClient.addFiles) != len(wantFiles) {
+		t.Errorf("Expected %d files, got %d", len(wantFiles), len(mockClient.addFiles))
+		return
+	}
+
+	for i, expected := range wantFiles {
+		if mockClient.addFiles[i] != expected {
+			t.Errorf("Expected file %s at index %d, got %s", expected, i, mockClient.addFiles[i])
 		}
 	}
 }
 
 func TestAdder_Add_RunError_PrintsError(t *testing.T) {
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{
+		addError: errors.New("git add failed"),
+	}
 	adder := &Adder{
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			cmd := exec.Command("false") // command that always returns error
-			return cmd
-		},
+		gitClient:    mockClient,
+		outputWriter: &buf,
 	}
 	adder.Add([]string{"foo.txt"})
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
+
 	output := buf.String()
-	if output == "" || output[:5] != "error" {
-		t.Errorf("Error output not generated: %s", output)
+	if !strings.Contains(output, "Error") {
+		t.Errorf("Error message not output: %s", output)
+	}
+	if !strings.Contains(output, "git add failed") {
+		t.Errorf("Expected error message not found: %s", output)
 	}
 }
 
 func TestAdder_Add_POption_CallsGitAddP(t *testing.T) {
-	called := false
-	var gotName string
-	var gotArgs []string
+	mockClient := &mockAddGitClient{}
 	adder := &Adder{
-		execCommand: func(name string, arg ...string) *exec.Cmd {
-			called = true
-			gotName = name
-			gotArgs = arg
-			return exec.Command("echo")
-		},
+		gitClient:    mockClient,
+		outputWriter: &bytes.Buffer{},
 	}
 	adder.Add([]string{"-p"})
-	if !called {
-		t.Error("execCommand not called with -p option")
+
+	if !mockClient.addInteractiveCalled {
+		t.Error("AddInteractive was not called")
 	}
-	if gotName != "git" || len(gotArgs) != 2 || gotArgs[0] != "add" || gotArgs[1] != "-p" {
-		t.Errorf("Command/arguments differ from expected for -p option: name=%s, args=%v", gotName, gotArgs)
+	if mockClient.addCalled {
+		t.Error("Add should not be called for -p option")
 	}
 }
 
 func TestAdder_Add_POption_Error(t *testing.T) {
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	mockClient := &mockAddGitClient{addInteractiveError: errors.New("interactive add failed")}
+	var buf bytes.Buffer
 	adder := &Adder{
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			cmd := exec.Command("false") // command that always returns error
-			return cmd
-		},
+		gitClient:    mockClient,
+		outputWriter: &buf,
 	}
 	adder.Add([]string{"-p"})
-	if err := w.Close(); err != nil {
-		t.Fatalf("w.Close() failed: %v", err)
-	}
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-	os.Stdout = oldStdout
+
 	output := buf.String()
-	if output == "" || output[:5] != "error" {
+	if output == "" || output[:5] != "Error" {
 		t.Errorf("Error output not generated with -p option: %s", output)
 	}
 }
 
 func TestAdder_Add_Interactive(t *testing.T) {
+	mockClient := &mockAddGitClient{}
 	var buf bytes.Buffer
 	adder := &Adder{
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			cmd := exec.Command("echo", "interactive add")
-			return cmd
-		},
+		gitClient:    mockClient,
+		outputWriter: &buf,
 	}
-
-	// Capture stdout
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
 
 	adder.Add([]string{"-p"})
 
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	_, _ = buf.ReadFrom(r)
-	output := buf.String()
-	if !strings.Contains(output, "interactive add") {
-		t.Errorf("expected interactive add output, got %q", output)
+	// Check that AddInteractive was called
+	if !mockClient.addInteractiveCalled {
+		t.Error("AddInteractive should be called for -p option")
 	}
 }
 
@@ -194,63 +305,38 @@ func TestAdder_Add(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var actualCmd string
+			mockClient := &mockAddGitClient{}
+			var buf bytes.Buffer
 			a := &Adder{
-				execCommand: func(name string, args ...string) *exec.Cmd {
-					if tc.expectedCmd != "" {
-						actualCmd = strings.Join(append([]string{name}, args...), " ")
-						if actualCmd != tc.expectedCmd {
-							t.Errorf("expected command %q, got %q", tc.expectedCmd, actualCmd)
-						}
-					}
-					return exec.Command("echo")
-				},
+				gitClient:    mockClient,
+				outputWriter: &buf,
 			}
 
-			// Capture stdout for no args case
+			a.Add(tc.args)
+
+			// Check output for no args case
 			if len(tc.args) == 0 {
-				oldStdout := os.Stdout
-				r, w, _ := os.Pipe()
-				os.Stdout = w
-
-				a.Add(tc.args)
-
-				_ = w.Close()
-				os.Stdout = oldStdout
-
-				var buf bytes.Buffer
-				_, _ = buf.ReadFrom(r)
 				output := buf.String()
 				if !strings.Contains(output, "Usage:") {
 					t.Errorf("expected usage message, got %q", output)
 				}
-			} else {
-				a.Add(tc.args)
 			}
 		})
 	}
 }
 
 func TestAdder_Add_Error(t *testing.T) {
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
+	mockClient := &mockAddGitClient{addError: errors.New("git add failed")}
+	var buf bytes.Buffer
 	a := &Adder{
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			return exec.Command("false") // Command fails
-		},
+		gitClient:    mockClient,
+		outputWriter: &buf,
 	}
 
 	a.Add([]string{"file.txt"})
 
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
 	output := buf.String()
-	if !strings.Contains(output, "error:") {
+	if !strings.Contains(output, "Error:") {
 		t.Errorf("expected error message, got %q", output)
 	}
 }

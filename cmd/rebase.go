@@ -6,25 +6,26 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Rebaser handles rebase operations.
 type Rebaser struct {
+	gitClient    git.Clienter
 	outputWriter io.Writer
 	helper       *Helper
-	execCommand  func(string, ...string) *exec.Cmd
 	inputReader  *bufio.Reader
 }
 
 // NewRebaser creates a new Rebaser instance.
 func NewRebaser() *Rebaser {
 	return &Rebaser{
+		gitClient:    git.NewClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		execCommand:  exec.Command,
 		inputReader:  bufio.NewReader(os.Stdin),
 	}
 }
@@ -50,27 +51,23 @@ func (r *Rebaser) Rebase(args []string) {
 // RebaseInteractive executes interactive rebase.
 func (r *Rebaser) RebaseInteractive() {
 	// Get current branch name
-	branchCmd := r.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
-	branchOutput, err := branchCmd.CombinedOutput()
+	currentBranch, err := r.gitClient.GetCurrentBranch()
 	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: failed to get current branch\n")
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return
 	}
-	currentBranch := strings.TrimSpace(string(branchOutput))
 
 	// Get upstream or main branch
-	upstreamCmd := r.execCommand("git", "rev-parse", "--abbrev-ref", fmt.Sprintf("%s@{upstream}", currentBranch))
-	upstreamOutput, err := upstreamCmd.CombinedOutput()
-	upstream := "main" // default to main if no upstream is set
-	if err == nil {
-		upstream = strings.TrimSpace(string(upstreamOutput))
+	upstream, err := r.gitClient.GetUpstreamBranch(currentBranch)
+	if err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return
 	}
 
 	// Get commit history for current branch only (from upstream/main to HEAD)
-	cmd := r.execCommand("git", "log", "--oneline", "--reverse", fmt.Sprintf("%s..HEAD", upstream))
-	output, err := cmd.CombinedOutput()
+	output, err := r.gitClient.LogOneline(upstream, "HEAD")
 	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: failed to get git log\n")
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return
 	}
 
@@ -100,20 +97,9 @@ func (r *Rebaser) RebaseInteractive() {
 	}
 
 	// Start interactive rebase using HEAD~n format
-	cmd = r.execCommand("git", "rebase", "-i", fmt.Sprintf("HEAD~%d", num))
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Start(); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: failed to start rebase: %v\n", err)
+	if err := r.gitClient.RebaseInteractive(num); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return
 	}
-
-	if err := cmd.Wait(); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: rebase failed\n")
-		return
-	}
-
 	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
 }
