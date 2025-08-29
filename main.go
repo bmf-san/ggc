@@ -4,9 +4,9 @@ package main
 import (
 	"os"
 
-	"github.com/bmf-san/ggc/v3/cmd"
-	"github.com/bmf-san/ggc/v3/config"
-	"github.com/bmf-san/ggc/v3/router"
+	"github.com/bmf-san/ggc/v4/cmd"
+	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/router"
 )
 
 var (

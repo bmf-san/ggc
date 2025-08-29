@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v3/git"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockGitClient for commit_test

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/ggc/v3/git"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Cleaner provides functionality for the clean command.

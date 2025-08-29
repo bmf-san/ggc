@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/bmf-san/ggc/v3/git"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Completer handles dynamic completion for subcommands/args

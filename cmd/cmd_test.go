@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/bmf-san/ggc/v3/git"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockGitClient is a mock of git.Client.

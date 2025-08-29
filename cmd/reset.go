@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/bmf-san/ggc/v3/git"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Resetter handles reset operations.
