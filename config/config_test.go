@@ -11,6 +11,37 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// MockGitConfigExecutor implements GitConfigExecutor for testing
+type MockGitConfigExecutor struct {
+	configs map[string]string
+	setErr  error
+	getErr  error
+}
+
+// NewMockGitConfigExecutor creates a new mock git config executor
+func NewMockGitConfigExecutor() *MockGitConfigExecutor {
+	return &MockGitConfigExecutor{
+		configs: make(map[string]string),
+	}
+}
+
+// SetGitConfig mocks setting git config
+func (m *MockGitConfigExecutor) SetGitConfig(key, value string) error {
+	if m.setErr != nil {
+		return m.setErr
+	}
+	m.configs[key] = value
+	return nil
+}
+
+// GetGitConfig mocks getting git config
+func (m *MockGitConfigExecutor) GetGitConfig(key string) (string, error) {
+	if m.getErr != nil {
+		return "", m.getErr
+	}
+	return m.configs[key], nil
+}
+
 // TestGetDefaultConfig tests the default configuration values
 func TestGetDefaultConfig(t *testing.T) {
 	config := getDefaultConfig()
@@ -187,6 +218,8 @@ func TestSave(t *testing.T) {
 
 	cm := NewConfigManager()
 	cm.configPath = configPath
+	// Use mock git config executor to avoid real git config operations
+	cm.gitExecutor = NewMockGitConfigExecutor()
 
 	cm.config.Default.Branch = "development"
 	cm.config.UI.Color = false
@@ -326,6 +359,8 @@ func TestSet(t *testing.T) {
 
 	cm := NewConfigManager()
 	cm.configPath = configPath
+	// Use mock git config executor to avoid real git config operations
+	cm.gitExecutor = NewMockGitConfigExecutor()
 
 	err := cm.Set("default.branch", "develop")
 	if err != nil {
