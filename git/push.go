@@ -3,6 +3,7 @@ package git
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -17,6 +18,8 @@ func (c *Client) Push(force bool) error {
 		args = append(args, "--force-with-lease")
 	}
 	cmd := c.execCommand("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("push", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
 	}
