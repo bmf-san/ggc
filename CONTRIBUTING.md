@@ -20,15 +20,38 @@ Thank you for your interest in contributing to this repository! Bug reports, fea
 
 ## Implementation Guidelines
 When implementing new features or modifying existing ones, please ensure to:
-1. Update documentation:
-   - README.md: Add/modify command descriptions and examples
-   - Command help messages: Update the help text for affected commands
-   - Shell completion script (tools/completions/ggc.bash): Add/modify command completions
-2. Follow existing code patterns:
+
+### 1. Update Documentation and UI Files
+**⚠️ CRITICAL: When adding new commands or changing command names/syntax, ALL of the following files MUST be updated:**
+
+#### Core Documentation:
+- **README.md**: Update command table, usage examples, and descriptions
+- **cmd/templates/help.go**: Update help message templates
+
+#### Interactive UI:
+- **cmd/interactive.go**: Update the `commands` array with new command entries
+
+#### Shell Completion Scripts:
+- **tools/completions/ggc.bash**: Add/modify command and subcommand completions
+- **tools/completions/ggc.fish**: Add/modify command and subcommand completions
+- **tools/completions/ggc.zsh**: Add/modify command and subcommand completions
+
+**📋 Checklist for Command Changes:**
+- [ ] README.md command table updated
+- [ ] cmd/templates/help.go help templates updated
+- [ ] cmd/interactive.go commands array updated
+- [ ] tools/completions/ggc.bash completions updated
+- [ ] tools/completions/ggc.fish completions updated
+- [ ] tools/completions/ggc.zsh completions updated
+- [ ] All tests pass (`make test`)
+- [ ] No lint errors (`make lint`)
+
+### 2. Follow existing code patterns:
    - Place command implementations in appropriate files under `cmd/`
    - Add corresponding test files
    - Use consistent error handling and output formatting
-3. Consider user experience:
+
+### 3. Consider user experience:
    - Provide clear, helpful error messages
    - Add examples in help text
    - Ensure command behavior is intuitive

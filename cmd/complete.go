@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/bmf-san/ggc/v4/git"
@@ -10,15 +9,13 @@ import (
 
 // Completer handles dynamic completion for subcommands/args
 type Completer struct {
-	gitClient   git.Clienter
-	execCommand func(name string, arg ...string) *exec.Cmd
+	gitClient git.Clienter
 }
 
 // NewCompleter creates a new Completer.
 var NewCompleter = func() *Completer {
 	return &Completer{
-		gitClient:   git.NewClient(),
-		execCommand: exec.Command,
+		gitClient: git.NewClient(),
 	}
 }
 
@@ -47,12 +44,11 @@ func (c *Completer) Complete(args []string) {
 		}
 	case "files":
 		// Get list of files managed by git ls-files
-		cmd := c.execCommand("git", "ls-files")
-		out, err := cmd.Output()
+		out, err := c.gitClient.ListFiles()
 		if err != nil {
 			return
 		}
-		files := strings.Split(strings.TrimSpace(string(out)), "\n")
+		files := strings.Split(strings.TrimSpace(out), "\n")
 		for _, f := range files {
 			fmt.Println(f)
 		}

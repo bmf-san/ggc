@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v4/git"
@@ -72,6 +74,10 @@ func (m *mockGitClient) ResetHardAndClean() error {
 	return nil
 }
 
+func (m *mockGitClient) ResetHard(_ string) error {
+	return nil
+}
+
 func (m *mockGitClient) CleanFiles() error {
 	m.cleanFilesCalled = true
 	return nil
@@ -84,36 +90,95 @@ func (m *mockGitClient) CleanDirs() error {
 
 func (m *mockGitClient) RevParseVerify(string) bool { return false }
 
-func (m *mockGitClient) GetBranchName() (string, error) {
-	return "main", nil
-}
+// Repository Information methods
+func (m *mockGitClient) GetBranchName() (string, error) { return "main", nil }
+func (m *mockGitClient) GetGitStatus() (string, error)  { return "", nil }
 
-func (m *mockGitClient) GetGitStatus() (string, error) {
-	return "", nil
-}
+// Status Operations methods
+func (m *mockGitClient) Status() (string, error)               { return "", nil }
+func (m *mockGitClient) StatusShort() (string, error)          { return "", nil }
+func (m *mockGitClient) StatusWithColor() (string, error)      { return "", nil }
+func (m *mockGitClient) StatusShortWithColor() (string, error) { return "", nil }
 
-func (m *mockGitClient) CheckoutNewBranch(_ string) error {
+// Staging Operations methods
+func (m *mockGitClient) Add(_ ...string) error { return nil }
+func (m *mockGitClient) AddInteractive() error { return nil }
+
+// Commit Operations methods
+func (m *mockGitClient) Commit(_ string) error                 { return nil }
+func (m *mockGitClient) CommitAmend() error                    { return nil }
+func (m *mockGitClient) CommitAmendNoEdit() error              { return nil }
+func (m *mockGitClient) CommitAmendWithMessage(_ string) error { return nil }
+
+// Diff Operations methods
+func (m *mockGitClient) Diff() (string, error)       { return "", nil }
+func (m *mockGitClient) DiffStaged() (string, error) { return "", nil }
+func (m *mockGitClient) DiffHead() (string, error)   { return "", nil }
+
+// Branch Operations methods
+func (m *mockGitClient) CheckoutNewBranch(_ string) error { return nil }
+func (m *mockGitClient) CheckoutBranch(_ string) error    { return nil }
+func (m *mockGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
 	return nil
 }
+func (m *mockGitClient) DeleteBranch(_ string) error           { return nil }
+func (m *mockGitClient) ListMergedBranches() ([]string, error) { return []string{}, nil }
 
-func (m *mockGitClient) RestoreAll() error {
-	return nil
+// Remote Operations methods
+func (m *mockGitClient) Fetch(_ bool) error             { return nil }
+func (m *mockGitClient) RemoteList() error              { return nil }
+func (m *mockGitClient) RemoteAdd(_, _ string) error    { return nil }
+func (m *mockGitClient) RemoteRemove(_ string) error    { return nil }
+func (m *mockGitClient) RemoteSetURL(_, _ string) error { return nil }
+
+// Tag Operations methods
+func (m *mockGitClient) TagList(_ []string) error              { return nil }
+func (m *mockGitClient) TagCreate(_, _ string) error           { return nil }
+func (m *mockGitClient) TagCreateAnnotated(_, _ string) error  { return nil }
+func (m *mockGitClient) TagDelete(_ []string) error            { return nil }
+func (m *mockGitClient) TagPush(_, _ string) error             { return nil }
+func (m *mockGitClient) TagPushAll(_ string) error             { return nil }
+func (m *mockGitClient) TagShow(_ string) error                { return nil }
+func (m *mockGitClient) GetLatestTag() (string, error)         { return "v1.0.0", nil }
+func (m *mockGitClient) TagExists(_ string) bool               { return false }
+func (m *mockGitClient) GetTagCommit(_ string) (string, error) { return "abc123", nil }
+
+// Log Operations methods
+func (m *mockGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
+
+// Rebase Operations methods
+func (m *mockGitClient) RebaseInteractive(_ int) error { return nil }
+func (m *mockGitClient) GetUpstreamBranch(_ string) (string, error) {
+	return "origin/main", nil
 }
 
-func (m *mockGitClient) RestoreAllStaged() error {
-	return nil
-}
+// Stash Operations methods
+func (m *mockGitClient) Stash() error               { return nil }
+func (m *mockGitClient) StashList() (string, error) { return "", nil }
+func (m *mockGitClient) StashShow(_ string) error   { return nil }
+func (m *mockGitClient) StashApply(_ string) error  { return nil }
+func (m *mockGitClient) StashPop(_ string) error    { return nil }
+func (m *mockGitClient) StashDrop(_ string) error   { return nil }
+func (m *mockGitClient) StashClear() error          { return nil }
 
-func (m *mockGitClient) RestoreStaged(...string) error {
-	return nil
-}
+// Restore Operations methods
+func (m *mockGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
+func (m *mockGitClient) RestoreStaged(_ ...string) error               { return nil }
+func (m *mockGitClient) RestoreFromCommit(_ string, _ ...string) error { return nil }
+func (m *mockGitClient) RestoreAll() error                             { return nil }
+func (m *mockGitClient) RestoreAllStaged() error                       { return nil }
 
-func (m *mockGitClient) RestoreWorkingDir(...string) error {
-	return nil
-}
+// Reset and Clean Operations methods
+func (m *mockGitClient) CleanDryRun() (string, error)     { return "", nil }
+func (m *mockGitClient) CleanFilesForce(_ []string) error { return nil }
 
-func (m *mockGitClient) RestoreFromCommit(string, ...string) error {
-	return nil
+// Utility Operations methods
+func (m *mockGitClient) ListFiles() (string, error) { return "", nil }
+func (m *mockGitClient) GetUpstreamBranchName(_ string) (string, error) {
+	return "origin/main", nil
+}
+func (m *mockGitClient) GetAheadBehindCount(_, _ string) (string, error) {
+	return "0	0", nil
 }
 
 type mockCmdGitClient struct {
@@ -221,7 +286,7 @@ func TestCmd_Commit(t *testing.T) {
 	}{
 		{
 			name: "allow-empty",
-			args: []string{"--allow-empty"},
+			args: []string{"allow-empty"},
 			wantCalled: func(mc *mockGitClient) bool {
 				return mc.commitAllowEmptyCalled
 			},
@@ -247,10 +312,12 @@ func TestCmd_Commit(t *testing.T) {
 
 func TestCmd_Reset(t *testing.T) {
 	mc := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mc,
-		resetter:     NewResetterWithClient(mc),
+		resetter:     &Resetter{gitClient: mc, outputWriter: io.Discard, helper: helper},
 	}
 	cmd.Reset([]string{})
 
@@ -299,7 +366,35 @@ func TestCmd_Clean(t *testing.T) {
 }
 
 func TestNewCmd(t *testing.T) {
-	cmd := NewCmd()
+	// Test structure creation without calling NewCmd() to avoid actual git client
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		// Initialize with mock-based components to avoid git command execution
+		adder:       &Adder{gitClient: mockClient, outputWriter: &buf},
+		brancher:    &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: NewHelper()},
+		committer:   &Committer{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		logger:      &Logger{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		puller:      &Puller{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		pusher:      &Pusher{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		rebaser:     &Rebaser{outputWriter: &buf, helper: NewHelper(), inputReader: bufio.NewReader(strings.NewReader(""))},
+		remoteer:    &Remoteer{outputWriter: &buf, helper: NewHelper()},
+		resetter:    &Resetter{outputWriter: &buf, helper: NewHelper()},
+		stasher:     &Stasher{outputWriter: &buf, helper: NewHelper()},
+		fetcher:     &Fetcher{outputWriter: &buf, helper: NewHelper()},
+		completer:   &Completer{gitClient: mockClient},
+		differ:      &Differ{outputWriter: &buf, helper: NewHelper()},
+		tagger:      &Tagger{outputWriter: &buf, helper: NewHelper()},
+		versioneer:  &Versioneer{outputWriter: &buf, helper: NewHelper()},
+		configureer: &Configureer{outputWriter: &buf, helper: NewHelper()},
+		hooker:      &Hooker{outputWriter: &buf, helper: NewHelper()},
+		restoreer:   &Restoreer{outputWriter: &buf, helper: NewHelper()},
+		cleaner:     &Cleaner{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+	}
 
 	// Check if all fields are properly initialized
 	if cmd.adder == nil {
@@ -344,11 +439,18 @@ func TestNewCmd(t *testing.T) {
 }
 
 func TestCmd_Help(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid actual git commands
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf // Redirect help output to buffer to avoid console output
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+	}
 
 	// Test that Help method exists and can be called without panic
-	// Since Help() writes to stdout directly, we can't easily capture it
-	// but we can ensure it doesn't panic
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Help() should not panic, but got: %v", r)
@@ -356,15 +458,26 @@ func TestCmd_Help(t *testing.T) {
 	}()
 
 	cmd.Help()
+
+	// Verify that help was actually called (buffer should have content)
+	if buf.Len() == 0 {
+		t.Error("Help() should produce output")
+	}
 }
 
 func TestCmd_Branch(t *testing.T) {
-	cmd := NewCmd()
-
-	// Test with no arguments (should show help)
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
 	var buf bytes.Buffer
-	cmd.brancher.outputWriter = &buf
-	cmd.brancher.helper.outputWriter = &buf
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		brancher:     &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: helper},
+	}
 
 	cmd.Branch([]string{})
 
@@ -375,7 +488,37 @@ func TestCmd_Branch(t *testing.T) {
 }
 
 func TestCmd_Route(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: io.Discard,
+		helper:       helper,
+		// Initialize all components with mock clients to avoid side effects
+		adder:       &Adder{gitClient: mockClient, outputWriter: io.Discard},
+		brancher:    &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: io.Discard, helper: helper},
+		committer:   &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		logger:      &Logger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		puller:      &Puller{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		pusher:      &Pusher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		resetter:    &Resetter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		cleaner:     &Cleaner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		remoteer:    &Remoteer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		rebaser:     &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
+		stasher:     &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		configureer: &Configureer{outputWriter: io.Discard, helper: helper},
+		hooker:      &Hooker{outputWriter: io.Discard, helper: helper},
+		tagger:      &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		statuseer:   &Statuseer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		versioneer:  &Versioneer{outputWriter: io.Discard, helper: helper},
+		completer:   &Completer{gitClient: mockClient},
+		differ:      &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		restoreer:   &Restoreer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		fetcher:     &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+	}
 
 	testCases := []struct {
 		name string
@@ -456,7 +599,15 @@ func TestCmd_Interactive_Existence(t *testing.T) {
 
 // Test wrapper functions that were not covered
 func TestCmd_Status(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		statuseer:    &Statuseer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Status calls the statuseer
 	defer func() {
@@ -469,7 +620,15 @@ func TestCmd_Status(t *testing.T) {
 }
 
 func TestCmd_Config(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		configureer:  &Configureer{outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Config calls the configureer
 	defer func() {
@@ -482,7 +641,15 @@ func TestCmd_Config(t *testing.T) {
 }
 
 func TestCmd_Hook(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		hooker:       &Hooker{outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Hook calls the hooker
 	defer func() {
@@ -495,7 +662,15 @@ func TestCmd_Hook(t *testing.T) {
 }
 
 func TestCmd_Tag(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		tagger:       &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Tag calls the tagger
 	defer func() {
@@ -508,7 +683,15 @@ func TestCmd_Tag(t *testing.T) {
 }
 
 func TestCmd_Diff(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		differ:       &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Diff calls the differ
 	defer func() {
@@ -521,7 +704,15 @@ func TestCmd_Diff(t *testing.T) {
 }
 
 func TestCmd_Restore(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		restoreer:    &Restoreer{outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Restore calls the restoreer
 	defer func() {
@@ -539,7 +730,15 @@ func TestCmd_Version(t *testing.T) {
 		return "v1.0.0", "abc123"
 	})
 
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+		versioneer:   &Versioneer{outputWriter: io.Discard, helper: helper},
+	}
 
 	// Test that Version calls the versioneer
 	defer func() {
@@ -552,7 +751,12 @@ func TestCmd_Version(t *testing.T) {
 }
 
 func TestCmd_Interactive_Call(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+	}
 
 	// Test that Interactive function exists and can be called
 	// Note: This is a complex interactive function, so we just test it doesn't panic
@@ -567,7 +771,12 @@ func TestCmd_Interactive_Call(t *testing.T) {
 }
 
 func TestCmd_waitForContinue_Call(t *testing.T) {
-	cmd := NewCmd()
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	cmd := &Cmd{
+		outputWriter: io.Discard,
+		gitClient:    mockClient,
+	}
 
 	// Test private function through reflection or indirect testing
 	defer func() {

@@ -16,10 +16,8 @@ complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout 
 # Branch checkout completion with dynamic branch names
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from checkout" -a "(__ggc_complete_branches)"
 
-# Commit options
-complete -c ggc -f -n "__fish_seen_subcommand_from commit" -l allow-empty
-complete -c ggc -f -n "__fish_seen_subcommand_from commit" -l amend
-complete -c ggc -f -n "__fish_seen_subcommand_from commit" -l no-edit
+# Commit subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow-empty amend"
 
 # Push subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from push" -a "current force"
@@ -54,9 +52,12 @@ complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "list edit install u
 # Stash subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "list show apply pop drop branch push save clear create store"
 
-# Restore options
-complete -c ggc -f -n "__fish_seen_subcommand_from restore" -l staged
+# Rebase subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "interactive"
 
-# Add command with options and file completion
-complete -c ggc -f -n "__fish_seen_subcommand_from add" -s i -l interactive
+# Restore subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from restore" -a "staged"
+
+# Add subcommands and file completion
+complete -c ggc -f -n "__fish_seen_subcommand_from add" -a "interactive"
 complete -c ggc -f -n "__fish_seen_subcommand_from add" -a "(__ggc_complete_files)"

@@ -28,7 +28,7 @@ Main Commands:
   ggc help                    Show help message
   ggc add <file>              Stage file(s)
   ggc add .                   Stage all changes
-  ggc add -i|--interactive    Stage changes interactively
+  ggc add interactive         Stage changes interactively
   ggc add -p                  Stage changes interactively (patch mode)
   ggc branch current          Show current branch name
   ggc branch checkout         Interactive branch switch
@@ -38,9 +38,9 @@ Main Commands:
   ggc clean files             Clean files
   ggc clean dirs              Clean directories
   ggc clean-interactive       Interactive file cleaning
-  ggc commit --amend          Amend to previous commit
-  ggc commit --amend --no-edit  Amend without editing commit message
-  ggc commit --allow-empty      Create empty commit
+  ggc commit amend            Amend to previous commit
+  ggc commit amend --no-edit  Amend without editing commit message
+  ggc commit allow-empty      Create empty commit
   ggc complete <shell>        Generate shell completion script (bash|zsh)
   ggc fetch --prune          Fetch and remove stale remote-tracking branches
   ggc diff                    Show changes between commits, commit and working tree
@@ -51,7 +51,7 @@ Main Commands:
   ggc pull rebase             Pull with rebase
   ggc push current            Push current branch
   ggc push force              Force push current branch
-  ggc rebase                  Rebase current branch
+  ggc rebase interactive      Interactive rebase
   ggc remote list             Show remotes
   ggc remote add <n> <url>    Add remote
   ggc remote remove <n>       Remove remote

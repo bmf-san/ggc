@@ -3,37 +3,20 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"os"
-	"os/exec"
+	"errors"
 	"strings"
 	"testing"
 )
 
 func TestRebaser_RebaseInteractive_SelectValid(t *testing.T) {
 	var buf bytes.Buffer
-	commandCount := 0
+
+	mockClient := &mockAddGitClient{}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			commandCount++
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				case "log":
-					return exec.Command("echo", "a1 first\nb2 second\nc3 third")
-				}
-			}
-			cmd := exec.Command("echo")
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			return cmd
-		},
+
 		inputReader: bufio.NewReader(strings.NewReader("2\n")),
 	}
 	r.helper.outputWriter = &buf
@@ -54,12 +37,16 @@ func TestRebaser_RebaseInteractive_SelectValid(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_BranchError(t *testing.T) {
 	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	// Override GetCurrentBranch to return error
+	mockClient.GetCurrentBranchFunc = func() (string, error) {
+		return "", errors.New("failed to get current branch")
+	}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			return exec.Command("false")
-		},
+
 		inputReader: bufio.NewReader(strings.NewReader("1\n")),
 	}
 	r.helper.outputWriter = &buf
@@ -74,24 +61,12 @@ func TestRebaser_RebaseInteractive_BranchError(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_Cancel(t *testing.T) {
 	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				case "log":
-					return exec.Command("echo", "a1 first\nb2 second\nc3 third")
-				}
-			}
-			return exec.Command("echo")
-		},
-		inputReader: bufio.NewReader(strings.NewReader("\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("\n")),
 	}
 	r.helper.outputWriter = &buf
 
@@ -105,24 +80,12 @@ func TestRebaser_RebaseInteractive_Cancel(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_InvalidNumber(t *testing.T) {
 	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				case "log":
-					return exec.Command("echo", "a1 first\nb2 second\nc3 third")
-				}
-			}
-			return exec.Command("echo")
-		},
-		inputReader: bufio.NewReader(strings.NewReader("abc\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("abc\n")),
 	}
 	r.helper.outputWriter = &buf
 
@@ -136,24 +99,16 @@ func TestRebaser_RebaseInteractive_InvalidNumber(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_NoHistory(t *testing.T) {
 	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	// Override LogOneline to return empty history
+	mockClient.LogOnelineFunc = func(_, _ string) (string, error) {
+		return "", nil
+	}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				case "log":
-					return exec.Command("echo", "")
-				}
-			}
-			return exec.Command("echo")
-		},
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
 	}
 	r.helper.outputWriter = &buf
 
@@ -167,24 +122,17 @@ func TestRebaser_RebaseInteractive_NoHistory(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_LogError(t *testing.T) {
 	var buf bytes.Buffer
-	commandCount := 0
+
+	mockClient := &mockAddGitClient{}
+	// Override LogOneline to return error
+	mockClient.LogOnelineFunc = func(_, _ string) (string, error) {
+		return "", errors.New("failed to get git log")
+	}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			commandCount++
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				}
-			}
-			return exec.Command("false")
-		},
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
 	}
 	r.helper.outputWriter = &buf
 
@@ -198,28 +146,17 @@ func TestRebaser_RebaseInteractive_LogError(t *testing.T) {
 
 func TestRebaser_RebaseInteractive_RebaseError(t *testing.T) {
 	var buf bytes.Buffer
-	commandCount := 0
+
+	mockClient := &mockAddGitClient{}
+	// Override RebaseInteractive to return error
+	mockClient.RebaseInteractiveFunc = func(_ int) error {
+		return errors.New("rebase failed")
+	}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			commandCount++
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				case "log":
-					return exec.Command("echo", "a1 first")
-				case "rebase":
-					return exec.Command("false")
-				}
-			}
-			return exec.Command("echo")
-		},
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
 	}
 	r.helper.outputWriter = &buf
 
@@ -259,24 +196,12 @@ func TestRebaser_Rebase(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
+			mockClient := &mockAddGitClient{}
 			r := &Rebaser{
+				gitClient:    mockClient,
 				outputWriter: &buf,
 				helper:       NewHelper(),
-				execCommand: func(_ string, args ...string) *exec.Cmd {
-					if len(args) > 0 {
-						switch args[0] {
-						case "rev-parse":
-							if strings.Contains(args[len(args)-1], "@{upstream}") {
-								return exec.Command("echo", "origin/main")
-							}
-							return exec.Command("echo", "feature/test")
-						case "log":
-							return exec.Command("echo", "abc123 commit message")
-						}
-					}
-					return exec.Command("echo", "rebase output")
-				},
-				inputReader: bufio.NewReader(strings.NewReader(tc.mockInput)),
+				inputReader:  bufio.NewReader(strings.NewReader(tc.mockInput)),
 			}
 			r.helper.outputWriter = &buf
 
@@ -292,24 +217,16 @@ func TestRebaser_Rebase(t *testing.T) {
 
 func TestRebaser_Rebase_InteractiveCancel(t *testing.T) {
 	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	// Override LogOneline to return empty history
+	mockClient.LogOnelineFunc = func(_, _ string) (string, error) {
+		return "", nil
+	}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, args ...string) *exec.Cmd {
-			if len(args) > 0 {
-				switch args[0] {
-				case "rev-parse":
-					if strings.Contains(args[len(args)-1], "@{upstream}") {
-						return exec.Command("echo", "origin/main")
-					}
-					return exec.Command("echo", "feature/test")
-				case "log":
-					return exec.Command("echo", "")
-				}
-			}
-			return exec.Command("echo")
-		},
-		inputReader: bufio.NewReader(strings.NewReader("\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("\n")),
 	}
 	r.helper.outputWriter = &buf
 
@@ -323,13 +240,12 @@ func TestRebaser_Rebase_InteractiveCancel(t *testing.T) {
 
 func TestRebaser_Rebase_Error(t *testing.T) {
 	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
 	r := &Rebaser{
+		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			return exec.Command("false") // Command fails
-		},
-		inputReader: bufio.NewReader(strings.NewReader("y\n")),
+		inputReader:  bufio.NewReader(strings.NewReader("y\n")),
 	}
 	r.helper.outputWriter = &buf
 

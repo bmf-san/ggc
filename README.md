@@ -169,8 +169,7 @@ ggc
 |--------|-------------|
 | `add <file>` | Add specific file to the index |
 | `add .` | Add all changes |
-| `add -i` | Add changes interactively |
-| `add --interactive` | Add changes interactively |
+| `add interactive` | Add changes interactively |
 | `add -p` | Add changes interactively (patch mode) |
 | `branch current` | Show current branch |
 | `branch checkout` | Checkout existing branch |
@@ -183,9 +182,9 @@ ggc
 | `clean files` | Clean untracked files |
 | `clean dirs` | Clean untracked directories |
 | `commit` | Commit staged changes |
-| `commit --amend` | Amend previous commit |
-| `commit --amend --no-edit` | Amend without editing message |
-| `commit --allow-empty` | Create an empty commit |
+| `commit amend` | Amend previous commit |
+| `commit amend --no-edit` | Amend without editing message |
+| `commit allow-empty` | Create an empty commit |
 | `diff staged` | Show staged changes |
 | `diff unstaged` | Show unstaged changes |
 | `fetch --prune` | Fetch and prune remotes |

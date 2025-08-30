@@ -4,22 +4,23 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Fetcher handles git fetch operations.
 type Fetcher struct {
+	gitClient    git.Clienter
 	outputWriter io.Writer
 	helper       *Helper
-	execCommand  func(string, ...string) *exec.Cmd
 }
 
 // NewFetcher creates a new Fetcher instance.
 func NewFetcher() *Fetcher {
 	return &Fetcher{
+		gitClient:    git.NewClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		execCommand:  exec.Command,
 	}
 }
 
@@ -30,20 +31,13 @@ func (f *Fetcher) Fetch(args []string) {
 		return
 	}
 
-	var cmd *exec.Cmd
 	switch args[0] {
 	case "--prune":
-		cmd = f.execCommand("git", "fetch", "--prune")
+		if err := f.gitClient.Fetch(true); err != nil {
+			_, _ = fmt.Fprintf(f.outputWriter, "Error: %v\n", err)
+		}
 	default:
 		f.helper.ShowFetchHelp()
 		return
 	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		_, _ = fmt.Fprintf(f.outputWriter, "Error: %s\n", err)
-		return
-	}
-
-	_, _ = fmt.Fprintf(f.outputWriter, "%s", output)
 }

@@ -16,3 +16,12 @@ func (c *Client) ResetHardAndClean() error {
 	}
 	return nil
 }
+
+// ResetHard resets to the specified commit.
+func (c *Client) ResetHard(commit string) error {
+	cmd := c.execCommand("git", "reset", "--hard", commit)
+	if err := cmd.Run(); err != nil {
+		return NewError("reset hard", "git reset --hard "+commit, err)
+	}
+	return nil
+}

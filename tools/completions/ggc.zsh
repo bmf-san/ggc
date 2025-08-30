@@ -65,6 +65,9 @@ _ggc() {
                 stash)
                     _ggc_stash
                     ;;
+                rebase)
+                    _ggc_rebase
+                    ;;
             esac
             ;;
     esac
@@ -121,13 +124,12 @@ _ggc_branch() {
 }
 
 _ggc_commit() {
-    local options
-    options=(
-        '--allow-empty:Create an empty commit'
-        '--amend:Amend previous commit'
-        '--no-edit:Do not edit commit message (with --amend)'
+    local subcommands
+    subcommands=(
+        'allow-empty:Create an empty commit'
+        'amend:Amend previous commit'
     )
-    _describe 'commit options' options
+    _describe 'commit subcommands' subcommands
 }
 
 _ggc_status() {
@@ -255,13 +257,12 @@ _ggc_restore() {
 }
 
 _ggc_add() {
-    # Options for add
-    local options
-    options=(
-        '-i:Interactive add'
-        '--interactive:Interactive add'
+    # Subcommands for add
+    local subcommands
+    subcommands=(
+        'interactive:Interactive add'
     )
-    _describe 'add options' options
+    _describe 'add subcommands' subcommands
 
     # Dynamic completion for add - get files from ggc
     local files
@@ -292,12 +293,11 @@ _ggc_stash() {
 }
 
 _ggc_rebase() {
-    local options
-    options=(
-        '-i:Interactive rebase'
-        '--interactive:Interactive rebase'
+    local subcommands
+    subcommands=(
+        'interactive:Interactive rebase'
     )
-    _describe 'rebase options' options
+    _describe 'rebase subcommands' subcommands
 }
 
 compdef _ggc ggc
