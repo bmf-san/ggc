@@ -301,9 +301,16 @@ func (c *Cmd) smartWaitForContinue(args []string) {
 		"pull":   true,
 		"fetch":  true,
 		"reset":  true,
-		"clean":  true,
-		"config": true,
 		"tag":    true,
+	}
+
+	// Interactive commands that handle their own user input - no additional wait
+	interactiveCommands := map[string]bool{
+		"clean":             true, // clean-interactive
+		"clean-interactive": true,
+		"rebase":            true, // interactive rebase
+		"branch":            true, // interactive branch operations
+		"config":            true, // interactive config
 	}
 
 	// Commands that typically have longer output - wait for key
@@ -322,6 +329,14 @@ func (c *Cmd) smartWaitForContinue(args []string) {
 		// Small delay to let user see the result
 		time.Sleep(800 * time.Millisecond)
 		fmt.Print("\r\033[K") // Clear the line
+		return
+	}
+
+	if interactiveCommands[command] {
+		// Interactive commands handle their own user input - no additional wait
+		fmt.Print("\n\033[90m✓ Interactive session completed\033[0m")
+		time.Sleep(1200 * time.Millisecond) // Slightly longer for interactive
+		fmt.Print("\r\033[K")               // Clear the line
 		return
 	}
 
