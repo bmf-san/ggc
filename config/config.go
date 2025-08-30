@@ -438,6 +438,11 @@ func (cm *Manager) syncFromGitConfig() {
 
 // syncToGitConfig synchronizes relevant config values TO Git's global configuration
 func (cm *Manager) syncToGitConfig() error {
+	// Skip git config sync in CI environments to avoid permission issues
+	if os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != "" {
+		return nil
+	}
+	
 	config := cm.GetConfig()
 
 	if config.Default.Editor != "" {
