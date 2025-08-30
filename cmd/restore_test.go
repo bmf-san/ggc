@@ -43,7 +43,7 @@ func TestRestoreer_Restore(t *testing.T) {
 		},
 		{
 			name:           "restore staged file",
-			args:           []string{"staged", "file.txt"},
+			args:           []string{"--staged", "file.txt"},
 			expectedCmds:   []string{"git restore --staged file.txt"},
 			mockOutput:     []byte("Unstaged file.txt"),
 			mockError:      nil,
@@ -51,7 +51,7 @@ func TestRestoreer_Restore(t *testing.T) {
 		},
 		{
 			name:           "restore staged all files",
-			args:           []string{"staged", "."},
+			args:           []string{"--staged", "."},
 			expectedCmds:   []string{"git restore --staged ."},
 			mockOutput:     []byte("Unstaged all files"),
 			mockError:      nil,
@@ -59,7 +59,7 @@ func TestRestoreer_Restore(t *testing.T) {
 		},
 		{
 			name:           "restore staged multiple files",
-			args:           []string{"staged", "file1.txt", "file2.txt"},
+			args:           []string{"--staged", "file1.txt", "file2.txt"},
 			expectedCmds:   []string{"git restore --staged file1.txt file2.txt"},
 			mockOutput:     []byte("Unstaged files"),
 			mockError:      nil,
@@ -91,7 +91,7 @@ func TestRestoreer_Restore(t *testing.T) {
 		},
 		{
 			name:           "restore staged error",
-			args:           []string{"staged", "file.txt"},
+			args:           []string{"--staged", "file.txt"},
 			expectedCmds:   []string{"git restore --staged file.txt"},
 			mockOutput:     nil,
 			mockError:      errors.New("staged restore failed"),
@@ -115,7 +115,7 @@ func TestRestoreer_Restore(t *testing.T) {
 		},
 		{
 			name:           "staged without file",
-			args:           []string{"staged"},
+			args:           []string{"--staged"},
 			expectedCmds:   nil,
 			mockOutput:     nil,
 			mockError:      nil,

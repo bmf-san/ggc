@@ -35,7 +35,7 @@ func (r *Restoreer) Restore(args []string) {
 	}
 
 	switch args[0] {
-	case "staged":
+	case "--staged":
 		if len(args) < 2 {
 			r.helper.ShowRestoreHelp()
 			return
