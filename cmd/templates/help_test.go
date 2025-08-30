@@ -7,14 +7,14 @@ import (
 )
 
 func TestSelectLogo(t *testing.T) {
-	// テスト用の関数として selectLogo を public にする必要がないので、
-	// RenderMainHelp を通してテストします
+	// Since selectLogo doesn't need to be public for testing,
+	// we test it through RenderMainHelp
 	result, err := RenderMainHelp()
 	if err != nil {
 		t.Fatalf("RenderMainHelp() should not return error: %v", err)
 	}
 
-	// ロゴが含まれていることを確認
+	// Verify that logo is included
 	hasLogo := strings.Contains(result, "__ _") || strings.Contains(result, "╔═════════════════════╗")
 	if !hasLogo {
 		t.Error("Result should contain either full logo or small logo")

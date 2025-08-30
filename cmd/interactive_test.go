@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"golang.org/x/term"
@@ -44,6 +45,10 @@ func (ui *testUI) Run() []string {
 	ui.stdin = bytes.NewReader(ui.inputBytes)
 	ui.stdout = &bytes.Buffer{}
 	ui.stderr = &bytes.Buffer{}
+
+	// Update renderer writer to use test buffer
+	ui.renderer.writer = ui.stdout
+
 	return ui.UI.Run()
 }
 
@@ -74,13 +79,26 @@ func TestUI_Run(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create test UI
+			// Create test UI with new design
+			mockTerm := &mockTerminal{}
+			renderer := &Renderer{writer: &bytes.Buffer{}}
+			state := &UIState{
+				selected: 0,
+				input:    "",
+				filtered: []CommandInfo{},
+			}
+
 			ui := &testUI{
 				UI: UI{
-					term: &mockTerminal{},
+					term:     mockTerm,
+					renderer: renderer,
+					state:    state,
 				},
 				inputBytes: tt.input,
 			}
+
+			// Set up handler after UI is created
+			ui.handler = &KeyHandler{ui: &ui.UI}
 
 			// Execute test
 			result := ui.Run()
@@ -194,5 +212,208 @@ func TestCommandDescriptionsContent(t *testing.T) {
 		if !found {
 			t.Errorf("Command '%s' not found in commandList", cmdStr)
 		}
+	}
+}
+
+// Test UIState functionality
+func TestUIState_UpdateFiltered(t *testing.T) {
+	state := &UIState{
+		selected: 0,
+		input:    "add",
+		filtered: []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	if len(state.filtered) == 0 {
+		t.Error("Expected filtered commands for 'add' input")
+	}
+
+	// Check that all filtered commands contain 'add'
+	for _, cmd := range state.filtered {
+		if !strings.Contains(cmd.Command, "add") {
+			t.Errorf("Filtered command '%s' does not contain 'add'", cmd.Command)
+		}
+	}
+}
+
+func TestUIState_MoveUp(t *testing.T) {
+	state := &UIState{
+		selected: 2,
+		input:    "",
+		filtered: []CommandInfo{
+			{"cmd1", "desc1"},
+			{"cmd2", "desc2"},
+			{"cmd3", "desc3"},
+		},
+	}
+
+	state.MoveUp()
+	if state.selected != 1 {
+		t.Errorf("Expected selected to be 1, got %d", state.selected)
+	}
+
+	state.selected = 0
+	state.MoveUp()
+	if state.selected != 0 {
+		t.Errorf("Expected selected to stay 0 when at top, got %d", state.selected)
+	}
+}
+
+func TestUIState_MoveDown(t *testing.T) {
+	state := &UIState{
+		selected: 0,
+		input:    "",
+		filtered: []CommandInfo{
+			{"cmd1", "desc1"},
+			{"cmd2", "desc2"},
+			{"cmd3", "desc3"},
+		},
+	}
+
+	state.MoveDown()
+	if state.selected != 1 {
+		t.Errorf("Expected selected to be 1, got %d", state.selected)
+	}
+
+	state.selected = 2
+	state.MoveDown()
+	if state.selected != 2 {
+		t.Errorf("Expected selected to stay 2 when at bottom, got %d", state.selected)
+	}
+}
+
+func TestUIState_AddChar(t *testing.T) {
+	state := &UIState{
+		selected: 0,
+		input:    "",
+		filtered: []CommandInfo{},
+	}
+
+	state.AddChar('a')
+	if state.input != "a" {
+		t.Errorf("Expected input to be 'a', got '%s'", state.input)
+	}
+
+	state.AddChar('d')
+	if state.input != "ad" {
+		t.Errorf("Expected input to be 'ad', got '%s'", state.input)
+	}
+}
+
+func TestUIState_RemoveChar(t *testing.T) {
+	state := &UIState{
+		selected: 0,
+		input:    "test",
+		filtered: []CommandInfo{},
+	}
+
+	state.RemoveChar()
+	if state.input != "tes" {
+		t.Errorf("Expected input to be 'tes', got '%s'", state.input)
+	}
+
+	// Test removing from empty string
+	state.input = ""
+	state.RemoveChar()
+	if state.input != "" {
+		t.Errorf("Expected input to remain empty, got '%s'", state.input)
+	}
+}
+
+func TestUIState_GetSelectedCommand(t *testing.T) {
+	state := &UIState{
+		selected: 1,
+		input:    "",
+		filtered: []CommandInfo{
+			{"cmd1", "desc1"},
+			{"cmd2", "desc2"},
+		},
+	}
+
+	cmd := state.GetSelectedCommand()
+	if cmd == nil {
+		t.Fatal("Expected non-nil command")
+	}
+	if cmd.Command != "cmd2" {
+		t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
+	}
+
+	// Test out of bounds
+	state.selected = 10
+	cmd = state.GetSelectedCommand()
+	if cmd != nil {
+		t.Error("Expected nil for out of bounds selection")
+	}
+}
+
+// Test Renderer functionality
+func TestRenderer_UpdateSize(t *testing.T) {
+	var buf bytes.Buffer
+	renderer := &Renderer{writer: &buf}
+
+	renderer.updateSize()
+
+	// Should have default values when not a file
+	if renderer.width != 80 || renderer.height != 24 {
+		t.Errorf("Expected default size 80x24, got %dx%d", renderer.width, renderer.height)
+	}
+}
+
+func TestRenderer_CalculateMaxCommandLength(t *testing.T) {
+	renderer := &Renderer{}
+	commands := []CommandInfo{
+		{"short", "desc"},
+		{"very long command", "desc"},
+		{"medium", "desc"},
+	}
+
+	maxLen := renderer.calculateMaxCommandLength(commands)
+	expected := len("very long command")
+	if maxLen != expected {
+		t.Errorf("Expected max length %d, got %d", expected, maxLen)
+	}
+}
+
+// Test KeyHandler functionality
+func TestKeyHandler_HandleKey(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	renderer := &Renderer{writer: &stdout}
+	state := &UIState{
+		selected: 0,
+		input:    "",
+		filtered: []CommandInfo{},
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &stdout,
+		stderr:   &stderr,
+		term:     &mockTerminal{},
+		renderer: renderer,
+		state:    state,
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	// Test printable character
+	shouldContinue, result := handler.HandleKey('a', nil)
+	if !shouldContinue {
+		t.Error("Expected to continue after printable character")
+	}
+	if result != nil {
+		t.Error("Expected nil result for printable character")
+	}
+	if ui.state.input != "a" {
+		t.Errorf("Expected input 'a', got '%s'", ui.state.input)
+	}
+
+	// Test backspace
+	shouldContinue, _ = handler.HandleKey(127, nil)
+	if !shouldContinue {
+		t.Error("Expected to continue after backspace")
+	}
+	if ui.state.input != "" {
+		t.Errorf("Expected empty input after backspace, got '%s'", ui.state.input)
 	}
 }

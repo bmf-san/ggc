@@ -371,9 +371,7 @@ func TestNewCmd(t *testing.T) {
 	var buf bytes.Buffer
 
 	cmd := &Cmd{
-		gitClient:    mockClient,
-		outputWriter: &buf,
-		helper:       NewHelper(),
+		helper: NewHelper(),
 		// Initialize with mock-based components to avoid git command execution
 		adder:       &Adder{gitClient: mockClient, outputWriter: &buf},
 		brancher:    &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: NewHelper()},
@@ -395,6 +393,10 @@ func TestNewCmd(t *testing.T) {
 		restoreer:   &Restoreer{outputWriter: &buf, helper: NewHelper()},
 		cleaner:     &Cleaner{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
 	}
+
+	// Set fields that are used in tests
+	cmd.gitClient = mockClient
+	cmd.outputWriter = &buf
 
 	// Check if all fields are properly initialized
 	if cmd.adder == nil {

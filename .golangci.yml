@@ -11,6 +11,7 @@ linters:
     - govet
     - ineffassign
     - unused
+    - unparam
 
 linters-settings:
   revive:
