@@ -6,10 +6,22 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 
 	"golang.org/x/term"
 )
+
+// GitStatus represents the current Git repository status
+type GitStatus struct {
+	Branch     string
+	Modified   int
+	Staged     int
+	Ahead      int
+	Behind     int
+	HasChanges bool
+}
 
 // ANSIColors defines color codes for terminal output
 type ANSIColors struct {
@@ -71,6 +83,85 @@ func NewANSIColors() *ANSIColors {
 	}
 }
 
+// getGitStatus retrieves the current Git repository status
+func getGitStatus() *GitStatus {
+	status := &GitStatus{}
+
+	// Get current branch name
+	if branch := getGitBranch(); branch != "" {
+		status.Branch = branch
+	} else {
+		return nil // Not in a git repository
+	}
+
+	// Get working directory status
+	modified, staged := getGitWorkingStatus()
+	status.Modified = modified
+	status.Staged = staged
+	status.HasChanges = modified > 0 || staged > 0
+
+	// Get remote tracking status
+	ahead, behind := getGitRemoteStatus()
+	status.Ahead = ahead
+	status.Behind = behind
+
+	return status
+}
+
+// getGitBranch gets the current branch name
+func getGitBranch() string {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(output))
+}
+
+// getGitWorkingStatus gets the number of modified and staged files
+func getGitWorkingStatus() (modified, staged int) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return 0, 0
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, line := range lines {
+		if len(line) < 2 {
+			continue
+		}
+		
+		// First character: staged status
+		// Second character: working tree status
+		if line[0] != ' ' && line[0] != '?' {
+			staged++
+		}
+		if line[1] != ' ' && line[1] != '?' {
+			modified++
+		}
+	}
+	return modified, staged
+}
+
+// getGitRemoteStatus gets ahead/behind count compared to remote
+func getGitRemoteStatus() (ahead, behind int) {
+	cmd := exec.Command("git", "rev-list", "--count", "--left-right", "HEAD...@{upstream}")
+	output, err := cmd.Output()
+	if err != nil {
+		return 0, 0 // No upstream or other error
+	}
+
+	parts := strings.Fields(strings.TrimSpace(string(output)))
+	if len(parts) != 2 {
+		return 0, 0
+	}
+
+	ahead, _ = strconv.Atoi(parts[0])
+	behind, _ = strconv.Atoi(parts[1])
+	return ahead, behind
+}
+
 // CommandInfo contains the name and description of the command
 type CommandInfo struct {
 	Command     string
@@ -79,14 +170,15 @@ type CommandInfo struct {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin    io.Reader
-	stdout   io.Writer
-	stderr   io.Writer
-	term     terminal
-	renderer *Renderer
-	state    *UIState
-	handler  *KeyHandler
-	colors   *ANSIColors
+	stdin     io.Reader
+	stdout    io.Writer
+	stderr    io.Writer
+	term      terminal
+	renderer  *Renderer
+	state     *UIState
+	handler   *KeyHandler
+	colors    *ANSIColors
+	gitStatus *GitStatus
 }
 
 // UIState holds the current state of the interactive UI
@@ -372,13 +464,14 @@ func NewUI() *UI {
 	}
 
 	ui := &UI{
-		stdin:    os.Stdin,
-		stdout:   os.Stdout,
-		stderr:   os.Stderr,
-		term:     &defaultTerminal{},
-		renderer: renderer,
-		state:    state,
-		colors:   colors,
+		stdin:     os.Stdin,
+		stdout:    os.Stdout,
+		stderr:    os.Stderr,
+		term:      &defaultTerminal{},
+		renderer:  renderer,
+		state:     state,
+		colors:    colors,
+		gitStatus: getGitStatus(),
 	}
 
 	ui.handler = &KeyHandler{ui: ui}
@@ -549,6 +642,11 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		r.colors.Reset,
 		r.colors.Reset)
 	r.writeColorln(ui, title)
+
+	// Git status information
+	if ui.gitStatus != nil {
+		r.renderGitStatus(ui, ui.gitStatus)
+	}
 
 	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %sCtrl+a/e%s move • %sEnter%s execute • %sCtrl+c%s quit%s",
 		r.colors.BrightBlack,
@@ -732,6 +830,58 @@ func (r *Renderer) writeColorln(_ *UI, text string) {
 	// Move to line start, clear line, write content, then CRLF
 	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
 	_, _ = fmt.Fprint(r.writer, text+"\r\n")
+}
+
+// renderGitStatus renders the Git repository status information
+func (r *Renderer) renderGitStatus(ui *UI, status *GitStatus) {
+	var parts []string
+
+	// Branch name
+	branchPart := fmt.Sprintf("%s📍 %s%s%s",
+		r.colors.BrightBlue,
+		r.colors.BrightWhite+r.colors.Bold,
+		status.Branch,
+		r.colors.Reset)
+	parts = append(parts, branchPart)
+
+	// Working directory status
+	if status.HasChanges {
+		var statusParts []string
+		if status.Modified > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d modified", status.Modified))
+		}
+		if status.Staged > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d staged", status.Staged))
+		}
+		
+		workingPart := fmt.Sprintf("%s📝 %s%s%s",
+			r.colors.BrightYellow,
+			r.colors.BrightWhite+r.colors.Bold,
+			strings.Join(statusParts, ", "),
+			r.colors.Reset)
+		parts = append(parts, workingPart)
+	}
+
+	// Remote tracking status
+	if status.Ahead > 0 || status.Behind > 0 {
+		var remoteParts []string
+		if status.Ahead > 0 {
+			remoteParts = append(remoteParts, fmt.Sprintf("↑%d", status.Ahead))
+		}
+		if status.Behind > 0 {
+			remoteParts = append(remoteParts, fmt.Sprintf("↓%d", status.Behind))
+		}
+		
+		remotePart := fmt.Sprintf("%s%s%s",
+			r.colors.BrightMagenta+r.colors.Bold,
+			strings.Join(remoteParts, " "),
+			r.colors.Reset)
+		parts = append(parts, remotePart)
+	}
+
+	// Render the status line
+	statusLine := strings.Join(parts, "  ")
+	r.writeColorln(ui, statusLine)
 }
 
 // writeEmptyLine writes an empty line

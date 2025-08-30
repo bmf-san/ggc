@@ -581,6 +581,78 @@ func TestRenderer_EmptyState(t *testing.T) {
 	}
 }
 
+// Test Git status functionality
+func TestGetGitStatus(t *testing.T) {
+	// This test may fail in environments without git or outside git repos
+	status := getGitStatus()
+	
+	// If we're in a git repository, status should not be nil
+	if status != nil {
+		// Branch name should not be empty
+		if status.Branch == "" {
+			t.Error("Expected branch name to be non-empty when in git repository")
+		}
+		
+		// Values should be non-negative
+		if status.Modified < 0 || status.Staged < 0 || status.Ahead < 0 || status.Behind < 0 {
+			t.Error("Git status values should be non-negative")
+		}
+	}
+	// If status is nil, we're probably not in a git repository, which is fine for tests
+}
+
+// Test Git status rendering
+func TestRenderer_RenderGitStatus(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	// Test with mock git status
+	mockStatus := &GitStatus{
+		Branch:     "main",
+		Modified:   2,
+		Staged:     1,
+		Ahead:      3,
+		Behind:     1,
+		HasChanges: true,
+	}
+
+	ui := &UI{
+		stdin:     strings.NewReader(""),
+		stdout:    &buf,
+		stderr:    &bytes.Buffer{},
+		term:      &mockTerminal{},
+		renderer:  renderer,
+		colors:    colors,
+		gitStatus: mockStatus,
+	}
+
+	renderer.renderGitStatus(ui, mockStatus)
+	output := buf.String()
+
+	// Check that git status elements are displayed
+	expectedElements := []string{
+		"📍", // Branch icon
+		"main", // Branch name
+		"📝", // Changes icon
+		"2 modified", // Modified files
+		"1 staged", // Staged files
+		"↑3", // Ahead count
+		"↓1", // Behind count
+	}
+
+	for _, element := range expectedElements {
+		if !strings.Contains(output, element) {
+			t.Errorf("Expected git status to contain '%s', but it was not found", element)
+		}
+	}
+}
+
 // Test Renderer header/footer keybind display
 func TestRenderer_KeybindDisplay(t *testing.T) {
 	var buf bytes.Buffer
