@@ -293,60 +293,84 @@ func (c *Cmd) smartWaitForContinue(args []string) {
 
 	command := args[0]
 
-	// Commands that typically have short output - auto return
+	// Commands with quick execution and minimal output - auto return
 	quickCommands := map[string]bool{
-		"add":    true,
-		"commit": true,
-		"push":   true,
-		"pull":   true,
-		"fetch":  true,
-		"reset":  true,
-		"tag":    true,
+		"add":     true, // File staging
+		"commit":  true, // Create commit
+		"push":    true, // Push to remote
+		"pull":    true, // Pull from remote
+		"fetch":   true, // Fetch from remote
+		"reset":   true, // Reset changes
+		"tag":     true, // Create/manage tags
+		"restore": true, // Restore files
 	}
 
 	// Interactive commands that handle their own user input - no additional wait
 	interactiveCommands := map[string]bool{
-		"clean":             true, // clean-interactive
-		"clean-interactive": true,
-		"rebase":            true, // interactive rebase
-		"branch":            true, // interactive branch operations
-		"config":            true, // interactive config
+		"clean":             true, // clean-interactive file selection
+		"clean-interactive": true, // explicit clean-interactive
+		"rebase":            true, // interactive rebase with commit selection
+		"config":            true, // interactive configuration
 	}
 
-	// Commands that typically have longer output - wait for key
-	waitCommands := map[string]bool{
-		"log":    true,
-		"diff":   true,
-		"status": true,
-		"branch": true,
-		"stash":  true,
-		"remote": true,
+	// Commands with substantial output that users need to review - wait for key
+	reviewCommands := map[string]bool{
+		"log":    true, // Git history
+		"diff":   true, // File differences
+		"status": true, // Working tree status
+		"stash":  true, // Stash list/operations
+		"remote": true, // Remote repository info
+		"branch": true, // Branch listing/info
 	}
 
-	if quickCommands[command] {
-		// Short pause for quick commands, then auto-return
+	// Informational commands - brief pause then auto-return
+	infoCommands := map[string]bool{
+		"help":     true, // Help information
+		"version":  true, // Version information
+		"complete": true, // Completion information
+	}
+
+	// Special commands - handle appropriately
+	specialCommands := map[string]bool{
+		"hook": true, // Hook management (varies by operation)
+	}
+
+	switch {
+	case quickCommands[command]:
 		fmt.Print("\n\033[90m✓ Command completed\033[0m")
-		// Small delay to let user see the result
 		time.Sleep(800 * time.Millisecond)
-		fmt.Print("\r\033[K") // Clear the line
+		fmt.Print("\r\033[K")
 		return
-	}
 
-	if interactiveCommands[command] {
-		// Interactive commands handle their own user input - no additional wait
+	case interactiveCommands[command]:
 		fmt.Print("\n\033[90m✓ Interactive session completed\033[0m")
-		time.Sleep(1200 * time.Millisecond) // Slightly longer for interactive
-		fmt.Print("\r\033[K")               // Clear the line
+		time.Sleep(1200 * time.Millisecond)
+		fmt.Print("\r\033[K")
 		return
-	}
 
-	if waitCommands[command] {
+	case reviewCommands[command]:
 		c.waitForContinue()
 		return
-	}
 
-	// Default: wait for key for unknown commands
-	c.waitForContinue()
+	case infoCommands[command]:
+		fmt.Print("\n\033[90m✓ Information displayed\033[0m")
+		time.Sleep(1000 * time.Millisecond)
+		fmt.Print("\r\033[K")
+		return
+
+	case specialCommands[command]:
+		// Hook operations vary - some are quick, some need review
+		// Default to brief pause for safety
+		fmt.Print("\n\033[90m✓ Operation completed\033[0m")
+		time.Sleep(1000 * time.Millisecond)
+		fmt.Print("\r\033[K")
+		return
+
+	default:
+		// Unknown commands - safe default with key wait
+		fmt.Print("\n\033[90m⚠ Unknown command - press any key to continue\033[0m")
+		c.waitForContinue()
+	}
 }
 
 func (c *Cmd) waitForContinue() {
