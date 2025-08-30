@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bmf-san/ggc/v4/git"
 )
@@ -565,21 +566,36 @@ func TestCmd_Route(t *testing.T) {
 	}
 }
 
-func TestCmd_waitForContinue(t *testing.T) {
-	// waitForContinue reads from standard input, making direct testing difficult
-	// However, verify the function exists (and doesn't panic)
+func TestCmd_smartWaitForContinue(t *testing.T) {
+	// Test the new unified smartWaitForContinue function
 	cmd := &Cmd{}
 
-	// Indirectly verify that the function exists
-	// Don't actually call it since it requires standard input
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("waitForContinue should not panic when defined, got panic: %v", r)
-		}
-	}()
+	// Test with different command types
+	testCases := []struct {
+		args []string
+		name string
+	}{
+		{[]string{"add", "."}, "quick command"},
+		{[]string{"log"}, "review command"},
+		{[]string{"help"}, "info command"},
+		{[]string{"clean-interactive"}, "interactive command"},
+	}
 
-	// Use type assertion to verify the function is defined
-	_ = cmd.waitForContinue
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("smartWaitForContinue should not panic for %s, got panic: %v", tc.name, r)
+				}
+			}()
+
+			// This will execute but we can't easily test the timing in unit tests
+			// The important thing is that it doesn't panic
+			go func() {
+				cmd.smartWaitForContinue(tc.args)
+			}()
+		})
+	}
 }
 
 // Test some behavior of Interactive by mocking InteractiveUI
@@ -772,22 +788,33 @@ func TestCmd_Interactive_Call(t *testing.T) {
 	_ = cmd.Interactive
 }
 
-func TestCmd_waitForContinue_Call(t *testing.T) {
-	// Use mock client to avoid git command side effects
-	mockClient := &mockGitClient{}
-	cmd := &Cmd{
-		outputWriter: io.Discard,
-		gitClient:    mockClient,
+func TestCmd_getCommandWaitTime(t *testing.T) {
+	cmd := &Cmd{}
+
+	testCases := []struct {
+		command      string
+		args         []string
+		expectedTime time.Duration
+		expectedMsg  string
+	}{
+		{"add", []string{"add", "."}, 800 * time.Millisecond, "✓ Command completed"},
+		{"log", []string{"log"}, 3000 * time.Millisecond, "✓ Review completed"},
+		{"help", []string{"help"}, 1000 * time.Millisecond, "✓ Information displayed"},
+		{"clean-interactive", []string{"clean-interactive"}, 1200 * time.Millisecond, "✓ Interactive session completed"},
+		{"unknown", []string{"unknown"}, 2000 * time.Millisecond, "✓ Command completed"},
 	}
 
-	// Test private function through reflection or indirect testing
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("waitForContinue related functionality should not panic, got: %v", r)
-		}
-	}()
-
-	// Since waitForContinue is private, we verify via other public methods that use it
-	// This is a basic test to ensure the function exists in the code coverage
-	_ = cmd.Status // Use cmd to avoid "declared and not used" error
+	for _, tc := range testCases {
+		t.Run(tc.command, func(t *testing.T) {
+			duration, message := cmd.getCommandWaitTime(tc.command, tc.args)
+			
+			if duration != tc.expectedTime {
+				t.Errorf("Expected duration %v, got %v", tc.expectedTime, duration)
+			}
+			
+			if message != tc.expectedMsg {
+				t.Errorf("Expected message '%s', got '%s'", tc.expectedMsg, message)
+			}
+		})
+	}
 }

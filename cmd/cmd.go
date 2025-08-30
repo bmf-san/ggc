@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/bmf-san/ggc/v4/git"
-	"golang.org/x/term"
 )
 
 // Executer is an interface for executing commands.
@@ -285,113 +283,53 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
-// CommandType represents the type of command for continuation logic
-type CommandType int
-
-const (
-	// QuickCommand represents commands with fast execution and minimal output
-	QuickCommand CommandType = iota
-	// InteractiveCommand represents commands that handle their own user interaction
-	InteractiveCommand
-	// ReviewCommand represents commands with substantial output requiring review
-	ReviewCommand
-	// InfoCommand represents informational commands
-	InfoCommand
-	// SpecialCommand represents commands with context-dependent behavior
-	SpecialCommand
-)
-
-// getCommandType determines the command type based on its characteristics
-func (c *Cmd) getCommandType(command string, args []string) CommandType {
+// getCommandWaitTime determines wait time and message based on command characteristics
+func (c *Cmd) getCommandWaitTime(command string, args []string) (time.Duration, string) {
 	// Check for interactive variants first
-	if command == "clean-interactive" || 
-	   (command == "clean" && len(args) > 1 && args[1] == "interactive") ||
-	   (command == "rebase" && len(args) > 1 && args[1] == "interactive") {
-		return InteractiveCommand
+	if command == "clean-interactive" ||
+		(command == "clean" && len(args) > 1 && args[1] == "interactive") ||
+		(command == "rebase" && len(args) > 1 && args[1] == "interactive") {
+		return 1200 * time.Millisecond, "✓ Interactive session completed"
 	}
 
 	// Pattern-based detection
 	switch command {
 	// Quick operations (modify state, minimal output)
 	case "add", "commit", "push", "pull", "fetch", "reset", "tag", "restore":
-		return QuickCommand
+		return 800 * time.Millisecond, "✓ Command completed"
 
 	// Interactive operations (built-in user interaction)
 	case "clean", "rebase", "config":
-		return InteractiveCommand
+		return 1200 * time.Millisecond, "✓ Interactive session completed"
 
 	// Review operations (substantial output to read)
 	case "log", "diff", "status", "stash", "remote", "branch":
-		return ReviewCommand
+		return 3000 * time.Millisecond, "✓ Review completed"
 
 	// Informational operations (display info)
 	case "help", "version", "complete":
-		return InfoCommand
+		return 1000 * time.Millisecond, "✓ Information displayed"
 
 	// Special cases
 	case "hook":
-		return SpecialCommand
+		return 1000 * time.Millisecond, "✓ Operation completed"
 
 	default:
 		// Safe default for unknown commands
-		return ReviewCommand
+		return 2000 * time.Millisecond, "✓ Command completed"
 	}
 }
 
-// smartWaitForContinue decides whether to wait based on command type
+// smartWaitForContinue provides consistent wait experience for all commands
 func (c *Cmd) smartWaitForContinue(args []string) {
 	if len(args) == 0 {
 		return
 	}
 
 	command := args[0]
-	cmdType := c.getCommandType(command, args)
+	waitTime, message := c.getCommandWaitTime(command, args)
 
-	switch cmdType {
-	case QuickCommand:
-		fmt.Print("\n\033[90m✓ Command completed\033[0m")
-		time.Sleep(800 * time.Millisecond)
-		fmt.Print("\r\033[K")
-
-	case InteractiveCommand:
-		fmt.Print("\n\033[90m✓ Interactive session completed\033[0m")
-		time.Sleep(1200 * time.Millisecond)
-		fmt.Print("\r\033[K")
-
-	case ReviewCommand:
-		c.waitForContinue()
-
-	case InfoCommand:
-		fmt.Print("\n\033[90m✓ Information displayed\033[0m")
-		time.Sleep(1000 * time.Millisecond)
-		fmt.Print("\r\033[K")
-
-	case SpecialCommand:
-		fmt.Print("\n\033[90m✓ Operation completed\033[0m")
-		time.Sleep(1000 * time.Millisecond)
-		fmt.Print("\r\033[K")
-	}
-}
-
-func (c *Cmd) waitForContinue() {
-	fmt.Print("\n\033[90mPress any key to continue...\033[0m")
-
-	// Set terminal to raw mode for single key press
-	fd := int(os.Stdin.Fd())
-	oldState, err := term.MakeRaw(fd)
-	if err != nil {
-		// Fallback to Enter key if raw mode fails
-		fmt.Println("\nPress Enter to continue...")
-		reader := bufio.NewReader(os.Stdin)
-		_, _ = reader.ReadString('\n')
-		return
-	}
-	defer func() {
-		_ = term.Restore(fd, oldState)
-	}()
-
-	// Read single key
-	buf := make([]byte, 1)
-	_, _ = os.Stdin.Read(buf)
-	fmt.Println() // Add newline after key press
+	fmt.Printf("\n\033[90m%s\033[0m", message)
+	time.Sleep(waitTime)
+	fmt.Print("\r\033[K") // Clear the line
 }
