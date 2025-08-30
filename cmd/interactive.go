@@ -454,6 +454,13 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 
 		// Get input with real-time feedback
 		value := h.getRealTimeInput(ph)
+		if value == "" {
+			// User cancelled input
+			h.ui.write("\n%sOperation cancelled%s\n",
+				h.ui.colors.BrightRed,
+				h.ui.colors.Reset)
+			os.Exit(1)
+		}
 		inputs[ph] = value
 
 		// Show confirmation
@@ -469,26 +476,42 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 	return inputs
 }
 
-// getRealTimeInput gets user input with real-time display
+// getRealTimeInput gets user input with real-time display using raw terminal mode
 func (h *KeyHandler) getRealTimeInput(_ string) string {
 	var input strings.Builder
-	reader := bufio.NewReader(h.ui.stdin)
+
+	// Set terminal to raw mode for character-by-character input
+	fd := int(os.Stdin.Fd())
+	oldState, err := h.ui.term.makeRaw(fd)
+	if err != nil {
+		// Fallback to line-based input if raw mode fails
+		return h.getLineInput()
+	}
+	defer func() {
+		_ = h.ui.term.restore(fd, oldState)
+	}()
+
+	// Buffer for reading single bytes
+	buf := make([]byte, 1)
 
 	for {
-		char, _, err := reader.ReadRune()
-		if err != nil {
+		// Read one byte at a time
+		n, err := os.Stdin.Read(buf)
+		if err != nil || n == 0 {
 			break
 		}
+
+		char := rune(buf[0])
 
 		switch char {
 		case '\n', '\r':
 			// Enter pressed - confirm input
 			if input.Len() > 0 {
-				h.ui.write("\n")
+				h.ui.write("\r\n")
 				return input.String()
 			}
 			// Empty input - show hint and continue
-			h.ui.write("%s (required) %s",
+			h.ui.write(" %s(required)%s",
 				h.ui.colors.BrightRed,
 				h.ui.colors.Reset)
 			continue
@@ -500,15 +523,16 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 				input.Reset()
 				input.WriteString(str[:len(str)-1])
 
-				// Update display
+				// Update display: move back, write space, move back again
 				h.ui.write("\b \b")
 			}
 
 		case 3: // Ctrl+C
-			h.ui.write("\n%sOperation cancelled%s\n",
+			h.ui.write("\r\n%sOperation cancelled%s\r\n",
 				h.ui.colors.BrightRed,
 				h.ui.colors.Reset)
-			os.Exit(1)
+			// Return empty string to indicate cancellation
+			return ""
 
 		default:
 			// Regular character
@@ -520,6 +544,24 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 	}
 
 	return input.String()
+}
+
+// getLineInput provides fallback line-based input when raw mode is not available
+func (h *KeyHandler) getLineInput() string {
+	reader := bufio.NewReader(h.ui.stdin)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return ""
+		}
+		line = strings.TrimSpace(line)
+		if line != "" {
+			return line
+		}
+		h.ui.write("%s(required)%s ",
+			h.ui.colors.BrightRed,
+			h.ui.colors.Reset)
+	}
 }
 
 // terminal represents terminal operations

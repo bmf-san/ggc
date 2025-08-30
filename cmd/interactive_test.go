@@ -843,11 +843,15 @@ func TestKeyHandler_InteractiveInput(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	colors := NewANSIColors()
 
+	// Mock terminal that fails raw mode to trigger fallback
+	mockTerm := &mockTerminal{shouldFailRaw: true}
+
 	ui := &UI{
 		stdin:  strings.NewReader("test value\n"),
 		stdout: &stdout,
 		stderr: &stderr,
 		colors: colors,
+		term:   mockTerm,
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -881,6 +885,7 @@ func TestKeyHandler_ProcessCommand_NoPlaceholders(t *testing.T) {
 		stdout: &stdout,
 		stderr: &stderr,
 		colors: colors,
+		term:   &mockTerminal{},
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -904,11 +909,15 @@ func TestKeyHandler_ProcessCommand_WithPlaceholders(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	colors := NewANSIColors()
 
+	// Mock terminal that fails raw mode to trigger fallback
+	mockTerm := &mockTerminal{shouldFailRaw: true}
+
 	ui := &UI{
 		stdin:  strings.NewReader("fix bug\n"),
 		stdout: &stdout,
 		stderr: &stderr,
 		colors: colors,
+		term:   mockTerm,
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -924,6 +933,55 @@ func TestKeyHandler_ProcessCommand_WithPlaceholders(t *testing.T) {
 		if result[i] != arg {
 			t.Errorf("Expected arg[%d] to be '%s', got '%s'", i, arg, result[i])
 		}
+	}
+}
+
+func TestKeyHandler_GetLineInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	ui := &UI{
+		stdin:  strings.NewReader("test input\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+		term:   &mockTerminal{},
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	result := handler.getLineInput()
+
+	if result != "test input" {
+		t.Errorf("Expected 'test input', got '%s'", result)
+	}
+}
+
+func TestKeyHandler_GetLineInput_EmptyInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	// Simulate empty input followed by valid input
+	ui := &UI{
+		stdin:  strings.NewReader("\nvalid input\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+		term:   &mockTerminal{},
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	result := handler.getLineInput()
+
+	if result != "valid input" {
+		t.Errorf("Expected 'valid input', got '%s'", result)
+	}
+
+	// Check that required message was shown
+	output := stdout.String()
+	if !strings.Contains(output, "(required)") {
+		t.Error("Expected output to contain '(required)' message for empty input")
 	}
 }
 
