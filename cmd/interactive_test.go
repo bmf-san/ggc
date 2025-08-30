@@ -708,6 +708,136 @@ func TestRenderer_RenderGitStatus(t *testing.T) {
 	}
 }
 
+// Test individual render methods
+func TestRenderer_RenderHeader(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	ui := &UI{
+		stdin:     strings.NewReader(""),
+		stdout:    &buf,
+		stderr:    &bytes.Buffer{},
+		term:      &mockTerminal{},
+		renderer:  renderer,
+		colors:    colors,
+		gitStatus: nil, // No git status
+	}
+
+	renderer.renderHeader(ui)
+	output := buf.String()
+
+	// Check that header elements are present
+	expectedElements := []string{
+		"🚀 ggc Interactive Mode",
+		"Type to search",
+		"Ctrl+n/p",
+		"navigate",
+		"Enter",
+		"execute",
+	}
+
+	for _, element := range expectedElements {
+		if !strings.Contains(output, element) {
+			t.Errorf("Expected header to contain '%s', but it was not found", element)
+		}
+	}
+}
+
+func TestRenderer_FormatInputWithCursor(t *testing.T) {
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &bytes.Buffer{},
+		colors: colors,
+	}
+
+	tests := []struct {
+		name      string
+		input     string
+		cursorPos int
+		expected  string
+	}{
+		{
+			name:      "empty input",
+			input:     "",
+			cursorPos: 0,
+			expected:  "█", // Should contain block cursor
+		},
+		{
+			name:      "cursor at end",
+			input:     "test",
+			cursorPos: 4,
+			expected:  "█", // Should contain block cursor at end
+		},
+		{
+			name:      "cursor in middle",
+			input:     "test",
+			cursorPos: 2,
+			expected:  "│", // Should contain line cursor in middle
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := &UIState{
+				input:     tt.input,
+				cursorPos: tt.cursorPos,
+			}
+
+			result := renderer.formatInputWithCursor(state)
+			if !strings.Contains(result, tt.expected) {
+				t.Errorf("Expected cursor format to contain '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestRenderer_RenderCommandItem(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		colors:   colors,
+	}
+
+	cmd := CommandInfo{
+		Command:     "test command",
+		Description: "Test description",
+	}
+
+	// Test selected item
+	buf.Reset()
+	renderer.renderCommandItem(ui, cmd, 0, 0, 20) // index=0, selected=0
+	output := buf.String()
+	if !strings.Contains(output, "▶") {
+		t.Error("Expected selected item to contain '▶' indicator")
+	}
+
+	// Test non-selected item
+	buf.Reset()
+	renderer.renderCommandItem(ui, cmd, 1, 0, 20) // index=1, selected=0
+	output = buf.String()
+	if strings.Contains(output, "▶") {
+		t.Error("Expected non-selected item to NOT contain '▶' indicator")
+	}
+}
+
 // Test Renderer header/footer keybind display
 func TestRenderer_KeybindDisplay(t *testing.T) {
 	var buf bytes.Buffer

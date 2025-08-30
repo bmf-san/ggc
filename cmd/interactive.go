@@ -636,7 +636,25 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	// Update terminal size
 	r.updateSize()
 
-	// Modern header with title and subtitle
+	// Render each section
+	r.renderHeader(ui)
+	r.renderSearchPrompt(ui, state)
+
+	// Render content based on state
+	switch {
+	case state.input == "":
+		r.renderEmptyState(ui)
+	case len(state.filtered) == 0:
+		r.renderNoMatches(ui, state)
+	default:
+		r.renderCommandList(ui, state)
+		r.renderFooter(ui)
+	}
+}
+
+// renderHeader renders the title, git status, and navigation subtitle
+func (r *Renderer) renderHeader(ui *UI) {
+	// Modern header with title
 	title := fmt.Sprintf("%s%s🚀 ggc Interactive Mode%s",
 		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.Reset,
@@ -648,6 +666,7 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		r.renderGitStatus(ui, ui.gitStatus)
 	}
 
+	// Navigation subtitle
 	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %sCtrl+a/e%s move • %sEnter%s execute • %sCtrl+c%s quit%s",
 		r.colors.BrightBlack,
 		r.colors.BrightGreen+r.colors.Bold,
@@ -661,27 +680,11 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		r.colors.Reset)
 	r.writeColorln(ui, subtitle)
 	r.writeEmptyLine()
+}
 
-	// Enhanced search prompt with cursor at correct position
-	var inputWithCursor string
-	if len(state.input) == 0 {
-		inputWithCursor = fmt.Sprintf("%s█%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
-	} else {
-		beforeCursor := state.input[:state.cursorPos]
-		afterCursor := state.input[state.cursorPos:]
-		cursor := "│"
-		if state.cursorPos >= len(state.input) {
-			cursor = "█"
-		}
-		inputWithCursor = fmt.Sprintf("%s%s%s%s%s%s%s",
-			r.colors.BrightYellow,
-			beforeCursor,
-			r.colors.BrightWhite+r.colors.Bold,
-			cursor,
-			r.colors.Reset+r.colors.BrightYellow,
-			afterCursor,
-			r.colors.Reset)
-	}
+// renderSearchPrompt renders the search input with cursor
+func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
+	inputWithCursor := r.formatInputWithCursor(state)
 
 	searchPrompt := fmt.Sprintf("%s┌─ %sSearch:%s %s",
 		r.colors.BrightBlue,
@@ -699,50 +702,75 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		r.writeColorln(ui, separator)
 	}
 	r.writeEmptyLine()
+}
 
-	if state.input == "" {
-		// Empty state - simple message
-		r.writeColorln(ui, fmt.Sprintf("%s💭 %sStart typing to search commands...%s",
-			r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
-		return
+// formatInputWithCursor formats the input string with cursor position
+func (r *Renderer) formatInputWithCursor(state *UIState) string {
+	if len(state.input) == 0 {
+		return fmt.Sprintf("%s█%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
 	}
 
-	if len(state.filtered) == 0 {
-		// No matches found - helpful message
-		r.writeColorln(ui, fmt.Sprintf("%s🔍 %sNo commands found for '%s%s%s'%s",
-			r.colors.BrightYellow,
-			r.colors.BrightWhite,
-			r.colors.BrightYellow+r.colors.Bold,
-			state.input,
-			r.colors.Reset+r.colors.BrightWhite,
+	beforeCursor := state.input[:state.cursorPos]
+	afterCursor := state.input[state.cursorPos:]
+	cursor := "│"
+	if state.cursorPos >= len(state.input) {
+		cursor = "█"
+	}
+
+	return fmt.Sprintf("%s%s%s%s%s%s%s",
+		r.colors.BrightYellow,
+		beforeCursor,
+		r.colors.BrightWhite+r.colors.Bold,
+		cursor,
+		r.colors.Reset+r.colors.BrightYellow,
+		afterCursor,
+		r.colors.Reset)
+}
+
+// renderEmptyState renders the empty input state
+func (r *Renderer) renderEmptyState(ui *UI) {
+	r.writeColorln(ui, fmt.Sprintf("%s💭 %sStart typing to search commands...%s",
+		r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
+}
+
+// renderNoMatches renders the no matches found state with keybind help
+func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
+	// No matches message
+	r.writeColorln(ui, fmt.Sprintf("%s🔍 %sNo commands found for '%s%s%s'%s",
+		r.colors.BrightYellow,
+		r.colors.BrightWhite,
+		r.colors.BrightYellow+r.colors.Bold,
+		state.input,
+		r.colors.Reset+r.colors.BrightWhite,
+		r.colors.Reset))
+	r.writeEmptyLine()
+
+	// Available keybinds
+	keybinds := []struct{ key, desc string }{
+		{"Ctrl+u", "Clear all input"},
+		{"Ctrl+w", "Delete word"},
+		{"Ctrl+k", "Delete to end"},
+		{"Ctrl+a", "Move to beginning"},
+		{"Ctrl+e", "Move to end"},
+		{"Backspace", "Delete character"},
+	}
+
+	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
+		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
+
+	for _, kb := range keybinds {
+		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
+			kb.key,
+			r.colors.Reset,
+			r.colors.BrightBlack,
+			kb.desc,
 			r.colors.Reset))
-		r.writeEmptyLine()
-
-		// Available keybinds
-		keybinds := []struct{ key, desc string }{
-			{"Ctrl+u", "Clear all input"},
-			{"Ctrl+w", "Delete word"},
-			{"Ctrl+k", "Delete to end"},
-			{"Ctrl+a", "Move to beginning"},
-			{"Ctrl+e", "Move to end"},
-			{"Backspace", "Delete character"},
-		}
-
-		r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
-			r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
-
-		for _, kb := range keybinds {
-			r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
-				r.colors.BrightGreen+r.colors.Bold,
-				kb.key,
-				r.colors.Reset,
-				r.colors.BrightBlack,
-				kb.desc,
-				r.colors.Reset))
-		}
-		return
 	}
+}
 
+// renderCommandList renders the filtered command list
+func (r *Renderer) renderCommandList(ui *UI, state *UIState) {
 	// Clamp selection index to valid range
 	if state.selected >= len(state.filtered) {
 		state.selected = len(state.filtered) - 1
@@ -755,59 +783,66 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	maxCmdLen := r.calculateMaxCommandLength(state.filtered)
 
 	for i, cmd := range state.filtered {
-		desc := cmd.Description
-		if desc == "" {
-			desc = "No description"
-		}
+		r.renderCommandItem(ui, cmd, i, state.selected, maxCmdLen)
+	}
+}
 
-		// Calculate padding for consistent command alignment
-		paddingLen := maxCmdLen - len(cmd.Command)
-		if paddingLen < 0 {
-			paddingLen = 0
-		}
-		padding := strings.Repeat(" ", paddingLen)
-
-		// Calculate available width for description
-		usedWidth := 4 + len(cmd.Command) + len(padding) + 3 // prefix + command + padding + separator
-		availableDescWidth := r.width - usedWidth
-		if availableDescWidth < 10 {
-			availableDescWidth = 10
-		}
-
-		// Truncate description if needed
-		trimmedDesc := ellipsis(desc, availableDescWidth)
-
-		if i == state.selected {
-			// Selected item with modern highlighting
-			selectedLine := fmt.Sprintf("%s▶ %s%s%s%s %s│%s %s%s%s",
-				r.colors.BrightCyan+r.colors.Bold,
-				r.colors.BrightWhite+r.colors.Bold+r.colors.Reverse,
-				" "+cmd.Command+" ",
-				r.colors.Reset,
-				padding,
-				r.colors.BrightBlue,
-				r.colors.Reset,
-				r.colors.BrightWhite,
-				trimmedDesc,
-				r.colors.Reset)
-			r.writeColorln(ui, selectedLine)
-		} else {
-			// Regular item with improved styling
-			regularLine := fmt.Sprintf("  %s%s%s%s %s│%s %s%s%s",
-				r.colors.BrightGreen+r.colors.Bold,
-				cmd.Command,
-				r.colors.Reset,
-				padding,
-				r.colors.BrightBlack,
-				r.colors.Reset,
-				r.colors.BrightBlack,
-				trimmedDesc,
-				r.colors.Reset)
-			r.writeColorln(ui, regularLine)
-		}
+// renderCommandItem renders a single command item
+func (r *Renderer) renderCommandItem(ui *UI, cmd CommandInfo, index, selected, maxCmdLen int) {
+	desc := cmd.Description
+	if desc == "" {
+		desc = "No description"
 	}
 
-	// Footer with navigation hints
+	// Calculate padding for consistent command alignment
+	paddingLen := maxCmdLen - len(cmd.Command)
+	if paddingLen < 0 {
+		paddingLen = 0
+	}
+	padding := strings.Repeat(" ", paddingLen)
+
+	// Calculate available width for description
+	usedWidth := 4 + len(cmd.Command) + len(padding) + 3 // prefix + command + padding + separator
+	availableDescWidth := r.width - usedWidth
+	if availableDescWidth < 10 {
+		availableDescWidth = 10
+	}
+
+	// Truncate description if needed
+	trimmedDesc := ellipsis(desc, availableDescWidth)
+
+	if index == selected {
+		// Selected item with modern highlighting
+		selectedLine := fmt.Sprintf("%s▶ %s%s%s%s %s│%s %s%s%s",
+			r.colors.BrightCyan+r.colors.Bold,
+			r.colors.BrightWhite+r.colors.Bold+r.colors.Reverse,
+			" "+cmd.Command+" ",
+			r.colors.Reset,
+			padding,
+			r.colors.BrightBlue,
+			r.colors.Reset,
+			r.colors.BrightWhite,
+			trimmedDesc,
+			r.colors.Reset)
+		r.writeColorln(ui, selectedLine)
+	} else {
+		// Regular item with improved styling
+		regularLine := fmt.Sprintf("  %s%s%s%s %s│%s %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
+			cmd.Command,
+			r.colors.Reset,
+			padding,
+			r.colors.BrightBlack,
+			r.colors.Reset,
+			r.colors.BrightBlack,
+			trimmedDesc,
+			r.colors.Reset)
+		r.writeColorln(ui, regularLine)
+	}
+}
+
+// renderFooter renders the navigation footer
+func (r *Renderer) renderFooter(ui *UI) {
 	r.writeEmptyLine()
 	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %sCtrl+a/e%s Move  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
 		r.colors.BrightBlack,
