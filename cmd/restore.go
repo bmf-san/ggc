@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/bmf-san/ggc/v4/git"
 )
@@ -67,13 +68,28 @@ func (r *Restoreer) Restore(args []string) {
 }
 
 func isCommitLike(s string) bool {
-	if len(s) >= 7 && len(s) <= 40 {
+	// Hex-ish object name (short/long SHA)
+	if l := len(s); l >= 7 && l <= 40 {
+		isHex := true
 		for _, r := range s {
 			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
-				return false
+				isHex = false
+				break
 			}
 		}
+		if isHex {
+			return true
+		}
+	}
+	// Safe prefix checks for ref-ish values
+	if strings.HasPrefix(s, "HEAD") { // e.g., HEAD, HEAD~1, HEAD^
 		return true
 	}
-	return s == "HEAD" || s[:4] == "HEAD" || s[:8] == "refs/" || s[:7] == "origin/"
+	if strings.HasPrefix(s, "refs/") { // e.g., refs/heads/main
+		return true
+	}
+	if strings.HasPrefix(s, "origin/") { // e.g., origin/main
+		return true
+	}
+	return false
 }

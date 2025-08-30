@@ -252,3 +252,69 @@ func (m *MockGitClient) RestoreAll() error {
 func (m *MockGitClient) RestoreAllStaged() error {
 	return nil
 }
+
+func TestRestoreer_Restore_CommitLikeBoundary(t *testing.T) {
+	cases := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name:     "short non-commit string treated as path",
+			args:     []string{"re", "file.txt"},
+			expected: "git restore re file.txt",
+		},
+		{
+			name:     "HEAD tilde ref treated as commit",
+			args:     []string{"HEAD~1", "file.txt"},
+			expected: "git restore --source HEAD~1 file.txt",
+		},
+		{
+			name:     "refs/heads/main treated as commit",
+			args:     []string{"refs/heads/main", "file.txt"},
+			expected: "git restore --source refs/heads/main file.txt",
+		},
+		{
+			name:     "origin/main treated as commit",
+			args:     []string{"origin/main", "file.txt"},
+			expected: "git restore --source origin/main file.txt",
+		},
+		{
+			name:     "7-char hex treated as commit",
+			args:     []string{"deadbee", "file.txt"},
+			expected: "git restore --source deadbee file.txt",
+		},
+		{
+			name:     "non-hex string not treated as commit",
+			args:     []string{"deadbeeg", "file.txt"},
+			expected: "git restore deadbeeg file.txt",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got string
+			MockGitClient := &MockGitClient{
+				execCommand: func(_ string, args ...string) *exec.Cmd {
+					got = strings.Join(append([]string{"git"}, args...), " ")
+					return exec.Command("echo")
+				},
+			}
+
+			var buf bytes.Buffer
+			r := &Restoreer{
+				outputWriter: &buf,
+				helper:       NewHelper(),
+				execCommand:  MockGitClient.execCommand,
+				gitClient:    MockGitClient,
+			}
+			r.helper.outputWriter = &buf
+
+			r.Restore(tc.args)
+
+			if got != tc.expected {
+				t.Errorf("expected command %q, got %q", tc.expected, got)
+			}
+		})
+	}
+}
