@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/bmf-san/ggc/v4/git"
 )
@@ -221,8 +220,8 @@ func (c *Cmd) Interactive() {
 
 		c.Route(args[1:]) // Skip "ggc" in args
 
-		// Smart continue logic based on command type
-		c.smartWaitForContinue(args[1:])
+		// Wait for user to continue
+		c.waitForContinue()
 	}
 }
 
@@ -283,53 +282,8 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
-// getCommandWaitTime determines wait time and message based on command characteristics
-func (c *Cmd) getCommandWaitTime(command string, args []string) (time.Duration, string) {
-	// Check for interactive variants first
-	if command == "clean-interactive" ||
-		(command == "clean" && len(args) > 1 && args[1] == "interactive") ||
-		(command == "rebase" && len(args) > 1 && args[1] == "interactive") {
-		return 1200 * time.Millisecond, "✓ Interactive session completed"
-	}
-
-	// Pattern-based detection
-	switch command {
-	// Quick operations (modify state, minimal output)
-	case "add", "commit", "push", "pull", "fetch", "reset", "tag", "restore":
-		return 800 * time.Millisecond, "✓ Command completed"
-
-	// Interactive operations (built-in user interaction)
-	case "clean", "rebase", "config":
-		return 1200 * time.Millisecond, "✓ Interactive session completed"
-
-	// Review operations (substantial output to read)
-	case "log", "diff", "status", "stash", "remote", "branch":
-		return 3000 * time.Millisecond, "✓ Review completed"
-
-	// Informational operations (display info)
-	case "help", "version", "complete":
-		return 1000 * time.Millisecond, "✓ Information displayed"
-
-	// Special cases
-	case "hook":
-		return 1000 * time.Millisecond, "✓ Operation completed"
-
-	default:
-		// Safe default for unknown commands
-		return 2000 * time.Millisecond, "✓ Command completed"
-	}
-}
-
-// smartWaitForContinue provides consistent wait experience for all commands
-func (c *Cmd) smartWaitForContinue(args []string) {
-	if len(args) == 0 {
-		return
-	}
-
-	command := args[0]
-	waitTime, message := c.getCommandWaitTime(command, args)
-
-	fmt.Printf("\n\033[90m%s\033[0m", message)
-	time.Sleep(waitTime)
-	fmt.Print("\r\033[K") // Clear the line
+// waitForContinue waits for user input to continue
+func (c *Cmd) waitForContinue() {
+	fmt.Print("\nPress Enter to continue...")
+	_, _ = fmt.Scanln()
 }

@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/bmf-san/ggc/v4/git"
 )
@@ -566,38 +565,6 @@ func TestCmd_Route(t *testing.T) {
 	}
 }
 
-func TestCmd_smartWaitForContinue(t *testing.T) {
-	// Test the new unified smartWaitForContinue function
-	cmd := &Cmd{}
-
-	// Test with different command types
-	testCases := []struct {
-		args []string
-		name string
-	}{
-		{[]string{"add", "."}, "quick command"},
-		{[]string{"log"}, "review command"},
-		{[]string{"help"}, "info command"},
-		{[]string{"clean-interactive"}, "interactive command"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("smartWaitForContinue should not panic for %s, got panic: %v", tc.name, r)
-				}
-			}()
-
-			// This will execute but we can't easily test the timing in unit tests
-			// The important thing is that it doesn't panic
-			go func() {
-				cmd.smartWaitForContinue(tc.args)
-			}()
-		})
-	}
-}
-
 // Test some behavior of Interactive by mocking InteractiveUI
 func TestCmd_Interactive_Existence(t *testing.T) {
 	// Interactive is a complex interactive function, making complete testing difficult
@@ -788,33 +755,18 @@ func TestCmd_Interactive_Call(t *testing.T) {
 	_ = cmd.Interactive
 }
 
-func TestCmd_getCommandWaitTime(t *testing.T) {
+func TestCmd_waitForContinue(t *testing.T) {
+	// Test that waitForContinue function exists and can be called
 	cmd := &Cmd{}
 
-	testCases := []struct {
-		command      string
-		args         []string
-		expectedTime time.Duration
-		expectedMsg  string
-	}{
-		{"add", []string{"add", "."}, 800 * time.Millisecond, "✓ Command completed"},
-		{"log", []string{"log"}, 3000 * time.Millisecond, "✓ Review completed"},
-		{"help", []string{"help"}, 1000 * time.Millisecond, "✓ Information displayed"},
-		{"clean-interactive", []string{"clean-interactive"}, 1200 * time.Millisecond, "✓ Interactive session completed"},
-		{"unknown", []string{"unknown"}, 2000 * time.Millisecond, "✓ Command completed"},
-	}
+	// Just verify the function exists - we can't easily test the interactive part
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("waitForContinue should not panic, got panic: %v", r)
+		}
+	}()
 
-	for _, tc := range testCases {
-		t.Run(tc.command, func(t *testing.T) {
-			duration, message := cmd.getCommandWaitTime(tc.command, tc.args)
-			
-			if duration != tc.expectedTime {
-				t.Errorf("Expected duration %v, got %v", tc.expectedTime, duration)
-			}
-			
-			if message != tc.expectedMsg {
-				t.Errorf("Expected message '%s', got '%s'", tc.expectedMsg, message)
-			}
-		})
-	}
+	// We can't actually test the interactive input in unit tests
+	// but we can verify the function is callable
+	_ = cmd.waitForContinue
 }
