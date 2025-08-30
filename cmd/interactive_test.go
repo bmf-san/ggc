@@ -236,10 +236,65 @@ func TestUIState_UpdateFiltered(t *testing.T) {
 		t.Error("Expected filtered commands for 'add' input")
 	}
 
-	// Check that all filtered commands contain 'add'
+	// Check that all filtered commands start with 'add'
 	for _, cmd := range state.filtered {
-		if !strings.Contains(cmd.Command, "add") {
-			t.Errorf("Filtered command '%s' does not contain 'add'", cmd.Command)
+		if !strings.HasPrefix(cmd.Command, "add") {
+			t.Errorf("Filtered command '%s' does not start with 'add'", cmd.Command)
+		}
+	}
+}
+
+// Test prefix matching behavior
+func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "commit",
+		cursorPos: 6,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	// Should match commands starting with "commit"
+	expectedMatches := []string{
+		"commit <message>",
+		"commit allow-empty",
+		"commit amend",
+		"commit amend --no-edit",
+	}
+
+	// Should NOT match commands containing "commit" but not starting with it
+	unexpectedMatches := []string{
+		"amend commit", // hypothetical - starts with "amend"
+	}
+
+	// Check that expected commands are found
+	for _, expected := range expectedMatches {
+		found := false
+		for _, filtered := range state.filtered {
+			if filtered.Command == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Expected to find command starting with 'commit': %s", expected)
+		}
+	}
+
+	// Check that all filtered commands start with "commit"
+	for _, cmd := range state.filtered {
+		if !strings.HasPrefix(cmd.Command, "commit") {
+			t.Errorf("Filtered command '%s' should start with 'commit'", cmd.Command)
+		}
+	}
+
+	// Verify we don't get partial matches
+	for _, unexpected := range unexpectedMatches {
+		for _, filtered := range state.filtered {
+			if filtered.Command == unexpected {
+				t.Errorf("Should not match command that doesn't start with 'commit': %s", unexpected)
+			}
 		}
 	}
 }
@@ -585,14 +640,14 @@ func TestRenderer_EmptyState(t *testing.T) {
 func TestGetGitStatus(t *testing.T) {
 	// This test may fail in environments without git or outside git repos
 	status := getGitStatus()
-	
+
 	// If we're in a git repository, status should not be nil
 	if status != nil {
 		// Branch name should not be empty
 		if status.Branch == "" {
 			t.Error("Expected branch name to be non-empty when in git repository")
 		}
-		
+
 		// Values should be non-negative
 		if status.Modified < 0 || status.Staged < 0 || status.Ahead < 0 || status.Behind < 0 {
 			t.Error("Git status values should be non-negative")
@@ -637,13 +692,13 @@ func TestRenderer_RenderGitStatus(t *testing.T) {
 
 	// Check that git status elements are displayed
 	expectedElements := []string{
-		"📍", // Branch icon
-		"main", // Branch name
-		"📝", // Changes icon
+		"📍",          // Branch icon
+		"main",       // Branch name
+		"📝",          // Changes icon
 		"2 modified", // Modified files
-		"1 staged", // Staged files
-		"↑3", // Ahead count
-		"↓1", // Behind count
+		"1 staged",   // Staged files
+		"↑3",         // Ahead count
+		"↓1",         // Behind count
 	}
 
 	for _, element := range expectedElements {

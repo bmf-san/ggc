@@ -131,7 +131,7 @@ func getGitWorkingStatus() (modified, staged int) {
 		if len(line) < 2 {
 			continue
 		}
-		
+
 		// First character: staged status
 		// Second character: working tree status
 		if line[0] != ' ' && line[0] != '?' {
@@ -193,7 +193,7 @@ type UIState struct {
 func (s *UIState) UpdateFiltered() {
 	s.filtered = []CommandInfo{}
 	for _, cmd := range commands {
-		if strings.Contains(cmd.Command, s.input) {
+		if strings.HasPrefix(cmd.Command, s.input) {
 			s.filtered = append(s.filtered, cmd)
 		}
 	}
@@ -853,7 +853,7 @@ func (r *Renderer) renderGitStatus(ui *UI, status *GitStatus) {
 		if status.Staged > 0 {
 			statusParts = append(statusParts, fmt.Sprintf("%d staged", status.Staged))
 		}
-		
+
 		workingPart := fmt.Sprintf("%s📝 %s%s%s",
 			r.colors.BrightYellow,
 			r.colors.BrightWhite+r.colors.Bold,
@@ -871,7 +871,7 @@ func (r *Renderer) renderGitStatus(ui *UI, status *GitStatus) {
 		if status.Behind > 0 {
 			remoteParts = append(remoteParts, fmt.Sprintf("↓%d", status.Behind))
 		}
-		
+
 		remotePart := fmt.Sprintf("%s%s%s",
 			r.colors.BrightMagenta+r.colors.Bold,
 			strings.Join(remoteParts, " "),
