@@ -1,6 +1,8 @@
 // Package git provides a high-level interface to git commands.
 package git
 
+import "os"
+
 // ResetHardAndClean resets the current branch to the state of origin and cleans the working directory.
 func (c *Client) ResetHardAndClean() error {
 	branch, err := c.GetCurrentBranch()
@@ -8,6 +10,8 @@ func (c *Client) ResetHardAndClean() error {
 		return NewError("reset hard and clean", "get current branch", err)
 	}
 	cmd := c.execCommand("git", "reset", "--hard", "origin/"+branch)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("reset hard and clean", "git reset --hard origin/"+branch, err)
 	}
@@ -20,6 +24,8 @@ func (c *Client) ResetHardAndClean() error {
 // ResetHard resets to the specified commit.
 func (c *Client) ResetHard(commit string) error {
 	cmd := c.execCommand("git", "reset", "--hard", commit)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("reset hard", "git reset --hard "+commit, err)
 	}

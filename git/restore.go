@@ -3,6 +3,7 @@ package git
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -27,6 +28,8 @@ func (c *Client) Restore(paths []string, opts *RestoreOptions) error {
 
 	args = append(args, paths...)
 	cmd := c.execCommand("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("restore", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
 	}

@@ -179,7 +179,8 @@ func (ui *UI) Run() []string {
 	for {
 		ui.write("\033[H\033[2J\033[H") // Clear screen
 		ui.writeln("Select a command (incremental search: type to filter, ctrl+n: down, ctrl+p: up, enter: execute, ctrl+c: quit)")
-		ui.writeln("\rSearch: %s\n", input)
+		ui.writeln("Search: %s", input)
+		ui.writeln("") // Empty line for better readability
 
 		// Filtering
 		filtered := []CommandInfo{}
@@ -215,13 +216,13 @@ func (ui *UI) Run() []string {
 				paddingLen := int(math.Max(0, float64(maxCmdLen-len(cmd.Command))))
 				padding := strings.Repeat(" ", paddingLen)
 				if i == selected {
-					ui.writeln("\r> %s%s  %s", cmd.Command, padding, desc)
+					ui.writeln("> %s%s  %s", cmd.Command, padding, desc)
 				} else {
-					ui.writeln("\r  %s%s  %s", cmd.Command, padding, desc)
+					ui.writeln("  %s%s  %s", cmd.Command, padding, desc)
 				}
 			}
 		}
-		ui.write("\n\r") // Ensure next output starts at left edge
+		// Cursor positioning handled by screen clear
 
 		b, err := reader.ReadByte()
 		if err != nil {
@@ -245,7 +246,7 @@ func (ui *UI) Run() []string {
 				continue
 			}
 			if len(filtered) > 0 {
-				ui.writeln("\nExecute: %s", filtered[selected].Command)
+				// Restore terminal state BEFORE showing Execute message
 				if oldState != nil {
 					if f, ok := ui.stdin.(*os.File); ok {
 						if err := ui.term.restore(int(f.Fd()), oldState); err != nil {
@@ -253,13 +254,14 @@ func (ui *UI) Run() []string {
 						}
 					}
 				}
+				ui.write("Execute: %s\n", filtered[selected].Command)
 				// Placeholder detection
 				cmdTemplate := filtered[selected].Command
 				placeholders := extractPlaceholders(cmdTemplate)
 				inputs := make(map[string]string)
 				readerStdin := bufio.NewReader(ui.stdin)
 				for _, ph := range placeholders {
-					ui.write("\n\r") // Newline + carriage return
+					ui.write("\n") // Newline
 					ui.write("Enter value for %s: ", ph)
 					val, _ := readerStdin.ReadString('\n')
 					val = strings.TrimSpace(val)

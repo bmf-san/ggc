@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -169,6 +170,8 @@ func (c *Client) GetGitStatus() (string, error) {
 // CheckoutNewBranch creates a new branch and checks it out.
 func (c *Client) CheckoutNewBranch(name string) error {
 	cmd := c.execCommand("git", "checkout", "-b", name)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", name), err)
 	}
