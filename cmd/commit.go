@@ -46,15 +46,16 @@ func (c *Committer) Commit(args []string) {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
 	case "amend":
-		if len(args) == 1 {
+		switch {
+		case len(args) == 1:
 			if err := c.gitClient.CommitAmend(); err != nil {
 				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 			}
-		} else if args[1] == "--no-edit" {
+		case args[1] == "--no-edit":
 			if err := c.gitClient.CommitAmendNoEdit(); err != nil {
 				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 			}
-		} else {
+		default:
 			// Join all arguments after "amend" as the commit message
 			msg := strings.Join(args[1:], " ")
 			if err := c.gitClient.CommitAmendWithMessage(msg); err != nil {

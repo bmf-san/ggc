@@ -119,9 +119,7 @@ func TestHooker_listHooks(t *testing.T) {
 
 				return nil
 			},
-			cleanupFiles: func(tmpDir string) error {
-				return os.RemoveAll(tmpDir)
-			},
+			cleanupFiles:   os.RemoveAll,
 			expectedOutput: "Git Hooks Status:",
 		},
 	}

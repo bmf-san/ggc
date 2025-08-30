@@ -903,10 +903,8 @@ func TestConfig_validateAliases(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Errorf("validateAliases() error = %v, want to contain %v", err.Error(), tt.errorMsg)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("validateAliases() unexpected error: %v", err)
-				}
+			} else if err != nil {
+				t.Errorf("validateAliases() unexpected error: %v", err)
 			}
 		})
 	}

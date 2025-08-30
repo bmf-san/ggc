@@ -48,8 +48,8 @@ func TestNewError(t *testing.T) {
 
 	result := NewError(op, command, err)
 
-	gitErr, ok := result.(*Error)
-	if !ok {
+	var gitErr *Error
+	if !errors.As(result, &gitErr) {
 		t.Fatalf("NewError should return *Error, got %T", result)
 	}
 
@@ -59,7 +59,7 @@ func TestNewError(t *testing.T) {
 	if gitErr.Command != command {
 		t.Errorf("Command = %v, want %v", gitErr.Command, command)
 	}
-	if gitErr.Err != err {
+	if !errors.Is(gitErr.Err, err) {
 		t.Errorf("Err = %v, want %v", gitErr.Err, err)
 	}
 }
