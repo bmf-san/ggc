@@ -838,6 +838,95 @@ func TestRenderer_RenderCommandItem(t *testing.T) {
 	}
 }
 
+// Test interactive input functionality
+func TestKeyHandler_InteractiveInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	ui := &UI{
+		stdin:  strings.NewReader("test value\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	placeholders := []string{"message"}
+	result := handler.interactiveInput(placeholders)
+
+	if len(result) != 1 {
+		t.Errorf("Expected 1 input, got %d", len(result))
+	}
+
+	if result["message"] != "test value" {
+		t.Errorf("Expected 'test value', got '%s'", result["message"])
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "message") {
+		t.Error("Expected output to contain placeholder name")
+	}
+	if !strings.Contains(output, "✓") {
+		t.Error("Expected output to contain confirmation checkmark")
+	}
+}
+
+func TestKeyHandler_ProcessCommand_NoPlaceholders(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	ui := &UI{
+		stdin:  strings.NewReader(""),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	// Command without placeholders should execute immediately
+	result := handler.processCommand("status")
+
+	expected := []string{"ggc", "status"}
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d args, got %d", len(expected), len(result))
+	}
+
+	for i, arg := range expected {
+		if result[i] != arg {
+			t.Errorf("Expected arg[%d] to be '%s', got '%s'", i, arg, result[i])
+		}
+	}
+}
+
+func TestKeyHandler_ProcessCommand_WithPlaceholders(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	ui := &UI{
+		stdin:  strings.NewReader("fix bug\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	result := handler.processCommand("commit <message>")
+
+	expected := []string{"ggc", "commit", "fix", "bug"}
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d args, got %d", len(expected), len(result))
+	}
+
+	for i, arg := range expected {
+		if result[i] != arg {
+			t.Errorf("Expected arg[%d] to be '%s', got '%s'", i, arg, result[i])
+		}
+	}
+}
+
 // Test Renderer header/footer keybind display
 func TestRenderer_KeybindDisplay(t *testing.T) {
 	var buf bytes.Buffer

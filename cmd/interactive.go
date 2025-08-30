@@ -409,16 +409,16 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 // processCommand processes the command with placeholder replacement
 func (h *KeyHandler) processCommand(cmdTemplate string) []string {
 	placeholders := extractPlaceholders(cmdTemplate)
-	inputs := make(map[string]string)
-	readerStdin := bufio.NewReader(h.ui.stdin)
 
-	for _, ph := range placeholders {
-		h.ui.write("\n") // Newline
-		h.ui.write("Enter value for %s: ", ph)
-		val, _ := readerStdin.ReadString('\n')
-		val = strings.TrimSpace(val)
-		inputs[ph] = val
+	if len(placeholders) == 0 {
+		// No placeholders - execute immediately
+		args := []string{"ggc"}
+		args = append(args, strings.Fields(cmdTemplate)...)
+		return args
 	}
+
+	// Interactive input for placeholders
+	inputs := h.interactiveInput(placeholders)
 
 	// Placeholder replacement
 	finalCmd := cmdTemplate
@@ -429,6 +429,97 @@ func (h *KeyHandler) processCommand(cmdTemplate string) []string {
 	args := []string{"ggc"}
 	args = append(args, strings.Fields(finalCmd)...)
 	return args
+}
+
+// interactiveInput provides real-time interactive input for placeholders
+func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
+	inputs := make(map[string]string)
+
+	for i, ph := range placeholders {
+		h.ui.write("\n")
+
+		// Show progress and prompt
+		if len(placeholders) > 1 {
+			h.ui.write("%s[%d/%d]%s ",
+				h.ui.colors.BrightBlue+h.ui.colors.Bold,
+				i+1, len(placeholders),
+				h.ui.colors.Reset)
+		}
+
+		h.ui.write("%s? %s%s%s: ",
+			h.ui.colors.BrightGreen,
+			h.ui.colors.BrightWhite+h.ui.colors.Bold,
+			ph,
+			h.ui.colors.Reset)
+
+		// Get input with real-time feedback
+		value := h.getRealTimeInput(ph)
+		inputs[ph] = value
+
+		// Show confirmation
+		h.ui.write("%s✓ %s%s: %s%s%s\n",
+			h.ui.colors.BrightGreen,
+			h.ui.colors.BrightBlue,
+			ph,
+			h.ui.colors.BrightYellow+h.ui.colors.Bold,
+			value,
+			h.ui.colors.Reset)
+	}
+
+	return inputs
+}
+
+// getRealTimeInput gets user input with real-time display
+func (h *KeyHandler) getRealTimeInput(_ string) string {
+	var input strings.Builder
+	reader := bufio.NewReader(h.ui.stdin)
+
+	for {
+		char, _, err := reader.ReadRune()
+		if err != nil {
+			break
+		}
+
+		switch char {
+		case '\n', '\r':
+			// Enter pressed - confirm input
+			if input.Len() > 0 {
+				h.ui.write("\n")
+				return input.String()
+			}
+			// Empty input - show hint and continue
+			h.ui.write("%s (required) %s",
+				h.ui.colors.BrightRed,
+				h.ui.colors.Reset)
+			continue
+
+		case '\b', 127: // Backspace
+			if input.Len() > 0 {
+				// Remove last character
+				str := input.String()
+				input.Reset()
+				input.WriteString(str[:len(str)-1])
+
+				// Update display
+				h.ui.write("\b \b")
+			}
+
+		case 3: // Ctrl+C
+			h.ui.write("\n%sOperation cancelled%s\n",
+				h.ui.colors.BrightRed,
+				h.ui.colors.Reset)
+			os.Exit(1)
+
+		default:
+			// Regular character
+			if char >= 32 && char <= 126 { // Printable ASCII
+				input.WriteRune(char)
+				h.ui.write("%c", char)
+			}
+		}
+	}
+
+	return input.String()
 }
 
 // terminal represents terminal operations
