@@ -8,8 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bmf-san/ggc/v4/git"
+	"golang.org/x/term"
 )
 
 // Executer is an interface for executing commands.
@@ -221,8 +223,8 @@ func (c *Cmd) Interactive() {
 
 		c.Route(args[1:]) // Skip "ggc" in args
 
-		// Wait to check results after command execution
-		c.waitForContinue()
+		// Smart continue logic based on command type
+		c.smartWaitForContinue(args[1:])
 	}
 }
 
@@ -283,8 +285,74 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
+// smartWaitForContinue decides whether to wait based on command type
+func (c *Cmd) smartWaitForContinue(args []string) {
+	if len(args) == 0 {
+		return
+	}
+
+	command := args[0]
+
+	// Commands that typically have short output - auto return
+	quickCommands := map[string]bool{
+		"add":    true,
+		"commit": true,
+		"push":   true,
+		"pull":   true,
+		"fetch":  true,
+		"reset":  true,
+		"clean":  true,
+		"config": true,
+		"tag":    true,
+	}
+
+	// Commands that typically have longer output - wait for key
+	waitCommands := map[string]bool{
+		"log":    true,
+		"diff":   true,
+		"status": true,
+		"branch": true,
+		"stash":  true,
+		"remote": true,
+	}
+
+	if quickCommands[command] {
+		// Short pause for quick commands, then auto-return
+		fmt.Print("\n\033[90m✓ Command completed\033[0m")
+		// Small delay to let user see the result
+		time.Sleep(800 * time.Millisecond)
+		fmt.Print("\r\033[K") // Clear the line
+		return
+	}
+
+	if waitCommands[command] {
+		c.waitForContinue()
+		return
+	}
+
+	// Default: wait for key for unknown commands
+	c.waitForContinue()
+}
+
 func (c *Cmd) waitForContinue() {
-	fmt.Println("\nPress Enter to continue...")
-	reader := bufio.NewReader(os.Stdin)
-	_, _ = reader.ReadString('\n')
+	fmt.Print("\n\033[90mPress any key to continue...\033[0m")
+
+	// Set terminal to raw mode for single key press
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		// Fallback to Enter key if raw mode fails
+		fmt.Println("\nPress Enter to continue...")
+		reader := bufio.NewReader(os.Stdin)
+		_, _ = reader.ReadString('\n')
+		return
+	}
+	defer func() {
+		_ = term.Restore(fd, oldState)
+	}()
+
+	// Read single key
+	buf := make([]byte, 1)
+	_, _ = os.Stdin.Read(buf)
+	fmt.Println() // Add newline after key press
 }
