@@ -43,6 +43,7 @@ func (m *mockCompleteGitClient) RestoreAllStaged() error                   { ret
 func (m *mockCompleteGitClient) RestoreStaged(...string) error             { return nil }
 func (m *mockCompleteGitClient) RestoreWorkingDir(...string) error         { return nil }
 func (m *mockCompleteGitClient) RestoreFromCommit(string, ...string) error { return nil }
+func (m *mockCompleteGitClient) RevParseVerify(string) bool                { return false }
 
 func TestCompleter_Complete_Branch(t *testing.T) {
 	// Capture stdout

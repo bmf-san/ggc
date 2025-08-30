@@ -185,6 +185,8 @@ func (m *MockGitClient) RestoreFromCommit(commit string, paths ...string) error 
 	return cmd.Run()
 }
 
+func (m *MockGitClient) RevParseVerify(string) bool { return false }
+
 func (m *MockGitClient) GetCurrentBranch() (string, error) {
 	return "main", nil
 }
@@ -288,6 +290,16 @@ func TestRestoreer_Restore_CommitLikeBoundary(t *testing.T) {
 			name:     "non-hex string not treated as commit",
 			args:     []string{"deadbeeg", "file.txt"},
 			expected: "git restore deadbeeg file.txt",
+		},
+		{
+			name:     "HEADERS not treated as commit",
+			args:     []string{"HEADERS", "file.txt"},
+			expected: "git restore HEADERS file.txt",
+		},
+		{
+			name:     "HEAD@{1} treated as commit",
+			args:     []string{"HEAD@{1}", "file.txt"},
+			expected: "git restore --source HEAD@{1} file.txt",
 		},
 	}
 

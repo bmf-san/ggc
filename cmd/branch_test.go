@@ -63,6 +63,8 @@ func (m *mockBranchGitClient) RestoreFromCommit(string, ...string) error {
 	return nil
 }
 
+func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
+
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer
 	mockClient := &mockBranchGitClient{

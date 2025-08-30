@@ -82,6 +82,8 @@ func (m *mockGitClient) CleanDirs() error {
 	return nil
 }
 
+func (m *mockGitClient) RevParseVerify(string) bool { return false }
+
 func (m *mockGitClient) GetBranchName() (string, error) {
 	return "main", nil
 }

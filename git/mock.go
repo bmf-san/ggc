@@ -9,6 +9,7 @@ type MockClient struct {
 	ListLocalBranchesFunc  func() ([]string, error)
 	ListRemoteBranchesFunc func() ([]string, error)
 	CheckoutNewBranchFunc  func(name string) error
+	RevParseVerifyFunc     func(ref string) bool
 	CleanFilesFunc         func() error
 	CleanDirsFunc          func() error
 	CommitAllowEmptyFunc   func() error
@@ -42,6 +43,14 @@ func (m *MockClient) ListRemoteBranches() ([]string, error) {
 // CheckoutNewBranch is a mock of CheckoutNewBranch.
 func (m *MockClient) CheckoutNewBranch(name string) error {
 	return m.CheckoutNewBranchFunc(name)
+}
+
+// RevParseVerify is a mock of RevParseVerify.
+func (m *MockClient) RevParseVerify(ref string) bool {
+	if m.RevParseVerifyFunc != nil {
+		return m.RevParseVerifyFunc(ref)
+	}
+	return false
 }
 
 // CleanFiles is a mock of CleanFiles.
