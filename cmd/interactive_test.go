@@ -87,9 +87,10 @@ func TestUI_Run(t *testing.T) {
 				colors: colors,
 			}
 			state := &UIState{
-				selected: 0,
-				input:    "",
-				filtered: []CommandInfo{},
+				selected:  0,
+				input:     "",
+				cursorPos: 0,
+				filtered:  []CommandInfo{},
 			}
 
 			ui := &testUI{
@@ -223,9 +224,10 @@ func TestCommandDescriptionsContent(t *testing.T) {
 // Test UIState functionality
 func TestUIState_UpdateFiltered(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "add",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "add",
+		cursorPos: 3,
+		filtered:  []CommandInfo{},
 	}
 
 	state.UpdateFiltered()
@@ -244,8 +246,9 @@ func TestUIState_UpdateFiltered(t *testing.T) {
 
 func TestUIState_MoveUp(t *testing.T) {
 	state := &UIState{
-		selected: 2,
-		input:    "",
+		selected:  2,
+		input:     "",
+		cursorPos: 0,
 		filtered: []CommandInfo{
 			{"cmd1", "desc1"},
 			{"cmd2", "desc2"},
@@ -267,8 +270,9 @@ func TestUIState_MoveUp(t *testing.T) {
 
 func TestUIState_MoveDown(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "",
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
 		filtered: []CommandInfo{
 			{"cmd1", "desc1"},
 			{"cmd2", "desc2"},
@@ -290,9 +294,10 @@ func TestUIState_MoveDown(t *testing.T) {
 
 func TestUIState_AddChar(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
 	}
 
 	state.AddChar('a')
@@ -308,9 +313,10 @@ func TestUIState_AddChar(t *testing.T) {
 
 func TestUIState_RemoveChar(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "test",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "test",
+		cursorPos: 4,
+		filtered:  []CommandInfo{},
 	}
 
 	state.RemoveChar()
@@ -326,10 +332,99 @@ func TestUIState_RemoveChar(t *testing.T) {
 	}
 }
 
+func TestUIState_ClearInput(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "test input",
+		cursorPos: 5,
+		filtered:  []CommandInfo{},
+	}
+
+	state.ClearInput()
+	if state.input != "" {
+		t.Errorf("Expected input to be empty after clear, got '%s'", state.input)
+	}
+	if state.cursorPos != 0 {
+		t.Errorf("Expected cursor position to be 0 after clear, got %d", state.cursorPos)
+	}
+
+	// Test clearing empty input
+	state.ClearInput()
+	if state.input != "" {
+		t.Errorf("Expected input to remain empty, got '%s'", state.input)
+	}
+}
+
+func TestUIState_DeleteWord(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "hello world test",
+		cursorPos: 16, // At end
+		filtered:  []CommandInfo{},
+	}
+
+	state.DeleteWord()
+	if state.input != "hello world " {
+		t.Errorf("Expected 'hello world ', got '%s'", state.input)
+	}
+	if state.cursorPos != 12 {
+		t.Errorf("Expected cursor at 12, got %d", state.cursorPos)
+	}
+
+	// Delete another word
+	state.DeleteWord()
+	if state.input != "hello " {
+		t.Errorf("Expected 'hello ', got '%s'", state.input)
+	}
+}
+
+func TestUIState_DeleteToEnd(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "hello world",
+		cursorPos: 5, // After "hello"
+		filtered:  []CommandInfo{},
+	}
+
+	state.DeleteToEnd()
+	if state.input != "hello" {
+		t.Errorf("Expected 'hello', got '%s'", state.input)
+	}
+}
+
+func TestUIState_MoveToBeginning(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "test",
+		cursorPos: 4,
+		filtered:  []CommandInfo{},
+	}
+
+	state.MoveToBeginning()
+	if state.cursorPos != 0 {
+		t.Errorf("Expected cursor at 0, got %d", state.cursorPos)
+	}
+}
+
+func TestUIState_MoveToEnd(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "test",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	state.MoveToEnd()
+	if state.cursorPos != 4 {
+		t.Errorf("Expected cursor at 4, got %d", state.cursorPos)
+	}
+}
+
 func TestUIState_GetSelectedCommand(t *testing.T) {
 	state := &UIState{
-		selected: 1,
-		input:    "",
+		selected:  1,
+		input:     "",
+		cursorPos: 0,
 		filtered: []CommandInfo{
 			{"cmd1", "desc1"},
 			{"cmd2", "desc2"},
@@ -384,6 +479,170 @@ func TestRenderer_CalculateMaxCommandLength(t *testing.T) {
 	}
 }
 
+// Test Renderer keybind help functionality
+func TestRenderer_KeybindHelp(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "nonexistent",
+		cursorPos: 11,
+		filtered:  []CommandInfo{}, // Empty to trigger keybind help
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		state:    state,
+		colors:   colors,
+	}
+
+	renderer.Render(ui, state)
+	output := buf.String()
+
+	// Check that keybind help is displayed
+	expectedKeybinds := []string{
+		"Available keybinds:",
+		"Ctrl+u",
+		"Ctrl+w",
+		"Ctrl+k",
+		"Ctrl+a",
+		"Ctrl+e",
+		"Backspace",
+	}
+
+	for _, keybind := range expectedKeybinds {
+		if !strings.Contains(output, keybind) {
+			t.Errorf("Expected keybind help to contain '%s', but it was not found", keybind)
+		}
+	}
+}
+
+// Test Renderer empty state display
+func TestRenderer_EmptyState(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "", // Empty input
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		state:    state,
+		colors:   colors,
+	}
+
+	renderer.Render(ui, state)
+	output := buf.String()
+
+	// Check that simple message is displayed
+	if !strings.Contains(output, "Start typing to search commands...") {
+		t.Error("Expected empty state to show simple search message")
+	}
+
+	// Check that popular commands are NOT displayed
+	unwantedTexts := []string{
+		"Popular commands to get started:",
+		"status",
+		"add .",
+		"commit",
+		"push",
+		"pull",
+	}
+
+	for _, unwanted := range unwantedTexts {
+		if strings.Contains(output, unwanted) {
+			t.Errorf("Expected empty state to NOT contain '%s', but it was found", unwanted)
+		}
+	}
+}
+
+// Test Renderer header/footer keybind display
+func TestRenderer_KeybindDisplay(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "test",
+		cursorPos: 4,
+		filtered: []CommandInfo{
+			{"test command", "test description"},
+		},
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		state:    state,
+		colors:   colors,
+	}
+
+	renderer.Render(ui, state)
+	output := buf.String()
+
+	// Check that lowercase keybind notation is used
+	expectedKeybinds := []string{
+		"Ctrl+n/p",
+		"Ctrl+a/e",
+		"Ctrl+u/w/k",
+		"Ctrl+c",
+	}
+
+	for _, keybind := range expectedKeybinds {
+		if !strings.Contains(output, keybind) {
+			t.Errorf("Expected output to contain lowercase keybind '%s', but it was not found", keybind)
+		}
+	}
+
+	// Check that uppercase versions are NOT used
+	uppercaseKeybinds := []string{
+		"Ctrl+N/P",
+		"Ctrl+A/E",
+		"Ctrl+U/W/K",
+		"Ctrl+C",
+	}
+
+	for _, keybind := range uppercaseKeybinds {
+		if strings.Contains(output, keybind) {
+			t.Errorf("Expected output to NOT contain uppercase keybind '%s', but it was found", keybind)
+		}
+	}
+}
+
 // Test KeyHandler functionality
 func TestKeyHandler_HandleKey(t *testing.T) {
 	var stdout, stderr bytes.Buffer
@@ -393,9 +652,10 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 		colors: colors,
 	}
 	state := &UIState{
-		selected: 0,
-		input:    "",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
 	}
 
 	ui := &UI{

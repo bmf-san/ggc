@@ -91,9 +91,10 @@ type UI struct {
 
 // UIState holds the current state of the interactive UI
 type UIState struct {
-	selected int
-	input    string
-	filtered []CommandInfo
+	selected  int
+	input     string
+	cursorPos int // Cursor position in input string
+	filtered  []CommandInfo
 }
 
 // UpdateFiltered updates the filtered commands based on current input
@@ -127,18 +128,71 @@ func (s *UIState) MoveDown() {
 	}
 }
 
-// AddChar adds a character to the input
+// AddChar adds a character to the input at cursor position
 func (s *UIState) AddChar(c byte) {
-	s.input += string(c)
+	if s.cursorPos <= len(s.input) {
+		s.input = s.input[:s.cursorPos] + string(c) + s.input[s.cursorPos:]
+		s.cursorPos++
+		s.UpdateFiltered()
+	}
+}
+
+// RemoveChar removes character before cursor (backspace)
+func (s *UIState) RemoveChar() {
+	if s.cursorPos > 0 && len(s.input) > 0 {
+		s.input = s.input[:s.cursorPos-1] + s.input[s.cursorPos:]
+		s.cursorPos--
+		s.UpdateFiltered()
+	}
+}
+
+// ClearInput clears all input
+func (s *UIState) ClearInput() {
+	s.input = ""
+	s.cursorPos = 0
 	s.UpdateFiltered()
 }
 
-// RemoveChar removes the last character from input
-func (s *UIState) RemoveChar() {
-	if len(s.input) > 0 {
-		s.input = s.input[:len(s.input)-1]
+// DeleteWord deletes word before cursor (Ctrl+W)
+func (s *UIState) DeleteWord() {
+	if s.cursorPos == 0 {
+		return
+	}
+
+	// Find start of current word (skip trailing spaces first)
+	pos := s.cursorPos - 1
+	for pos >= 0 && s.input[pos] == ' ' {
+		pos--
+	}
+
+	// Find start of word
+	for pos >= 0 && s.input[pos] != ' ' {
+		pos--
+	}
+	pos++ // Move to first character of word
+
+	// Delete from word start to cursor
+	s.input = s.input[:pos] + s.input[s.cursorPos:]
+	s.cursorPos = pos
+	s.UpdateFiltered()
+}
+
+// DeleteToEnd deletes from cursor to end of line (Ctrl+K)
+func (s *UIState) DeleteToEnd() {
+	if s.cursorPos < len(s.input) {
+		s.input = s.input[:s.cursorPos]
 		s.UpdateFiltered()
 	}
+}
+
+// MoveToBeginning moves cursor to beginning of line (Ctrl+A)
+func (s *UIState) MoveToBeginning() {
+	s.cursorPos = 0
+}
+
+// MoveToEnd moves cursor to end of line (Ctrl+E)
+func (s *UIState) MoveToEnd() {
+	s.cursorPos = len(s.input)
 }
 
 // GetSelectedCommand returns the currently selected command
@@ -186,6 +240,21 @@ func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
 	case 14: // Ctrl+N (down)
 		h.ui.state.MoveDown()
 		return true, nil
+	case 21: // Ctrl+U (clear line)
+		h.ui.state.ClearInput()
+		return true, nil
+	case 23: // Ctrl+W (delete word)
+		h.ui.state.DeleteWord()
+		return true, nil
+	case 11: // Ctrl+K (delete to end)
+		h.ui.state.DeleteToEnd()
+		return true, nil
+	case 1: // Ctrl+A (beginning of line)
+		h.ui.state.MoveToBeginning()
+		return true, nil
+	case 5: // Ctrl+E (end of line)
+		h.ui.state.MoveToEnd()
+		return true, nil
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
 		return true, nil
@@ -230,10 +299,13 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 		}
 	}
 
-	executeMsg := fmt.Sprintf("%sExecute:%s %s%s%s\n",
-		h.ui.colors.BrightGreen+h.ui.colors.Bold,
+	// Clear screen and show execution message
+	clearScreen(h.ui.stdout)
+	executeMsg := fmt.Sprintf("%s🚀 %sExecuting:%s %s%s%s\n\n",
+		h.ui.colors.BrightGreen,
+		h.ui.colors.BrightWhite+h.ui.colors.Bold,
 		h.ui.colors.Reset,
-		h.ui.colors.BrightCyan,
+		h.ui.colors.BrightCyan+h.ui.colors.Bold,
 		selectedCmd.Command,
 		h.ui.colors.Reset)
 	h.ui.writeColor(executeMsg)
@@ -471,31 +543,105 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	// Update terminal size
 	r.updateSize()
 
-	// Header with colors
-	headerText := "Select a command (incremental search: type to filter, Ctrl+N: down, Ctrl+P: up, Enter: execute, Ctrl+C: quit)"
-	r.writeColorln(ui, r.colors.BrightBlue+r.colors.Bold+headerText+r.colors.Reset)
+	// Modern header with title and subtitle
+	title := fmt.Sprintf("%s%s🚀 ggc Interactive Mode%s",
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.Reset,
+		r.colors.Reset)
+	r.writeColorln(ui, title)
 
-	// Search prompt with colors
-	searchPrompt := fmt.Sprintf("%sSearch:%s %s%s%s",
+	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %sCtrl+a/e%s move • %sEnter%s execute • %sCtrl+c%s quit%s",
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.Reset)
+	r.writeColorln(ui, subtitle)
+	r.writeEmptyLine()
+
+	// Enhanced search prompt with cursor at correct position
+	var inputWithCursor string
+	if len(state.input) == 0 {
+		inputWithCursor = fmt.Sprintf("%s█%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
+	} else {
+		beforeCursor := state.input[:state.cursorPos]
+		afterCursor := state.input[state.cursorPos:]
+		cursor := "│"
+		if state.cursorPos >= len(state.input) {
+			cursor = "█"
+		}
+		inputWithCursor = fmt.Sprintf("%s%s%s%s%s%s%s",
+			r.colors.BrightYellow,
+			beforeCursor,
+			r.colors.BrightWhite+r.colors.Bold,
+			cursor,
+			r.colors.Reset+r.colors.BrightYellow,
+			afterCursor,
+			r.colors.Reset)
+	}
+
+	searchPrompt := fmt.Sprintf("%s┌─ %sSearch:%s %s",
+		r.colors.BrightBlue,
 		r.colors.BrightGreen+r.colors.Bold,
 		r.colors.Reset,
-		r.colors.BrightYellow,
-		state.input,
-		r.colors.Reset)
+		inputWithCursor)
 	r.writeColorln(ui, searchPrompt)
-	r.writeln(ui, "") // Empty line
+
+	// Results separator
+	if state.input != "" {
+		separator := fmt.Sprintf("%s└─ %sResults:%s",
+			r.colors.BrightBlue,
+			r.colors.BrightMagenta+r.colors.Bold,
+			r.colors.Reset)
+		r.writeColorln(ui, separator)
+	}
+	r.writeEmptyLine()
 
 	if state.input == "" {
-		promptText := fmt.Sprintf("%s(Type to filter commands...)%s",
-			r.colors.BrightBlack, r.colors.Reset)
-		r.writeColorln(ui, promptText)
+		// Empty state - simple message
+		r.writeColorln(ui, fmt.Sprintf("%s💭 %sStart typing to search commands...%s",
+			r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
 		return
 	}
 
 	if len(state.filtered) == 0 {
-		noMatchText := fmt.Sprintf("  %s(No matching command)%s",
-			r.colors.BrightBlack, r.colors.Reset)
-		r.writeColorln(ui, noMatchText)
+		// No matches found - helpful message
+		r.writeColorln(ui, fmt.Sprintf("%s🔍 %sNo commands found for '%s%s%s'%s",
+			r.colors.BrightYellow,
+			r.colors.BrightWhite,
+			r.colors.BrightYellow+r.colors.Bold,
+			state.input,
+			r.colors.Reset+r.colors.BrightWhite,
+			r.colors.Reset))
+		r.writeEmptyLine()
+
+		// Available keybinds
+		keybinds := []struct{ key, desc string }{
+			{"Ctrl+u", "Clear all input"},
+			{"Ctrl+w", "Delete word"},
+			{"Ctrl+k", "Delete to end"},
+			{"Ctrl+a", "Move to beginning"},
+			{"Ctrl+e", "Move to end"},
+			{"Backspace", "Delete character"},
+		}
+
+		r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
+			r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
+
+		for _, kb := range keybinds {
+			r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
+				r.colors.BrightGreen+r.colors.Bold,
+				kb.key,
+				r.colors.Reset,
+				r.colors.BrightBlack,
+				kb.desc,
+				r.colors.Reset))
+		}
 		return
 	}
 
@@ -523,14 +669,8 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		}
 		padding := strings.Repeat(" ", paddingLen)
 
-		// Calculate line layout for truncation
-		prefix := "  "
-		if i == state.selected {
-			prefix = "> "
-		}
-
 		// Calculate available width for description
-		usedWidth := len(prefix) + len(cmd.Command) + len(padding) + 2 // 2 spaces separator
+		usedWidth := 4 + len(cmd.Command) + len(padding) + 3 // prefix + command + padding + separator
 		availableDescWidth := r.width - usedWidth
 		if availableDescWidth < 10 {
 			availableDescWidth = 10
@@ -540,38 +680,51 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		trimmedDesc := ellipsis(desc, availableDescWidth)
 
 		if i == state.selected {
-			// Selected item with highlighting
-			selectedLine := fmt.Sprintf("%s%s> %s%s%s%s  %s%s%s",
-				r.colors.Reverse,
-				r.colors.BrightWhite,
+			// Selected item with modern highlighting
+			selectedLine := fmt.Sprintf("%s▶ %s%s%s%s %s│%s %s%s%s",
 				r.colors.BrightCyan+r.colors.Bold,
-				cmd.Command,
-				r.colors.Reset+r.colors.Reverse,
+				r.colors.BrightWhite+r.colors.Bold+r.colors.Reverse,
+				" "+cmd.Command+" ",
+				r.colors.Reset,
 				padding,
+				r.colors.BrightBlue,
+				r.colors.Reset,
 				r.colors.BrightWhite,
 				trimmedDesc,
 				r.colors.Reset)
 			r.writeColorln(ui, selectedLine)
 		} else {
-			// Regular item
-			regularLine := fmt.Sprintf("  %s%s%s%s  %s%s%s",
-				r.colors.BrightGreen,
+			// Regular item with improved styling
+			regularLine := fmt.Sprintf("  %s%s%s%s %s│%s %s%s%s",
+				r.colors.BrightGreen+r.colors.Bold,
 				cmd.Command,
 				r.colors.Reset,
 				padding,
+				r.colors.BrightBlack,
+				r.colors.Reset,
 				r.colors.BrightBlack,
 				trimmedDesc,
 				r.colors.Reset)
 			r.writeColorln(ui, regularLine)
 		}
 	}
-}
 
-// writeln writes a message with newline through the renderer
-func (r *Renderer) writeln(_ *UI, format string, a ...interface{}) {
-	// Move to line start, clear line, write content, then CRLF
-	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
-	_, _ = fmt.Fprintf(r.writer, format+"\r\n", a...)
+	// Footer with navigation hints
+	r.writeEmptyLine()
+	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %sCtrl+a/e%s Move  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightYellow+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.Reset)
+	r.writeColorln(ui, footer)
 }
 
 // writeColorln writes a colored line to the terminal
@@ -579,6 +732,11 @@ func (r *Renderer) writeColorln(_ *UI, text string) {
 	// Move to line start, clear line, write content, then CRLF
 	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
 	_, _ = fmt.Fprint(r.writer, text+"\r\n")
+}
+
+// writeEmptyLine writes an empty line
+func (r *Renderer) writeEmptyLine() {
+	_, _ = fmt.Fprint(r.writer, "\r\x1b[K\r\n")
 }
 
 // calculateMaxCommandLength calculates the maximum command length for alignment
