@@ -285,6 +285,59 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
+// CommandType represents the type of command for continuation logic
+type CommandType int
+
+const (
+	// QuickCommand represents commands with fast execution and minimal output
+	QuickCommand CommandType = iota
+	// InteractiveCommand represents commands that handle their own user interaction
+	InteractiveCommand
+	// ReviewCommand represents commands with substantial output requiring review
+	ReviewCommand
+	// InfoCommand represents informational commands
+	InfoCommand
+	// SpecialCommand represents commands with context-dependent behavior
+	SpecialCommand
+)
+
+// getCommandType determines the command type based on its characteristics
+func (c *Cmd) getCommandType(command string, args []string) CommandType {
+	// Check for interactive variants first
+	if command == "clean-interactive" || 
+	   (command == "clean" && len(args) > 1 && args[1] == "interactive") ||
+	   (command == "rebase" && len(args) > 1 && args[1] == "interactive") {
+		return InteractiveCommand
+	}
+
+	// Pattern-based detection
+	switch command {
+	// Quick operations (modify state, minimal output)
+	case "add", "commit", "push", "pull", "fetch", "reset", "tag", "restore":
+		return QuickCommand
+
+	// Interactive operations (built-in user interaction)
+	case "clean", "rebase", "config":
+		return InteractiveCommand
+
+	// Review operations (substantial output to read)
+	case "log", "diff", "status", "stash", "remote", "branch":
+		return ReviewCommand
+
+	// Informational operations (display info)
+	case "help", "version", "complete":
+		return InfoCommand
+
+	// Special cases
+	case "hook":
+		return SpecialCommand
+
+	default:
+		// Safe default for unknown commands
+		return ReviewCommand
+	}
+}
+
 // smartWaitForContinue decides whether to wait based on command type
 func (c *Cmd) smartWaitForContinue(args []string) {
 	if len(args) == 0 {
@@ -292,84 +345,31 @@ func (c *Cmd) smartWaitForContinue(args []string) {
 	}
 
 	command := args[0]
+	cmdType := c.getCommandType(command, args)
 
-	// Commands with quick execution and minimal output - auto return
-	quickCommands := map[string]bool{
-		"add":     true, // File staging
-		"commit":  true, // Create commit
-		"push":    true, // Push to remote
-		"pull":    true, // Pull from remote
-		"fetch":   true, // Fetch from remote
-		"reset":   true, // Reset changes
-		"tag":     true, // Create/manage tags
-		"restore": true, // Restore files
-	}
-
-	// Interactive commands that handle their own user input - no additional wait
-	interactiveCommands := map[string]bool{
-		"clean":             true, // clean-interactive file selection
-		"clean-interactive": true, // explicit clean-interactive
-		"rebase":            true, // interactive rebase with commit selection
-		"config":            true, // interactive configuration
-	}
-
-	// Commands with substantial output that users need to review - wait for key
-	reviewCommands := map[string]bool{
-		"log":    true, // Git history
-		"diff":   true, // File differences
-		"status": true, // Working tree status
-		"stash":  true, // Stash list/operations
-		"remote": true, // Remote repository info
-		"branch": true, // Branch listing/info
-	}
-
-	// Informational commands - brief pause then auto-return
-	infoCommands := map[string]bool{
-		"help":     true, // Help information
-		"version":  true, // Version information
-		"complete": true, // Completion information
-	}
-
-	// Special commands - handle appropriately
-	specialCommands := map[string]bool{
-		"hook": true, // Hook management (varies by operation)
-	}
-
-	switch {
-	case quickCommands[command]:
+	switch cmdType {
+	case QuickCommand:
 		fmt.Print("\n\033[90m✓ Command completed\033[0m")
 		time.Sleep(800 * time.Millisecond)
 		fmt.Print("\r\033[K")
-		return
 
-	case interactiveCommands[command]:
+	case InteractiveCommand:
 		fmt.Print("\n\033[90m✓ Interactive session completed\033[0m")
 		time.Sleep(1200 * time.Millisecond)
 		fmt.Print("\r\033[K")
-		return
 
-	case reviewCommands[command]:
+	case ReviewCommand:
 		c.waitForContinue()
-		return
 
-	case infoCommands[command]:
+	case InfoCommand:
 		fmt.Print("\n\033[90m✓ Information displayed\033[0m")
 		time.Sleep(1000 * time.Millisecond)
 		fmt.Print("\r\033[K")
-		return
 
-	case specialCommands[command]:
-		// Hook operations vary - some are quick, some need review
-		// Default to brief pause for safety
+	case SpecialCommand:
 		fmt.Print("\n\033[90m✓ Operation completed\033[0m")
 		time.Sleep(1000 * time.Millisecond)
 		fmt.Print("\r\033[K")
-		return
-
-	default:
-		// Unknown commands - safe default with key wait
-		fmt.Print("\n\033[90m⚠ Unknown command - press any key to continue\033[0m")
-		c.waitForContinue()
 	}
 }
 
