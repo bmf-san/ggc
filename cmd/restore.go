@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/bmf-san/ggc/v4/git"
 )
@@ -48,7 +49,8 @@ func (r *Restoreer) Restore(args []string) {
 		}
 
 	default:
-		if len(args) >= 2 && isCommitLike(args[0]) {
+		// Prefer git to validate commit-ish to avoid false positives
+		if len(args) >= 2 && (r.gitClient.RevParseVerify(args[0]) || isCommitLikeStrict(args[0])) {
 			// Handle : ggc restore <commit> <file>
 			commit := args[0]
 			paths := args[1:]
@@ -66,14 +68,34 @@ func (r *Restoreer) Restore(args []string) {
 	}
 }
 
-func isCommitLike(s string) bool {
-	if len(s) >= 7 && len(s) <= 40 {
-		for _, r := range s {
-			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
-				return false
-			}
-		}
+// isCommitLikeStrict performs cheap, defensive checks without panicking.
+// It intentionally narrows matches to avoid false positives and defers to
+// RevParseVerify when available for authoritative validation.
+func isCommitLikeStrict(s string) bool {
+	// Tight HEAD variants
+	if s == "HEAD" || strings.HasPrefix(s, "HEAD^") || strings.HasPrefix(s, "HEAD~") || strings.HasPrefix(s, "HEAD@{") {
 		return true
 	}
-	return s == "HEAD" || s[:4] == "HEAD" || s[:8] == "refs/" || s[:7] == "origin/"
+	// Explicit ref namespaces
+	if strings.HasPrefix(s, "refs/") { // e.g., refs/heads/main
+		return true
+	}
+	// Common remote ref format. Note: other remotes will be caught by rev-parse.
+	if strings.HasPrefix(s, "origin/") { // e.g., origin/main
+		return true
+	}
+	// Hex-ish object name (short/long SHA). Allow up to 64 for SHA-256 compatibility.
+	if l := len(s); l >= 7 && l <= 64 {
+		isHex := true
+		for _, r := range s {
+			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
+				isHex = false
+				break
+			}
+		}
+		if isHex {
+			return true
+		}
+	}
+	return false
 }

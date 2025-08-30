@@ -18,6 +18,7 @@ type Clienter interface {
 	ListLocalBranches() ([]string, error)
 	ListRemoteBranches() ([]string, error)
 	CheckoutNewBranch(name string) error
+	RevParseVerify(ref string) bool
 	Push(force bool) error
 	Pull(rebase bool) error
 	LogSimple() error
@@ -83,4 +84,14 @@ func (c *Client) GetCurrentBranch() (string, error) {
 	}
 	branch := strings.TrimSpace(string(out))
 	return branch, nil
+}
+
+// RevParseVerify checks whether the given ref resolves to a valid object.
+// It runs: git rev-parse --verify --quiet <ref>
+func (c *Client) RevParseVerify(ref string) bool {
+	cmd := c.execCommand("git", "rev-parse", "--verify", "--quiet", ref)
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }
