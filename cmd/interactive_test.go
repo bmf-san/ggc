@@ -81,7 +81,11 @@ func TestUI_Run(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test UI with new design
 			mockTerm := &mockTerminal{}
-			renderer := &Renderer{writer: &bytes.Buffer{}}
+			colors := NewANSIColors()
+			renderer := &Renderer{
+				writer: &bytes.Buffer{},
+				colors: colors,
+			}
 			state := &UIState{
 				selected: 0,
 				input:    "",
@@ -93,6 +97,7 @@ func TestUI_Run(t *testing.T) {
 					term:     mockTerm,
 					renderer: renderer,
 					state:    state,
+					colors:   colors,
 				},
 				inputBytes: tt.input,
 			}
@@ -350,7 +355,11 @@ func TestUIState_GetSelectedCommand(t *testing.T) {
 // Test Renderer functionality
 func TestRenderer_UpdateSize(t *testing.T) {
 	var buf bytes.Buffer
-	renderer := &Renderer{writer: &buf}
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+	}
 
 	renderer.updateSize()
 
@@ -378,7 +387,11 @@ func TestRenderer_CalculateMaxCommandLength(t *testing.T) {
 // Test KeyHandler functionality
 func TestKeyHandler_HandleKey(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	renderer := &Renderer{writer: &stdout}
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &stdout,
+		colors: colors,
+	}
 	state := &UIState{
 		selected: 0,
 		input:    "",
@@ -392,6 +405,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 		term:     &mockTerminal{},
 		renderer: renderer,
 		state:    state,
+		colors:   colors,
 	}
 
 	handler := &KeyHandler{ui: ui}

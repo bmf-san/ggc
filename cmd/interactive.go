@@ -11,6 +11,66 @@ import (
 	"golang.org/x/term"
 )
 
+// ANSIColors defines color codes for terminal output
+type ANSIColors struct {
+	// Basic colors (0-7)
+	Black   string
+	Red     string
+	Green   string
+	Yellow  string
+	Blue    string
+	Magenta string
+	Cyan    string
+	White   string
+
+	// Bright colors (8-15)
+	BrightBlack   string // Gray
+	BrightRed     string
+	BrightGreen   string
+	BrightYellow  string
+	BrightBlue    string
+	BrightMagenta string
+	BrightCyan    string
+	BrightWhite   string
+
+	// Text attributes
+	Bold      string
+	Underline string
+	Reverse   string
+	Reset     string
+}
+
+// NewANSIColors creates a new ANSIColors instance
+func NewANSIColors() *ANSIColors {
+	return &ANSIColors{
+		// Basic colors
+		Black:   "\033[30m",
+		Red:     "\033[31m",
+		Green:   "\033[32m",
+		Yellow:  "\033[33m",
+		Blue:    "\033[34m",
+		Magenta: "\033[35m",
+		Cyan:    "\033[36m",
+		White:   "\033[37m",
+
+		// Bright colors
+		BrightBlack:   "\033[90m",
+		BrightRed:     "\033[91m",
+		BrightGreen:   "\033[92m",
+		BrightYellow:  "\033[93m",
+		BrightBlue:    "\033[94m",
+		BrightMagenta: "\033[95m",
+		BrightCyan:    "\033[96m",
+		BrightWhite:   "\033[97m",
+
+		// Text attributes
+		Bold:      "\033[1m",
+		Underline: "\033[4m",
+		Reverse:   "\033[7m",
+		Reset:     "\033[0m",
+	}
+}
+
 // CommandInfo contains the name and description of the command
 type CommandInfo struct {
 	Command     string
@@ -26,6 +86,7 @@ type UI struct {
 	renderer *Renderer
 	state    *UIState
 	handler  *KeyHandler
+	colors   *ANSIColors
 }
 
 // UIState holds the current state of the interactive UI
@@ -103,6 +164,7 @@ type Renderer struct {
 	writer io.Writer
 	width  int
 	height int
+	colors *ANSIColors
 }
 
 // KeyHandler manages keyboard input processing
@@ -168,7 +230,13 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 		}
 	}
 
-	h.ui.write("Execute: %s\n", selectedCmd.Command)
+	executeMsg := fmt.Sprintf("%sExecute:%s %s%s%s\n",
+		h.ui.colors.BrightGreen+h.ui.colors.Bold,
+		h.ui.colors.Reset,
+		h.ui.colors.BrightCyan,
+		selectedCmd.Command,
+		h.ui.colors.Reset)
+	h.ui.writeColor(executeMsg)
 
 	// Handle placeholders
 	return false, h.processCommand(selectedCmd.Command)
@@ -217,7 +285,12 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 
 // NewUI creates a new UI with default settings
 func NewUI() *UI {
-	renderer := &Renderer{writer: os.Stdout}
+	colors := NewANSIColors()
+
+	renderer := &Renderer{
+		writer: os.Stdout,
+		colors: colors,
+	}
 	renderer.updateSize()
 
 	state := &UIState{
@@ -233,6 +306,7 @@ func NewUI() *UI {
 		term:     &defaultTerminal{},
 		renderer: renderer,
 		state:    state,
+		colors:   colors,
 	}
 
 	ui.handler = &KeyHandler{ui: ui}
@@ -347,6 +421,11 @@ func (ui *UI) write(format string, a ...interface{}) {
 	_, _ = fmt.Fprintf(ui.stdout, format, a...)
 }
 
+// writeColor writes a colored message to stdout
+func (ui *UI) writeColor(text string) {
+	_, _ = fmt.Fprint(ui.stdout, text)
+}
+
 // writeln writes a message with newline to stdout
 func (ui *UI) writeln(format string, a ...interface{}) {
 	// Move to line start, clear line, write content, then CRLF
@@ -392,18 +471,31 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	// Update terminal size
 	r.updateSize()
 
-	// Header
-	r.writeln(ui, "Select a command (incremental search: type to filter, Ctrl+N: down, Ctrl+P: up, Enter: execute, Ctrl+C: quit)")
-	r.writeln(ui, "Search: %s", state.input)
+	// Header with colors
+	headerText := "Select a command (incremental search: type to filter, Ctrl+N: down, Ctrl+P: up, Enter: execute, Ctrl+C: quit)"
+	r.writeColorln(ui, r.colors.BrightBlue+r.colors.Bold+headerText+r.colors.Reset)
+
+	// Search prompt with colors
+	searchPrompt := fmt.Sprintf("%sSearch:%s %s%s%s",
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.Reset,
+		r.colors.BrightYellow,
+		state.input,
+		r.colors.Reset)
+	r.writeColorln(ui, searchPrompt)
 	r.writeln(ui, "") // Empty line
 
 	if state.input == "" {
-		r.writeln(ui, "(Type to filter commands...)")
+		promptText := fmt.Sprintf("%s(Type to filter commands...)%s",
+			r.colors.BrightBlack, r.colors.Reset)
+		r.writeColorln(ui, promptText)
 		return
 	}
 
 	if len(state.filtered) == 0 {
-		r.writeln(ui, "  (No matching command)")
+		noMatchText := fmt.Sprintf("  %s(No matching command)%s",
+			r.colors.BrightBlack, r.colors.Reset)
+		r.writeColorln(ui, noMatchText)
 		return
 	}
 
@@ -448,9 +540,29 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		trimmedDesc := ellipsis(desc, availableDescWidth)
 
 		if i == state.selected {
-			r.writeln(ui, "> %s%s  %s", cmd.Command, padding, trimmedDesc)
+			// Selected item with highlighting
+			selectedLine := fmt.Sprintf("%s%s> %s%s%s%s  %s%s%s",
+				r.colors.Reverse,
+				r.colors.BrightWhite,
+				r.colors.BrightCyan+r.colors.Bold,
+				cmd.Command,
+				r.colors.Reset+r.colors.Reverse,
+				padding,
+				r.colors.BrightWhite,
+				trimmedDesc,
+				r.colors.Reset)
+			r.writeColorln(ui, selectedLine)
 		} else {
-			r.writeln(ui, "  %s%s  %s", cmd.Command, padding, trimmedDesc)
+			// Regular item
+			regularLine := fmt.Sprintf("  %s%s%s%s  %s%s%s",
+				r.colors.BrightGreen,
+				cmd.Command,
+				r.colors.Reset,
+				padding,
+				r.colors.BrightBlack,
+				trimmedDesc,
+				r.colors.Reset)
+			r.writeColorln(ui, regularLine)
 		}
 	}
 }
@@ -460,6 +572,13 @@ func (r *Renderer) writeln(_ *UI, format string, a ...interface{}) {
 	// Move to line start, clear line, write content, then CRLF
 	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
 	_, _ = fmt.Fprintf(r.writer, format+"\r\n", a...)
+}
+
+// writeColorln writes a colored line to the terminal
+func (r *Renderer) writeColorln(_ *UI, text string) {
+	// Move to line start, clear line, write content, then CRLF
+	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
+	_, _ = fmt.Fprint(r.writer, text+"\r\n")
 }
 
 // calculateMaxCommandLength calculates the maximum command length for alignment
