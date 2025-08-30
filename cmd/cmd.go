@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -221,7 +220,7 @@ func (c *Cmd) Interactive() {
 
 		c.Route(args[1:]) // Skip "ggc" in args
 
-		// Wait to check results after command execution
+		// Wait for user to continue
 		c.waitForContinue()
 	}
 }
@@ -283,8 +282,8 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
+// waitForContinue waits for user input to continue
 func (c *Cmd) waitForContinue() {
-	fmt.Println("\nPress Enter to continue...")
-	reader := bufio.NewReader(os.Stdin)
-	_, _ = reader.ReadString('\n')
+	fmt.Print("\nPress Enter to continue...")
+	_, _ = fmt.Scanln()
 }

@@ -565,23 +565,6 @@ func TestCmd_Route(t *testing.T) {
 	}
 }
 
-func TestCmd_waitForContinue(t *testing.T) {
-	// waitForContinue reads from standard input, making direct testing difficult
-	// However, verify the function exists (and doesn't panic)
-	cmd := &Cmd{}
-
-	// Indirectly verify that the function exists
-	// Don't actually call it since it requires standard input
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("waitForContinue should not panic when defined, got panic: %v", r)
-		}
-	}()
-
-	// Use type assertion to verify the function is defined
-	_ = cmd.waitForContinue
-}
-
 // Test some behavior of Interactive by mocking InteractiveUI
 func TestCmd_Interactive_Existence(t *testing.T) {
 	// Interactive is a complex interactive function, making complete testing difficult
@@ -772,22 +755,18 @@ func TestCmd_Interactive_Call(t *testing.T) {
 	_ = cmd.Interactive
 }
 
-func TestCmd_waitForContinue_Call(t *testing.T) {
-	// Use mock client to avoid git command side effects
-	mockClient := &mockGitClient{}
-	cmd := &Cmd{
-		outputWriter: io.Discard,
-		gitClient:    mockClient,
-	}
+func TestCmd_waitForContinue(t *testing.T) {
+	// Test that waitForContinue function exists and can be called
+	cmd := &Cmd{}
 
-	// Test private function through reflection or indirect testing
+	// Just verify the function exists - we can't easily test the interactive part
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("waitForContinue related functionality should not panic, got: %v", r)
+			t.Errorf("waitForContinue should not panic, got panic: %v", r)
 		}
 	}()
 
-	// Since waitForContinue is private, we verify via other public methods that use it
-	// This is a basic test to ensure the function exists in the code coverage
-	_ = cmd.Status // Use cmd to avoid "declared and not used" error
+	// We can't actually test the interactive input in unit tests
+	// but we can verify the function is callable
+	_ = cmd.waitForContinue
 }

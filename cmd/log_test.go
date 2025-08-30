@@ -163,10 +163,8 @@ func TestLogger_Log_Simple_OutputFormat(t *testing.T) {
 				if !strings.Contains(output, tt.errorMsg) {
 					t.Errorf("Expected error message to contain %q, got: %s", tt.errorMsg, output)
 				}
-			} else {
-				if !mockClient.logSimpleCalled {
-					t.Error("LogSimple should be called")
-				}
+			} else if !mockClient.logSimpleCalled {
+				t.Error("LogSimple should be called")
 			}
 		})
 	}
@@ -215,10 +213,8 @@ func TestLogger_Log_Graph_OutputFormat(t *testing.T) {
 				if !strings.Contains(output, tt.errorMsg) {
 					t.Errorf("Expected error message to contain %q, got: %s", tt.errorMsg, output)
 				}
-			} else {
-				if !mockClient.logGraphCalled {
-					t.Error("LogGraph should be called")
-				}
+			} else if !mockClient.logGraphCalled {
+				t.Error("LogGraph should be called")
 			}
 		})
 	}
