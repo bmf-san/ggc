@@ -219,7 +219,7 @@ func TestCmd_Commit(t *testing.T) {
 	}{
 		{
 			name: "allow-empty",
-			args: []string{"allow-empty"},
+			args: []string{"--allow-empty"},
 			wantCalled: func(mc *mockGitClient) bool {
 				return mc.commitAllowEmptyCalled
 			},

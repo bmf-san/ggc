@@ -43,42 +43,64 @@ func (c *Committer) Commit(args []string) {
 		return
 	}
 
-	switch args[0] {
-	case "allow-empty":
-		if err := c.gitClient.CommitAllowEmpty(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+	// Flag-style handling
+	// --allow-empty
+	for _, a := range args {
+		if a == "--allow-empty" {
+			if err := c.gitClient.CommitAllowEmpty(); err != nil {
+				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			}
+			return
 		}
-	case "amend":
-		var cmd *exec.Cmd
+	}
 
-		if len(args) == 1 {
+	// --amend [--no-edit] [message...]
+	amend := false
+	noEdit := false
+	msgParts := []string{}
+	for _, a := range args {
+		switch a {
+		case "--amend":
+			amend = true
+		case "--no-edit":
+			noEdit = true
+		default:
+			// treat as part of message if not a flag
+			if !strings.HasPrefix(a, "-") {
+				msgParts = append(msgParts, a)
+			}
+		}
+	}
+
+	if amend {
+		var cmd *exec.Cmd
+		switch {
+		case noEdit:
+			cmd = c.execCommand("git", "commit", "--amend", "--no-edit")
+			cmd.Stdout = c.outputWriter
+			cmd.Stderr = c.outputWriter
+		case len(msgParts) > 0:
+			cmd = c.execCommand("git", "commit", "--amend", "-m", strings.Join(msgParts, " "))
+			cmd.Stdout = c.outputWriter
+			cmd.Stderr = c.outputWriter
+		default:
 			cmd = c.execCommand("git", "commit", "--amend")
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-		} else if args[1] == "--no-edit" {
-			cmd = c.execCommand("git", "commit", "--amend", "--no-edit")
-			cmd.Stdout = c.outputWriter
-			cmd.Stderr = c.outputWriter
-		} else {
-			// Join all arguments after "amend" as the commit message
-			msg := strings.Join(args[1:], " ")
-			cmd = c.execCommand("git", "commit", "--amend", "-m", msg)
-			cmd.Stdout = c.outputWriter
-			cmd.Stderr = c.outputWriter
 		}
+		if err := cmd.Run(); err != nil {
+			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		}
+		return
+	}
 
-		if err := cmd.Run(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
-		}
-	default:
-		// Handle normal commit with message
-		msg := strings.Join(args, " ")
-		cmd := c.execCommand("git", "commit", "-m", msg)
-		cmd.Stdout = c.outputWriter
-		cmd.Stderr = c.outputWriter
-		if err := cmd.Run(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
-		}
+	// Default: normal commit with message
+	msg := strings.Join(args, " ")
+	cmd := c.execCommand("git", "commit", "-m", msg)
+	cmd.Stdout = c.outputWriter
+	cmd.Stderr = c.outputWriter
+	if err := cmd.Run(); err != nil {
+		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 	}
 }

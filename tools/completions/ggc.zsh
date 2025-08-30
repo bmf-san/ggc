@@ -59,6 +59,9 @@ _ggc() {
                 add)
                     _ggc_add
                     ;;
+                rebase)
+                    _ggc_rebase
+                    ;;
                 stash)
                     _ggc_stash
                     ;;
@@ -118,21 +121,13 @@ _ggc_branch() {
 }
 
 _ggc_commit() {
-    local subcommands
-    subcommands=(
-        'allow-empty:Allow empty commit'
-        'amend:Amend last commit'
+    local options
+    options=(
+        '--allow-empty:Create an empty commit'
+        '--amend:Amend previous commit'
+        '--no-edit:Do not edit commit message (with --amend)'
     )
-
-    if [[ $CURRENT == 2 ]]; then
-        _describe 'commit subcommands' subcommands
-    elif [[ $words[2] == "amend" && $CURRENT == 3 ]]; then
-        local options
-        options=(
-            '--no-edit:Do not edit commit message'
-        )
-        _describe 'amend options' options
-    fi
+    _describe 'commit options' options
 }
 
 _ggc_status() {
@@ -252,14 +247,22 @@ _ggc_config() {
 }
 
 _ggc_restore() {
-    local subcommands
-    subcommands=(
-        'staged:Restore staged files'
+    local options
+    options=(
+        '--staged:Unstage file(s) (restore from HEAD to index)'
     )
-    _describe 'restore subcommands' subcommands
+    _describe 'restore options' options
 }
 
 _ggc_add() {
+    # Options for add
+    local options
+    options=(
+        '-i:Interactive add'
+        '--interactive:Interactive add'
+    )
+    _describe 'add options' options
+
     # Dynamic completion for add - get files from ggc
     local files
     files=(${(f)"$(ggc __complete files 2>/dev/null)"})
@@ -286,6 +289,15 @@ _ggc_stash() {
         'store:Store stash object'
     )
     _describe 'stash subcommands' subcommands
+}
+
+_ggc_rebase() {
+    local options
+    options=(
+        '-i:Interactive rebase'
+        '--interactive:Interactive rebase'
+    )
+    _describe 'rebase options' options
 }
 
 compdef _ggc ggc

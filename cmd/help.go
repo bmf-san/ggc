@@ -44,11 +44,13 @@ func (h *Helper) ShowCommandHelp(data templates.HelpData) {
 // ShowAddHelp shows help message for add command.
 func (h *Helper) ShowAddHelp() {
 	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc add <file> | ggc add -p",
+		Usage:       "ggc add <file> | ggc add -i|--interactive | ggc add -p",
 		Description: "Add file contents to the index",
 		Examples: []string{
 			"ggc add file.txt   # Add a specific file",
-			"ggc add -p         # Add changes interactively",
+			"ggc add -i         # Add changes interactively",
+			"ggc add --interactive  # Add changes interactively",
+			"ggc add -p         # Add changes interactively (patch mode)",
 		},
 	})
 }
@@ -82,12 +84,13 @@ func (h *Helper) ShowCleanHelp() {
 // ShowCommitHelp shows help message for commit command.
 func (h *Helper) ShowCommitHelp() {
 	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc commit <message>",
+		Usage:       "ggc commit <message> | ggc commit --amend [--no-edit] [<message>] | ggc commit --allow-empty",
 		Description: "Commit staged changes",
 		Examples: []string{
-			"ggc commit amend <message>    # Amend to previous commit",
-			"ggc commit amend --no-edit    # Amend without editing commit message",
-			"ggc commit allow-empty        # Create empty commit",
+			"ggc commit --amend                # Amend previous commit (editor)",
+			"ggc commit --amend --no-edit      # Amend without editing commit message",
+			"ggc commit --amend Updated title  # Amend with new message",
+			"ggc commit --allow-empty          # Create empty commit",
 		},
 	})
 }
@@ -202,8 +205,8 @@ func (h *Helper) ShowRestoreHelp() {
 			"restore <file>                # Restore file in working directory from index",
 			"restore <commit> <file>       # Restore file from specific commit",
 			"restore .                     # Restore all files in working directory from index",
-			"restore staged <file>         # Unstage file (restore from HEAD to index)",
-			"restore staged .              # Unstage all files",
+			"restore --staged <file>       # Unstage file (restore from HEAD to index)",
+			"restore --staged .            # Unstage all files",
 		},
 	})
 }
@@ -254,10 +257,11 @@ func (h *Helper) ShowVersionHelp() {
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc rebase",
-		Description: "Rebase current branch",
+		Usage:       "ggc rebase [-i|--interactive]",
+		Description: "Rebase current branch (interactive supported)",
 		Examples: []string{
-			"ggc rebase   # Rebase current branch",
+			"ggc rebase -i            # Interactive rebase",
+			"ggc rebase --interactive # Interactive rebase",
 		},
 	})
 }

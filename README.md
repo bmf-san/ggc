@@ -169,7 +169,9 @@ ggc
 |--------|-------------|
 | `add <file>` | Add specific file to the index |
 | `add .` | Add all changes |
-| `add -p` | Add changes interactively |
+| `add -i` | Add changes interactively |
+| `add --interactive` | Add changes interactively |
+| `add -p` | Add changes interactively (patch mode) |
 | `branch current` | Show current branch |
 | `branch checkout` | Checkout existing branch |
 | `branch checkout-remote` | Checkout remote branch |
@@ -181,9 +183,9 @@ ggc
 | `clean files` | Clean untracked files |
 | `clean dirs` | Clean untracked directories |
 | `commit` | Commit staged changes |
-| `commit amend <message>` | Amend previous commit |
-| `commit amend --no-edit` | Amend without editing message |
-| `commit allow-empty` | Create an empty commit |
+| `commit --amend` | Amend previous commit |
+| `commit --amend --no-edit` | Amend without editing message |
+| `commit --allow-empty` | Create an empty commit |
 | `diff staged` | Show staged changes |
 | `diff unstaged` | Show unstaged changes |
 | `fetch --prune` | Fetch and prune remotes |
@@ -209,8 +211,8 @@ ggc
 | `hook edit <hook>` | Edit a hook |
 | `restore <file>` | Restore file in working directory from index
 | `restore .` | Restore all files in working directory from index
-| `restore staged <file>` | Unstage file (restore from HEAD to index)
-| `restore staged .` | Unstage all files
+| `restore --staged <file>` | Unstage file (restore from HEAD to index)
+| `restore --staged .` | Unstage all files
 | `restore <commit> <file>` | Restore file from specific commit
 | `tag list` | List all tags |
 | `tag create <v>` | Create a tag |
