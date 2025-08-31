@@ -48,6 +48,17 @@ func (c *Client) CheckoutBranch(name string) error {
 	return nil
 }
 
+// CheckoutNewBranch creates a new branch and checks it out.
+func (c *Client) CheckoutNewBranch(name string) error {
+	cmd := c.execCommand("git", "checkout", "-b", name)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", name), err)
+	}
+	return nil
+}
+
 // CheckoutNewBranchFromRemote creates a new local branch tracking a remote branch.
 func (c *Client) CheckoutNewBranchFromRemote(localBranch, remoteBranch string) error {
 	cmd := c.execCommand("git", "checkout", "-b", localBranch, "--track", remoteBranch)
