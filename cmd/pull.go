@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v4/git"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
 // Puller provides functionality for the pull command.

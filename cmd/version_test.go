@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v4/internal/testutil"
+	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
 
 func TestVersioneer_Version(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v4/cmd"
-	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v5/cmd"
+	"github.com/bmf-san/ggc/v5/config"
 )
 
 // Router represents the command router with config support.

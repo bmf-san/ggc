@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bmf-san/ggc/v4/git"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
 // Executer is an interface for executing commands.

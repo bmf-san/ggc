@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/bmf-san/ggc/v4/git"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
 // Restoreer handles restore operations.
