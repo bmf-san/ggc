@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
+	"github.com/bmf-san/ggc/v4/git"
 	"golang.org/x/term"
 )
 
@@ -84,24 +84,24 @@ func NewANSIColors() *ANSIColors {
 }
 
 // getGitStatus retrieves the current Git repository status
-func getGitStatus() *GitStatus {
+func getGitStatus(gitClient git.Clienter) *GitStatus {
 	status := &GitStatus{}
 
 	// Get current branch name
-	if branch := getGitBranch(); branch != "" {
+	if branch := getGitBranch(gitClient); branch != "" {
 		status.Branch = branch
 	} else {
 		return nil // Not in a git repository
 	}
 
 	// Get working directory status
-	modified, staged := getGitWorkingStatus()
+	modified, staged := getGitWorkingStatus(gitClient)
 	status.Modified = modified
 	status.Staged = staged
 	status.HasChanges = modified > 0 || staged > 0
 
 	// Get remote tracking status
-	ahead, behind := getGitRemoteStatus()
+	ahead, behind := getGitRemoteStatus(gitClient)
 	status.Ahead = ahead
 	status.Behind = behind
 
@@ -109,24 +109,22 @@ func getGitStatus() *GitStatus {
 }
 
 // getGitBranch gets the current branch name
-func getGitBranch() string {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	output, err := cmd.Output()
+func getGitBranch(gitClient git.Clienter) string {
+	branch, err := gitClient.GetCurrentBranch()
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(string(output))
+	return branch
 }
 
 // getGitWorkingStatus gets the number of modified and staged files
-func getGitWorkingStatus() (modified, staged int) {
-	cmd := exec.Command("git", "status", "--porcelain")
-	output, err := cmd.Output()
+func getGitWorkingStatus(gitClient git.Clienter) (modified, staged int) {
+	output, err := gitClient.GetGitStatus()
 	if err != nil {
 		return 0, 0
 	}
 
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	lines := strings.Split(strings.TrimSpace(output), "\n")
 	for _, line := range lines {
 		if len(line) < 2 {
 			continue
@@ -145,14 +143,13 @@ func getGitWorkingStatus() (modified, staged int) {
 }
 
 // getGitRemoteStatus gets ahead/behind count compared to remote
-func getGitRemoteStatus() (ahead, behind int) {
-	cmd := exec.Command("git", "rev-list", "--count", "--left-right", "HEAD...@{upstream}")
-	output, err := cmd.Output()
+func getGitRemoteStatus(gitClient git.Clienter) (ahead, behind int) {
+	output, err := gitClient.GetAheadBehindCount("HEAD", "@{upstream}")
 	if err != nil {
 		return 0, 0 // No upstream or other error
 	}
 
-	parts := strings.Fields(strings.TrimSpace(string(output)))
+	parts := strings.Fields(strings.TrimSpace(output))
 	if len(parts) != 2 {
 		return 0, 0
 	}
@@ -179,6 +176,7 @@ type UI struct {
 	handler   *KeyHandler
 	colors    *ANSIColors
 	gitStatus *GitStatus
+	gitClient git.Clienter
 }
 
 // UIState holds the current state of the interactive UI
@@ -583,6 +581,7 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 // NewUI creates a new UI with default settings
 func NewUI() *UI {
 	colors := NewANSIColors()
+	gitClient := git.NewClient()
 
 	renderer := &Renderer{
 		writer: os.Stdout,
@@ -604,7 +603,8 @@ func NewUI() *UI {
 		renderer:  renderer,
 		state:     state,
 		colors:    colors,
-		gitStatus: getGitStatus(),
+		gitClient: gitClient,
+		gitStatus: getGitStatus(gitClient),
 	}
 
 	ui.handler = &KeyHandler{ui: ui}

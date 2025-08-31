@@ -15,34 +15,34 @@ type Client struct {
 
 // Clienter is an interface for a git client.
 type Clienter interface {
-	// === Repository Information ===
+	// Repository Information
 	GetCurrentBranch() (string, error)
 	GetBranchName() (string, error)
 	GetGitStatus() (string, error)
 
-	// === Status Operations ===
+	// Status Operations
 	Status() (string, error)
 	StatusShort() (string, error)
 	StatusWithColor() (string, error)
 	StatusShortWithColor() (string, error)
 
-	// === Staging Operations ===
+	// Staging Operations
 	Add(files ...string) error
 	AddInteractive() error
 
-	// === Commit Operations ===
+	// Commit Operations
 	Commit(message string) error
 	CommitAmend() error
 	CommitAmendNoEdit() error
 	CommitAmendWithMessage(message string) error
 	CommitAllowEmpty() error
 
-	// === Diff Operations ===
+	// Diff Operations
 	Diff() (string, error)
 	DiffStaged() (string, error)
 	DiffHead() (string, error)
 
-	// === Branch Operations ===
+	// Branch Operations
 	ListLocalBranches() ([]string, error)
 	ListRemoteBranches() ([]string, error)
 	CheckoutNewBranch(name string) error
@@ -52,7 +52,7 @@ type Clienter interface {
 	ListMergedBranches() ([]string, error)
 	RevParseVerify(ref string) bool
 
-	// === Remote Operations ===
+	// Remote Operations
 	Push(force bool) error
 	Pull(rebase bool) error
 	Fetch(prune bool) error
@@ -61,7 +61,7 @@ type Clienter interface {
 	RemoteRemove(name string) error
 	RemoteSetURL(name, url string) error
 
-	// === Tag Operations ===
+	// Tag Operations
 	TagList(pattern []string) error
 	TagCreate(name string, commit string) error
 	TagCreateAnnotated(name, message string) error
@@ -73,16 +73,16 @@ type Clienter interface {
 	TagExists(name string) bool
 	GetTagCommit(name string) (string, error)
 
-	// === Log Operations ===
+	// Log Operations
 	LogSimple() error
 	LogGraph() error
 	LogOneline(from, to string) (string, error)
 
-	// === Rebase Operations ===
+	// Rebase Operations
 	RebaseInteractive(commitCount int) error
 	GetUpstreamBranch(branch string) (string, error)
 
-	// === Stash Operations ===
+	// Stash Operations
 	Stash() error
 	StashList() (string, error)
 	StashShow(stash string) error
@@ -91,28 +91,30 @@ type Clienter interface {
 	StashDrop(stash string) error
 	StashClear() error
 
-	// === Restore Operations ===
+	// Restore Operations
 	RestoreWorkingDir(paths ...string) error
 	RestoreStaged(paths ...string) error
 	RestoreFromCommit(commit string, paths ...string) error
 	RestoreAll() error
 	RestoreAllStaged() error
 
-	// === Config Operations ===
+	// Config Operations
 	ConfigGet(key string) (string, error)
 	ConfigSet(key, value string) error
 	ConfigGetGlobal(key string) (string, error)
 	ConfigSetGlobal(key, value string) error
 
-	// === Reset and Clean Operations ===
+	// Reset Operations
 	ResetHardAndClean() error
 	ResetHard(commit string) error
+
+	// Clean Operations
 	CleanFiles() error
 	CleanDirs() error
 	CleanDryRun() (string, error)
 	CleanFilesForce(files []string) error
 
-	// === Utility Operations ===
+	// Utility Operations
 	ListFiles() (string, error)
 	GetUpstreamBranchName(branch string) (string, error)
 	GetAheadBehindCount(branch, upstream string) (string, error)
@@ -125,7 +127,7 @@ func NewClient() *Client {
 	}
 }
 
-// === Repository Information ===
+// Repository Information
 
 // GetCurrentBranch gets the current branch name.
 func (c *Client) GetCurrentBranch() (string, error) {
@@ -171,7 +173,7 @@ func (c *Client) GetGitStatus() (string, error) {
 	return string(out), nil
 }
 
-// === Branch Operations ===
+// Branch Operations
 
 // CheckoutNewBranch creates a new branch and checks it out.
 func (c *Client) CheckoutNewBranch(name string) error {
@@ -184,7 +186,7 @@ func (c *Client) CheckoutNewBranch(name string) error {
 	return nil
 }
 
-// === Config Operations ===
+// Config Operations
 
 // ConfigGet retrieves a git configuration value from local repository
 func (c *Client) ConfigGet(key string) (string, error) {

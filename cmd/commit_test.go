@@ -116,7 +116,7 @@ func (m *mockCommitGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 }
 func (m *mockCommitGitClient) RevParseVerify(_ string) bool { return true }
 
-// === Config Operations ===
+// Config Operations
 func (m *mockCommitGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
 func (m *mockCommitGitClient) ConfigSet(_, _ string) error              { return nil }
 func (m *mockCommitGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }

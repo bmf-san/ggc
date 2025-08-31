@@ -90,7 +90,7 @@ func (m *mockGitClient) CleanDirs() error {
 
 func (m *mockGitClient) RevParseVerify(string) bool { return false }
 
-// === Config Operations ===
+// Config Operations
 func (m *mockGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
 func (m *mockGitClient) ConfigSet(_, _ string) error              { return nil }
 func (m *mockGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }

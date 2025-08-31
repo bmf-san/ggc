@@ -97,7 +97,7 @@ func (h *Hooker) listHooks() {
 	}
 
 	_, _ = fmt.Fprintf(h.outputWriter, "Git Hooks Status:\n")
-	_, _ = fmt.Fprintf(h.outputWriter, "==================\n")
+	_, _ = fmt.Fprintf(h.outputWriter, "------------------\n")
 
 	for _, hook := range standardHooks {
 		hookPath := filepath.Join(hooksDir, hook)

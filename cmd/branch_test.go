@@ -182,7 +182,7 @@ func (m *mockBranchGitClient) RestoreAllStaged() error                       { r
 
 func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
 
-// === Config Operations ===
+// Config Operations
 func (m *mockBranchGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
 func (m *mockBranchGitClient) ConfigSet(_, _ string) error              { return nil }
 func (m *mockBranchGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }

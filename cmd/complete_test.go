@@ -63,7 +63,7 @@ func (m *mockCompleteGitClient) RestoreWorkingDir(...string) error         { ret
 func (m *mockCompleteGitClient) RestoreFromCommit(string, ...string) error { return nil }
 func (m *mockCompleteGitClient) RevParseVerify(string) bool                { return false }
 
-// === Config Operations ===
+// Config Operations
 func (m *mockCompleteGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
 func (m *mockCompleteGitClient) ConfigSet(_, _ string) error              { return nil }
 func (m *mockCompleteGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }

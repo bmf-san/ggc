@@ -34,6 +34,115 @@ func (m *mockTerminal) restore(_ int, _ *term.State) error {
 	return nil
 }
 
+// MockGitClient implements git.Clienter for testing
+type MockGitClient struct {
+	currentBranch string
+	gitStatus     string
+	aheadBehind   string
+}
+
+// Repository Information
+func (m *MockGitClient) GetCurrentBranch() (string, error) { return m.currentBranch, nil }
+func (m *MockGitClient) GetBranchName() (string, error)    { return m.currentBranch, nil }
+func (m *MockGitClient) GetGitStatus() (string, error)     { return m.gitStatus, nil }
+
+// Status Operations
+func (m *MockGitClient) Status() (string, error)               { return "", nil }
+func (m *MockGitClient) StatusShort() (string, error)          { return "", nil }
+func (m *MockGitClient) StatusWithColor() (string, error)      { return "", nil }
+func (m *MockGitClient) StatusShortWithColor() (string, error) { return "", nil }
+
+// Staging Operations
+func (m *MockGitClient) Add(_ ...string) error { return nil }
+func (m *MockGitClient) AddInteractive() error { return nil }
+
+// Commit Operations
+func (m *MockGitClient) Commit(_ string) error                 { return nil }
+func (m *MockGitClient) CommitAmend() error                    { return nil }
+func (m *MockGitClient) CommitAmendNoEdit() error              { return nil }
+func (m *MockGitClient) CommitAmendWithMessage(_ string) error { return nil }
+func (m *MockGitClient) CommitAllowEmpty() error               { return nil }
+
+// Diff Operations
+func (m *MockGitClient) Diff() (string, error)       { return "", nil }
+func (m *MockGitClient) DiffStaged() (string, error) { return "", nil }
+func (m *MockGitClient) DiffHead() (string, error)   { return "", nil }
+
+// Branch Operations
+func (m *MockGitClient) ListLocalBranches() ([]string, error)          { return nil, nil }
+func (m *MockGitClient) ListRemoteBranches() ([]string, error)         { return nil, nil }
+func (m *MockGitClient) CheckoutNewBranch(_ string) error              { return nil }
+func (m *MockGitClient) CheckoutBranch(_ string) error                 { return nil }
+func (m *MockGitClient) CheckoutNewBranchFromRemote(_, _ string) error { return nil }
+func (m *MockGitClient) DeleteBranch(_ string) error                   { return nil }
+func (m *MockGitClient) ListMergedBranches() ([]string, error)         { return nil, nil }
+func (m *MockGitClient) RevParseVerify(_ string) bool                  { return false }
+
+// Remote Operations
+func (m *MockGitClient) Push(_ bool) error              { return nil }
+func (m *MockGitClient) Pull(_ bool) error              { return nil }
+func (m *MockGitClient) Fetch(_ bool) error             { return nil }
+func (m *MockGitClient) RemoteList() error              { return nil }
+func (m *MockGitClient) RemoteAdd(_, _ string) error    { return nil }
+func (m *MockGitClient) RemoteRemove(_ string) error    { return nil }
+func (m *MockGitClient) RemoteSetURL(_, _ string) error { return nil }
+
+// Tag Operations
+func (m *MockGitClient) TagList(_ []string) error              { return nil }
+func (m *MockGitClient) TagCreate(_, _ string) error           { return nil }
+func (m *MockGitClient) TagCreateAnnotated(_, _ string) error  { return nil }
+func (m *MockGitClient) TagDelete(_ []string) error            { return nil }
+func (m *MockGitClient) TagPush(_, _ string) error             { return nil }
+func (m *MockGitClient) TagPushAll(_ string) error             { return nil }
+func (m *MockGitClient) TagShow(_ string) error                { return nil }
+func (m *MockGitClient) GetLatestTag() (string, error)         { return "", nil }
+func (m *MockGitClient) TagExists(_ string) bool               { return false }
+func (m *MockGitClient) GetTagCommit(_ string) (string, error) { return "", nil }
+
+// Log Operations
+func (m *MockGitClient) LogSimple() error                       { return nil }
+func (m *MockGitClient) LogGraph() error                        { return nil }
+func (m *MockGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
+
+// Rebase Operations
+func (m *MockGitClient) RebaseInteractive(_ int) error              { return nil }
+func (m *MockGitClient) GetUpstreamBranch(_ string) (string, error) { return "", nil }
+
+// Stash Operations
+func (m *MockGitClient) Stash() error               { return nil }
+func (m *MockGitClient) StashList() (string, error) { return "", nil }
+func (m *MockGitClient) StashShow(_ string) error   { return nil }
+func (m *MockGitClient) StashApply(_ string) error  { return nil }
+func (m *MockGitClient) StashPop(_ string) error    { return nil }
+func (m *MockGitClient) StashDrop(_ string) error   { return nil }
+func (m *MockGitClient) StashClear() error          { return nil }
+
+// Restore Operations
+func (m *MockGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
+func (m *MockGitClient) RestoreStaged(_ ...string) error               { return nil }
+func (m *MockGitClient) RestoreFromCommit(_ string, _ ...string) error { return nil }
+func (m *MockGitClient) RestoreAll() error                             { return nil }
+func (m *MockGitClient) RestoreAllStaged() error                       { return nil }
+
+// Config Operations
+func (m *MockGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
+func (m *MockGitClient) ConfigSet(_, _ string) error              { return nil }
+func (m *MockGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
+func (m *MockGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
+
+// Reset and Clean Operations
+func (m *MockGitClient) ResetHardAndClean() error         { return nil }
+func (m *MockGitClient) ResetHard(_ string) error         { return nil }
+func (m *MockGitClient) CleanFiles() error                { return nil }
+func (m *MockGitClient) CleanDirs() error                 { return nil }
+func (m *MockGitClient) CleanDryRun() (string, error)     { return "", nil }
+func (m *MockGitClient) CleanFilesForce(_ []string) error { return nil }
+
+// Utility Operations
+func (m *MockGitClient) ListFiles() (string, error)                      { return "", nil }
+func (m *MockGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
+func (m *MockGitClient) GetAheadBehindCount(_, _ string) (string, error) { return m.aheadBehind, nil }
+
 // testUI is a test structure for UI
 type testUI struct {
 	UI
@@ -638,22 +747,44 @@ func TestRenderer_EmptyState(t *testing.T) {
 
 // Test Git status functionality
 func TestGetGitStatus(t *testing.T) {
-	// This test may fail in environments without git or outside git repos
-	status := getGitStatus()
-
-	// If we're in a git repository, status should not be nil
-	if status != nil {
-		// Branch name should not be empty
-		if status.Branch == "" {
-			t.Error("Expected branch name to be non-empty when in git repository")
-		}
-
-		// Values should be non-negative
-		if status.Modified < 0 || status.Staged < 0 || status.Ahead < 0 || status.Behind < 0 {
-			t.Error("Git status values should be non-negative")
-		}
+	// Create mock git client
+	mockClient := &MockGitClient{
+		currentBranch: "main",
+		gitStatus:     "A  file1.txt\n M file2.txt\n",
+		aheadBehind:   "2\t1",
 	}
-	// If status is nil, we're probably not in a git repository, which is fine for tests
+
+	status := getGitStatus(mockClient)
+
+	if status == nil {
+		t.Fatal("Expected status to be non-nil with mock client")
+	}
+
+	// Branch name should match mock
+	if status.Branch != "main" {
+		t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
+	}
+
+	// Should have 1 modified and 1 staged file
+	if status.Modified != 1 {
+		t.Errorf("Expected 1 modified file, got %d", status.Modified)
+	}
+	if status.Staged != 1 {
+		t.Errorf("Expected 1 staged file, got %d", status.Staged)
+	}
+
+	// Should have changes
+	if !status.HasChanges {
+		t.Error("Expected HasChanges to be true")
+	}
+
+	// Should have ahead/behind counts
+	if status.Ahead != 2 {
+		t.Errorf("Expected ahead count to be 2, got %d", status.Ahead)
+	}
+	if status.Behind != 1 {
+		t.Errorf("Expected behind count to be 1, got %d", status.Behind)
+	}
 }
 
 // Test Git status rendering

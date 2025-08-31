@@ -290,34 +290,9 @@ func (c *Config) GetAllAliases() map[string]*ParsedAlias {
 	return result
 }
 
-func getGitVersion() string {
-	cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
-	output, err := cmd.Output()
-	if err != nil {
-		return "dev"
-	}
-	return strings.TrimSpace(string(output))
-}
-
-func getGitCommit() string {
-	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
-	output, err := cmd.Output()
-	if err != nil {
-		return "unknown"
-	}
-	return strings.TrimSpace(string(output))
-}
-
-func (c *Config) updateMeta() {
-	version, commit := getGitVersion(), getGitCommit()
-
-	c.Meta.Version = version
-	c.Meta.Commit = commit
-
-	if c.Meta.ConfigVersion == "" {
-		c.Meta.ConfigVersion = "1.0"
-	}
-}
+// Note: getGitVersion, getGitCommit, and updateMeta functions removed
+// to eliminate direct git command execution. Meta values are now set
+// manually in getDefaultConfig() to avoid side effects in tests.
 
 // getDefaultConfig returns the default configuration values
 func getDefaultConfig() *Config {
@@ -340,7 +315,10 @@ func getDefaultConfig() *Config {
 
 	config.Integration.Github.DefaultRemote = "origin"
 
-	config.updateMeta()
+	// Set meta values manually to avoid git command execution
+	config.Meta.Version = "dev"
+	config.Meta.Commit = "unknown"
+	config.Meta.ConfigVersion = "1.0"
 
 	return config
 }
