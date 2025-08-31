@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -495,10 +496,10 @@ func (cm *Manager) syncToGitConfig() error {
 	return nil
 }
 
-// Save saves the current configuration to file
+// Save writes the configuration using restrictive permissions to prevent token disclosure.
 func (cm *Manager) Save() error {
 	dir := filepath.Dir(cm.configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -507,13 +508,47 @@ func (cm *Manager) Save() error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(cm.configPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
+	// Validate before writing to avoid persisting invalid configs
 	if err := cm.config.Validate(); err != nil {
 		return fmt.Errorf("cannot save invalid config: %w", err)
 	}
+
+	// Atomic write configuration
+	tmpFile, err := os.CreateTemp(dir, ".ggcconfig-*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpName := tmpFile.Name()
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(tmpName, 0600)
+	}
+	if _, err := tmpFile.Write(data); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("failed to write temp config file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("failed to close temp config file: %w", err)
+	}
+
+	// Basic atomic replace: on Windows, remove the target first
+	if runtime.GOOS == "windows" {
+		_ = os.Remove(cm.configPath)
+	}
+	if err := os.Rename(tmpName, cm.configPath); err != nil {
+		// Retry after removing destination if rename failed
+		_ = os.Remove(cm.configPath)
+		if err2 := os.Rename(tmpName, cm.configPath); err2 != nil {
+			_ = os.Remove(tmpName)
+			return fmt.Errorf("failed to replace config file: %w", err2)
+		}
+	}
+
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(cm.configPath, 0600)
+	}
+
 	return cm.syncToGitConfig()
 }
 
