@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockGitClient for clean_test
@@ -109,6 +111,20 @@ func (m *mockCleanGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0\t0", nil
 }
 func (m *mockCleanGitClient) RevParseVerify(_ string) bool { return true }
+
+// Enhanced Branch Operations
+func (m *mockCleanGitClient) RenameBranch(_, _ string) error      { return nil }
+func (m *mockCleanGitClient) MoveBranch(_, _ string) error        { return nil }
+func (m *mockCleanGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+func (m *mockCleanGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	bi := &git.BranchInfo{Name: branch}
+	return bi, nil
+}
+func (m *mockCleanGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{}, nil
+}
+func (m *mockCleanGitClient) SortBranches(_ string) ([]string, error)       { return []string{}, nil }
+func (m *mockCleanGitClient) BranchesContaining(_ string) ([]string, error) { return []string{}, nil }
 
 func TestCleaner_Clean(t *testing.T) {
 	tests := []struct {

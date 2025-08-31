@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
@@ -162,6 +164,20 @@ func (m *mockAddGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0	0", nil
 }
 func (m *mockAddGitClient) RevParseVerify(_ string) bool { return true }
+
+// Enhanced Branch Operations
+func (m *mockAddGitClient) RenameBranch(_, _ string) error      { return nil }
+func (m *mockAddGitClient) MoveBranch(_, _ string) error        { return nil }
+func (m *mockAddGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+func (m *mockAddGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	bi := &git.BranchInfo{Name: branch}
+	return bi, nil
+}
+func (m *mockAddGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{}, nil
+}
+func (m *mockAddGitClient) SortBranches(_ string) ([]string, error)       { return []string{}, nil }
+func (m *mockAddGitClient) BranchesContaining(_ string) ([]string, error) { return []string{}, nil }
 
 func TestAdder_Add_GitAddCalled(t *testing.T) {
 	mockClient := &mockAddGitClient{}

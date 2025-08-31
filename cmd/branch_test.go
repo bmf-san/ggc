@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockBranchGitClient is a mock implementation of git.Clienter for branch tests
@@ -113,6 +115,33 @@ func (m *mockBranchGitClient) ListMergedBranches() ([]string, error) {
 		return m.mergedBranches, nil
 	}
 	return []string{}, nil
+}
+func (m *mockBranchGitClient) RenameBranch(_, _ string) error      { return nil }
+func (m *mockBranchGitClient) MoveBranch(_, _ string) error        { return nil }
+func (m *mockBranchGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+func (m *mockBranchGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	// Provide simple consistent info
+	bi := &git.BranchInfo{
+		Name:            branch,
+		IsCurrentBranch: branch == "main",
+		Upstream:        "origin/" + branch,
+		AheadBehind:     "ahead 1",
+		LastCommitSHA:   "abc1234",
+		LastCommitMsg:   "Test commit",
+	}
+	return bi, nil
+}
+func (m *mockBranchGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{
+		{Name: "main", IsCurrentBranch: true, Upstream: "origin/main", LastCommitSHA: "1234567", LastCommitMsg: "msg"},
+		{Name: "feature", IsCurrentBranch: false, Upstream: "origin/feature", LastCommitSHA: "89abcde", LastCommitMsg: "msg2"},
+	}, nil
+}
+func (m *mockBranchGitClient) SortBranches(_ string) ([]string, error) {
+	return []string{"a", "b"}, nil
+}
+func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
+	return []string{"main", "feature"}, nil
 }
 
 // Remote Operations methods
