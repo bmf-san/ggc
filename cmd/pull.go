@@ -17,12 +17,7 @@ type Puller struct {
 }
 
 // NewPuller creates a new Puller.
-func NewPuller() *Puller {
-	return NewPullerWithClient(git.NewClient())
-}
-
-// NewPullerWithClient creates a new Puller with the specified git client.
-func NewPullerWithClient(client git.Clienter) *Puller {
+func NewPuller(client git.Clienter) *Puller {
 	p := &Puller{
 		gitClient:    client,
 		outputWriter: os.Stdout,

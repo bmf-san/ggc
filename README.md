@@ -177,6 +177,13 @@ ggc
 | `branch create` | Create and checkout new branch |
 | `branch delete` | Delete a branch |
 | `branch delete-merged` | Delete merged branches |
+| `branch rename <old> <new>` | Rename a branch |
+| `branch move <branch> <commit>` | Move branch to specified commit |
+| `branch set-upstream <branch> <upstream>` | Set upstream for a branch |
+| `branch info <branch>` | Show detailed branch information |
+| `branch list --verbose` | Show detailed branch listing |
+| `branch sort [date\|name]` | List branches sorted by date or name |
+| `branch contains <commit>` | Show branches containing a commit |
 | `branch list-local` | List local branches |
 | `branch list-remote` | List remote branches |
 | `clean files` | Clean untracked files |

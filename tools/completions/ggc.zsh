@@ -109,8 +109,15 @@ _ggc_branch() {
         'checkout-remote:Checkout remote branch'
         'delete:Delete branch'
         'delete-merged:Delete merged branches'
+        'rename:Rename a branch'
+        'move:Move branch to specified commit'
+        'set-upstream:Set upstream for a branch'
+        'info:Show detailed branch information'
         'list-local:List local branches'
         'list-remote:List remote branches'
+        'list:Show detailed branch listing'
+        'sort:List branches sorted by date or name'
+        'contains:Show branches containing a commit'
     )
 
     if [[ $CURRENT == 2 ]]; then
@@ -120,6 +127,13 @@ _ggc_branch() {
         local branches
         branches=(${(f)"$(ggc __complete branch 2>/dev/null)"})
         _describe 'branches' branches
+    elif [[ $words[2] == "list" && $CURRENT == 3 ]]; then
+        # Branch list options
+        local options
+        options=(
+            '--verbose:Show detailed branch information'
+        )
+        _describe 'list options' options
     fi
 }
 

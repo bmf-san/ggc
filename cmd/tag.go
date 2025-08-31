@@ -17,9 +17,9 @@ type Tagger struct {
 }
 
 // NewTagger creates a new Tagger instance.
-func NewTagger() *Tagger {
+func NewTagger(client git.Clienter) *Tagger {
 	return &Tagger{
-		gitClient:    git.NewClient(),
+		gitClient:    client,
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 	}

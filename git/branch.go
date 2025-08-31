@@ -49,6 +49,17 @@ func (c *Client) CheckoutBranch(name string) error {
 	return nil
 }
 
+// CheckoutNewBranch creates a new branch and checks it out.
+func (c *Client) CheckoutNewBranch(name string) error {
+	cmd := c.execCommand("git", "checkout", "-b", name)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", name), err)
+	}
+	return nil
+}
+
 // CheckoutNewBranchFromRemote creates a new local branch tracking a remote branch.
 func (c *Client) CheckoutNewBranchFromRemote(localBranch, remoteBranch string) error {
 	cmd := c.execCommand("git", "checkout", "-b", localBranch, "--track", remoteBranch)
@@ -176,11 +187,12 @@ func (c *Client) GetBranchInfo(branch string) (*BranchInfo, error) {
 			// rev-list --left-right --count returns "<ahead>\t<behind>"
 			parts := strings.Split(strings.TrimSpace(ab), "\t")
 			if len(parts) == 2 && (parts[0] != "0" || parts[1] != "0") {
-				if parts[0] != "0" && parts[1] != "0" {
+				switch {
+				case parts[0] != "0" && parts[1] != "0":
 					aheadBehind = fmt.Sprintf("ahead %s, behind %s", parts[0], parts[1])
-				} else if parts[0] != "0" {
+				case parts[0] != "0":
 					aheadBehind = fmt.Sprintf("ahead %s", parts[0])
-				} else if parts[1] != "0" {
+				case parts[1] != "0":
 					aheadBehind = fmt.Sprintf("behind %s", parts[1])
 				}
 			}

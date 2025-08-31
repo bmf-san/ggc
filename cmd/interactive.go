@@ -6,10 +6,158 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/bmf-san/ggc/v4/git"
 	"golang.org/x/term"
 )
+
+// GitStatus represents the current Git repository status
+type GitStatus struct {
+	Branch     string
+	Modified   int
+	Staged     int
+	Ahead      int
+	Behind     int
+	HasChanges bool
+}
+
+// ANSIColors defines color codes for terminal output
+type ANSIColors struct {
+	// Basic colors (0-7)
+	Black   string
+	Red     string
+	Green   string
+	Yellow  string
+	Blue    string
+	Magenta string
+	Cyan    string
+	White   string
+
+	// Bright colors (8-15)
+	BrightBlack   string // Gray
+	BrightRed     string
+	BrightGreen   string
+	BrightYellow  string
+	BrightBlue    string
+	BrightMagenta string
+	BrightCyan    string
+	BrightWhite   string
+
+	// Text attributes
+	Bold      string
+	Underline string
+	Reverse   string
+	Reset     string
+}
+
+// NewANSIColors creates a new ANSIColors instance
+func NewANSIColors() *ANSIColors {
+	return &ANSIColors{
+		// Basic colors
+		Black:   "\033[30m",
+		Red:     "\033[31m",
+		Green:   "\033[32m",
+		Yellow:  "\033[33m",
+		Blue:    "\033[34m",
+		Magenta: "\033[35m",
+		Cyan:    "\033[36m",
+		White:   "\033[37m",
+
+		// Bright colors
+		BrightBlack:   "\033[90m",
+		BrightRed:     "\033[91m",
+		BrightGreen:   "\033[92m",
+		BrightYellow:  "\033[93m",
+		BrightBlue:    "\033[94m",
+		BrightMagenta: "\033[95m",
+		BrightCyan:    "\033[96m",
+		BrightWhite:   "\033[97m",
+
+		// Text attributes
+		Bold:      "\033[1m",
+		Underline: "\033[4m",
+		Reverse:   "\033[7m",
+		Reset:     "\033[0m",
+	}
+}
+
+// getGitStatus retrieves the current Git repository status
+func getGitStatus(gitClient git.Clienter) *GitStatus {
+	status := &GitStatus{}
+
+	// Get current branch name
+	if branch := getGitBranch(gitClient); branch != "" {
+		status.Branch = branch
+	} else {
+		return nil // Not in a git repository
+	}
+
+	// Get working directory status
+	modified, staged := getGitWorkingStatus(gitClient)
+	status.Modified = modified
+	status.Staged = staged
+	status.HasChanges = modified > 0 || staged > 0
+
+	// Get remote tracking status
+	ahead, behind := getGitRemoteStatus(gitClient)
+	status.Ahead = ahead
+	status.Behind = behind
+
+	return status
+}
+
+// getGitBranch gets the current branch name
+func getGitBranch(gitClient git.Clienter) string {
+	branch, err := gitClient.GetCurrentBranch()
+	if err != nil {
+		return ""
+	}
+	return branch
+}
+
+// getGitWorkingStatus gets the number of modified and staged files
+func getGitWorkingStatus(gitClient git.Clienter) (modified, staged int) {
+	output, err := gitClient.GetGitStatus()
+	if err != nil {
+		return 0, 0
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	for _, line := range lines {
+		if len(line) < 2 {
+			continue
+		}
+
+		// First character: staged status
+		// Second character: working tree status
+		if line[0] != ' ' && line[0] != '?' {
+			staged++
+		}
+		if line[1] != ' ' && line[1] != '?' {
+			modified++
+		}
+	}
+	return modified, staged
+}
+
+// getGitRemoteStatus gets ahead/behind count compared to remote
+func getGitRemoteStatus(gitClient git.Clienter) (ahead, behind int) {
+	output, err := gitClient.GetAheadBehindCount("HEAD", "@{upstream}")
+	if err != nil {
+		return 0, 0 // No upstream or other error
+	}
+
+	parts := strings.Fields(strings.TrimSpace(output))
+	if len(parts) != 2 {
+		return 0, 0
+	}
+
+	ahead, _ = strconv.Atoi(parts[0])
+	behind, _ = strconv.Atoi(parts[1])
+	return ahead, behind
+}
 
 // CommandInfo contains the name and description of the command
 type CommandInfo struct {
@@ -19,27 +167,31 @@ type CommandInfo struct {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin    io.Reader
-	stdout   io.Writer
-	stderr   io.Writer
-	term     terminal
-	renderer *Renderer
-	state    *UIState
-	handler  *KeyHandler
+	stdin     io.Reader
+	stdout    io.Writer
+	stderr    io.Writer
+	term      terminal
+	renderer  *Renderer
+	state     *UIState
+	handler   *KeyHandler
+	colors    *ANSIColors
+	gitStatus *GitStatus
+	gitClient git.Clienter
 }
 
 // UIState holds the current state of the interactive UI
 type UIState struct {
-	selected int
-	input    string
-	filtered []CommandInfo
+	selected  int
+	input     string
+	cursorPos int // Cursor position in input string
+	filtered  []CommandInfo
 }
 
 // UpdateFiltered updates the filtered commands based on current input
 func (s *UIState) UpdateFiltered() {
 	s.filtered = []CommandInfo{}
 	for _, cmd := range commands {
-		if strings.Contains(cmd.Command, s.input) {
+		if strings.HasPrefix(cmd.Command, s.input) {
 			s.filtered = append(s.filtered, cmd)
 		}
 	}
@@ -66,18 +218,71 @@ func (s *UIState) MoveDown() {
 	}
 }
 
-// AddChar adds a character to the input
+// AddChar adds a character to the input at cursor position
 func (s *UIState) AddChar(c byte) {
-	s.input += string(c)
+	if s.cursorPos <= len(s.input) {
+		s.input = s.input[:s.cursorPos] + string(c) + s.input[s.cursorPos:]
+		s.cursorPos++
+		s.UpdateFiltered()
+	}
+}
+
+// RemoveChar removes character before cursor (backspace)
+func (s *UIState) RemoveChar() {
+	if s.cursorPos > 0 && len(s.input) > 0 {
+		s.input = s.input[:s.cursorPos-1] + s.input[s.cursorPos:]
+		s.cursorPos--
+		s.UpdateFiltered()
+	}
+}
+
+// ClearInput clears all input
+func (s *UIState) ClearInput() {
+	s.input = ""
+	s.cursorPos = 0
 	s.UpdateFiltered()
 }
 
-// RemoveChar removes the last character from input
-func (s *UIState) RemoveChar() {
-	if len(s.input) > 0 {
-		s.input = s.input[:len(s.input)-1]
+// DeleteWord deletes word before cursor (Ctrl+W)
+func (s *UIState) DeleteWord() {
+	if s.cursorPos == 0 {
+		return
+	}
+
+	// Find start of current word (skip trailing spaces first)
+	pos := s.cursorPos - 1
+	for pos >= 0 && s.input[pos] == ' ' {
+		pos--
+	}
+
+	// Find start of word
+	for pos >= 0 && s.input[pos] != ' ' {
+		pos--
+	}
+	pos++ // Move to first character of word
+
+	// Delete from word start to cursor
+	s.input = s.input[:pos] + s.input[s.cursorPos:]
+	s.cursorPos = pos
+	s.UpdateFiltered()
+}
+
+// DeleteToEnd deletes from cursor to end of line (Ctrl+K)
+func (s *UIState) DeleteToEnd() {
+	if s.cursorPos < len(s.input) {
+		s.input = s.input[:s.cursorPos]
 		s.UpdateFiltered()
 	}
+}
+
+// MoveToBeginning moves cursor to beginning of line (Ctrl+A)
+func (s *UIState) MoveToBeginning() {
+	s.cursorPos = 0
+}
+
+// MoveToEnd moves cursor to end of line (Ctrl+E)
+func (s *UIState) MoveToEnd() {
+	s.cursorPos = len(s.input)
 }
 
 // GetSelectedCommand returns the currently selected command
@@ -103,6 +308,7 @@ type Renderer struct {
 	writer io.Writer
 	width  int
 	height int
+	colors *ANSIColors
 }
 
 // KeyHandler manages keyboard input processing
@@ -123,6 +329,21 @@ func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
 		return true, nil
 	case 14: // Ctrl+N (down)
 		h.ui.state.MoveDown()
+		return true, nil
+	case 21: // Ctrl+U (clear line)
+		h.ui.state.ClearInput()
+		return true, nil
+	case 23: // Ctrl+W (delete word)
+		h.ui.state.DeleteWord()
+		return true, nil
+	case 11: // Ctrl+K (delete to end)
+		h.ui.state.DeleteToEnd()
+		return true, nil
+	case 1: // Ctrl+A (beginning of line)
+		h.ui.state.MoveToBeginning()
+		return true, nil
+	case 5: // Ctrl+E (end of line)
+		h.ui.state.MoveToEnd()
 		return true, nil
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
@@ -168,7 +389,16 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 		}
 	}
 
-	h.ui.write("Execute: %s\n", selectedCmd.Command)
+	// Clear screen and show execution message
+	clearScreen(h.ui.stdout)
+	executeMsg := fmt.Sprintf("%s🚀 %sExecuting:%s %s%s%s\n\n",
+		h.ui.colors.BrightGreen,
+		h.ui.colors.BrightWhite+h.ui.colors.Bold,
+		h.ui.colors.Reset,
+		h.ui.colors.BrightCyan+h.ui.colors.Bold,
+		selectedCmd.Command,
+		h.ui.colors.Reset)
+	h.ui.writeColor(executeMsg)
 
 	// Handle placeholders
 	return false, h.processCommand(selectedCmd.Command)
@@ -177,16 +407,16 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 // processCommand processes the command with placeholder replacement
 func (h *KeyHandler) processCommand(cmdTemplate string) []string {
 	placeholders := extractPlaceholders(cmdTemplate)
-	inputs := make(map[string]string)
-	readerStdin := bufio.NewReader(h.ui.stdin)
 
-	for _, ph := range placeholders {
-		h.ui.write("\n") // Newline
-		h.ui.write("Enter value for %s: ", ph)
-		val, _ := readerStdin.ReadString('\n')
-		val = strings.TrimSpace(val)
-		inputs[ph] = val
+	if len(placeholders) == 0 {
+		// No placeholders - execute immediately
+		args := []string{"ggc"}
+		args = append(args, strings.Fields(cmdTemplate)...)
+		return args
 	}
+
+	// Interactive input for placeholders
+	inputs := h.interactiveInput(placeholders)
 
 	// Placeholder replacement
 	finalCmd := cmdTemplate
@@ -197,6 +427,139 @@ func (h *KeyHandler) processCommand(cmdTemplate string) []string {
 	args := []string{"ggc"}
 	args = append(args, strings.Fields(finalCmd)...)
 	return args
+}
+
+// interactiveInput provides real-time interactive input for placeholders
+func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
+	inputs := make(map[string]string)
+
+	for i, ph := range placeholders {
+		h.ui.write("\n")
+
+		// Show progress and prompt
+		if len(placeholders) > 1 {
+			h.ui.write("%s[%d/%d]%s ",
+				h.ui.colors.BrightBlue+h.ui.colors.Bold,
+				i+1, len(placeholders),
+				h.ui.colors.Reset)
+		}
+
+		h.ui.write("%s? %s%s%s: ",
+			h.ui.colors.BrightGreen,
+			h.ui.colors.BrightWhite+h.ui.colors.Bold,
+			ph,
+			h.ui.colors.Reset)
+
+		// Get input with real-time feedback
+		value := h.getRealTimeInput(ph)
+		if value == "" {
+			// User cancelled input
+			h.ui.write("\n%sOperation cancelled%s\n",
+				h.ui.colors.BrightRed,
+				h.ui.colors.Reset)
+			os.Exit(1)
+		}
+		inputs[ph] = value
+
+		// Show confirmation
+		h.ui.write("%s✓ %s%s: %s%s%s\n",
+			h.ui.colors.BrightGreen,
+			h.ui.colors.BrightBlue,
+			ph,
+			h.ui.colors.BrightYellow+h.ui.colors.Bold,
+			value,
+			h.ui.colors.Reset)
+	}
+
+	return inputs
+}
+
+// getRealTimeInput gets user input with real-time display using raw terminal mode
+func (h *KeyHandler) getRealTimeInput(_ string) string {
+	var input strings.Builder
+
+	// Set terminal to raw mode for character-by-character input
+	fd := int(os.Stdin.Fd())
+	oldState, err := h.ui.term.makeRaw(fd)
+	if err != nil {
+		// Fallback to line-based input if raw mode fails
+		return h.getLineInput()
+	}
+	defer func() {
+		_ = h.ui.term.restore(fd, oldState)
+	}()
+
+	// Buffer for reading single bytes
+	buf := make([]byte, 1)
+
+	for {
+		// Read one byte at a time
+		n, err := os.Stdin.Read(buf)
+		if err != nil || n == 0 {
+			break
+		}
+
+		char := rune(buf[0])
+
+		switch char {
+		case '\n', '\r':
+			// Enter pressed - confirm input
+			if input.Len() > 0 {
+				h.ui.write("\r\n")
+				return input.String()
+			}
+			// Empty input - show hint and continue
+			h.ui.write(" %s(required)%s",
+				h.ui.colors.BrightRed,
+				h.ui.colors.Reset)
+			continue
+
+		case '\b', 127: // Backspace
+			if input.Len() > 0 {
+				// Remove last character
+				str := input.String()
+				input.Reset()
+				input.WriteString(str[:len(str)-1])
+
+				// Update display: move back, write space, move back again
+				h.ui.write("\b \b")
+			}
+
+		case 3: // Ctrl+C
+			h.ui.write("\r\n%sOperation cancelled%s\r\n",
+				h.ui.colors.BrightRed,
+				h.ui.colors.Reset)
+			// Return empty string to indicate cancellation
+			return ""
+
+		default:
+			// Regular character
+			if char >= 32 && char <= 126 { // Printable ASCII
+				input.WriteRune(char)
+				h.ui.write("%c", char)
+			}
+		}
+	}
+
+	return input.String()
+}
+
+// getLineInput provides fallback line-based input when raw mode is not available
+func (h *KeyHandler) getLineInput() string {
+	reader := bufio.NewReader(h.ui.stdin)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return ""
+		}
+		line = strings.TrimSpace(line)
+		if line != "" {
+			return line
+		}
+		h.ui.write("%s(required)%s ",
+			h.ui.colors.BrightRed,
+			h.ui.colors.Reset)
+	}
 }
 
 // terminal represents terminal operations
@@ -215,9 +578,14 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 	return term.Restore(fd, state)
 }
 
-// NewUI creates a new UI with default settings
-func NewUI() *UI {
-	renderer := &Renderer{writer: os.Stdout}
+// NewUI creates a new UI with the provided git client
+func NewUI(gitClient git.Clienter) *UI {
+	colors := NewANSIColors()
+
+	renderer := &Renderer{
+		writer: os.Stdout,
+		colors: colors,
+	}
 	renderer.updateSize()
 
 	state := &UIState{
@@ -227,12 +595,15 @@ func NewUI() *UI {
 	}
 
 	ui := &UI{
-		stdin:    os.Stdin,
-		stdout:   os.Stdout,
-		stderr:   os.Stderr,
-		term:     &defaultTerminal{},
-		renderer: renderer,
-		state:    state,
+		stdin:     os.Stdin,
+		stdout:    os.Stdout,
+		stderr:    os.Stderr,
+		term:      &defaultTerminal{},
+		renderer:  renderer,
+		state:     state,
+		colors:    colors,
+		gitClient: gitClient,
+		gitStatus: getGitStatus(gitClient),
 	}
 
 	ui.handler = &KeyHandler{ui: ui}
@@ -337,10 +708,10 @@ var commands = []CommandInfo{
 	{"quit", "Exit interactive mode"},
 }
 
-// InteractiveUI provides an incremental search interactive UI for command selection.
+// InteractiveUI provides an incremental search interactive UI with custom git client.
 // Returns the selected command as []string (nil if nothing selected)
-func InteractiveUI() []string {
-	ui := NewUI()
+func InteractiveUI(gitClient git.Clienter) []string {
+	ui := NewUI(gitClient)
 	return ui.Run()
 }
 
@@ -352,6 +723,11 @@ func (ui *UI) writeError(format string, a ...interface{}) {
 // write writes a message to stdout
 func (ui *UI) write(format string, a ...interface{}) {
 	_, _ = fmt.Fprintf(ui.stdout, format, a...)
+}
+
+// writeColor writes a colored message to stdout
+func (ui *UI) writeColor(text string) {
+	_, _ = fmt.Fprint(ui.stdout, text)
 }
 
 // writeln writes a message with newline to stdout
@@ -399,21 +775,141 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	// Update terminal size
 	r.updateSize()
 
-	// Header
-	r.writeln(ui, "Select a command (incremental search: type to filter, Ctrl+N: down, Ctrl+P: up, Enter: execute, Ctrl+C: quit)")
-	r.writeln(ui, "Search: %s", state.input)
-	r.writeln(ui, "") // Empty line
+	// Render each section
+	r.renderHeader(ui)
+	r.renderSearchPrompt(ui, state)
 
-	if state.input == "" {
-		r.writeln(ui, "(Type to filter commands...)")
-		return
+	// Render content based on state
+	switch {
+	case state.input == "":
+		r.renderEmptyState(ui)
+	case len(state.filtered) == 0:
+		r.renderNoMatches(ui, state)
+	default:
+		r.renderCommandList(ui, state)
+		r.renderFooter(ui)
+	}
+}
+
+// renderHeader renders the title, git status, and navigation subtitle
+func (r *Renderer) renderHeader(ui *UI) {
+	// Modern header with title
+	title := fmt.Sprintf("%s%s🚀 ggc Interactive Mode%s",
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.Reset,
+		r.colors.Reset)
+	r.writeColorln(ui, title)
+
+	// Git status information
+	if ui.gitStatus != nil {
+		r.renderGitStatus(ui, ui.gitStatus)
 	}
 
-	if len(state.filtered) == 0 {
-		r.writeln(ui, "  (No matching command)")
-		return
+	// Navigation subtitle
+	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %sCtrl+a/e%s move • %sEnter%s execute • %sCtrl+c%s quit%s",
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.Reset)
+	r.writeColorln(ui, subtitle)
+	r.writeEmptyLine()
+}
+
+// renderSearchPrompt renders the search input with cursor
+func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
+	inputWithCursor := r.formatInputWithCursor(state)
+
+	searchPrompt := fmt.Sprintf("%s┌─ %sSearch:%s %s",
+		r.colors.BrightBlue,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.Reset,
+		inputWithCursor)
+	r.writeColorln(ui, searchPrompt)
+
+	// Results separator
+	if state.input != "" {
+		separator := fmt.Sprintf("%s└─ %sResults:%s",
+			r.colors.BrightBlue,
+			r.colors.BrightMagenta+r.colors.Bold,
+			r.colors.Reset)
+		r.writeColorln(ui, separator)
+	}
+	r.writeEmptyLine()
+}
+
+// formatInputWithCursor formats the input string with cursor position
+func (r *Renderer) formatInputWithCursor(state *UIState) string {
+	if len(state.input) == 0 {
+		return fmt.Sprintf("%s█%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
 	}
 
+	beforeCursor := state.input[:state.cursorPos]
+	afterCursor := state.input[state.cursorPos:]
+	cursor := "│"
+	if state.cursorPos >= len(state.input) {
+		cursor = "█"
+	}
+
+	return fmt.Sprintf("%s%s%s%s%s%s%s",
+		r.colors.BrightYellow,
+		beforeCursor,
+		r.colors.BrightWhite+r.colors.Bold,
+		cursor,
+		r.colors.Reset+r.colors.BrightYellow,
+		afterCursor,
+		r.colors.Reset)
+}
+
+// renderEmptyState renders the empty input state
+func (r *Renderer) renderEmptyState(ui *UI) {
+	r.writeColorln(ui, fmt.Sprintf("%s💭 %sStart typing to search commands...%s",
+		r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
+}
+
+// renderNoMatches renders the no matches found state with keybind help
+func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
+	// No matches message
+	r.writeColorln(ui, fmt.Sprintf("%s🔍 %sNo commands found for '%s%s%s'%s",
+		r.colors.BrightYellow,
+		r.colors.BrightWhite,
+		r.colors.BrightYellow+r.colors.Bold,
+		state.input,
+		r.colors.Reset+r.colors.BrightWhite,
+		r.colors.Reset))
+	r.writeEmptyLine()
+
+	// Available keybinds
+	keybinds := []struct{ key, desc string }{
+		{"Ctrl+u", "Clear all input"},
+		{"Ctrl+w", "Delete word"},
+		{"Ctrl+k", "Delete to end"},
+		{"Ctrl+a", "Move to beginning"},
+		{"Ctrl+e", "Move to end"},
+		{"Backspace", "Delete character"},
+	}
+
+	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
+		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
+
+	for _, kb := range keybinds {
+		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
+			kb.key,
+			r.colors.Reset,
+			r.colors.BrightBlack,
+			kb.desc,
+			r.colors.Reset))
+	}
+}
+
+// renderCommandList renders the filtered command list
+func (r *Renderer) renderCommandList(ui *UI, state *UIState) {
 	// Clamp selection index to valid range
 	if state.selected >= len(state.filtered) {
 		state.selected = len(state.filtered) - 1
@@ -426,47 +922,145 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	maxCmdLen := r.calculateMaxCommandLength(state.filtered)
 
 	for i, cmd := range state.filtered {
-		desc := cmd.Description
-		if desc == "" {
-			desc = "No description"
-		}
-
-		// Calculate padding for consistent command alignment
-		paddingLen := maxCmdLen - len(cmd.Command)
-		if paddingLen < 0 {
-			paddingLen = 0
-		}
-		padding := strings.Repeat(" ", paddingLen)
-
-		// Calculate line layout for truncation
-		prefix := "  "
-		if i == state.selected {
-			prefix = "> "
-		}
-
-		// Calculate available width for description
-		usedWidth := len(prefix) + len(cmd.Command) + len(padding) + 2 // 2 spaces separator
-		availableDescWidth := r.width - usedWidth
-		if availableDescWidth < 10 {
-			availableDescWidth = 10
-		}
-
-		// Truncate description if needed
-		trimmedDesc := ellipsis(desc, availableDescWidth)
-
-		if i == state.selected {
-			r.writeln(ui, "> %s%s  %s", cmd.Command, padding, trimmedDesc)
-		} else {
-			r.writeln(ui, "  %s%s  %s", cmd.Command, padding, trimmedDesc)
-		}
+		r.renderCommandItem(ui, cmd, i, state.selected, maxCmdLen)
 	}
 }
 
-// writeln writes a message with newline through the renderer
-func (r *Renderer) writeln(_ *UI, format string, a ...interface{}) {
+// renderCommandItem renders a single command item
+func (r *Renderer) renderCommandItem(ui *UI, cmd CommandInfo, index, selected, maxCmdLen int) {
+	desc := cmd.Description
+	if desc == "" {
+		desc = "No description"
+	}
+
+	// Calculate padding for consistent command alignment
+	paddingLen := maxCmdLen - len(cmd.Command)
+	if paddingLen < 0 {
+		paddingLen = 0
+	}
+	padding := strings.Repeat(" ", paddingLen)
+
+	// Calculate available width for description
+	usedWidth := 4 + len(cmd.Command) + len(padding) + 3 // prefix + command + padding + separator
+	availableDescWidth := r.width - usedWidth
+	if availableDescWidth < 10 {
+		availableDescWidth = 10
+	}
+
+	// Truncate description if needed
+	trimmedDesc := ellipsis(desc, availableDescWidth)
+
+	if index == selected {
+		// Selected item with modern highlighting
+		selectedLine := fmt.Sprintf("%s▶ %s%s%s%s %s│%s %s%s%s",
+			r.colors.BrightCyan+r.colors.Bold,
+			r.colors.BrightWhite+r.colors.Bold+r.colors.Reverse,
+			" "+cmd.Command+" ",
+			r.colors.Reset,
+			padding,
+			r.colors.BrightBlue,
+			r.colors.Reset,
+			r.colors.BrightWhite,
+			trimmedDesc,
+			r.colors.Reset)
+		r.writeColorln(ui, selectedLine)
+	} else {
+		// Regular item with improved styling
+		regularLine := fmt.Sprintf("  %s%s%s%s %s│%s %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
+			cmd.Command,
+			r.colors.Reset,
+			padding,
+			r.colors.BrightBlack,
+			r.colors.Reset,
+			r.colors.BrightBlack,
+			trimmedDesc,
+			r.colors.Reset)
+		r.writeColorln(ui, regularLine)
+	}
+}
+
+// renderFooter renders the navigation footer
+func (r *Renderer) renderFooter(ui *UI) {
+	r.writeEmptyLine()
+	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %sCtrl+a/e%s Move  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightYellow+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.Reset)
+	r.writeColorln(ui, footer)
+}
+
+// writeColorln writes a colored line to the terminal
+func (r *Renderer) writeColorln(_ *UI, text string) {
 	// Move to line start, clear line, write content, then CRLF
 	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
-	_, _ = fmt.Fprintf(r.writer, format+"\r\n", a...)
+	_, _ = fmt.Fprint(r.writer, text+"\r\n")
+}
+
+// renderGitStatus renders the Git repository status information
+func (r *Renderer) renderGitStatus(ui *UI, status *GitStatus) {
+	var parts []string
+
+	// Branch name
+	branchPart := fmt.Sprintf("%s📍 %s%s%s",
+		r.colors.BrightBlue,
+		r.colors.BrightWhite+r.colors.Bold,
+		status.Branch,
+		r.colors.Reset)
+	parts = append(parts, branchPart)
+
+	// Working directory status
+	if status.HasChanges {
+		var statusParts []string
+		if status.Modified > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d modified", status.Modified))
+		}
+		if status.Staged > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d staged", status.Staged))
+		}
+
+		workingPart := fmt.Sprintf("%s📝 %s%s%s",
+			r.colors.BrightYellow,
+			r.colors.BrightWhite+r.colors.Bold,
+			strings.Join(statusParts, ", "),
+			r.colors.Reset)
+		parts = append(parts, workingPart)
+	}
+
+	// Remote tracking status
+	if status.Ahead > 0 || status.Behind > 0 {
+		var remoteParts []string
+		if status.Ahead > 0 {
+			remoteParts = append(remoteParts, fmt.Sprintf("↑%d", status.Ahead))
+		}
+		if status.Behind > 0 {
+			remoteParts = append(remoteParts, fmt.Sprintf("↓%d", status.Behind))
+		}
+
+		remotePart := fmt.Sprintf("%s%s%s",
+			r.colors.BrightMagenta+r.colors.Bold,
+			strings.Join(remoteParts, " "),
+			r.colors.Reset)
+		parts = append(parts, remotePart)
+	}
+
+	// Render the status line
+	statusLine := strings.Join(parts, "  ")
+	r.writeColorln(ui, statusLine)
+}
+
+// writeEmptyLine writes an empty line
+func (r *Renderer) writeEmptyLine() {
+	_, _ = fmt.Fprint(r.writer, "\r\x1b[K\r\n")
 }
 
 // calculateMaxCommandLength calculates the maximum command length for alignment

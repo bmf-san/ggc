@@ -21,9 +21,9 @@ type Rebaser struct {
 }
 
 // NewRebaser creates a new Rebaser instance.
-func NewRebaser() *Rebaser {
+func NewRebaser(client git.Clienter) *Rebaser {
 	return &Rebaser{
-		gitClient:    git.NewClient(),
+		gitClient:    client,
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		inputReader:  bufio.NewReader(os.Stdin),

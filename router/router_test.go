@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 type mockExecuter struct {
@@ -466,7 +467,7 @@ func TestRouter(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &mockExecuter{}
-			r := NewRouter(m, config.NewConfigManager())
+			r := NewRouter(m, config.NewConfigManager(git.NewClient()))
 			r.Route(tc.args)
 			tc.validate(t, m)
 		})

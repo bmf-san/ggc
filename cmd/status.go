@@ -17,11 +17,11 @@ type Statuseer struct {
 }
 
 // NewStatuseer creates a new Statuseer instance.
-func NewStatuseer() *Statuseer {
+func NewStatuseer(client git.Clienter) *Statuseer {
 	return &Statuseer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		gitClient:    git.NewClient(),
+		gitClient:    client,
 	}
 }
 
@@ -44,14 +44,16 @@ func (s *Statuseer) getUpstreamStatus(branch string) string {
 		ahead := counts[0]
 		behind := counts[1]
 
-		if ahead == "0" && behind == "0" {
+		switch {
+		case ahead == "0" && behind == "0":
 			return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
-		} else if ahead != "0" && behind == "0" {
+		case ahead != "0" && behind == "0":
 			return fmt.Sprintf("Your branch is ahead of '%s' by %s commit(s)", upstream, ahead)
-		} else if ahead == "0" && behind != "0" {
+		case ahead == "0" && behind != "0":
 			return fmt.Sprintf("Your branch is behind '%s' by %s commit(s)", upstream, behind)
+		default:
+			return fmt.Sprintf("Your branch and '%s' have diverged,\nand have %s and %s different commits each, respectively", upstream, ahead, behind)
 		}
-		return fmt.Sprintf("Your branch and '%s' have diverged,\nand have %s and %s different commits each, respectively", upstream, ahead, behind)
 	}
 
 	return fmt.Sprintf("Your branch is up to date with '%s'", upstream)

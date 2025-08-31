@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bmf-san/ggc/v4/internal/testutil"
 	"golang.org/x/term"
 )
 
@@ -33,6 +34,8 @@ func (m *mockTerminal) restore(_ int, _ *term.State) error {
 	}
 	return nil
 }
+
+
 
 // testUI is a test structure for UI
 type testUI struct {
@@ -81,18 +84,27 @@ func TestUI_Run(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test UI with new design
 			mockTerm := &mockTerminal{}
-			renderer := &Renderer{writer: &bytes.Buffer{}}
+			colors := NewANSIColors()
+			mockGitClient := testutil.NewMockGitClient()
+			renderer := &Renderer{
+				writer: &bytes.Buffer{},
+				colors: colors,
+			}
 			state := &UIState{
-				selected: 0,
-				input:    "",
-				filtered: []CommandInfo{},
+				selected:  0,
+				input:     "",
+				cursorPos: 0,
+				filtered:  []CommandInfo{},
 			}
 
 			ui := &testUI{
 				UI: UI{
-					term:     mockTerm,
-					renderer: renderer,
-					state:    state,
+					term:      mockTerm,
+					renderer:  renderer,
+					state:     state,
+					colors:    colors,
+					gitClient: mockGitClient,
+					gitStatus: getGitStatus(mockGitClient),
 				},
 				inputBytes: tt.input,
 			}
@@ -218,9 +230,10 @@ func TestCommandDescriptionsContent(t *testing.T) {
 // Test UIState functionality
 func TestUIState_UpdateFiltered(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "add",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "add",
+		cursorPos: 3,
+		filtered:  []CommandInfo{},
 	}
 
 	state.UpdateFiltered()
@@ -229,18 +242,74 @@ func TestUIState_UpdateFiltered(t *testing.T) {
 		t.Error("Expected filtered commands for 'add' input")
 	}
 
-	// Check that all filtered commands contain 'add'
+	// Check that all filtered commands start with 'add'
 	for _, cmd := range state.filtered {
-		if !strings.Contains(cmd.Command, "add") {
-			t.Errorf("Filtered command '%s' does not contain 'add'", cmd.Command)
+		if !strings.HasPrefix(cmd.Command, "add") {
+			t.Errorf("Filtered command '%s' does not start with 'add'", cmd.Command)
+		}
+	}
+}
+
+// Test prefix matching behavior
+func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "commit",
+		cursorPos: 6,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	// Should match commands starting with "commit"
+	expectedMatches := []string{
+		"commit <message>",
+		"commit allow-empty",
+		"commit amend",
+		"commit amend --no-edit",
+	}
+
+	// Should NOT match commands containing "commit" but not starting with it
+	unexpectedMatches := []string{
+		"amend commit", // hypothetical - starts with "amend"
+	}
+
+	// Check that expected commands are found
+	for _, expected := range expectedMatches {
+		found := false
+		for _, filtered := range state.filtered {
+			if filtered.Command == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Expected to find command starting with 'commit': %s", expected)
+		}
+	}
+
+	// Check that all filtered commands start with "commit"
+	for _, cmd := range state.filtered {
+		if !strings.HasPrefix(cmd.Command, "commit") {
+			t.Errorf("Filtered command '%s' should start with 'commit'", cmd.Command)
+		}
+	}
+
+	// Verify we don't get partial matches
+	for _, unexpected := range unexpectedMatches {
+		for _, filtered := range state.filtered {
+			if filtered.Command == unexpected {
+				t.Errorf("Should not match command that doesn't start with 'commit': %s", unexpected)
+			}
 		}
 	}
 }
 
 func TestUIState_MoveUp(t *testing.T) {
 	state := &UIState{
-		selected: 2,
-		input:    "",
+		selected:  2,
+		input:     "",
+		cursorPos: 0,
 		filtered: []CommandInfo{
 			{"cmd1", "desc1"},
 			{"cmd2", "desc2"},
@@ -262,8 +331,9 @@ func TestUIState_MoveUp(t *testing.T) {
 
 func TestUIState_MoveDown(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "",
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
 		filtered: []CommandInfo{
 			{"cmd1", "desc1"},
 			{"cmd2", "desc2"},
@@ -285,9 +355,10 @@ func TestUIState_MoveDown(t *testing.T) {
 
 func TestUIState_AddChar(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
 	}
 
 	state.AddChar('a')
@@ -303,9 +374,10 @@ func TestUIState_AddChar(t *testing.T) {
 
 func TestUIState_RemoveChar(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "test",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "test",
+		cursorPos: 4,
+		filtered:  []CommandInfo{},
 	}
 
 	state.RemoveChar()
@@ -321,10 +393,99 @@ func TestUIState_RemoveChar(t *testing.T) {
 	}
 }
 
+func TestUIState_ClearInput(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "test input",
+		cursorPos: 5,
+		filtered:  []CommandInfo{},
+	}
+
+	state.ClearInput()
+	if state.input != "" {
+		t.Errorf("Expected input to be empty after clear, got '%s'", state.input)
+	}
+	if state.cursorPos != 0 {
+		t.Errorf("Expected cursor position to be 0 after clear, got %d", state.cursorPos)
+	}
+
+	// Test clearing empty input
+	state.ClearInput()
+	if state.input != "" {
+		t.Errorf("Expected input to remain empty, got '%s'", state.input)
+	}
+}
+
+func TestUIState_DeleteWord(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "hello world test",
+		cursorPos: 16, // At end
+		filtered:  []CommandInfo{},
+	}
+
+	state.DeleteWord()
+	if state.input != "hello world " {
+		t.Errorf("Expected 'hello world ', got '%s'", state.input)
+	}
+	if state.cursorPos != 12 {
+		t.Errorf("Expected cursor at 12, got %d", state.cursorPos)
+	}
+
+	// Delete another word
+	state.DeleteWord()
+	if state.input != "hello " {
+		t.Errorf("Expected 'hello ', got '%s'", state.input)
+	}
+}
+
+func TestUIState_DeleteToEnd(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "hello world",
+		cursorPos: 5, // After "hello"
+		filtered:  []CommandInfo{},
+	}
+
+	state.DeleteToEnd()
+	if state.input != "hello" {
+		t.Errorf("Expected 'hello', got '%s'", state.input)
+	}
+}
+
+func TestUIState_MoveToBeginning(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "test",
+		cursorPos: 4,
+		filtered:  []CommandInfo{},
+	}
+
+	state.MoveToBeginning()
+	if state.cursorPos != 0 {
+		t.Errorf("Expected cursor at 0, got %d", state.cursorPos)
+	}
+}
+
+func TestUIState_MoveToEnd(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "test",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	state.MoveToEnd()
+	if state.cursorPos != 4 {
+		t.Errorf("Expected cursor at 4, got %d", state.cursorPos)
+	}
+}
+
 func TestUIState_GetSelectedCommand(t *testing.T) {
 	state := &UIState{
-		selected: 1,
-		input:    "",
+		selected:  1,
+		input:     "",
+		cursorPos: 0,
 		filtered: []CommandInfo{
 			{"cmd1", "desc1"},
 			{"cmd2", "desc2"},
@@ -350,7 +511,11 @@ func TestUIState_GetSelectedCommand(t *testing.T) {
 // Test Renderer functionality
 func TestRenderer_UpdateSize(t *testing.T) {
 	var buf bytes.Buffer
-	renderer := &Renderer{writer: &buf}
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+	}
 
 	renderer.updateSize()
 
@@ -375,14 +540,556 @@ func TestRenderer_CalculateMaxCommandLength(t *testing.T) {
 	}
 }
 
+// Test Renderer keybind help functionality
+func TestRenderer_KeybindHelp(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "nonexistent",
+		cursorPos: 11,
+		filtered:  []CommandInfo{}, // Empty to trigger keybind help
+	}
+
+	mockGitClient := testutil.NewMockGitClient()
+
+	ui := &UI{
+		stdin:     strings.NewReader(""),
+		stdout:    &buf,
+		stderr:    &bytes.Buffer{},
+		term:      &mockTerminal{},
+		renderer:  renderer,
+		state:     state,
+		colors:    colors,
+		gitClient: mockGitClient,
+		gitStatus: getGitStatus(mockGitClient),
+	}
+
+	renderer.Render(ui, state)
+	output := buf.String()
+
+	// Check that keybind help is displayed
+	expectedKeybinds := []string{
+		"Available keybinds:",
+		"Ctrl+u",
+		"Ctrl+w",
+		"Ctrl+k",
+		"Ctrl+a",
+		"Ctrl+e",
+		"Backspace",
+	}
+
+	for _, keybind := range expectedKeybinds {
+		if !strings.Contains(output, keybind) {
+			t.Errorf("Expected keybind help to contain '%s', but it was not found", keybind)
+		}
+	}
+}
+
+// Test Renderer empty state display
+func TestRenderer_EmptyState(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "", // Empty input
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		state:    state,
+		colors:   colors,
+	}
+
+	renderer.Render(ui, state)
+	output := buf.String()
+
+	// Check that simple message is displayed
+	if !strings.Contains(output, "Start typing to search commands...") {
+		t.Error("Expected empty state to show simple search message")
+	}
+
+	// Check that popular commands are NOT displayed
+	unwantedTexts := []string{
+		"Popular commands to get started:",
+		"status",
+		"add .",
+		"commit",
+		"push",
+		"pull",
+	}
+
+	for _, unwanted := range unwantedTexts {
+		if strings.Contains(output, unwanted) {
+			t.Errorf("Expected empty state to NOT contain '%s', but it was found", unwanted)
+		}
+	}
+}
+
+// Test Git status functionality
+func TestGetGitStatus(t *testing.T) {
+	// Create mock git client
+	mockClient := testutil.NewMockGitClient()
+
+	status := getGitStatus(mockClient)
+
+	if status == nil {
+		t.Fatal("Expected status to be non-nil with mock client")
+	}
+
+	// Branch name should match mock
+	if status.Branch != "main" {
+		t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
+	}
+
+	// Should have 1 modified and 1 staged file
+	if status.Modified != 1 {
+		t.Errorf("Expected 1 modified file, got %d", status.Modified)
+	}
+	if status.Staged != 1 {
+		t.Errorf("Expected 1 staged file, got %d", status.Staged)
+	}
+
+	// Should have changes
+	if !status.HasChanges {
+		t.Error("Expected HasChanges to be true")
+	}
+
+	// Should have ahead/behind counts
+	if status.Ahead != 2 {
+		t.Errorf("Expected ahead count to be 2, got %d", status.Ahead)
+	}
+	if status.Behind != 1 {
+		t.Errorf("Expected behind count to be 1, got %d", status.Behind)
+	}
+}
+
+// Test Git status rendering
+func TestRenderer_RenderGitStatus(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	// Test with mock git status
+	mockStatus := &GitStatus{
+		Branch:     "main",
+		Modified:   2,
+		Staged:     1,
+		Ahead:      3,
+		Behind:     1,
+		HasChanges: true,
+	}
+
+	ui := &UI{
+		stdin:     strings.NewReader(""),
+		stdout:    &buf,
+		stderr:    &bytes.Buffer{},
+		term:      &mockTerminal{},
+		renderer:  renderer,
+		colors:    colors,
+		gitStatus: mockStatus,
+	}
+
+	renderer.renderGitStatus(ui, mockStatus)
+	output := buf.String()
+
+	// Check that git status elements are displayed
+	expectedElements := []string{
+		"📍",          // Branch icon
+		"main",       // Branch name
+		"📝",          // Changes icon
+		"2 modified", // Modified files
+		"1 staged",   // Staged files
+		"↑3",         // Ahead count
+		"↓1",         // Behind count
+	}
+
+	for _, element := range expectedElements {
+		if !strings.Contains(output, element) {
+			t.Errorf("Expected git status to contain '%s', but it was not found", element)
+		}
+	}
+}
+
+// Test individual render methods
+func TestRenderer_RenderHeader(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	ui := &UI{
+		stdin:     strings.NewReader(""),
+		stdout:    &buf,
+		stderr:    &bytes.Buffer{},
+		term:      &mockTerminal{},
+		renderer:  renderer,
+		colors:    colors,
+		gitStatus: nil, // No git status
+	}
+
+	renderer.renderHeader(ui)
+	output := buf.String()
+
+	// Check that header elements are present
+	expectedElements := []string{
+		"🚀 ggc Interactive Mode",
+		"Type to search",
+		"Ctrl+n/p",
+		"navigate",
+		"Enter",
+		"execute",
+	}
+
+	for _, element := range expectedElements {
+		if !strings.Contains(output, element) {
+			t.Errorf("Expected header to contain '%s', but it was not found", element)
+		}
+	}
+}
+
+func TestRenderer_FormatInputWithCursor(t *testing.T) {
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &bytes.Buffer{},
+		colors: colors,
+	}
+
+	tests := []struct {
+		name      string
+		input     string
+		cursorPos int
+		expected  string
+	}{
+		{
+			name:      "empty input",
+			input:     "",
+			cursorPos: 0,
+			expected:  "█", // Should contain block cursor
+		},
+		{
+			name:      "cursor at end",
+			input:     "test",
+			cursorPos: 4,
+			expected:  "█", // Should contain block cursor at end
+		},
+		{
+			name:      "cursor in middle",
+			input:     "test",
+			cursorPos: 2,
+			expected:  "│", // Should contain line cursor in middle
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := &UIState{
+				input:     tt.input,
+				cursorPos: tt.cursorPos,
+			}
+
+			result := renderer.formatInputWithCursor(state)
+			if !strings.Contains(result, tt.expected) {
+				t.Errorf("Expected cursor format to contain '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestRenderer_RenderCommandItem(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		colors:   colors,
+	}
+
+	cmd := CommandInfo{
+		Command:     "test command",
+		Description: "Test description",
+	}
+
+	// Test selected item
+	buf.Reset()
+	renderer.renderCommandItem(ui, cmd, 0, 0, 20) // index=0, selected=0
+	output := buf.String()
+	if !strings.Contains(output, "▶") {
+		t.Error("Expected selected item to contain '▶' indicator")
+	}
+
+	// Test non-selected item
+	buf.Reset()
+	renderer.renderCommandItem(ui, cmd, 1, 0, 20) // index=1, selected=0
+	output = buf.String()
+	if strings.Contains(output, "▶") {
+		t.Error("Expected non-selected item to NOT contain '▶' indicator")
+	}
+}
+
+// Test interactive input functionality
+func TestKeyHandler_InteractiveInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+	mockGitClient := testutil.NewMockGitClient()
+
+	// Mock terminal that fails raw mode to trigger fallback
+	mockTerm := &mockTerminal{shouldFailRaw: true}
+
+	ui := &UI{
+		stdin:     strings.NewReader("test value\n"),
+		stdout:    &stdout,
+		stderr:    &stderr,
+		colors:    colors,
+		term:      mockTerm,
+		gitClient: mockGitClient,
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	placeholders := []string{"message"}
+	result := handler.interactiveInput(placeholders)
+
+	if len(result) != 1 {
+		t.Errorf("Expected 1 input, got %d", len(result))
+	}
+
+	if result["message"] != "test value" {
+		t.Errorf("Expected 'test value', got '%s'", result["message"])
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "message") {
+		t.Error("Expected output to contain placeholder name")
+	}
+	if !strings.Contains(output, "✓") {
+		t.Error("Expected output to contain confirmation checkmark")
+	}
+}
+
+func TestKeyHandler_ProcessCommand_NoPlaceholders(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	ui := &UI{
+		stdin:  strings.NewReader(""),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+		term:   &mockTerminal{},
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	// Command without placeholders should execute immediately
+	result := handler.processCommand("status")
+
+	expected := []string{"ggc", "status"}
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d args, got %d", len(expected), len(result))
+	}
+
+	for i, arg := range expected {
+		if result[i] != arg {
+			t.Errorf("Expected arg[%d] to be '%s', got '%s'", i, arg, result[i])
+		}
+	}
+}
+
+func TestKeyHandler_ProcessCommand_WithPlaceholders(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	// Mock terminal that fails raw mode to trigger fallback
+	mockTerm := &mockTerminal{shouldFailRaw: true}
+
+	ui := &UI{
+		stdin:  strings.NewReader("fix bug\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+		term:   mockTerm,
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	result := handler.processCommand("commit <message>")
+
+	expected := []string{"ggc", "commit", "fix", "bug"}
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d args, got %d", len(expected), len(result))
+	}
+
+	for i, arg := range expected {
+		if result[i] != arg {
+			t.Errorf("Expected arg[%d] to be '%s', got '%s'", i, arg, result[i])
+		}
+	}
+}
+
+func TestKeyHandler_GetLineInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	ui := &UI{
+		stdin:  strings.NewReader("test input\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+		term:   &mockTerminal{},
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	result := handler.getLineInput()
+
+	if result != "test input" {
+		t.Errorf("Expected 'test input', got '%s'", result)
+	}
+}
+
+func TestKeyHandler_GetLineInput_EmptyInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	colors := NewANSIColors()
+
+	// Simulate empty input followed by valid input
+	ui := &UI{
+		stdin:  strings.NewReader("\nvalid input\n"),
+		stdout: &stdout,
+		stderr: &stderr,
+		colors: colors,
+		term:   &mockTerminal{},
+	}
+
+	handler := &KeyHandler{ui: ui}
+
+	result := handler.getLineInput()
+
+	if result != "valid input" {
+		t.Errorf("Expected 'valid input', got '%s'", result)
+	}
+
+	// Check that required message was shown
+	output := stdout.String()
+	if !strings.Contains(output, "(required)") {
+		t.Error("Expected output to contain '(required)' message for empty input")
+	}
+}
+
+// Test Renderer header/footer keybind display
+func TestRenderer_KeybindDisplay(t *testing.T) {
+	var buf bytes.Buffer
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "test",
+		cursorPos: 4,
+		filtered: []CommandInfo{
+			{"test command", "test description"},
+		},
+	}
+
+	ui := &UI{
+		stdin:    strings.NewReader(""),
+		stdout:   &buf,
+		stderr:   &bytes.Buffer{},
+		term:     &mockTerminal{},
+		renderer: renderer,
+		state:    state,
+		colors:   colors,
+	}
+
+	renderer.Render(ui, state)
+	output := buf.String()
+
+	// Check that lowercase keybind notation is used
+	expectedKeybinds := []string{
+		"Ctrl+n/p",
+		"Ctrl+a/e",
+		"Ctrl+u/w/k",
+		"Ctrl+c",
+	}
+
+	for _, keybind := range expectedKeybinds {
+		if !strings.Contains(output, keybind) {
+			t.Errorf("Expected output to contain lowercase keybind '%s', but it was not found", keybind)
+		}
+	}
+
+	// Check that uppercase versions are NOT used
+	uppercaseKeybinds := []string{
+		"Ctrl+N/P",
+		"Ctrl+A/E",
+		"Ctrl+U/W/K",
+		"Ctrl+C",
+	}
+
+	for _, keybind := range uppercaseKeybinds {
+		if strings.Contains(output, keybind) {
+			t.Errorf("Expected output to NOT contain uppercase keybind '%s', but it was found", keybind)
+		}
+	}
+}
+
 // Test KeyHandler functionality
 func TestKeyHandler_HandleKey(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	renderer := &Renderer{writer: &stdout}
+	colors := NewANSIColors()
+	renderer := &Renderer{
+		writer: &stdout,
+		colors: colors,
+	}
 	state := &UIState{
-		selected: 0,
-		input:    "",
-		filtered: []CommandInfo{},
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
 	}
 
 	ui := &UI{
@@ -392,6 +1099,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 		term:     &mockTerminal{},
 		renderer: renderer,
 		state:    state,
+		colors:   colors,
 	}
 
 	handler := &KeyHandler{ui: ui}

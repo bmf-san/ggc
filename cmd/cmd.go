@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -64,33 +63,32 @@ type Cmd struct {
 	fetcher      *Fetcher
 }
 
-// NewCmd creates a new Cmd.
-func NewCmd() *Cmd {
-	client := git.NewClient()
+// NewCmd creates a new Cmd with the provided git client.
+func NewCmd(client git.Clienter) *Cmd {
 	return &Cmd{
 		gitClient:    client,
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		brancher:     NewBrancher(),
-		committer:    NewCommitter(),
-		logger:       NewLogger(),
-		puller:       NewPuller(),
-		pusher:       NewPusher(),
-		resetter:     NewResetter(),
-		cleaner:      NewCleaner(),
-		adder:        NewAdder(),
-		remoteer:     NewRemoteer(),
-		rebaser:      NewRebaser(),
-		stasher:      NewStasher(),
-		configureer:  NewConfigureer(),
-		hooker:       NewHooker(),
-		tagger:       NewTagger(),
-		statuseer:    NewStatuseer(),
-		versioneer:   NewVersioneer(),
-		completer:    NewCompleter(),
-		differ:       NewDiffer(),
-		restoreer:    NewRestoreer(),
-		fetcher:      NewFetcher(),
+		brancher:     NewBrancher(client),
+		committer:    NewCommitter(client),
+		logger:       NewLogger(client),
+		puller:       NewPuller(client),
+		pusher:       NewPusher(client),
+		resetter:     NewResetter(client),
+		cleaner:      NewCleaner(client),
+		adder:        NewAdder(client),
+		remoteer:     NewRemoteer(client),
+		rebaser:      NewRebaser(client),
+		stasher:      NewStasher(client),
+		configureer:  NewConfigureer(client),
+		hooker:       NewHooker(client),
+		tagger:       NewTagger(client),
+		statuseer:    NewStatuseer(client),
+		versioneer:   NewVersioneer(client),
+		completer:    NewCompleter(client),
+		differ:       NewDiffer(client),
+		restoreer:    NewRestoreer(client),
+		fetcher:      NewFetcher(client),
 	}
 }
 
@@ -209,7 +207,7 @@ func (c *Cmd) Interactive() {
 	}()
 
 	for {
-		args := InteractiveUI()
+		args := InteractiveUI(c.gitClient)
 		if args == nil {
 			break
 		}
@@ -221,7 +219,7 @@ func (c *Cmd) Interactive() {
 
 		c.Route(args[1:]) // Skip "ggc" in args
 
-		// Wait to check results after command execution
+		// Wait for user to continue
 		c.waitForContinue()
 	}
 }
@@ -283,8 +281,8 @@ func (c *Cmd) Route(args []string) {
 	}
 }
 
+// waitForContinue waits for user input to continue
 func (c *Cmd) waitForContinue() {
-	fmt.Println("\nPress Enter to continue...")
-	reader := bufio.NewReader(os.Stdin)
-	_, _ = reader.ReadString('\n')
+	fmt.Print("\nPress Enter to continue...")
+	_, _ = fmt.Scanln()
 }

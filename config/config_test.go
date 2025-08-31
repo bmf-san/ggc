@@ -8,12 +8,26 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bmf-san/ggc/v4/internal/testutil"
 	"go.yaml.in/yaml/v3"
 )
 
+// newTestConfigManager creates a config manager for testing without executing git commands
+func newTestConfigManager() *Manager {
+	mockClient := testutil.NewMockGitClient()
+	config := getDefaultConfig(mockClient)
+
+	return &Manager{
+		config:    config,
+		gitClient: mockClient,
+	}
+}
+
 // TestGetDefaultConfig tests the default configuration values
 func TestGetDefaultConfig(t *testing.T) {
-	config := getDefaultConfig()
+	// Use mock client to avoid executing real git commands
+	mockClient := testutil.NewMockGitClient()
+	config := getDefaultConfig(mockClient)
 
 	// test default values
 	if config.Default.Branch != "main" {
@@ -55,7 +69,8 @@ func TestGetDefaultConfig(t *testing.T) {
 
 // TestNewConfigManager tests the creation of a new config manager
 func TestNewConfigManager(t *testing.T) {
-	cm := NewConfigManager()
+	mockClient := testutil.NewMockGitClient()
+	cm := NewConfigManager(mockClient)
 
 	if cm == nil {
 		t.Fatal("Expected config manager to be created")
@@ -74,7 +89,7 @@ func TestNewConfigManager(t *testing.T) {
 
 // TestGetConfigPaths tests the configuration path resolution
 func TestGetConfigPaths(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	paths := cm.getConfigPaths()
 
 	if len(paths) != 2 {
@@ -128,7 +143,9 @@ integration:
 		t.Fatalf("Failed to write test config: %v", err)
 	}
 
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = testutil.NewMockGitClient()
 	err = cm.loadFromFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config from file: %v", err)
@@ -156,7 +173,9 @@ integration:
 
 // TestLoad tests the Load method with no config file
 func TestLoad(t *testing.T) {
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = testutil.NewMockGitClient()
 
 	originalHome := os.Getenv("HOME")
 	tempDir := t.TempDir()
@@ -185,8 +204,10 @@ func TestSave(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "test-save.yaml")
 
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
 	cm.configPath = configPath
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = testutil.NewMockGitClient()
 
 	cm.config.Default.Branch = "development"
 	cm.config.UI.Color = false
@@ -229,7 +250,8 @@ func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "test-invalid-save.yaml")
 
-	cm := NewConfigManager()
+	mockClient := testutil.NewMockGitClient()
+	cm := NewConfigManager(mockClient)
 	cm.configPath = configPath
 
 	// Force an invalid editor so validation fails
@@ -247,7 +269,7 @@ func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
 
 // TestGetValueByPath tests getting values using dot notation
 func TestGetValueByPath(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	testCases := []struct {
 		path     string
@@ -275,7 +297,7 @@ func TestGetValueByPath(t *testing.T) {
 
 // TestGetValueByPathErrors tests error cases for getValueByPath
 func TestGetValueByPathErrors(t *testing.T) {
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
 
 	testCases := []string{
 		"nonexistent.field",
@@ -294,7 +316,7 @@ func TestGetValueByPathErrors(t *testing.T) {
 
 // TestSetValueByPath tests setting values using dot notation
 func TestSetValueByPath(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	testCases := []struct {
 		path     string
@@ -329,7 +351,7 @@ func TestSetValueByPath(t *testing.T) {
 
 // TestGet tests the Get method
 func TestGet(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	value, err := cm.Get("default.branch")
 	if err != nil {
@@ -346,8 +368,10 @@ func TestSet(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "test-set.yaml")
 
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
 	cm.configPath = configPath
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = testutil.NewMockGitClient()
 
 	err := cm.Set("default.branch", "develop")
 	if err != nil {
@@ -378,7 +402,7 @@ func TestSet(t *testing.T) {
 
 // TestList tests the List method
 func TestList(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	list := cm.List()
 
 	expectedKeys := []string{
@@ -409,7 +433,7 @@ func TestList(t *testing.T) {
 
 // TestFindFieldByYamlTag tests the findFieldByYamlTag method
 func TestFindFieldByYamlTag(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	configType := reflect.TypeOf(*cm.config)
 	configValue := reflect.ValueOf(*cm.config)
 
@@ -442,7 +466,7 @@ func TestFindFieldByYamlTag(t *testing.T) {
 
 // TestFlattenConfig tests the flattenConfig method
 func TestFlattenConfig(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	result := make(map[string]any)
 
 	cm.flattenConfig(cm.config, "", result)
@@ -486,7 +510,9 @@ func TestLoadConfig(t *testing.T) {
 		}
 	}()
 
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = testutil.NewMockGitClient()
 	cm.LoadConfig()
 
 	if cm.config == nil {
@@ -496,7 +522,7 @@ func TestLoadConfig(t *testing.T) {
 
 // TestGetConfig tests the GetConfig method
 func TestGetConfig(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	config := cm.GetConfig()
 
 	if config == nil {
@@ -541,7 +567,9 @@ ui:
 		t.Fatalf("Failed to write invalid config: %v", err)
 	}
 
-	cm := NewConfigManager()
+	cm := NewConfigManager(testutil.NewMockGitClient())
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = testutil.NewMockGitClient()
 	err = cm.loadFromFile(configPath)
 	if err == nil {
 		t.Error("Expected error when loading invalid YAML")
@@ -550,7 +578,7 @@ ui:
 
 // TestTypeConversion tests type conversion in setValueByPath
 func TestTypeConversion(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	// Test setting string value to string field
 	err := cm.setValueByPath(cm.config, "default.branch", "test")
@@ -925,10 +953,8 @@ func TestConfig_validateAliases(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Errorf("validateAliases() error = %v, want to contain %v", err.Error(), tt.errorMsg)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("validateAliases() unexpected error: %v", err)
-				}
+			} else if err != nil {
+				t.Errorf("validateAliases() unexpected error: %v", err)
 			}
 		})
 	}
@@ -1003,7 +1029,9 @@ func stringifyValue(val any) string {
 // TestManagerLoadConfig tests the LoadConfig method error paths
 func TestManagerLoadConfig(t *testing.T) {
 	t.Run("LoadConfig with invalid path executes without panic", func(t *testing.T) {
-		cm := NewConfigManager()
+		cm := NewConfigManager(testutil.NewMockGitClient())
+		// Use mock git client to avoid real git config operations
+		cm.gitClient = testutil.NewMockGitClient()
 		cm.configPath = "/nonexistent/directory/config.yaml"
 
 		// This should not panic, even if file operations fail
@@ -1023,7 +1051,9 @@ func TestManagerLoadConfig(t *testing.T) {
 	})
 
 	t.Run("LoadConfig handles missing directory gracefully", func(t *testing.T) {
-		cm := NewConfigManager()
+		cm := NewConfigManager(testutil.NewMockGitClient())
+		// Use mock git client to avoid real git config operations
+		cm.gitClient = testutil.NewMockGitClient()
 		cm.configPath = "/definitely/nonexistent/path/config.yaml"
 
 		// Should not panic or crash

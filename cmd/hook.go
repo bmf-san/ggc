@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Hooker handles git hook operations.
@@ -16,14 +17,16 @@ type Hooker struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
+	gitClient    git.Clienter
 }
 
 // NewHooker creates a new Hooker instance.
-func NewHooker() *Hooker {
+func NewHooker(client git.Clienter) *Hooker {
 	return &Hooker{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
+		gitClient:    client,
 	}
 }
 
@@ -97,7 +100,7 @@ func (h *Hooker) listHooks() {
 	}
 
 	_, _ = fmt.Fprintf(h.outputWriter, "Git Hooks Status:\n")
-	_, _ = fmt.Fprintf(h.outputWriter, "==================\n")
+	_, _ = fmt.Fprintf(h.outputWriter, "------------------\n")
 
 	for _, hook := range standardHooks {
 		hookPath := filepath.Join(hooksDir, hook)
@@ -208,7 +211,7 @@ func (h *Hooker) editHook(hookName string) {
 		return
 	}
 
-	val, err := config.NewConfigManager().Get("default.editor")
+	val, err := config.NewConfigManager(h.gitClient).Get("default.editor")
 	editor, ok := val.(string)
 	if err != nil || !ok || editor == "" {
 		editor = "vi" // fallback

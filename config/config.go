@@ -11,8 +11,15 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/bmf-san/ggc/v4/git"
 	"go.yaml.in/yaml/v3"
 )
+
+// GitConfigExecutor interface for git config operations (for testing)
+type GitConfigExecutor interface {
+	ConfigSetGlobal(key, value string) error
+	ConfigGetGlobal(key string) (string, error)
+}
 
 // Config represents the complete configuration structure
 type Config struct {
@@ -74,12 +81,12 @@ type ParsedAlias struct {
 type Manager struct {
 	config     *Config
 	configPath string
+	gitClient  git.Clienter
 }
 
 var (
 	// Accept classic GitHub tokens like ghp_, gho_, ghu_, ghs_, ghr_
-	githubTokenClassicRe = 
-  .MustCompile(`^gh[opusr]_[A-Za-z0-9]{20,250}$`)
+	githubTokenClassicRe = regexp.MustCompile(`^gh[opusr]_[A-Za-z0-9]{20,250}$`)
 	// Accept fine-grained PATs starting with github_pat_
 	githubTokenFineRe = regexp.MustCompile(`^github_pat_[A-Za-z0-9_-]{20,255}$`)
 	// Accept GitLab tokens with optional glpat- prefix
@@ -88,10 +95,11 @@ var (
 	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
 )
 
-// NewConfigManager creates a new configuration manager
-func NewConfigManager() *Manager {
+// NewConfigManager creates a new configuration manager with the provided git client
+func NewConfigManager(gitClient git.Clienter) *Manager {
 	return &Manager{
-		config: getDefaultConfig(),
+		config:    getDefaultConfig(gitClient),
+		gitClient: gitClient,
 	}
 }
 
@@ -325,37 +333,12 @@ func (c *Config) GetAllAliases() map[string]*ParsedAlias {
 	return result
 }
 
-func getGitVersion() string {
-	cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
-	output, err := cmd.Output()
-	if err != nil {
-		return "dev"
-	}
-	return strings.TrimSpace(string(output))
-}
-
-func getGitCommit() string {
-	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
-	output, err := cmd.Output()
-	if err != nil {
-		return "unknown"
-	}
-	return strings.TrimSpace(string(output))
-}
-
-func (c *Config) updateMeta() {
-	version, commit := getGitVersion(), getGitCommit()
-
-	c.Meta.Version = version
-	c.Meta.Commit = commit
-
-	if c.Meta.ConfigVersion == "" {
-		c.Meta.ConfigVersion = "1.0"
-	}
-}
+// Note: getGitVersion, getGitCommit, and updateMeta functions removed
+// to eliminate direct git command execution. Meta values are now set
+// manually in getDefaultConfig() to avoid side effects in tests.
 
 // getDefaultConfig returns the default configuration values
-func getDefaultConfig() *Config {
+func getDefaultConfig(gitClient git.Clienter) *Config {
 	config := &Config{
 		Aliases: make(map[string]interface{}),
 	}
@@ -375,7 +358,23 @@ func getDefaultConfig() *Config {
 
 	config.Integration.Github.DefaultRemote = "origin"
 
-	config.updateMeta()
+	// Set meta values using gitClient
+	if version, err := gitClient.GetVersion(); err == nil {
+		config.Meta.Version = version
+	} else {
+		config.Meta.Version = "dev"
+	}
+
+	if commit, err := gitClient.GetCommitHash(); err == nil {
+		config.Meta.Commit = commit
+	} else {
+		config.Meta.Commit = "unknown"
+	}
+
+	// Only set ConfigVersion if it's empty (preserving original updateMeta behavior)
+	if config.Meta.ConfigVersion == "" {
+		config.Meta.ConfigVersion = "1.0"
+	}
 
 	return config
 }
@@ -415,7 +414,7 @@ func (cm *Manager) loadFromFile(path string) error {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	config := getDefaultConfig()
+	config := getDefaultConfig(cm.gitClient)
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return fmt.Errorf("failed to parse config file: %w", err)
 	}
@@ -425,27 +424,8 @@ func (cm *Manager) loadFromFile(path string) error {
 	return nil
 }
 
-// setGitConfig sets a git configuration value using git config command
-func (cm *Manager) setGitConfig(key, value string) error {
-	cmd := exec.Command("git", "config", "--global", key, value)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to run git config: %w", err)
-	}
-	return nil
-}
-
-// getGitConfig retrieves a git configuration value
-func (cm *Manager) getGitConfig(key string) (string, error) {
-	cmd := exec.Command("git", "config", "--global", key)
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get git config: %w", err)
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
 func (cm *Manager) syncFromCommandName(command string) {
-	if value, err := cm.getGitConfig(command); err == nil && value != "" {
+	if value, err := cm.gitClient.ConfigGetGlobal(command); err == nil && value != "" {
 		switch command {
 		case "core.editor":
 			cm.config.Default.Editor = value
@@ -485,19 +465,19 @@ func (cm *Manager) syncToGitConfig() error {
 	config := cm.GetConfig()
 
 	if config.Default.Editor != "" {
-		if err := cm.setGitConfig("core.editor", config.Default.Editor); err != nil {
+		if err := cm.gitClient.ConfigSetGlobal("core.editor", config.Default.Editor); err != nil {
 			return fmt.Errorf("failed to set git editor: %w", err)
 		}
 	}
 
 	if config.Default.MergeTool != "" {
-		if err := cm.setGitConfig("merge.tool", config.Default.MergeTool); err != nil {
+		if err := cm.gitClient.ConfigSetGlobal("merge.tool", config.Default.MergeTool); err != nil {
 			return fmt.Errorf("failed to set git merge tool: %w", err)
 		}
 	}
 
 	if config.Default.Branch != "" {
-		if err := cm.setGitConfig("init.defaultBranch", config.Default.Branch); err != nil {
+		if err := cm.gitClient.ConfigSetGlobal("init.defaultBranch", config.Default.Branch); err != nil {
 			return fmt.Errorf("failed to set git default branch: %w", err)
 		}
 	}
@@ -506,7 +486,7 @@ func (cm *Manager) syncToGitConfig() error {
 	if config.UI.Color {
 		colorValue = "true"
 	}
-	if err := cm.setGitConfig("color.ui", colorValue); err != nil {
+	if err := cm.gitClient.ConfigSetGlobal("color.ui", colorValue); err != nil {
 		return fmt.Errorf("failed to set git color: %w", err)
 	}
 
@@ -514,23 +494,23 @@ func (cm *Manager) syncToGitConfig() error {
 	if config.Behavior.AutoFetch {
 		autoFetchValue = "true"
 	}
-	if err := cm.setGitConfig("fetch.auto", autoFetchValue); err != nil {
+	if err := cm.gitClient.ConfigSetGlobal("fetch.auto", autoFetchValue); err != nil {
 		return fmt.Errorf("failed to set git autofetch: %w", err)
 	}
 
-	if err := cm.setGitConfig("push.default", config.Behavior.ConfirmDestructive); err != nil {
+	if err := cm.gitClient.ConfigSetGlobal("push.default", config.Behavior.ConfirmDestructive); err != nil {
 		return fmt.Errorf("failed to set git push default: %w", err)
 	}
 
 	if !config.UI.Pager {
-		if err := cm.setGitConfig("core.pager", "cat"); err != nil {
+		if err := cm.gitClient.ConfigSetGlobal("core.pager", "cat"); err != nil {
 			return fmt.Errorf("failed to set git pager: %w", err)
 		}
 	}
 
 	for alias, value := range config.Aliases {
 		if cmdStr, ok := value.(string); ok {
-			if err := cm.setGitConfig(fmt.Sprintf("alias.%s", alias), cmdStr); err != nil {
+			if err := cm.gitClient.ConfigSetGlobal(fmt.Sprintf("alias.%s", alias), cmdStr); err != nil {
 				return fmt.Errorf("failed to set git alias.%s: %w", alias, err)
 			}
 		}

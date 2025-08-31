@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 func TestGetVersionInfo(t *testing.T) {
@@ -28,12 +29,7 @@ func TestGetVersionInfo(t *testing.T) {
 
 	// Verify that the function returns two string values
 	// This test ensures the function signature is correct
-	versionType := len(version) >= 0 // All strings have len >= 0
-	commitType := len(commit) >= 0   // All strings have len >= 0
-
-	if !versionType || !commitType {
-		t.Error("GetVersionInfo should return two string values")
-	}
+	// In test environment, both values can be empty, which is expected
 }
 
 func TestMain(t *testing.T) {
@@ -41,7 +37,7 @@ func TestMain(t *testing.T) {
 	// We avoid calling main() directly to prevent actual git command execution during tests
 
 	// Test config manager creation (safe, no git commands)
-	cm := config.NewConfigManager()
+	cm := config.NewConfigManager(git.NewClient())
 	if cm == nil {
 		t.Error("config manager should be created")
 	}

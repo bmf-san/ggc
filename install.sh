@@ -459,7 +459,7 @@ check_dependencies() {
 
 main() {
     echo "ggc Installation Script"
-    echo "======================="
+    echo "-----------------------"
 
     print_info "Installation directory: $INSTALL_DIR"
 

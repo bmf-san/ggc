@@ -18,12 +18,7 @@ type Committer struct {
 }
 
 // NewCommitter creates a new Committer.
-func NewCommitter() *Committer {
-	return NewCommitterWithClient(git.NewClient())
-}
-
-// NewCommitterWithClient creates a new Committer with the specified git client.
-func NewCommitterWithClient(client git.Clienter) *Committer {
+func NewCommitter(client git.Clienter) *Committer {
 	c := &Committer{
 		gitClient:    client,
 		outputWriter: os.Stdout,
@@ -46,15 +41,16 @@ func (c *Committer) Commit(args []string) {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
 	case "amend":
-		if len(args) == 1 {
+		switch {
+		case len(args) == 1:
 			if err := c.gitClient.CommitAmend(); err != nil {
 				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 			}
-		} else if args[1] == "--no-edit" {
+		case args[1] == "--no-edit":
 			if err := c.gitClient.CommitAmendNoEdit(); err != nil {
 				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 			}
-		} else {
+		default:
 			// Join all arguments after "amend" as the commit message
 			msg := strings.Join(args[1:], " ")
 			if err := c.gitClient.CommitAmendWithMessage(msg); err != nil {

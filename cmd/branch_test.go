@@ -173,6 +173,8 @@ func (m *mockBranchGitClient) GetUpstreamBranchName(_ string) (string, error) {
 func (m *mockBranchGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0	0", nil
 }
+func (m *mockBranchGitClient) GetVersion() (string, error)    { return "test-version", nil }
+func (m *mockBranchGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
 
 // Restore Operations methods
 func (m *mockBranchGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
@@ -182,6 +184,12 @@ func (m *mockBranchGitClient) RestoreAll() error                             { r
 func (m *mockBranchGitClient) RestoreAllStaged() error                       { return nil }
 
 func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
+
+// Config Operations
+func (m *mockBranchGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
+func (m *mockBranchGitClient) ConfigSet(_, _ string) error              { return nil }
+func (m *mockBranchGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
+func (m *mockBranchGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
 
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer

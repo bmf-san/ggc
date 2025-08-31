@@ -18,9 +18,9 @@ type Stasher struct {
 }
 
 // NewStasher creates a new Stasher instance.
-func NewStasher() *Stasher {
+func NewStasher(client git.Clienter) *Stasher {
 	return &Stasher{
-		gitClient:    git.NewClient(),
+		gitClient:    client,
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 	}
