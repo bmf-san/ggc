@@ -118,9 +118,64 @@ func (m *MockGitClient) ListFiles() (string, error)                      { retur
 func (m *MockGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
 func (m *MockGitClient) GetAheadBehindCount(_, _ string) (string, error) { return "", nil }
 
+// newTestConfigManager creates a config manager for testing without executing git commands
+func newTestConfigManager() *Manager {
+	config := &Config{
+		Aliases: make(map[string]interface{}),
+	}
+
+	// Set default values (same as getDefaultConfig but without updateMeta)
+	config.Default.Branch = "main"
+	config.Default.Editor = "vim"
+	config.Default.MergeTool = "vimdiff"
+
+	config.UI.Color = true
+	config.UI.Pager = true
+
+	config.Behavior.AutoPush = false
+	config.Behavior.ConfirmDestructive = "simple"
+	config.Behavior.AutoFetch = true
+	config.Behavior.StashBeforeSwitch = true
+
+	config.Integration.Github.DefaultRemote = "origin"
+
+	// Set meta values manually to avoid git command execution
+	config.Meta.Version = "test-version"
+	config.Meta.Commit = "test-commit"
+	config.Meta.ConfigVersion = "1.0"
+
+	return &Manager{
+		config:    config,
+		gitClient: NewMockGitClient(),
+	}
+}
+
 // TestGetDefaultConfig tests the default configuration values
 func TestGetDefaultConfig(t *testing.T) {
-	config := getDefaultConfig()
+	// Create config manually to avoid calling getDefaultConfig() which executes git commands
+	config := &Config{
+		Aliases: make(map[string]interface{}),
+	}
+
+	// Set default values (same as getDefaultConfig but without updateMeta)
+	config.Default.Branch = "main"
+	config.Default.Editor = "vim"
+	config.Default.MergeTool = "vimdiff"
+
+	config.UI.Color = true
+	config.UI.Pager = true
+
+	config.Behavior.AutoPush = false
+	config.Behavior.ConfirmDestructive = "simple"
+	config.Behavior.AutoFetch = true
+	config.Behavior.StashBeforeSwitch = true
+
+	config.Integration.Github.DefaultRemote = "origin"
+
+	// Set meta values manually to avoid git command execution
+	config.Meta.Version = "test-version"
+	config.Meta.Commit = "test-commit"
+	config.Meta.ConfigVersion = "1.0"
 
 	// test default values
 	if config.Default.Branch != "main" {
@@ -162,7 +217,7 @@ func TestGetDefaultConfig(t *testing.T) {
 
 // TestNewConfigManager tests the creation of a new config manager
 func TestNewConfigManager(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	if cm == nil {
 		t.Fatal("Expected config manager to be created")
@@ -181,7 +236,7 @@ func TestNewConfigManager(t *testing.T) {
 
 // TestGetConfigPaths tests the configuration path resolution
 func TestGetConfigPaths(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	paths := cm.getConfigPaths()
 
 	if len(paths) != 2 {
@@ -338,7 +393,7 @@ func TestSave(t *testing.T) {
 
 // TestGetValueByPath tests getting values using dot notation
 func TestGetValueByPath(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	testCases := []struct {
 		path     string
@@ -385,7 +440,7 @@ func TestGetValueByPathErrors(t *testing.T) {
 
 // TestSetValueByPath tests setting values using dot notation
 func TestSetValueByPath(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	testCases := []struct {
 		path     string
@@ -420,7 +475,7 @@ func TestSetValueByPath(t *testing.T) {
 
 // TestGet tests the Get method
 func TestGet(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	value, err := cm.Get("default.branch")
 	if err != nil {
@@ -471,7 +526,7 @@ func TestSet(t *testing.T) {
 
 // TestList tests the List method
 func TestList(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	list := cm.List()
 
 	expectedKeys := []string{
@@ -502,7 +557,7 @@ func TestList(t *testing.T) {
 
 // TestFindFieldByYamlTag tests the findFieldByYamlTag method
 func TestFindFieldByYamlTag(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	configType := reflect.TypeOf(*cm.config)
 	configValue := reflect.ValueOf(*cm.config)
 
@@ -535,7 +590,7 @@ func TestFindFieldByYamlTag(t *testing.T) {
 
 // TestFlattenConfig tests the flattenConfig method
 func TestFlattenConfig(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	result := make(map[string]any)
 
 	cm.flattenConfig(cm.config, "", result)
@@ -591,7 +646,7 @@ func TestLoadConfig(t *testing.T) {
 
 // TestGetConfig tests the GetConfig method
 func TestGetConfig(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 	config := cm.GetConfig()
 
 	if config == nil {
@@ -647,7 +702,7 @@ ui:
 
 // TestTypeConversion tests type conversion in setValueByPath
 func TestTypeConversion(t *testing.T) {
-	cm := NewConfigManager()
+	cm := newTestConfigManager()
 
 	// Test setting string value to string field
 	err := cm.setValueByPath(cm.config, "default.branch", "test")

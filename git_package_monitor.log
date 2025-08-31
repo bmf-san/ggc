@@ -1,0 +1,26 @@
+09:33:40.3N - Git processes:
+71559 go test ./git -v
+---
+09:33:40.3N - Git processes:
+71559 go test ./git -v
+---
+09:33:40.3N - Git processes:
+71559 go test ./git -v
+71583 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/testlog.txt -test.paniconexit0 -test.timeout=10m0s -test.v=true
+---
+09:33:40.3N - Git processes:
+71559 go test ./git -v
+71583 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/testlog.txt -test.paniconexit0 -test.timeout=10m0s -test.v=true
+---
+09:33:41.3N - Git processes:
+71559 go test ./git -v
+71583 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/testlog.txt -test.paniconexit0 -test.timeout=10m0s -test.v=true
+---
+09:33:41.3N - Git processes:
+71559 go test ./git -v
+71583 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/testlog.txt -test.paniconexit0 -test.timeout=10m0s -test.v=true
+---
+09:33:41.3N - Git processes:
+71559 go test ./git -v
+71583 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build2762089608/b001/testlog.txt -test.paniconexit0 -test.timeout=10m0s -test.v=true
+---

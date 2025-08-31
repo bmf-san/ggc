@@ -1,0 +1,76 @@
+2025-08-31 09:33:03.3N - Git process detected:
+69617 /opt/homebrew/Cellar/go/1.25.0/libexec/pkg/tool/darwin_arm64/link -o /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -importcfg /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/importcfg.link -s -w -buildmode=pie -buildid=pXJtDUuOl0p4pUVIU_FW/NkcSh5JP8jlXx9Wshk3U/A8jbsrqzr7YBWb5i_Lvg/pXJtDUuOl0p4pUVIU_FW -X testing.testBinary=1 -extld=cc /Users/kenta.takeuchi/Library/Caches/go-build/60/60fa83c2cf22ae0fceb2a13bddf0cfdb905dd89b6b5afbb72c297dc7323dc750-d
+---
+2025-08-31 09:33:03.3N - Git process detected:
+69617 /opt/homebrew/Cellar/go/1.25.0/libexec/pkg/tool/darwin_arm64/link -o /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -importcfg /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/importcfg.link -s -w -buildmode=pie -buildid=pXJtDUuOl0p4pUVIU_FW/NkcSh5JP8jlXx9Wshk3U/A8jbsrqzr7YBWb5i_Lvg/pXJtDUuOl0p4pUVIU_FW -X testing.testBinary=1 -extld=cc /Users/kenta.takeuchi/Library/Caches/go-build/60/60fa83c2cf22ae0fceb2a13bddf0cfdb905dd89b6b5afbb72c297dc7323dc750-d
+---
+2025-08-31 09:33:03.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+---
+2025-08-31 09:33:03.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69661 (git)
+---
+2025-08-31 09:33:03.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+---
+2025-08-31 09:33:03.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69765 (git)
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69783 (git)
+69784 (git)
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69801 (git)
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69828 (git)
+69835 (git)
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69874 (git)
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69917 (git)
+69919 (git)
+---
+2025-08-31 09:33:04.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+69985 (git)
+---
+2025-08-31 09:33:05.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+70036 (git)
+70044 (git)
+70045 (git.test)
+---
+2025-08-31 09:33:05.3N - Git process detected:
+69648 /var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/git.test -test.testlogfile=/var/folders/s6/4y0yd1890pqcx6_94_9_q0380000gp/T/go-build3138026050/b144/testlog.txt -test.paniconexit0 -test.timeout=10m0s
+70087 (git)
+---
+2025-08-31 09:33:05.3N - Git process detected:
+69648 (git.test)
+70143 (git)
+---
+2025-08-31 09:33:05.3N - Git process detected:
+70161 (git)
+---
+2025-08-31 09:33:05.3N - Git process detected:
+70275 (git)
+---
