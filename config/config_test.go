@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v4/internal/testutil"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 
@@ -243,6 +243,28 @@ func TestSave(t *testing.T) {
 	}
 	if loadedConfig.Aliases["test"] != "help" {
 		t.Errorf("Expected saved alias to be 'help', got %s", loadedConfig.Aliases["test"])
+	}
+}
+
+// TestSaveDoesNotWriteOnInvalidConfig ensures Save validates before writing
+// and does not leave a config file on disk when validation fails.
+func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "test-invalid-save.yaml")
+
+	cm := NewConfigManager()
+	cm.configPath = configPath
+
+	// Force an invalid editor so validation fails
+	cm.config.Default.Editor = "this-editor-should-not-exist-xyz"
+
+	err := cm.Save()
+	if err == nil {
+		t.Fatal("expected Save to fail validation, got nil error")
+	}
+
+	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
+		t.Fatalf("expected no config file to be written, got statErr=%v", statErr)
 	}
 }
 

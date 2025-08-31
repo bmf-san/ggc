@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockGitClient for commit_test
@@ -123,6 +125,20 @@ func (m *mockCommitGitClient) ConfigGet(_ string) (string, error)       { return
 func (m *mockCommitGitClient) ConfigSet(_, _ string) error              { return nil }
 func (m *mockCommitGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
 func (m *mockCommitGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
+
+// Enhanced Branch Operations
+func (m *mockCommitGitClient) RenameBranch(_, _ string) error      { return nil }
+func (m *mockCommitGitClient) MoveBranch(_, _ string) error        { return nil }
+func (m *mockCommitGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+func (m *mockCommitGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	bi := &git.BranchInfo{Name: branch}
+	return bi, nil
+}
+func (m *mockCommitGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{}, nil
+}
+func (m *mockCommitGitClient) SortBranches(_ string) ([]string, error)       { return []string{}, nil }
+func (m *mockCommitGitClient) BranchesContaining(_ string) ([]string, error) { return []string{}, nil }
 
 func TestCommitter_Commit_AllowEmpty(t *testing.T) {
 	mockClient := &mockCommitGitClient{}

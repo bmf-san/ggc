@@ -7,10 +7,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/bmf-san/ggc/v4/git"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // GitConfigExecutor interface for git config operations (for testing)
@@ -82,6 +84,17 @@ type Manager struct {
 	gitClient  git.Clienter
 }
 
+var (
+	// Accept classic GitHub tokens like ghp_, gho_, ghu_, ghs_, ghr_
+	githubTokenClassicRe = regexp.MustCompile(`^gh[opusr]_[A-Za-z0-9]{20,250}$`)
+	// Accept fine-grained PATs starting with github_pat_
+	githubTokenFineRe = regexp.MustCompile(`^github_pat_[A-Za-z0-9_-]{20,255}$`)
+	// Accept GitLab tokens with optional glpat- prefix
+	gitlabTokenRe = regexp.MustCompile(`^(glpat-)?[A-Za-z0-9_-]{20,100}$`)
+	// Allow slashes; additional structural checks are applied separately
+	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
+)
+
 // NewConfigManager creates a new configuration manager with the provided git client
 func NewConfigManager(gitClient git.Clienter) *Manager {
 	return &Manager{
@@ -115,10 +128,28 @@ func (c *Config) validateBranch() error {
 }
 
 func (c *Config) validateEditor() error {
-	editor := c.Default.Editor
-	_, err := exec.LookPath(editor)
-	if err != nil {
-		return &ValidationError{"default.editor", editor, "command not found in PATH"}
+	editor := strings.TrimSpace(c.Default.Editor)
+	// Extract the first token, supporting simple quoted paths with spaces
+	bin := editor
+	if editor != "" {
+		if (strings.HasPrefix(editor, "\"") && strings.Count(editor, "\"") >= 2) || (strings.HasPrefix(editor, "'") && strings.Count(editor, "'") >= 2) {
+			q := editor[0:1]
+			if idx := strings.Index(editor[1:], q); idx >= 0 {
+				bin = editor[1 : 1+idx]
+			}
+		} else if i := strings.IndexAny(editor, " \t"); i > 0 {
+			bin = editor[:i]
+		}
+	}
+
+	// If the binary looks like a path, accept it if it exists; else use PATH lookup
+	if strings.ContainsAny(bin, "/\\") {
+		if _, err := os.Stat(bin); err == nil {
+			return nil
+		}
+	}
+	if _, err := exec.LookPath(bin); err != nil {
+		return &ValidationError{"default.editor", editor, "command not found in PATH or invalid path"}
 	}
 	return nil
 }
@@ -134,29 +165,41 @@ func (c *Config) validateConfirmDestructive() error {
 
 func (c *Config) validateIntegrationTokens() error {
 	ghToken := c.Integration.Github.Token
-	if ghToken != "" && !strings.HasPrefix(ghToken, "ghp_") {
-		return &ValidationError{
-			Field:   "integration.github.token",
-			Value:   ghToken,
-			Message: "GitHub token must start with 'ghp_'",
+	if ghToken != "" {
+		if !githubTokenClassicRe.MatchString(ghToken) && !githubTokenFineRe.MatchString(ghToken) {
+			return &ValidationError{
+				Field:   "integration.github.token",
+				Value:   "[REDACTED]",
+				Message: "GitHub token must be a valid classic (gh[pousr]_) or fine-grained (github_pat_) token",
+			}
 		}
 	}
 
 	glToken := c.Integration.Gitlab.Token
-	if glToken != "" && len(glToken) < 20 {
-		return &ValidationError{
-			Field:   "integration.gitlab.token",
-			Value:   glToken,
-			Message: "GitLab token seems too short to be valid",
+	if glToken != "" {
+		if !gitlabTokenRe.MatchString(glToken) {
+			return &ValidationError{
+				Field:   "integration.gitlab.token",
+				Value:   "[REDACTED]",
+				Message: "GitLab token must be 20-100 characters (alphanumeric, _ or -), with optional glpat- prefix",
+			}
 		}
 	}
 
 	if remote := c.Integration.Github.DefaultRemote; remote != "" {
-		if strings.Contains(remote, " ") || strings.Contains(remote, "/") {
+		if !gitRemoteNameCharsRe.MatchString(remote) || strings.Contains(remote, " ") {
 			return &ValidationError{
 				Field:   "integration.github.default-remote",
 				Value:   remote,
-				Message: "Default remote must be a valid Git remote name (no spaces or slashes)",
+				Message: "Remote may contain letters, digits, ., _, -, and / only",
+			}
+		}
+		// Additional structural checks: no leading/trailing '.' or '/', and no empty/unsafe segments
+		if strings.HasPrefix(remote, "/") || strings.HasSuffix(remote, "/") || strings.HasPrefix(remote, ".") || strings.HasSuffix(remote, ".") || strings.Contains(remote, "//") || strings.Contains(remote, "..") {
+			return &ValidationError{
+				Field:   "integration.github.default-remote",
+				Value:   remote,
+				Message: "Remote must not start/end with '.' or '/', nor contain '..' or '//'",
 			}
 		}
 	}
@@ -476,10 +519,10 @@ func (cm *Manager) syncToGitConfig() error {
 	return nil
 }
 
-// Save saves the current configuration to file
+// Save writes the configuration using restrictive permissions to prevent token disclosure.
 func (cm *Manager) Save() error {
 	dir := filepath.Dir(cm.configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -488,13 +531,47 @@ func (cm *Manager) Save() error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(cm.configPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
+	// Validate before writing to avoid persisting invalid configs
 	if err := cm.config.Validate(); err != nil {
 		return fmt.Errorf("cannot save invalid config: %w", err)
 	}
+
+	// Atomic write configuration
+	tmpFile, err := os.CreateTemp(dir, ".ggcconfig-*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpName := tmpFile.Name()
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(tmpName, 0600)
+	}
+	if _, err := tmpFile.Write(data); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("failed to write temp config file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("failed to close temp config file: %w", err)
+	}
+
+	// Basic atomic replace: on Windows, remove the target first
+	if runtime.GOOS == "windows" {
+		_ = os.Remove(cm.configPath)
+	}
+	if err := os.Rename(tmpName, cm.configPath); err != nil {
+		// Retry after removing destination if rename failed
+		_ = os.Remove(cm.configPath)
+		if err2 := os.Rename(tmpName, cm.configPath); err2 != nil {
+			_ = os.Remove(tmpName)
+			return fmt.Errorf("failed to replace config file: %w", err2)
+		}
+	}
+
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(cm.configPath, 0600)
+	}
+
 	return cm.syncToGitConfig()
 }
 

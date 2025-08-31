@@ -28,7 +28,23 @@ func (c *Completer) Complete(args []string) {
 	case "branch":
 		if len(args) == 1 {
 			// Suggest subcommand candidates
-			subs := []string{"current", "checkout", "checkout-remote", "create", "delete", "delete-merged"}
+			subs := []string{
+				"current",
+				"checkout",
+				"checkout-remote",
+				"create",
+				"delete",
+				"delete-merged",
+				// Enhanced branch management
+				"rename",
+				"move",
+				"set-upstream",
+				"info",
+				"list",
+				"list --verbose",
+				"sort",
+				"contains",
+			}
 			for _, s := range subs {
 				fmt.Println(s)
 			}

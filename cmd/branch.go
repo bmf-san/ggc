@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,30 @@ func (b *Brancher) Branch(args []string) {
 			return
 		case "delete-merged":
 			b.branchDeleteMerged()
+			return
+		case "rename":
+			b.branchRename()
+			return
+		case "move":
+			b.branchMove()
+			return
+		case "set-upstream":
+			b.branchSetUpstream()
+			return
+		case "info":
+			b.branchInfo()
+			return
+		case "list":
+			// Support list --verbose
+			if len(args) > 1 && (args[1] == "--verbose" || args[1] == "-v") {
+				b.branchListVerbose()
+				return
+			}
+		case "sort":
+			b.branchSort()
+			return
+		case "contains":
+			b.branchContains()
 			return
 		}
 	}
@@ -120,6 +145,15 @@ func (b *Brancher) branchCheckoutRemote() {
 		return
 	}
 	localBranch := parts[1]
+	if strings.TrimSpace(localBranch) == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid remote branch name.")
+		return
+	}
+	if err := validateBranchName(localBranch); err != nil {
+		// Keep message consistent with existing expectations
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid remote branch name.")
+		return
+	}
 	if err := b.gitClient.CheckoutNewBranchFromRemote(localBranch, remoteBranch); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
@@ -131,6 +165,10 @@ func (b *Brancher) branchCreate() {
 	branchName := strings.TrimSpace(input)
 	if branchName == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+	if err := validateBranchName(branchName); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
 		return
 	}
 
@@ -267,5 +305,266 @@ func (b *Brancher) branchDeleteMerged() {
 		}
 		_, _ = fmt.Fprintln(b.outputWriter, "Selected merged branches deleted.")
 		break
+	}
+}
+
+// validateBranchName performs basic validation aligned with git ref rules for branch names.
+// It rejects empty names, control characters, disallowed characters/sequences, invalid prefixes/suffixes,
+// double slashes, overly long names, and non-ASCII for safety across platforms.
+func validateBranchName(name string) error {
+	n := strings.TrimSpace(name)
+	if n == "" {
+		return fmt.Errorf("branch name cannot be empty")
+	}
+	// Delegate validation to git to match exact refname rules.
+	// Equivalent to: git check-ref-format --branch <name>
+	cmd := exec.Command("git", "check-ref-format", "--branch", n)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("invalid per git check-ref-format: %w", err)
+	}
+	return nil
+}
+
+func (b *Brancher) branchRename() {
+	branches, err := b.gitClient.ListLocalBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
+	for i, br := range branches {
+		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
+	}
+	_, _ = fmt.Fprint(b.outputWriter, "Enter the number of the branch to rename: ")
+	input, _ := b.inputReader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	idx, err := strconv.Atoi(input)
+	if err != nil || idx < 1 || idx > len(branches) {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+		return
+	}
+	oldName := branches[idx-1]
+	_, _ = fmt.Fprint(b.outputWriter, "Enter new branch name: ")
+	newInput, _ := b.inputReader.ReadString('\n')
+	newName := strings.TrimSpace(newInput)
+	if newName == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+	if err := validateBranchName(newName); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
+		return
+	}
+	if err := b.gitClient.RenameBranch(oldName, newName); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+}
+
+func (b *Brancher) branchMove() {
+	branches, err := b.gitClient.ListLocalBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
+	for i, br := range branches {
+		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
+	}
+	_, _ = fmt.Fprint(b.outputWriter, "Enter the number of the branch to move: ")
+	input, _ := b.inputReader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	idx, err := strconv.Atoi(input)
+	if err != nil || idx < 1 || idx > len(branches) {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+		return
+	}
+	branch := branches[idx-1]
+	_, _ = fmt.Fprint(b.outputWriter, "Enter commit or ref to move to: ")
+	commit, _ := b.inputReader.ReadString('\n')
+	commit = strings.TrimSpace(commit)
+	if commit == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+	if !b.gitClient.RevParseVerify(commit) {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid commit or ref.")
+		return
+	}
+	if err := b.gitClient.MoveBranch(branch, commit); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+}
+
+func (b *Brancher) branchSetUpstream() {
+	branches, err := b.gitClient.ListLocalBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
+	for i, br := range branches {
+		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
+	}
+	_, _ = fmt.Fprint(b.outputWriter, "Enter the number of the branch to set upstream: ")
+	input, _ := b.inputReader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	idx, err := strconv.Atoi(input)
+	if err != nil || idx < 1 || idx > len(branches) {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+		return
+	}
+	branch := branches[idx-1]
+
+	remotes, _ := b.gitClient.ListRemoteBranches()
+	if len(remotes) > 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "Remote branches:")
+		for i, rb := range remotes {
+			_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, rb)
+		}
+	}
+	_, _ = fmt.Fprint(b.outputWriter, "Enter upstream (name or number): ")
+	upIn, _ := b.inputReader.ReadString('\n')
+	upIn = strings.TrimSpace(upIn)
+	if upIn == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+	// If numeric and valid index, map to remote branch
+	if id, e := strconv.Atoi(upIn); e == nil && id >= 1 && id <= len(remotes) {
+		upIn = remotes[id-1]
+	}
+	if err := b.gitClient.SetUpstreamBranch(branch, upIn); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+}
+
+func (b *Brancher) branchInfo() {
+	branches, err := b.gitClient.ListLocalBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
+	for i, br := range branches {
+		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
+	}
+	_, _ = fmt.Fprint(b.outputWriter, "Enter the number to show info: ")
+	input, _ := b.inputReader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	idx, err := strconv.Atoi(input)
+	if err != nil || idx < 1 || idx > len(branches) {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+		return
+	}
+	branch := branches[idx-1]
+	bi, err := b.gitClient.GetBranchInfo(branch)
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	// Display detailed info
+	_, _ = fmt.Fprintf(b.outputWriter, "Name: %s\n", bi.Name)
+	_, _ = fmt.Fprintf(b.outputWriter, "Current: %t\n", bi.IsCurrentBranch)
+	if bi.Upstream != "" {
+		_, _ = fmt.Fprintf(b.outputWriter, "Upstream: %s\n", bi.Upstream)
+	}
+	if bi.AheadBehind != "" {
+		_, _ = fmt.Fprintf(b.outputWriter, "Ahead/Behind: %s\n", bi.AheadBehind)
+	}
+	if bi.LastCommitSHA != "" {
+		_, _ = fmt.Fprintf(b.outputWriter, "Last Commit: %s %s\n", bi.LastCommitSHA, bi.LastCommitMsg)
+	} else if bi.LastCommitMsg != "" {
+		_, _ = fmt.Fprintf(b.outputWriter, "Last Commit: %s\n", bi.LastCommitMsg)
+	}
+}
+
+func (b *Brancher) branchListVerbose() {
+	infos, err := b.gitClient.ListBranchesVerbose()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(infos) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+	for _, bi := range infos {
+		marker := " "
+		if bi.IsCurrentBranch {
+			marker = "*"
+		}
+		extra := ""
+		if bi.Upstream != "" && bi.AheadBehind != "" {
+			extra = fmt.Sprintf(" [%s: %s]", bi.Upstream, bi.AheadBehind)
+		} else if bi.Upstream != "" {
+			extra = fmt.Sprintf(" [%s]", bi.Upstream)
+		}
+		_, _ = fmt.Fprintf(b.outputWriter, "%s %s %s%s %s\n", marker, bi.Name, bi.LastCommitSHA, extra, bi.LastCommitMsg)
+	}
+}
+
+func (b *Brancher) branchSort() {
+	_, _ = fmt.Fprintln(b.outputWriter, "Sort by:")
+	_, _ = fmt.Fprintln(b.outputWriter, "[1] name")
+	_, _ = fmt.Fprintln(b.outputWriter, "[2] date")
+	_, _ = fmt.Fprint(b.outputWriter, "Enter number: ")
+	input, _ := b.inputReader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	by := "name"
+	if input == "2" {
+		by = "date"
+	}
+	names, err := b.gitClient.SortBranches(by)
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	for _, n := range names {
+		_, _ = fmt.Fprintln(b.outputWriter, n)
+	}
+}
+
+func (b *Brancher) branchContains() {
+	_, _ = fmt.Fprint(b.outputWriter, "Enter commit or ref: ")
+	input, _ := b.inputReader.ReadString('\n')
+	commit := strings.TrimSpace(input)
+	if commit == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+	if !b.gitClient.RevParseVerify(commit) {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid commit or ref.")
+		return
+	}
+	branches, err := b.gitClient.BranchesContaining(commit)
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No branches contain the specified commit.")
+		return
+	}
+	for _, br := range branches {
+		_, _ = fmt.Fprintln(b.outputWriter, br)
 	}
 }

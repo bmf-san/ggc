@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockCompleteGitClient is a mock implementation for complete tests
@@ -118,6 +120,21 @@ func (m *mockCompleteGitClient) StashClear() error                { return nil }
 func (m *mockCompleteGitClient) ResetHard(_ string) error         { return nil }
 func (m *mockCompleteGitClient) CleanDryRun() (string, error)     { return "", nil }
 func (m *mockCompleteGitClient) CleanFilesForce(_ []string) error { return nil }
+
+// Enhanced Branch Operations
+func (m *mockCompleteGitClient) RenameBranch(_, _ string) error      { return nil }
+func (m *mockCompleteGitClient) MoveBranch(_, _ string) error        { return nil }
+func (m *mockCompleteGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+func (m *mockCompleteGitClient) GetBranchInfo(_ string) (*git.BranchInfo, error) {
+	return &git.BranchInfo{Name: "main"}, nil
+}
+func (m *mockCompleteGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{}, nil
+}
+func (m *mockCompleteGitClient) SortBranches(_ string) ([]string, error) { return []string{}, nil }
+func (m *mockCompleteGitClient) BranchesContaining(_ string) ([]string, error) {
+	return []string{}, nil
+}
 
 func (m *mockCompleteGitClient) GetUpstreamBranchName(_ string) (string, error) {
 	return "origin/main", nil

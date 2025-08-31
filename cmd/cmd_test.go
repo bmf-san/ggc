@@ -129,6 +129,18 @@ func (m *mockGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
 }
 func (m *mockGitClient) DeleteBranch(_ string) error           { return nil }
 func (m *mockGitClient) ListMergedBranches() ([]string, error) { return []string{}, nil }
+func (m *mockGitClient) RenameBranch(_, _ string) error        { return nil }
+func (m *mockGitClient) MoveBranch(_, _ string) error          { return nil }
+func (m *mockGitClient) SetUpstreamBranch(_, _ string) error   { return nil }
+func (m *mockGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	bi := &git.BranchInfo{Name: branch}
+	return bi, nil
+}
+func (m *mockGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{}, nil
+}
+func (m *mockGitClient) SortBranches(_ string) ([]string, error)       { return []string{}, nil }
+func (m *mockGitClient) BranchesContaining(_ string) ([]string, error) { return []string{}, nil }
 
 // Remote Operations methods
 func (m *mockGitClient) Fetch(_ bool) error             { return nil }

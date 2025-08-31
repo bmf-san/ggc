@@ -48,6 +48,13 @@ type Clienter interface {
 	DeleteBranch(name string) error
 	ListMergedBranches() ([]string, error)
 	RevParseVerify(ref string) bool
+	RenameBranch(old, newName string) error
+	MoveBranch(branch, commit string) error
+	SetUpstreamBranch(branch, upstream string) error
+	GetBranchInfo(branch string) (*BranchInfo, error)
+	ListBranchesVerbose() ([]BranchInfo, error)
+	SortBranches(by string) ([]string, error)
+	BranchesContaining(commit string) ([]string, error)
 
 	// Remote Operations
 	Push(force bool) error
@@ -124,4 +131,73 @@ func NewClient() *Client {
 	return &Client{
 		execCommand: exec.Command,
 	}
+}
+
+// === Repository Information ===
+
+// BranchInfo contains rich information about a branch.
+type BranchInfo struct {
+	Name            string
+	IsCurrentBranch bool
+	Upstream        string
+	AheadBehind     string // e.g. "ahead 2, behind 1"
+	LastCommitSHA   string
+	LastCommitMsg   string
+}
+
+// GetCurrentBranch gets the current branch name.
+func (c *Client) GetCurrentBranch() (string, error) {
+	if c.GetCurrentBranchFunc != nil {
+		return c.GetCurrentBranchFunc()
+	}
+	cmd := c.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", NewError("get current branch", "git rev-parse --abbrev-ref HEAD", err)
+	}
+	branch := strings.TrimSpace(string(out))
+	return branch, nil
+}
+
+// RevParseVerify checks whether the given ref resolves to a valid object.
+// It runs: git rev-parse --verify --quiet <ref>
+func (c *Client) RevParseVerify(ref string) bool {
+	cmd := c.execCommand("git", "rev-parse", "--verify", "--quiet", ref)
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
+}
+
+// GetBranchName gets branch name.
+func (c *Client) GetBranchName() (string, error) {
+	cmd := c.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", NewError("get branch name", "git rev-parse --abbrev-ref HEAD", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// GetGitStatus gets git status.
+func (c *Client) GetGitStatus() (string, error) {
+	cmd := c.execCommand("git", "status", "--porcelain")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", NewError("get status", "git status --porcelain", err)
+	}
+	return string(out), nil
+}
+
+// === Branch Operations ===
+
+// CheckoutNewBranch creates a new branch and checks it out.
+func (c *Client) CheckoutNewBranch(name string) error {
+	cmd := c.execCommand("git", "checkout", "-b", name)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", name), err)
+	}
+	return nil
 }
