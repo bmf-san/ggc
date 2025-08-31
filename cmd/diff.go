@@ -18,7 +18,7 @@ type Differ struct {
 // NewDiffer creates a new Differ instance.
 func NewDiffer() *Differ {
 	return &Differ{
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 	}

@@ -20,7 +20,7 @@ type Stasher struct {
 // NewStasher creates a new Stasher instance.
 func NewStasher() *Stasher {
 	return &Stasher{
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 	}

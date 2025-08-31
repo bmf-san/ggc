@@ -18,7 +18,7 @@ type Pusher struct {
 
 // NewPusher creates a new Pusher.
 func NewPusher() *Pusher {
-	return NewPusherWithClient(git.NewClient())
+	return NewPusherWithClient(getGitClient())
 }
 
 // NewPusherWithClient creates a new Pusher with the specified git client.

@@ -23,7 +23,7 @@ type Brancher struct {
 // NewBrancher creates a new Brancher.
 func NewBrancher() *Brancher {
 	return &Brancher{
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 		inputReader:  bufio.NewReader(os.Stdin),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

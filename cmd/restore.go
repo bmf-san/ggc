@@ -24,7 +24,7 @@ func NewRestoreer() *Restoreer {
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 	}
 }
 

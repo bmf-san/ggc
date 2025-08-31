@@ -580,8 +580,12 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 
 // NewUI creates a new UI with default settings
 func NewUI() *UI {
+	return NewUIWithClient(getGitClient())
+}
+
+// NewUIWithClient creates a new UI with the provided git client
+func NewUIWithClient(gitClient git.Clienter) *UI {
 	colors := NewANSIColors()
-	gitClient := git.NewClient()
 
 	renderer := &Renderer{
 		writer: os.Stdout,
@@ -706,6 +710,13 @@ var commands = []CommandInfo{
 // Returns the selected command as []string (nil if nothing selected)
 func InteractiveUI() []string {
 	ui := NewUI()
+	return ui.Run()
+}
+
+// InteractiveUIWithClient provides an incremental search interactive UI with custom git client.
+// Returns the selected command as []string (nil if nothing selected)
+func InteractiveUIWithClient(gitClient git.Clienter) []string {
+	ui := NewUIWithClient(gitClient)
 	return ui.Run()
 }
 

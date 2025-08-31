@@ -18,7 +18,7 @@ type Fetcher struct {
 // NewFetcher creates a new Fetcher instance.
 func NewFetcher() *Fetcher {
 	return &Fetcher{
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 	}

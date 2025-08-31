@@ -19,7 +19,7 @@ type Remoteer struct {
 // NewRemoteer creates a new Remoteer.
 func NewRemoteer() *Remoteer {
 	r := &Remoteer{
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 	}

@@ -20,7 +20,7 @@ type Logger struct {
 
 // NewLogger creates a new Logger.
 func NewLogger() *Logger {
-	return NewLoggerWithClient(git.NewClient())
+	return NewLoggerWithClient(getGitClient())
 }
 
 // NewLoggerWithClient creates a new Logger with the specified git client.

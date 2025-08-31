@@ -18,7 +18,7 @@ type Adder struct {
 // NewAdder creates a new Adder.
 func NewAdder() *Adder {
 	return &Adder{
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 		outputWriter: os.Stdout,
 	}
 }

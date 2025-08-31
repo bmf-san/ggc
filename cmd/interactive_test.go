@@ -193,6 +193,11 @@ func TestUI_Run(t *testing.T) {
 			// Create test UI with new design
 			mockTerm := &mockTerminal{}
 			colors := NewANSIColors()
+			mockGitClient := &MockGitClient{
+				currentBranch: "main",
+				gitStatus:     "",
+				aheadBehind:   "0\t0",
+			}
 			renderer := &Renderer{
 				writer: &bytes.Buffer{},
 				colors: colors,
@@ -206,10 +211,12 @@ func TestUI_Run(t *testing.T) {
 
 			ui := &testUI{
 				UI: UI{
-					term:     mockTerm,
-					renderer: renderer,
-					state:    state,
-					colors:   colors,
+					term:      mockTerm,
+					renderer:  renderer,
+					state:     state,
+					colors:    colors,
+					gitClient: mockGitClient,
+					gitStatus: getGitStatus(mockGitClient),
 				},
 				inputBytes: tt.input,
 			}
@@ -663,14 +670,22 @@ func TestRenderer_KeybindHelp(t *testing.T) {
 		filtered:  []CommandInfo{}, // Empty to trigger keybind help
 	}
 
+	mockGitClient := &MockGitClient{
+		currentBranch: "main",
+		gitStatus:     "",
+		aheadBehind:   "0\t0",
+	}
+
 	ui := &UI{
-		stdin:    strings.NewReader(""),
-		stdout:   &buf,
-		stderr:   &bytes.Buffer{},
-		term:     &mockTerminal{},
-		renderer: renderer,
-		state:    state,
-		colors:   colors,
+		stdin:     strings.NewReader(""),
+		stdout:    &buf,
+		stderr:    &bytes.Buffer{},
+		term:      &mockTerminal{},
+		renderer:  renderer,
+		state:     state,
+		colors:    colors,
+		gitClient: mockGitClient,
+		gitStatus: getGitStatus(mockGitClient),
 	}
 
 	renderer.Render(ui, state)
@@ -975,16 +990,22 @@ func TestRenderer_RenderCommandItem(t *testing.T) {
 func TestKeyHandler_InteractiveInput(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	colors := NewANSIColors()
+	mockGitClient := &MockGitClient{
+		currentBranch: "main",
+		gitStatus:     "",
+		aheadBehind:   "0\t0",
+	}
 
 	// Mock terminal that fails raw mode to trigger fallback
 	mockTerm := &mockTerminal{shouldFailRaw: true}
 
 	ui := &UI{
-		stdin:  strings.NewReader("test value\n"),
-		stdout: &stdout,
-		stderr: &stderr,
-		colors: colors,
-		term:   mockTerm,
+		stdin:     strings.NewReader("test value\n"),
+		stdout:    &stdout,
+		stderr:    &stderr,
+		colors:    colors,
+		term:      mockTerm,
+		gitClient: mockGitClient,
 	}
 
 	handler := &KeyHandler{ui: ui}

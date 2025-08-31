@@ -125,10 +125,3 @@ func NewClient() *Client {
 		execCommand: exec.Command,
 	}
 }
-
-// All git operations have been moved to appropriate files:
-// - Repository Information: git/repository.go and git/rev-parse.go
-// - Branch Operations: git/branch.go
-// - Config Operations: git/config.go
-// - Describe Operations: git/describe.go
-// - Rev-parse Operations: git/rev-parse.go

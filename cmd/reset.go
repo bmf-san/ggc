@@ -21,7 +21,7 @@ func NewResetter() *Resetter {
 	return &Resetter{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 	}
 }
 

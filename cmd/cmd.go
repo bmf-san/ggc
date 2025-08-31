@@ -65,7 +65,7 @@ type Cmd struct {
 
 // NewCmd creates a new Cmd.
 func NewCmd() *Cmd {
-	client := git.NewClient()
+	client := getGitClient()
 	return &Cmd{
 		gitClient:    client,
 		outputWriter: os.Stdout,

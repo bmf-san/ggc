@@ -22,7 +22,7 @@ type Cleaner struct {
 
 // NewCleaner creates a new Cleaner.
 func NewCleaner() *Cleaner {
-	return NewCleanerWithClient(git.NewClient())
+	return NewCleanerWithClient(getGitClient())
 }
 
 // NewCleanerWithClient creates a new Cleaner with the specified git client.

@@ -19,7 +19,7 @@ type Committer struct {
 
 // NewCommitter creates a new Committer.
 func NewCommitter() *Committer {
-	return NewCommitterWithClient(git.NewClient())
+	return NewCommitterWithClient(getGitClient())
 }
 
 // NewCommitterWithClient creates a new Committer with the specified git client.

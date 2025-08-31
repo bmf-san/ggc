@@ -21,7 +21,7 @@ func NewStatuseer() *Statuseer {
 	return &Statuseer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		gitClient:    git.NewClient(),
+		gitClient:    getGitClient(),
 	}
 }
 

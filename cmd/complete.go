@@ -15,7 +15,7 @@ type Completer struct {
 // NewCompleter creates a new Completer.
 var NewCompleter = func() *Completer {
 	return &Completer{
-		gitClient: git.NewClient(),
+		gitClient: getGitClient(),
 	}
 }
 
