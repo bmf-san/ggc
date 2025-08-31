@@ -21,9 +21,9 @@ type Brancher struct {
 }
 
 // NewBrancher creates a new Brancher.
-func NewBrancher() *Brancher {
+func NewBrancher(client git.Clienter) *Brancher {
 	return &Brancher{
-		gitClient:    getGitClient(),
+		gitClient:    client,
 		inputReader:  bufio.NewReader(os.Stdin),
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

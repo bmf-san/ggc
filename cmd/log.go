@@ -19,12 +19,7 @@ type Logger struct {
 }
 
 // NewLogger creates a new Logger.
-func NewLogger() *Logger {
-	return NewLoggerWithClient(getGitClient())
-}
-
-// NewLoggerWithClient creates a new Logger with the specified git client.
-func NewLoggerWithClient(client git.Clienter) *Logger {
+func NewLogger(client git.Clienter) *Logger {
 	l := &Logger{
 		gitClient:    client,
 		outputWriter: os.Stdout,

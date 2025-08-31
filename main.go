@@ -6,6 +6,7 @@ import (
 
 	"github.com/bmf-san/ggc/v4/cmd"
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 	"github.com/bmf-san/ggc/v4/router"
 )
 
@@ -23,7 +24,7 @@ func main() {
 	cm := config.NewConfigManager()
 	cm.LoadConfig()
 	cmd.SetVersionGetter(GetVersionInfo)
-	c := cmd.NewCmd()
+	c := cmd.NewCmd(git.NewClient())
 	r := router.NewRouter(c, cm)
 	r.Route(os.Args[1:])
 }

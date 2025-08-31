@@ -19,12 +19,12 @@ type Restoreer struct {
 }
 
 // NewRestoreer creates a new Restoreer instance.
-func NewRestoreer() *Restoreer {
+func NewRestoreer(client git.Clienter) *Restoreer {
 	return &Restoreer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
-		gitClient:    getGitClient(),
+		gitClient:    client,
 	}
 }
 

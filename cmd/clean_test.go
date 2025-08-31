@@ -143,7 +143,7 @@ func TestCleaner_Clean(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := &mockCleanGitClient{}
 			var buf bytes.Buffer
-			cleaner := NewCleanerWithClient(mockClient)
+			cleaner := NewCleaner(mockClient)
 			cleaner.outputWriter = &buf
 			cleaner.Clean(tt.args)
 

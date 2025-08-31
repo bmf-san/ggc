@@ -1,33 +1,18 @@
+// Package cmd provides command implementations for the ggc CLI tool.
+// This file contains testing utilities for git clients.
 package cmd
 
 import (
-	"os"
-	"strings"
-
 	"github.com/bmf-san/ggc/v4/git"
 )
 
-// isTestEnvironment checks if we're running in a test environment
-func isTestEnvironment() bool {
-	// Check if we're running under go test
-	for _, arg := range os.Args {
-		if strings.Contains(arg, "test") || strings.HasSuffix(arg, ".test") {
-			return true
-		}
+// NewMockGitClient creates a new mock git client for testing
+func NewMockGitClient() git.Clienter {
+	return &TestMockGitClient{
+		currentBranch: "main",
+		gitStatus:     "",
+		aheadBehind:   "0\t0",
 	}
-	return false
-}
-
-// getGitClient returns appropriate git client based on environment
-func getGitClient() git.Clienter {
-	if isTestEnvironment() {
-		return &TestMockGitClient{
-			currentBranch: "main",
-			gitStatus:     "",
-			aheadBehind:   "0\t0",
-		}
-	}
-	return git.NewClient()
 }
 
 // TestMockGitClient is a mock git client for testing

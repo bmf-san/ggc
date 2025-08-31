@@ -58,6 +58,7 @@ func TestVersioneer_Version(t *testing.T) {
 
 			var buf bytes.Buffer
 			v := &Versioneer{
+				gitClient:    NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,

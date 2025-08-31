@@ -195,6 +195,7 @@ func TestConfigureer_Config(t *testing.T) {
 			}()
 
 			c := &Configureer{
+				gitClient:    NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,
@@ -255,6 +256,7 @@ func TestConfigureer_LoadConfig(t *testing.T) {
 			}()
 
 			c := &Configureer{
+				gitClient:    NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,

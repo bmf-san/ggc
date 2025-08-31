@@ -215,7 +215,7 @@ func TestCmd_Pull(t *testing.T) {
 	cmd := &Cmd{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-		puller:       NewPullerWithClient(mockClient),
+		puller:       NewPuller(mockClient),
 	}
 
 	cmd.Pull([]string{"current"})
@@ -234,7 +234,7 @@ func TestCmd_Push(t *testing.T) {
 	cmd := &Cmd{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-		pusher:       NewPusherWithClient(mockClient),
+		pusher:       NewPusher(mockClient),
 	}
 
 	cmd.Push([]string{"current"})
@@ -275,7 +275,7 @@ func TestCmd_Log(t *testing.T) {
 			cmd := &Cmd{
 				outputWriter: io.Discard,
 				gitClient:    mc,
-				logger:       NewLoggerWithClient(mc),
+				logger:       NewLogger(mc),
 			}
 			cmd.Log(tc.args)
 
@@ -307,7 +307,7 @@ func TestCmd_Commit(t *testing.T) {
 			cmd := &Cmd{
 				outputWriter: io.Discard,
 				gitClient:    mc,
-				committer:    NewCommitterWithClient(mc),
+				committer:    NewCommitter(mc),
 			}
 			cmd.Commit(tc.args)
 
@@ -362,7 +362,7 @@ func TestCmd_Clean(t *testing.T) {
 			cmd := &Cmd{
 				outputWriter: io.Discard,
 				gitClient:    mc,
-				cleaner:      NewCleanerWithClient(mc),
+				cleaner:      NewCleaner(mc),
 			}
 			cmd.Clean(tc.args)
 
@@ -374,37 +374,10 @@ func TestCmd_Clean(t *testing.T) {
 }
 
 func TestNewCmd(t *testing.T) {
-	// Test structure creation without calling NewCmd() to avoid actual git client
+	// Test structure creation using NewCmdWithClient to inject mock
 	mockClient := &mockGitClient{}
-	var buf bytes.Buffer
 
-	cmd := &Cmd{
-		helper: NewHelper(),
-		// Initialize with mock-based components to avoid git command execution
-		adder:       &Adder{gitClient: mockClient, outputWriter: &buf},
-		brancher:    &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: NewHelper()},
-		committer:   &Committer{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		logger:      &Logger{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		puller:      &Puller{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		pusher:      &Pusher{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		rebaser:     &Rebaser{outputWriter: &buf, helper: NewHelper(), inputReader: bufio.NewReader(strings.NewReader(""))},
-		remoteer:    &Remoteer{outputWriter: &buf, helper: NewHelper()},
-		resetter:    &Resetter{outputWriter: &buf, helper: NewHelper()},
-		stasher:     &Stasher{outputWriter: &buf, helper: NewHelper()},
-		fetcher:     &Fetcher{outputWriter: &buf, helper: NewHelper()},
-		completer:   &Completer{gitClient: mockClient},
-		differ:      &Differ{outputWriter: &buf, helper: NewHelper()},
-		tagger:      &Tagger{outputWriter: &buf, helper: NewHelper()},
-		versioneer:  &Versioneer{outputWriter: &buf, helper: NewHelper()},
-		configureer: &Configureer{outputWriter: &buf, helper: NewHelper()},
-		hooker:      &Hooker{outputWriter: &buf, helper: NewHelper()},
-		restoreer:   &Restoreer{outputWriter: &buf, helper: NewHelper()},
-		cleaner:     &Cleaner{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-	}
-
-	// Set fields that are used in tests
-	cmd.gitClient = mockClient
-	cmd.outputWriter = &buf
+	cmd := NewCmd(mockClient)
 
 	// Check if all fields are properly initialized
 	if cmd.adder == nil {
@@ -519,11 +492,11 @@ func TestCmd_Route(t *testing.T) {
 		remoteer:    &Remoteer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		rebaser:     &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
 		stasher:     &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		configureer: &Configureer{outputWriter: io.Discard, helper: helper},
-		hooker:      &Hooker{outputWriter: io.Discard, helper: helper},
+		configureer: &Configureer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		hooker:      &Hooker{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		tagger:      &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		statuseer:   &Statuseer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		versioneer:  &Versioneer{outputWriter: io.Discard, helper: helper},
+		versioneer:  &Versioneer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		completer:   &Completer{gitClient: mockClient},
 		differ:      &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		restoreer:   &Restoreer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
@@ -620,7 +593,7 @@ func TestCmd_Config(t *testing.T) {
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mockClient,
-		configureer:  &Configureer{outputWriter: io.Discard, helper: helper},
+		configureer:  &Configureer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
 
 	// Test that Config calls the configureer
@@ -730,7 +703,7 @@ func TestCmd_Version(t *testing.T) {
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mockClient,
-		versioneer:   &Versioneer{outputWriter: io.Discard, helper: helper},
+		versioneer:   &Versioneer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
 
 	// Test that Version calls the versioneer

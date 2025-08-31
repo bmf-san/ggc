@@ -17,16 +17,7 @@ type Resetter struct {
 }
 
 // NewResetter creates a new Resetter instance.
-func NewResetter() *Resetter {
-	return &Resetter{
-		outputWriter: os.Stdout,
-		helper:       NewHelper(),
-		gitClient:    getGitClient(),
-	}
-}
-
-// NewResetterWithClient creates a new Resetter instance with a custom git client.
-func NewResetterWithClient(client git.Clienter) *Resetter {
+func NewResetter(client git.Clienter) *Resetter {
 	return &Resetter{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

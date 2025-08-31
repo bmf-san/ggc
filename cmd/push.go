@@ -17,12 +17,7 @@ type Pusher struct {
 }
 
 // NewPusher creates a new Pusher.
-func NewPusher() *Pusher {
-	return NewPusherWithClient(getGitClient())
-}
-
-// NewPusherWithClient creates a new Pusher with the specified git client.
-func NewPusherWithClient(client git.Clienter) *Pusher {
+func NewPusher(client git.Clienter) *Pusher {
 	p := &Pusher{
 		gitClient:    client,
 		outputWriter: os.Stdout,

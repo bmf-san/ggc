@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // Configureer handles config operations.
@@ -17,20 +18,22 @@ type Configureer struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
+	gitClient    git.Clienter
 }
 
 // NewConfigureer creates a new Configureer instance.
-func NewConfigureer() *Configureer {
+func NewConfigureer(client git.Clienter) *Configureer {
 	return &Configureer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
+		gitClient:    client,
 	}
 }
 
 // LoadConfig executes loads the configuration.
 func (c *Configureer) LoadConfig() *config.Manager {
-	cm := config.NewConfigManager()
+	cm := config.NewConfigManagerWithClient(c.gitClient)
 	if err := cm.Load(); err != nil {
 		_, _ = fmt.Fprintf(c.outputWriter, "failed to load config: %s", err)
 		return nil

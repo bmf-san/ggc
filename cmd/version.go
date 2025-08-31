@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // VersionGetter is a function type for getting version info
@@ -26,21 +27,23 @@ type Versioneer struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
+	gitClient    git.Clienter
 }
 
 // NewVersioneer creates a new Versioneer instance.
-func NewVersioneer() *Versioneer {
+func NewVersioneer(client git.Clienter) *Versioneer {
 	return &Versioneer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
+		gitClient:    client,
 	}
 }
 
 // Version returns the ggc version with the given arguments.
 func (v *Versioneer) Version(args []string) {
 	if len(args) == 0 {
-		configManager := config.NewConfigManager()
+		configManager := config.NewConfigManagerWithClient(v.gitClient)
 		configManager.LoadConfig()
 
 		loadedConfig := configManager.GetConfig()

@@ -17,11 +17,11 @@ type Statuseer struct {
 }
 
 // NewStatuseer creates a new Statuseer instance.
-func NewStatuseer() *Statuseer {
+func NewStatuseer(client git.Clienter) *Statuseer {
 	return &Statuseer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
-		gitClient:    getGitClient(),
+		gitClient:    client,
 	}
 }
 

@@ -16,9 +16,9 @@ type Adder struct {
 }
 
 // NewAdder creates a new Adder.
-func NewAdder() *Adder {
+func NewAdder(client git.Clienter) *Adder {
 	return &Adder{
-		gitClient:    getGitClient(),
+		gitClient:    client,
 		outputWriter: os.Stdout,
 	}
 }

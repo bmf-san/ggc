@@ -13,25 +13,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// isTestEnvironment checks if we're running in a test environment
-func isTestEnvironment() bool {
-	// Check if we're running under go test
-	for _, arg := range os.Args {
-		if strings.Contains(arg, "test") || strings.HasSuffix(arg, ".test") {
-			return true
-		}
-	}
-	return false
-}
-
-// getGitClient returns appropriate git client based on environment
+// getGitClient returns the real git client for production use
 func getGitClient() git.Clienter {
-	if isTestEnvironment() {
-		return &testMockGitClient{
-			version:    "test-version",
-			commitHash: "test-commit",
-		}
-	}
 	return git.NewClient()
 }
 
@@ -192,9 +175,13 @@ type Manager struct {
 	gitClient  git.Clienter
 }
 
-// NewConfigManager creates a new configuration manager
+// NewConfigManager creates a new configuration manager with default git client
 func NewConfigManager() *Manager {
-	gitClient := getGitClient()
+	return NewConfigManagerWithClient(getGitClient())
+}
+
+// NewConfigManagerWithClient creates a new configuration manager with the provided git client
+func NewConfigManagerWithClient(gitClient git.Clienter) *Manager {
 	return &Manager{
 		config:    getDefaultConfig(gitClient),
 		gitClient: gitClient,

@@ -18,12 +18,7 @@ type Committer struct {
 }
 
 // NewCommitter creates a new Committer.
-func NewCommitter() *Committer {
-	return NewCommitterWithClient(getGitClient())
-}
-
-// NewCommitterWithClient creates a new Committer with the specified git client.
-func NewCommitterWithClient(client git.Clienter) *Committer {
+func NewCommitter(client git.Clienter) *Committer {
 	c := &Committer{
 		gitClient:    client,
 		outputWriter: os.Stdout,

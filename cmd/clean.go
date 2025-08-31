@@ -21,12 +21,7 @@ type Cleaner struct {
 }
 
 // NewCleaner creates a new Cleaner.
-func NewCleaner() *Cleaner {
-	return NewCleanerWithClient(getGitClient())
-}
-
-// NewCleanerWithClient creates a new Cleaner with the specified git client.
-func NewCleanerWithClient(client git.Clienter) *Cleaner {
+func NewCleaner(client git.Clienter) *Cleaner {
 	c := &Cleaner{
 		gitClient:    client,
 		outputWriter: os.Stdout,
