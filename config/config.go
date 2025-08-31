@@ -13,11 +13,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// getGitClient returns the real git client for production use
-func getGitClient() git.Clienter {
-	return git.NewClient()
-}
-
 // GitConfigExecutor interface for git config operations (for testing)
 type GitConfigExecutor interface {
 	ConfigSetGlobal(key, value string) error
@@ -87,13 +82,8 @@ type Manager struct {
 	gitClient  git.Clienter
 }
 
-// NewConfigManager creates a new configuration manager with default git client
-func NewConfigManager() *Manager {
-	return NewConfigManagerWithClient(getGitClient())
-}
-
-// NewConfigManagerWithClient creates a new configuration manager with the provided git client
-func NewConfigManagerWithClient(gitClient git.Clienter) *Manager {
+// NewConfigManager creates a new configuration manager with the provided git client
+func NewConfigManager(gitClient git.Clienter) *Manager {
 	return &Manager{
 		config:    getDefaultConfig(gitClient),
 		gitClient: gitClient,

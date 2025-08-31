@@ -33,7 +33,7 @@ func NewConfigureer(client git.Clienter) *Configureer {
 
 // LoadConfig executes loads the configuration.
 func (c *Configureer) LoadConfig() *config.Manager {
-	cm := config.NewConfigManagerWithClient(c.gitClient)
+	cm := config.NewConfigManager(c.gitClient)
 	if err := cm.Load(); err != nil {
 		_, _ = fmt.Fprintf(c.outputWriter, "failed to load config: %s", err)
 		return nil

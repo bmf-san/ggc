@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v4/config"
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 func TestGetVersionInfo(t *testing.T) {
@@ -36,7 +37,7 @@ func TestMain(t *testing.T) {
 	// We avoid calling main() directly to prevent actual git command execution during tests
 
 	// Test config manager creation (safe, no git commands)
-	cm := config.NewConfigManager()
+	cm := config.NewConfigManager(git.NewClient())
 	if cm == nil {
 		t.Error("config manager should be created")
 	}

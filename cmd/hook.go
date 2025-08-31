@@ -211,7 +211,7 @@ func (h *Hooker) editHook(hookName string) {
 		return
 	}
 
-	val, err := config.NewConfigManagerWithClient(h.gitClient).Get("default.editor")
+	val, err := config.NewConfigManager(h.gitClient).Get("default.editor")
 	editor, ok := val.(string)
 	if err != nil || !ok || editor == "" {
 		editor = "vi" // fallback

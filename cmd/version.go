@@ -43,7 +43,7 @@ func NewVersioneer(client git.Clienter) *Versioneer {
 // Version returns the ggc version with the given arguments.
 func (v *Versioneer) Version(args []string) {
 	if len(args) == 0 {
-		configManager := config.NewConfigManagerWithClient(v.gitClient)
+		configManager := config.NewConfigManager(v.gitClient)
 		configManager.LoadConfig()
 
 		loadedConfig := configManager.GetConfig()

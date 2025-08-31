@@ -21,7 +21,7 @@ func GetVersionInfo() (string, string) {
 }
 
 func main() {
-	cm := config.NewConfigManager()
+	cm := config.NewConfigManager(git.NewClient())
 	cm.LoadConfig()
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd(git.NewClient())
