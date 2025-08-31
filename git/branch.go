@@ -187,11 +187,12 @@ func (c *Client) GetBranchInfo(branch string) (*BranchInfo, error) {
 			// rev-list --left-right --count returns "<ahead>\t<behind>"
 			parts := strings.Split(strings.TrimSpace(ab), "\t")
 			if len(parts) == 2 && (parts[0] != "0" || parts[1] != "0") {
-				if parts[0] != "0" && parts[1] != "0" {
+				switch {
+				case parts[0] != "0" && parts[1] != "0":
 					aheadBehind = fmt.Sprintf("ahead %s, behind %s", parts[0], parts[1])
-				} else if parts[0] != "0" {
+				case parts[0] != "0":
 					aheadBehind = fmt.Sprintf("ahead %s", parts[0])
-				} else if parts[1] != "0" {
+				case parts[1] != "0":
 					aheadBehind = fmt.Sprintf("behind %s", parts[1])
 				}
 			}

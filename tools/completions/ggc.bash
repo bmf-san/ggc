@@ -11,7 +11,12 @@ _ggc()
 
     case ${prev} in
         branch)
-            subopts="current checkout checkout-remote delete delete-merged list-local list-remote"
+            subopts="current checkout checkout-remote delete delete-merged rename move set-upstream info list-local list-remote list sort contains"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        list)
+            subopts="--verbose"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

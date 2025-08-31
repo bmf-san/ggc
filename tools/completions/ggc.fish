@@ -11,10 +11,13 @@ end
 complete -c ggc -f -a "add branch clean version restore hook diff status clean-interactive commit complete tag fetch log pull push rebase remote reset stash"
 
 # Branch subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout checkout-remote delete delete-merged list-local list-remote"
+complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout checkout-remote delete delete-merged rename move set-upstream info list-local list-remote list sort contains"
 
 # Branch checkout completion with dynamic branch names
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from checkout" -a "(__ggc_complete_branches)"
+
+# Branch list options
+complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -l verbose
 
 # Commit subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow-empty amend"

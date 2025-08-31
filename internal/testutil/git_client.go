@@ -132,3 +132,34 @@ func (m *testMockGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 }
 func (m *testMockGitClient) GetVersion() (string, error)    { return "test-version", nil }
 func (m *testMockGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
+func (m *testMockGitClient) BranchesContaining(_ string) ([]string, error) {
+	return []string{"main", "develop"}, nil
+}
+func (m *testMockGitClient) GetBranchInfo(_ string) (*git.BranchInfo, error) {
+	return &git.BranchInfo{
+		Name:            "main",
+		IsCurrentBranch: true,
+		Upstream:        "origin/main",
+		AheadBehind:     "up to date",
+		LastCommitSHA:   "abc123",
+		LastCommitMsg:   "test commit",
+	}, nil
+}
+func (m *testMockGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{
+		{
+			Name:            "main",
+			IsCurrentBranch: true,
+			Upstream:        "origin/main",
+			AheadBehind:     "up to date",
+			LastCommitSHA:   "abc123",
+			LastCommitMsg:   "test commit",
+		},
+	}, nil
+}
+
+// Additional missing methods
+func (m *testMockGitClient) MoveBranch(_, _ string) error            { return nil }
+func (m *testMockGitClient) RenameBranch(_, _ string) error          { return nil }
+func (m *testMockGitClient) SetUpstreamBranch(_, _ string) error     { return nil }
+func (m *testMockGitClient) SortBranches(_ string) ([]string, error) { return []string{"main"}, nil }

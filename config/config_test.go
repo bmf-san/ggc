@@ -12,8 +12,6 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-
-
 // newTestConfigManager creates a config manager for testing without executing git commands
 func newTestConfigManager() *Manager {
 	mockClient := testutil.NewMockGitClient()
@@ -252,7 +250,8 @@ func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "test-invalid-save.yaml")
 
-	cm := NewConfigManager()
+	mockClient := testutil.NewMockGitClient()
+	cm := NewConfigManager(mockClient)
 	cm.configPath = configPath
 
 	// Force an invalid editor so validation fails
