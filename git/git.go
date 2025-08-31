@@ -51,6 +51,13 @@ type Clienter interface {
 	DeleteBranch(name string) error
 	ListMergedBranches() ([]string, error)
 	RevParseVerify(ref string) bool
+	RenameBranch(old, newName string) error
+	MoveBranch(branch, commit string) error
+	SetUpstreamBranch(branch, upstream string) error
+	GetBranchInfo(branch string) (*BranchInfo, error)
+	ListBranchesVerbose() ([]BranchInfo, error)
+	SortBranches(by string) ([]string, error)
+	BranchesContaining(commit string) ([]string, error)
 
 	// === Remote Operations ===
 	Push(force bool) error
@@ -120,6 +127,16 @@ func NewClient() *Client {
 }
 
 // === Repository Information ===
+
+// BranchInfo contains rich information about a branch.
+type BranchInfo struct {
+	Name            string
+	IsCurrentBranch bool
+	Upstream        string
+	AheadBehind     string // e.g. "ahead 2, behind 1"
+	LastCommitSHA   string
+	LastCommitMsg   string
+}
 
 // GetCurrentBranch gets the current branch name.
 func (c *Client) GetCurrentBranch() (string, error) {

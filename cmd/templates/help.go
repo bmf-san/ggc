@@ -35,6 +35,13 @@ Main Commands:
   ggc branch checkout-remote  Create and checkout new local branch from remote
   ggc branch delete          Interactive delete of local branches
   ggc branch delete-merged   Interactive delete of merged local branches
+  ggc branch rename <old> <new>         Rename branch
+  ggc branch move <branch> <commit>     Move branch pointer
+  ggc branch set-upstream <branch> <up> Set upstream branch
+  ggc branch info <branch>              Show branch details
+  ggc branch list --verbose             Detailed branch list
+  ggc branch sort [date|name]           Sort branches
+  ggc branch contains <commit>          Show branches containing commit
   ggc clean files             Clean files
   ggc clean dirs              Clean directories
   ggc clean-interactive       Interactive file cleaning

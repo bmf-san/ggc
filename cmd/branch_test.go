@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/git"
 )
 
 // mockBranchGitClient is a mock implementation of git.Clienter for branch tests
@@ -73,34 +75,6 @@ func (m *mockBranchGitClient) CheckoutNewBranch(branchName string) error {
 	if branchName == "main" {
 		return errors.New("fatal: a branch named 'main' already exists")
 	}
-	// Validate branch name
-	if strings.HasPrefix(branchName, ".") {
-		return errors.New("Invalid: starts with dot")
-	}
-	if strings.HasSuffix(branchName, ".") {
-		return errors.New("Invalid: ends with dot")
-	}
-	if strings.Contains(branchName, "..") {
-		return errors.New("Invalid: consecutive dots")
-	}
-	if strings.Contains(branchName, " ") {
-		return errors.New("Invalid: contains spaces")
-	}
-	if strings.ContainsAny(branchName, "@#$%^&*()+={}[]|\\:;\"'<>,?") {
-		return errors.New("Invalid: special characters")
-	}
-	if len(branchName) > 250 {
-		return errors.New("Very long branch name")
-	}
-	// Check for control characters and non-ASCII
-	for _, r := range branchName {
-		if r < 32 || r == 127 {
-			return errors.New("Invalid: control characters")
-		}
-		if r > 127 {
-			return errors.New("Error: non-ASCII characters")
-		}
-	}
 	return nil
 }
 func (m *mockBranchGitClient) CheckoutBranch(_ string) error { return nil }
@@ -113,6 +87,33 @@ func (m *mockBranchGitClient) ListMergedBranches() ([]string, error) {
 		return m.mergedBranches, nil
 	}
 	return []string{}, nil
+}
+func (m *mockBranchGitClient) RenameBranch(_, _ string) error      { return nil }
+func (m *mockBranchGitClient) MoveBranch(_, _ string) error        { return nil }
+func (m *mockBranchGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+func (m *mockBranchGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	// Provide simple consistent info
+	bi := &git.BranchInfo{
+		Name:            branch,
+		IsCurrentBranch: branch == "main",
+		Upstream:        "origin/" + branch,
+		AheadBehind:     "ahead 1",
+		LastCommitSHA:   "abc1234",
+		LastCommitMsg:   "Test commit",
+	}
+	return bi, nil
+}
+func (m *mockBranchGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	return []git.BranchInfo{
+		{Name: "main", IsCurrentBranch: true, Upstream: "origin/main", LastCommitSHA: "1234567", LastCommitMsg: "msg"},
+		{Name: "feature", IsCurrentBranch: false, Upstream: "origin/feature", LastCommitSHA: "89abcde", LastCommitMsg: "msg2"},
+	}, nil
+}
+func (m *mockBranchGitClient) SortBranches(_ string) ([]string, error) {
+	return []string{"a", "b"}, nil
+}
+func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
+	return []string{"main", "feature"}, nil
 }
 
 // Remote Operations methods
@@ -661,6 +662,27 @@ func TestBrancher_branchCheckoutRemote_InvalidBranchName(t *testing.T) {
 	}
 }
 
+func TestBrancher_branchCheckoutRemote_EmptyLocalFromRemote(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"remote/"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+	}
+
+	brancher.branchCheckoutRemote()
+
+	output := buf.String()
+	if !strings.Contains(output, "Invalid remote branch name.") {
+		t.Error("Expected invalid remote branch name message for empty local name")
+	}
+}
+
 func TestBrancher_Branch_Create(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -808,8 +830,8 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 		{
 			name:         "Maximum length branch name",
 			branchName:   strings.Repeat("a", 255),
-			expectedPass: false,
-			description:  "Very long branch name",
+			expectedPass: true,
+			description:  "Long branch name allowed by git",
 		},
 		{
 			name:         "Branch name with dots",
@@ -839,7 +861,7 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 			name:         "Branch name starting with dot",
 			branchName:   ".test",
 			expectedPass: false,
-			description:  "Invalid: starts with dot",
+			description:  "Leading dot is rejected by git",
 		},
 		{
 			name:         "Branch name ending with dot",
@@ -862,8 +884,8 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 		{
 			name:         "Branch name with special characters",
 			branchName:   "test@#$%",
-			expectedPass: false,
-			description:  "Invalid: special characters",
+			expectedPass: true,
+			description:  "Allowed by git check-ref-format (no forbidden sequences)",
 		},
 		{
 			name:         "Branch name with control characters",
@@ -927,7 +949,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 		{
 			name:     "Very long input",
 			input:    strings.Repeat("a", 1000) + "\n",
-			expected: "Error:",
+			expected: "", // Git allows long branch names
 		},
 		{
 			name:     "Input with trailing spaces",
@@ -942,7 +964,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 		{
 			name:     "Unicode characters",
 			input:    "brαnch\n",
-			expected: "Error:",
+			expected: "", // Git allows UTF-8 branch names
 		},
 		{
 			name:     "Mixed case input",
