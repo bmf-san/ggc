@@ -1,6 +1,6 @@
-// Package cmd provides command implementations for the ggc CLI tool.
+// Package testutil provides testing utilities for the ggc CLI tool.
 // This file contains testing utilities for git clients.
-package cmd
+package testutil
 
 import (
 	"github.com/bmf-san/ggc/v4/git"
@@ -10,8 +10,8 @@ import (
 func NewMockGitClient() git.Clienter {
 	return &testMockGitClient{
 		currentBranch: "main",
-		gitStatus:     "",
-		aheadBehind:   "0\t0",
+		gitStatus:     "A  file1.txt\n M file2.txt\n",
+		aheadBehind:   "2\t1",
 	}
 }
 

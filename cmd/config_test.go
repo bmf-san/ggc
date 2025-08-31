@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/internal/testutil"
 )
 
 // Mock config manager for testing
@@ -195,7 +197,7 @@ func TestConfigureer_Config(t *testing.T) {
 			}()
 
 			c := &Configureer{
-				gitClient:    NewMockGitClient(),
+				gitClient:    testutil.NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,
@@ -256,7 +258,7 @@ func TestConfigureer_LoadConfig(t *testing.T) {
 			}()
 
 			c := &Configureer{
-				gitClient:    NewMockGitClient(),
+				gitClient:    testutil.NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,

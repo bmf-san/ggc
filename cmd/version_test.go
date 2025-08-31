@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v4/internal/testutil"
 )
 
 func TestVersioneer_Version(t *testing.T) {
@@ -58,7 +60,7 @@ func TestVersioneer_Version(t *testing.T) {
 
 			var buf bytes.Buffer
 			v := &Versioneer{
-				gitClient:    NewMockGitClient(),
+				gitClient:    testutil.NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
 				execCommand:  exec.Command,

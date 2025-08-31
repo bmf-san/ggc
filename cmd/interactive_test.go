@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bmf-san/ggc/v4/internal/testutil"
 	"golang.org/x/term"
 )
 
@@ -34,116 +35,7 @@ func (m *mockTerminal) restore(_ int, _ *term.State) error {
 	return nil
 }
 
-// MockGitClient implements git.Clienter for testing
-type MockGitClient struct {
-	currentBranch string
-	gitStatus     string
-	aheadBehind   string
-}
 
-// Repository Information
-func (m *MockGitClient) GetCurrentBranch() (string, error) { return m.currentBranch, nil }
-func (m *MockGitClient) GetBranchName() (string, error)    { return m.currentBranch, nil }
-func (m *MockGitClient) GetGitStatus() (string, error)     { return m.gitStatus, nil }
-
-// Status Operations
-func (m *MockGitClient) Status() (string, error)               { return "", nil }
-func (m *MockGitClient) StatusShort() (string, error)          { return "", nil }
-func (m *MockGitClient) StatusWithColor() (string, error)      { return "", nil }
-func (m *MockGitClient) StatusShortWithColor() (string, error) { return "", nil }
-
-// Staging Operations
-func (m *MockGitClient) Add(_ ...string) error { return nil }
-func (m *MockGitClient) AddInteractive() error { return nil }
-
-// Commit Operations
-func (m *MockGitClient) Commit(_ string) error                 { return nil }
-func (m *MockGitClient) CommitAmend() error                    { return nil }
-func (m *MockGitClient) CommitAmendNoEdit() error              { return nil }
-func (m *MockGitClient) CommitAmendWithMessage(_ string) error { return nil }
-func (m *MockGitClient) CommitAllowEmpty() error               { return nil }
-
-// Diff Operations
-func (m *MockGitClient) Diff() (string, error)       { return "", nil }
-func (m *MockGitClient) DiffStaged() (string, error) { return "", nil }
-func (m *MockGitClient) DiffHead() (string, error)   { return "", nil }
-
-// Branch Operations
-func (m *MockGitClient) ListLocalBranches() ([]string, error)          { return nil, nil }
-func (m *MockGitClient) ListRemoteBranches() ([]string, error)         { return nil, nil }
-func (m *MockGitClient) CheckoutNewBranch(_ string) error              { return nil }
-func (m *MockGitClient) CheckoutBranch(_ string) error                 { return nil }
-func (m *MockGitClient) CheckoutNewBranchFromRemote(_, _ string) error { return nil }
-func (m *MockGitClient) DeleteBranch(_ string) error                   { return nil }
-func (m *MockGitClient) ListMergedBranches() ([]string, error)         { return nil, nil }
-func (m *MockGitClient) RevParseVerify(_ string) bool                  { return false }
-
-// Remote Operations
-func (m *MockGitClient) Push(_ bool) error              { return nil }
-func (m *MockGitClient) Pull(_ bool) error              { return nil }
-func (m *MockGitClient) Fetch(_ bool) error             { return nil }
-func (m *MockGitClient) RemoteList() error              { return nil }
-func (m *MockGitClient) RemoteAdd(_, _ string) error    { return nil }
-func (m *MockGitClient) RemoteRemove(_ string) error    { return nil }
-func (m *MockGitClient) RemoteSetURL(_, _ string) error { return nil }
-
-// Tag Operations
-func (m *MockGitClient) TagList(_ []string) error              { return nil }
-func (m *MockGitClient) TagCreate(_, _ string) error           { return nil }
-func (m *MockGitClient) TagCreateAnnotated(_, _ string) error  { return nil }
-func (m *MockGitClient) TagDelete(_ []string) error            { return nil }
-func (m *MockGitClient) TagPush(_, _ string) error             { return nil }
-func (m *MockGitClient) TagPushAll(_ string) error             { return nil }
-func (m *MockGitClient) TagShow(_ string) error                { return nil }
-func (m *MockGitClient) GetLatestTag() (string, error)         { return "", nil }
-func (m *MockGitClient) TagExists(_ string) bool               { return false }
-func (m *MockGitClient) GetTagCommit(_ string) (string, error) { return "", nil }
-
-// Log Operations
-func (m *MockGitClient) LogSimple() error                       { return nil }
-func (m *MockGitClient) LogGraph() error                        { return nil }
-func (m *MockGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
-
-// Rebase Operations
-func (m *MockGitClient) RebaseInteractive(_ int) error              { return nil }
-func (m *MockGitClient) GetUpstreamBranch(_ string) (string, error) { return "", nil }
-
-// Stash Operations
-func (m *MockGitClient) Stash() error               { return nil }
-func (m *MockGitClient) StashList() (string, error) { return "", nil }
-func (m *MockGitClient) StashShow(_ string) error   { return nil }
-func (m *MockGitClient) StashApply(_ string) error  { return nil }
-func (m *MockGitClient) StashPop(_ string) error    { return nil }
-func (m *MockGitClient) StashDrop(_ string) error   { return nil }
-func (m *MockGitClient) StashClear() error          { return nil }
-
-// Restore Operations
-func (m *MockGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
-func (m *MockGitClient) RestoreStaged(_ ...string) error               { return nil }
-func (m *MockGitClient) RestoreFromCommit(_ string, _ ...string) error { return nil }
-func (m *MockGitClient) RestoreAll() error                             { return nil }
-func (m *MockGitClient) RestoreAllStaged() error                       { return nil }
-
-// Config Operations
-func (m *MockGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
-func (m *MockGitClient) ConfigSet(_, _ string) error              { return nil }
-func (m *MockGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
-func (m *MockGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
-
-// Reset and Clean Operations
-func (m *MockGitClient) ResetHardAndClean() error         { return nil }
-func (m *MockGitClient) ResetHard(_ string) error         { return nil }
-func (m *MockGitClient) CleanFiles() error                { return nil }
-func (m *MockGitClient) CleanDirs() error                 { return nil }
-func (m *MockGitClient) CleanDryRun() (string, error)     { return "", nil }
-func (m *MockGitClient) CleanFilesForce(_ []string) error { return nil }
-
-// Utility Operations
-func (m *MockGitClient) ListFiles() (string, error)                      { return "", nil }
-func (m *MockGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
-func (m *MockGitClient) GetAheadBehindCount(_, _ string) (string, error) { return m.aheadBehind, nil }
-func (m *MockGitClient) GetVersion() (string, error)                     { return "test-version", nil }
-func (m *MockGitClient) GetCommitHash() (string, error)                  { return "test-commit", nil }
 
 // testUI is a test structure for UI
 type testUI struct {
@@ -193,11 +85,7 @@ func TestUI_Run(t *testing.T) {
 			// Create test UI with new design
 			mockTerm := &mockTerminal{}
 			colors := NewANSIColors()
-			mockGitClient := &MockGitClient{
-				currentBranch: "main",
-				gitStatus:     "",
-				aheadBehind:   "0\t0",
-			}
+			mockGitClient := testutil.NewMockGitClient()
 			renderer := &Renderer{
 				writer: &bytes.Buffer{},
 				colors: colors,
@@ -670,11 +558,7 @@ func TestRenderer_KeybindHelp(t *testing.T) {
 		filtered:  []CommandInfo{}, // Empty to trigger keybind help
 	}
 
-	mockGitClient := &MockGitClient{
-		currentBranch: "main",
-		gitStatus:     "",
-		aheadBehind:   "0\t0",
-	}
+	mockGitClient := testutil.NewMockGitClient()
 
 	ui := &UI{
 		stdin:     strings.NewReader(""),
@@ -765,11 +649,7 @@ func TestRenderer_EmptyState(t *testing.T) {
 // Test Git status functionality
 func TestGetGitStatus(t *testing.T) {
 	// Create mock git client
-	mockClient := &MockGitClient{
-		currentBranch: "main",
-		gitStatus:     "A  file1.txt\n M file2.txt\n",
-		aheadBehind:   "2\t1",
-	}
+	mockClient := testutil.NewMockGitClient()
 
 	status := getGitStatus(mockClient)
 
@@ -990,11 +870,7 @@ func TestRenderer_RenderCommandItem(t *testing.T) {
 func TestKeyHandler_InteractiveInput(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	colors := NewANSIColors()
-	mockGitClient := &MockGitClient{
-		currentBranch: "main",
-		gitStatus:     "",
-		aheadBehind:   "0\t0",
-	}
+	mockGitClient := testutil.NewMockGitClient()
 
 	// Mock terminal that fails raw mode to trigger fallback
 	mockTerm := &mockTerminal{shouldFailRaw: true}
