@@ -129,7 +129,7 @@ The Makefile will automatically install required tools like `golangci-lint` usin
 ### Global install with go install
 
 ```sh
-go install github.com/bmf-san/ggc/v4@latest
+go install github.com/bmf-san/ggc/v5@latest
 ```
 
 - The `ggc` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
@@ -279,24 +279,24 @@ git/                     # Git operation wrappers
 ### Bash
 Add the following to your `~/.bash_profile` or `~/.bashrc`:
 ```bash
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.bash
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.bash
 fi
 ```
 
 ### Zsh
 Add the following to your `~/.zshrc`:
 ```zsh
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.zsh" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.zsh
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh
 fi
 ```
 
 ### Fish
 Add the following to your `~/.config/fish/config.fish`:
 ```fish
-if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.fish
-    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.fish
+if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.fish
+    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.fish
 end
 ```
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v4/internal/testutil"
+	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
 
 // Mock config manager for testing

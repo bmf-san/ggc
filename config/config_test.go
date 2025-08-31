@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v4/internal/testutil"
+	"github.com/bmf-san/ggc/v5/internal/testutil"
 	"go.yaml.in/yaml/v3"
 )
 

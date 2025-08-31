@@ -153,7 +153,7 @@ install_with_go() {
     fi
 
     print_info "Running go install..."
-    if ! go install github.com/bmf-san/ggc/v4@latest; then
+    if ! go install github.com/bmf-san/ggc/v5@latest; then
         print_error "go install failed"
         return 1
     fi
@@ -199,7 +199,7 @@ function __ggc_load_completion
     end
 
     # Look for completion file in go modules
-    for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.fish
+    for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.fish
         if test -f "$completion_file"
             source "$completion_file"
             return 0
@@ -242,7 +242,7 @@ load_ggc_completion() {
 		return 1
 	fi
 
-	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.bash; do
+	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.bash; do
 		if [ -f "$completion_file" ]; then
 			source "$completion_file"
 			return 0
@@ -275,7 +275,7 @@ load_ggc_completion() {
 		return 1
 	fi
 
-	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v4@*/tools/completions/ggc.zsh; do
+	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh; do
 		if [ -f "$completion_file" ]; then
 			source "$completion_file"
 			return 0

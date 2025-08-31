@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v4/git"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
 // mockGitClient for clean_test
