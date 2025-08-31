@@ -36,3 +36,4 @@ ggc
 
 # Compiled binaries from goreleaser
 dist/
+.DS_Store
