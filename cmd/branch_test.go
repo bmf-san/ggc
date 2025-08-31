@@ -860,8 +860,8 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 		{
 			name:         "Branch name starting with dot",
 			branchName:   ".test",
-			expectedPass: true,
-			description:  "Leading dot is allowed by git",
+			expectedPass: false,
+			description:  "Leading dot is rejected by git",
 		},
 		{
 			name:         "Branch name ending with dot",
@@ -884,8 +884,8 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 		{
 			name:         "Branch name with special characters",
 			branchName:   "test@#$%",
-			expectedPass: false,
-			description:  "Invalid: special characters",
+			expectedPass: true,
+			description:  "Allowed by git check-ref-format (no forbidden sequences)",
 		},
 		{
 			name:         "Branch name with control characters",
@@ -949,7 +949,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 		{
 			name:     "Very long input",
 			input:    strings.Repeat("a", 1000) + "\n",
-			expected: "Error:",
+			expected: "", // Git allows long branch names
 		},
 		{
 			name:     "Input with trailing spaces",
@@ -964,7 +964,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 		{
 			name:     "Unicode characters",
 			input:    "brαnch\n",
-			expected: "Error:",
+			expected: "", // Git allows UTF-8 branch names
 		},
 		{
 			name:     "Mixed case input",
