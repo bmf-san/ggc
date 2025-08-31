@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -315,36 +316,11 @@ func validateBranchName(name string) error {
 	if n == "" {
 		return fmt.Errorf("branch name cannot be empty")
 	}
-	// Length guard (reasonable limit)
-	if len(n) > 250 {
-		return fmt.Errorf("branch name too long (max 250 characters)")
-	}
-	// Disallow control characters and non-ASCII for safety
-	for _, r := range n {
-		if r < 32 || r == 127 {
-			return fmt.Errorf("contains control characters")
-		}
-		if r > 127 {
-			return fmt.Errorf("contains non-ASCII characters")
-		}
-	}
-	// Disallowed characters/sequences
-	invalidPatterns := []string{" ", "\t", "\n", "\r", "\x00", "..", "~", "^", ":", "?", "*", "[", "\\", "//", "@{"}
-	for _, p := range invalidPatterns {
-		if strings.Contains(n, p) {
-			return fmt.Errorf("contains invalid sequence: %s", p)
-		}
-	}
-	// Reserved names
-	if strings.EqualFold(n, "HEAD") {
-		return fmt.Errorf("conflicts with reserved name HEAD")
-	}
-	// Invalid prefixes/suffixes
-	if strings.HasPrefix(n, ".") || strings.HasPrefix(n, "/") || strings.HasPrefix(n, "-") {
-		return fmt.Errorf("has invalid prefix")
-	}
-	if strings.HasSuffix(n, "/") || strings.HasSuffix(n, ".") || strings.HasSuffix(n, ".lock") {
-		return fmt.Errorf("has invalid suffix")
+	// Delegate validation to git to match exact refname rules.
+	// Equivalent to: git check-ref-format --branch <name>
+	cmd := exec.Command("git", "check-ref-format", "--branch", n)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("invalid per git check-ref-format: %w", err)
 	}
 	return nil
 }

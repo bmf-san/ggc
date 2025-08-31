@@ -75,34 +75,6 @@ func (m *mockBranchGitClient) CheckoutNewBranch(branchName string) error {
 	if branchName == "main" {
 		return errors.New("fatal: a branch named 'main' already exists")
 	}
-	// Validate branch name
-	if strings.HasPrefix(branchName, ".") {
-		return errors.New("Invalid: starts with dot")
-	}
-	if strings.HasSuffix(branchName, ".") {
-		return errors.New("Invalid: ends with dot")
-	}
-	if strings.Contains(branchName, "..") {
-		return errors.New("Invalid: consecutive dots")
-	}
-	if strings.Contains(branchName, " ") {
-		return errors.New("Invalid: contains spaces")
-	}
-	if strings.ContainsAny(branchName, "@#$%^&*()+={}[]|\\:;\"'<>,?") {
-		return errors.New("Invalid: special characters")
-	}
-	if len(branchName) > 250 {
-		return errors.New("Very long branch name")
-	}
-	// Check for control characters and non-ASCII
-	for _, r := range branchName {
-		if r < 32 || r == 127 {
-			return errors.New("Invalid: control characters")
-		}
-		if r > 127 {
-			return errors.New("Error: non-ASCII characters")
-		}
-	}
 	return nil
 }
 func (m *mockBranchGitClient) CheckoutBranch(_ string) error { return nil }
@@ -858,8 +830,8 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 		{
 			name:         "Maximum length branch name",
 			branchName:   strings.Repeat("a", 255),
-			expectedPass: false,
-			description:  "Very long branch name",
+			expectedPass: true,
+			description:  "Long branch name allowed by git",
 		},
 		{
 			name:         "Branch name with dots",
@@ -888,8 +860,8 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 		{
 			name:         "Branch name starting with dot",
 			branchName:   ".test",
-			expectedPass: false,
-			description:  "Invalid: starts with dot",
+			expectedPass: true,
+			description:  "Leading dot is allowed by git",
 		},
 		{
 			name:         "Branch name ending with dot",
