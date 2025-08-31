@@ -11,22 +11,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// MockGitConfigExecutor implements GitConfigExecutor for testing
-type MockGitConfigExecutor struct {
+// MockGitClient implements git.Clienter for testing (only config operations)
+type MockGitClient struct {
 	configs map[string]string
 	setErr  error
 	getErr  error
 }
 
-// NewMockGitConfigExecutor creates a new mock git config executor
-func NewMockGitConfigExecutor() *MockGitConfigExecutor {
-	return &MockGitConfigExecutor{
+// NewMockGitClient creates a new mock git client
+func NewMockGitClient() *MockGitClient {
+	return &MockGitClient{
 		configs: make(map[string]string),
 	}
 }
 
-// SetGitConfig mocks setting git config
-func (m *MockGitConfigExecutor) SetGitConfig(key, value string) error {
+// ConfigSetGlobal mocks setting global git config
+func (m *MockGitClient) ConfigSetGlobal(key, value string) error {
 	if m.setErr != nil {
 		return m.setErr
 	}
@@ -34,13 +34,89 @@ func (m *MockGitConfigExecutor) SetGitConfig(key, value string) error {
 	return nil
 }
 
-// GetGitConfig mocks getting git config
-func (m *MockGitConfigExecutor) GetGitConfig(key string) (string, error) {
+// ConfigGetGlobal mocks getting global git config
+func (m *MockGitClient) ConfigGetGlobal(key string) (string, error) {
 	if m.getErr != nil {
 		return "", m.getErr
 	}
 	return m.configs[key], nil
 }
+
+// Implement other required methods from git.Clienter interface (minimal stubs)
+func (m *MockGitClient) GetCurrentBranch() (string, error)     { return "main", nil }
+func (m *MockGitClient) GetBranchName() (string, error)        { return "main", nil }
+func (m *MockGitClient) GetGitStatus() (string, error)         { return "", nil }
+func (m *MockGitClient) Status() (string, error)               { return "", nil }
+func (m *MockGitClient) StatusShort() (string, error)          { return "", nil }
+func (m *MockGitClient) StatusWithColor() (string, error)      { return "", nil }
+func (m *MockGitClient) StatusShortWithColor() (string, error) { return "", nil }
+func (m *MockGitClient) Add(_ ...string) error                 { return nil }
+func (m *MockGitClient) AddInteractive() error                 { return nil }
+func (m *MockGitClient) Commit(_ string) error                 { return nil }
+func (m *MockGitClient) CommitAmend() error                    { return nil }
+func (m *MockGitClient) CommitAmendNoEdit() error              { return nil }
+func (m *MockGitClient) CommitAmendWithMessage(_ string) error { return nil }
+func (m *MockGitClient) CommitAllowEmpty() error               { return nil }
+func (m *MockGitClient) Diff() (string, error)                 { return "", nil }
+func (m *MockGitClient) DiffStaged() (string, error)           { return "", nil }
+func (m *MockGitClient) DiffHead() (string, error)             { return "", nil }
+func (m *MockGitClient) ListLocalBranches() ([]string, error)  { return nil, nil }
+func (m *MockGitClient) ListRemoteBranches() ([]string, error) { return nil, nil }
+func (m *MockGitClient) CheckoutNewBranch(_ string) error      { return nil }
+func (m *MockGitClient) CheckoutBranch(_ string) error         { return nil }
+func (m *MockGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
+	return nil
+}
+func (m *MockGitClient) DeleteBranch(_ string) error                     { return nil }
+func (m *MockGitClient) ListMergedBranches() ([]string, error)           { return nil, nil }
+func (m *MockGitClient) RevParseVerify(_ string) bool                    { return false }
+func (m *MockGitClient) Push(_ bool) error                               { return nil }
+func (m *MockGitClient) Pull(_ bool) error                               { return nil }
+func (m *MockGitClient) Fetch(_ bool) error                              { return nil }
+func (m *MockGitClient) RemoteList() error                               { return nil }
+func (m *MockGitClient) RemoteAdd(_, _ string) error                     { return nil }
+func (m *MockGitClient) RemoteRemove(_ string) error                     { return nil }
+func (m *MockGitClient) RemoteSetURL(_, _ string) error                  { return nil }
+func (m *MockGitClient) TagList(_ []string) error                        { return nil }
+func (m *MockGitClient) TagCreate(_, _ string) error                     { return nil }
+func (m *MockGitClient) TagCreateAnnotated(_, _ string) error            { return nil }
+func (m *MockGitClient) TagDelete(_ []string) error                      { return nil }
+func (m *MockGitClient) TagPush(_, _ string) error                       { return nil }
+func (m *MockGitClient) TagPushAll(_ string) error                       { return nil }
+func (m *MockGitClient) TagShow(_ string) error                          { return nil }
+func (m *MockGitClient) GetLatestTag() (string, error)                   { return "", nil }
+func (m *MockGitClient) TagExists(_ string) bool                         { return false }
+func (m *MockGitClient) GetTagCommit(_ string) (string, error)           { return "", nil }
+func (m *MockGitClient) LogSimple() error                                { return nil }
+func (m *MockGitClient) LogGraph() error                                 { return nil }
+func (m *MockGitClient) LogOneline(_, _ string) (string, error)          { return "", nil }
+func (m *MockGitClient) RebaseInteractive(_ int) error                   { return nil }
+func (m *MockGitClient) GetUpstreamBranch(_ string) (string, error)      { return "", nil }
+func (m *MockGitClient) Stash() error                                    { return nil }
+func (m *MockGitClient) StashList() (string, error)                      { return "", nil }
+func (m *MockGitClient) StashShow(_ string) error                        { return nil }
+func (m *MockGitClient) StashApply(_ string) error                       { return nil }
+func (m *MockGitClient) StashPop(_ string) error                         { return nil }
+func (m *MockGitClient) StashDrop(_ string) error                        { return nil }
+func (m *MockGitClient) StashClear() error                               { return nil }
+func (m *MockGitClient) RestoreWorkingDir(_ ...string) error             { return nil }
+func (m *MockGitClient) RestoreStaged(_ ...string) error                 { return nil }
+func (m *MockGitClient) RestoreFromCommit(_ string, _ ...string) error   { return nil }
+func (m *MockGitClient) RestoreAll() error                               { return nil }
+func (m *MockGitClient) RestoreAllStaged() error                         { return nil }
+func (m *MockGitClient) ConfigGet(_ string) (string, error)              { return "", nil }
+func (m *MockGitClient) ConfigSet(_, _ string) error                     { return nil }
+func (m *MockGitClient) ResetHardAndClean() error                        { return nil }
+func (m *MockGitClient) ResetHard(_ string) error                        { return nil }
+func (m *MockGitClient) CleanFiles() error                               { return nil }
+func (m *MockGitClient) CleanDirectories() error                         { return nil }
+func (m *MockGitClient) CleanDirs() error                                { return nil }
+func (m *MockGitClient) CleanDryRun() (string, error)                    { return "", nil }
+func (m *MockGitClient) CleanFilesForce(_ []string) error                { return nil }
+func (m *MockGitClient) CleanInteractive() error                         { return nil }
+func (m *MockGitClient) ListFiles() (string, error)                      { return "", nil }
+func (m *MockGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
+func (m *MockGitClient) GetAheadBehindCount(_, _ string) (string, error) { return "", nil }
 
 // TestGetDefaultConfig tests the default configuration values
 func TestGetDefaultConfig(t *testing.T) {
@@ -218,8 +294,8 @@ func TestSave(t *testing.T) {
 
 	cm := NewConfigManager()
 	cm.configPath = configPath
-	// Use mock git config executor to avoid real git config operations
-	cm.gitExecutor = NewMockGitConfigExecutor()
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = NewMockGitClient()
 
 	cm.config.Default.Branch = "development"
 	cm.config.UI.Color = false
@@ -359,8 +435,8 @@ func TestSet(t *testing.T) {
 
 	cm := NewConfigManager()
 	cm.configPath = configPath
-	// Use mock git config executor to avoid real git config operations
-	cm.gitExecutor = NewMockGitConfigExecutor()
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = NewMockGitClient()
 
 	err := cm.Set("default.branch", "develop")
 	if err != nil {

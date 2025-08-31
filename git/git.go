@@ -98,6 +98,12 @@ type Clienter interface {
 	RestoreAll() error
 	RestoreAllStaged() error
 
+	// === Config Operations ===
+	ConfigGet(key string) (string, error)
+	ConfigSet(key, value string) error
+	ConfigGetGlobal(key string) (string, error)
+	ConfigSetGlobal(key, value string) error
+
 	// === Reset and Clean Operations ===
 	ResetHardAndClean() error
 	ResetHard(commit string) error
@@ -174,6 +180,46 @@ func (c *Client) CheckoutNewBranch(name string) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", name), err)
+	}
+	return nil
+}
+
+// === Config Operations ===
+
+// ConfigGet retrieves a git configuration value from local repository
+func (c *Client) ConfigGet(key string) (string, error) {
+	cmd := c.execCommand("git", "config", key)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", NewError("config get", fmt.Sprintf("git config %s", key), err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// ConfigSet sets a git configuration value in local repository
+func (c *Client) ConfigSet(key, value string) error {
+	cmd := c.execCommand("git", "config", key, value)
+	if err := cmd.Run(); err != nil {
+		return NewError("config set", fmt.Sprintf("git config %s %s", key, value), err)
+	}
+	return nil
+}
+
+// ConfigGetGlobal retrieves a git configuration value from global config
+func (c *Client) ConfigGetGlobal(key string) (string, error) {
+	cmd := c.execCommand("git", "config", "--global", key)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", NewError("config get global", fmt.Sprintf("git config --global %s", key), err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// ConfigSetGlobal sets a git configuration value in global config
+func (c *Client) ConfigSetGlobal(key, value string) error {
+	cmd := c.execCommand("git", "config", "--global", key, value)
+	if err := cmd.Run(); err != nil {
+		return NewError("config set global", fmt.Sprintf("git config --global %s %s", key, value), err)
 	}
 	return nil
 }

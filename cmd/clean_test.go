@@ -110,6 +110,12 @@ func (m *mockCleanGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 }
 func (m *mockCleanGitClient) RevParseVerify(_ string) bool { return true }
 
+// === Config Operations ===
+func (m *mockCleanGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
+func (m *mockCleanGitClient) ConfigSet(_, _ string) error              { return nil }
+func (m *mockCleanGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
+func (m *mockCleanGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
+
 func TestCleaner_Clean(t *testing.T) {
 	tests := []struct {
 		name           string

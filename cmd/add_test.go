@@ -163,6 +163,12 @@ func (m *mockAddGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 }
 func (m *mockAddGitClient) RevParseVerify(_ string) bool { return true }
 
+// === Config Operations ===
+func (m *mockAddGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
+func (m *mockAddGitClient) ConfigSet(_, _ string) error              { return nil }
+func (m *mockAddGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
+func (m *mockAddGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
+
 func TestAdder_Add_GitAddCalled(t *testing.T) {
 	mockClient := &mockAddGitClient{}
 	adder := &Adder{

@@ -90,6 +90,12 @@ func (m *mockGitClient) CleanDirs() error {
 
 func (m *mockGitClient) RevParseVerify(string) bool { return false }
 
+// === Config Operations ===
+func (m *mockGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
+func (m *mockGitClient) ConfigSet(_, _ string) error              { return nil }
+func (m *mockGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
+func (m *mockGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
+
 // Repository Information methods
 func (m *mockGitClient) GetBranchName() (string, error) { return "main", nil }
 func (m *mockGitClient) GetGitStatus() (string, error)  { return "", nil }
