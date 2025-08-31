@@ -120,6 +120,15 @@ func (b *Brancher) branchCheckoutRemote() {
 		return
 	}
 	localBranch := parts[1]
+	if strings.TrimSpace(localBranch) == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid remote branch name.")
+		return
+	}
+	if err := validateBranchName(localBranch); err != nil {
+		// Keep message consistent with existing expectations
+		_, _ = fmt.Fprintln(b.outputWriter, "Invalid remote branch name.")
+		return
+	}
 	if err := b.gitClient.CheckoutNewBranchFromRemote(localBranch, remoteBranch); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
@@ -131,6 +140,10 @@ func (b *Brancher) branchCreate() {
 	branchName := strings.TrimSpace(input)
 	if branchName == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Cancelled.")
+		return
+	}
+	if err := validateBranchName(branchName); err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
 		return
 	}
 
@@ -268,4 +281,46 @@ func (b *Brancher) branchDeleteMerged() {
 		_, _ = fmt.Fprintln(b.outputWriter, "Selected merged branches deleted.")
 		break
 	}
+}
+
+// validateBranchName performs basic validation aligned with git ref rules for branch names.
+// It rejects empty names, control characters, disallowed characters/sequences, invalid prefixes/suffixes,
+// double slashes, overly long names, and non-ASCII for safety across platforms.
+func validateBranchName(name string) error {
+	n := strings.TrimSpace(name)
+	if n == "" {
+		return fmt.Errorf("branch name cannot be empty")
+	}
+	// Length guard (reasonable limit)
+	if len(n) > 250 {
+		return fmt.Errorf("branch name too long (max 250 characters)")
+	}
+	// Disallow control characters and non-ASCII for safety
+	for _, r := range n {
+		if r < 32 || r == 127 {
+			return fmt.Errorf("contains control characters")
+		}
+		if r > 127 {
+			return fmt.Errorf("contains non-ASCII characters")
+		}
+	}
+	// Disallowed characters/sequences
+	invalidPatterns := []string{" ", "\t", "\n", "\r", "\x00", "..", "~", "^", ":", "?", "*", "[", "\\", "//", "@{"}
+	for _, p := range invalidPatterns {
+		if strings.Contains(n, p) {
+			return fmt.Errorf("contains invalid sequence: %s", p)
+		}
+	}
+	// Reserved names
+	if strings.EqualFold(n, "HEAD") {
+		return fmt.Errorf("conflicts with reserved name HEAD")
+	}
+	// Invalid prefixes/suffixes
+	if strings.HasPrefix(n, ".") || strings.HasPrefix(n, "/") || strings.HasPrefix(n, "-") {
+		return fmt.Errorf("has invalid prefix")
+	}
+	if strings.HasSuffix(n, "/") || strings.HasSuffix(n, ".") || strings.HasSuffix(n, ".lock") {
+		return fmt.Errorf("has invalid suffix")
+	}
+	return nil
 }

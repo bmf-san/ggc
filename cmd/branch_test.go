@@ -661,6 +661,27 @@ func TestBrancher_branchCheckoutRemote_InvalidBranchName(t *testing.T) {
 	}
 }
 
+func TestBrancher_branchCheckoutRemote_EmptyLocalFromRemote(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"remote/"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+	}
+
+	brancher.branchCheckoutRemote()
+
+	output := buf.String()
+	if !strings.Contains(output, "Invalid remote branch name.") {
+		t.Error("Expected invalid remote branch name message for empty local name")
+	}
+}
+
 func TestBrancher_Branch_Create(t *testing.T) {
 	tests := []struct {
 		name           string
