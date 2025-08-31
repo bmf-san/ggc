@@ -236,6 +236,8 @@ integration:
 	}
 
 	cm := NewConfigManager()
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = NewMockGitClient()
 	err = cm.loadFromFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config from file: %v", err)
@@ -264,6 +266,8 @@ integration:
 // TestLoad tests the Load method with no config file
 func TestLoad(t *testing.T) {
 	cm := NewConfigManager()
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = NewMockGitClient()
 
 	originalHome := os.Getenv("HOME")
 	tempDir := t.TempDir()
@@ -576,6 +580,8 @@ func TestLoadConfig(t *testing.T) {
 	}()
 
 	cm := NewConfigManager()
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = NewMockGitClient()
 	cm.LoadConfig()
 
 	if cm.config == nil {
@@ -631,6 +637,8 @@ ui:
 	}
 
 	cm := NewConfigManager()
+	// Use mock git client to avoid real git config operations
+	cm.gitClient = NewMockGitClient()
 	err = cm.loadFromFile(configPath)
 	if err == nil {
 		t.Error("Expected error when loading invalid YAML")
@@ -1091,6 +1099,8 @@ func stringifyValue(val any) string {
 func TestManagerLoadConfig(t *testing.T) {
 	t.Run("LoadConfig with invalid path executes without panic", func(t *testing.T) {
 		cm := NewConfigManager()
+		// Use mock git client to avoid real git config operations
+		cm.gitClient = NewMockGitClient()
 		cm.configPath = "/nonexistent/directory/config.yaml"
 
 		// This should not panic, even if file operations fail
@@ -1111,6 +1121,8 @@ func TestManagerLoadConfig(t *testing.T) {
 
 	t.Run("LoadConfig handles missing directory gracefully", func(t *testing.T) {
 		cm := NewConfigManager()
+		// Use mock git client to avoid real git config operations
+		cm.gitClient = NewMockGitClient()
 		cm.configPath = "/definitely/nonexistent/path/config.yaml"
 
 		// Should not panic or crash
