@@ -223,6 +223,28 @@ func TestSave(t *testing.T) {
 	}
 }
 
+// TestSaveDoesNotWriteOnInvalidConfig ensures Save validates before writing
+// and does not leave a config file on disk when validation fails.
+func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "test-invalid-save.yaml")
+
+	cm := NewConfigManager()
+	cm.configPath = configPath
+
+	// Force an invalid editor so validation fails
+	cm.config.Default.Editor = "this-editor-should-not-exist-xyz"
+
+	err := cm.Save()
+	if err == nil {
+		t.Fatal("expected Save to fail validation, got nil error")
+	}
+
+	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
+		t.Fatalf("expected no config file to be written, got statErr=%v", statErr)
+	}
+}
+
 // TestGetValueByPath tests getting values using dot notation
 func TestGetValueByPath(t *testing.T) {
 	cm := NewConfigManager()
