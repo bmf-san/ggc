@@ -84,9 +84,10 @@ type Manager struct {
 
 // NewConfigManager creates a new configuration manager
 func NewConfigManager() *Manager {
+	gitClient := git.NewClient()
 	return &Manager{
-		config:    getDefaultConfig(),
-		gitClient: git.NewClient(),
+		config:    getDefaultConfig(gitClient),
+		gitClient: gitClient,
 	}
 }
 
@@ -295,7 +296,7 @@ func (c *Config) GetAllAliases() map[string]*ParsedAlias {
 // manually in getDefaultConfig() to avoid side effects in tests.
 
 // getDefaultConfig returns the default configuration values
-func getDefaultConfig() *Config {
+func getDefaultConfig(gitClient git.Clienter) *Config {
 	config := &Config{
 		Aliases: make(map[string]interface{}),
 	}
@@ -315,10 +316,23 @@ func getDefaultConfig() *Config {
 
 	config.Integration.Github.DefaultRemote = "origin"
 
-	// Set meta values manually to avoid git command execution
-	config.Meta.Version = "dev"
-	config.Meta.Commit = "unknown"
-	config.Meta.ConfigVersion = "1.0"
+	// Set meta values using gitClient
+	if version, err := gitClient.GetVersion(); err == nil {
+		config.Meta.Version = version
+	} else {
+		config.Meta.Version = "dev"
+	}
+
+	if commit, err := gitClient.GetCommitHash(); err == nil {
+		config.Meta.Commit = commit
+	} else {
+		config.Meta.Commit = "unknown"
+	}
+
+	// Only set ConfigVersion if it's empty (preserving original updateMeta behavior)
+	if config.Meta.ConfigVersion == "" {
+		config.Meta.ConfigVersion = "1.0"
+	}
 
 	return config
 }
@@ -358,7 +372,7 @@ func (cm *Manager) loadFromFile(path string) error {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	config := getDefaultConfig()
+	config := getDefaultConfig(cm.gitClient)
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return fmt.Errorf("failed to parse config file: %w", err)
 	}

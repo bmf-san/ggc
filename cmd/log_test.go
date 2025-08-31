@@ -97,6 +97,8 @@ func (m *mockLogGitClient) CleanFilesForce(_ []string) error                { re
 func (m *mockLogGitClient) ListFiles() (string, error)                      { return "", nil }
 func (m *mockLogGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
 func (m *mockLogGitClient) GetAheadBehindCount(_, _ string) (string, error) { return "", nil }
+func (m *mockLogGitClient) GetVersion() (string, error)                     { return "test-version", nil }
+func (m *mockLogGitClient) GetCommitHash() (string, error)                  { return "test-commit", nil }
 
 func TestLogger_Log_Simple(t *testing.T) {
 	mockClient := &mockLogGitClient{}

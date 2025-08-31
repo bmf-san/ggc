@@ -114,7 +114,9 @@ func (m *mockCommitGitClient) GetUpstreamBranchName(_ string) (string, error) {
 func (m *mockCommitGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0\t0", nil
 }
-func (m *mockCommitGitClient) RevParseVerify(_ string) bool { return true }
+func (m *mockCommitGitClient) GetVersion() (string, error)    { return "test-version", nil }
+func (m *mockCommitGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
+func (m *mockCommitGitClient) RevParseVerify(_ string) bool   { return true }
 
 // Config Operations
 func (m *mockCommitGitClient) ConfigGet(_ string) (string, error)       { return "", nil }

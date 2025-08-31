@@ -125,6 +125,8 @@ func (m *mockCompleteGitClient) GetUpstreamBranchName(_ string) (string, error) 
 func (m *mockCompleteGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0	0", nil
 }
+func (m *mockCompleteGitClient) GetVersion() (string, error)    { return "test-version", nil }
+func (m *mockCompleteGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
 
 func TestCompleter_Complete_Branch(t *testing.T) {
 	// Capture stdout

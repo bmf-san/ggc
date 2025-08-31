@@ -117,65 +117,25 @@ func (m *MockGitClient) CleanInteractive() error                         { retur
 func (m *MockGitClient) ListFiles() (string, error)                      { return "", nil }
 func (m *MockGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
 func (m *MockGitClient) GetAheadBehindCount(_, _ string) (string, error) { return "", nil }
+func (m *MockGitClient) GetVersion() (string, error)                     { return "test-version", nil }
+func (m *MockGitClient) GetCommitHash() (string, error)                  { return "test-commit", nil }
 
 // newTestConfigManager creates a config manager for testing without executing git commands
 func newTestConfigManager() *Manager {
-	config := &Config{
-		Aliases: make(map[string]interface{}),
-	}
-
-	// Set default values (same as getDefaultConfig but without updateMeta)
-	config.Default.Branch = "main"
-	config.Default.Editor = "vim"
-	config.Default.MergeTool = "vimdiff"
-
-	config.UI.Color = true
-	config.UI.Pager = true
-
-	config.Behavior.AutoPush = false
-	config.Behavior.ConfirmDestructive = "simple"
-	config.Behavior.AutoFetch = true
-	config.Behavior.StashBeforeSwitch = true
-
-	config.Integration.Github.DefaultRemote = "origin"
-
-	// Set meta values manually to avoid git command execution
-	config.Meta.Version = "test-version"
-	config.Meta.Commit = "test-commit"
-	config.Meta.ConfigVersion = "1.0"
+	mockClient := NewMockGitClient()
+	config := getDefaultConfig(mockClient)
 
 	return &Manager{
 		config:    config,
-		gitClient: NewMockGitClient(),
+		gitClient: mockClient,
 	}
 }
 
 // TestGetDefaultConfig tests the default configuration values
 func TestGetDefaultConfig(t *testing.T) {
-	// Create config manually to avoid calling getDefaultConfig() which executes git commands
-	config := &Config{
-		Aliases: make(map[string]interface{}),
-	}
-
-	// Set default values (same as getDefaultConfig but without updateMeta)
-	config.Default.Branch = "main"
-	config.Default.Editor = "vim"
-	config.Default.MergeTool = "vimdiff"
-
-	config.UI.Color = true
-	config.UI.Pager = true
-
-	config.Behavior.AutoPush = false
-	config.Behavior.ConfirmDestructive = "simple"
-	config.Behavior.AutoFetch = true
-	config.Behavior.StashBeforeSwitch = true
-
-	config.Integration.Github.DefaultRemote = "origin"
-
-	// Set meta values manually to avoid git command execution
-	config.Meta.Version = "test-version"
-	config.Meta.Commit = "test-commit"
-	config.Meta.ConfigVersion = "1.0"
+	// Use mock client to avoid executing real git commands
+	mockClient := NewMockGitClient()
+	config := getDefaultConfig(mockClient)
 
 	// test default values
 	if config.Default.Branch != "main" {

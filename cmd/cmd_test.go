@@ -186,6 +186,8 @@ func (m *mockGitClient) GetUpstreamBranchName(_ string) (string, error) {
 func (m *mockGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0	0", nil
 }
+func (m *mockGitClient) GetVersion() (string, error)    { return "test-version", nil }
+func (m *mockGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
 
 type mockCmdGitClient struct {
 	git.Clienter

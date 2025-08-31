@@ -118,6 +118,8 @@ type Clienter interface {
 	ListFiles() (string, error)
 	GetUpstreamBranchName(branch string) (string, error)
 	GetAheadBehindCount(branch, upstream string) (string, error)
+	GetVersion() (string, error)
+	GetCommitHash() (string, error)
 }
 
 // NewClient creates a new Client.
@@ -224,4 +226,24 @@ func (c *Client) ConfigSetGlobal(key, value string) error {
 		return NewError("config set global", fmt.Sprintf("git config --global %s %s", key, value), err)
 	}
 	return nil
+}
+
+// GetVersion gets the git version/tag information
+func (c *Client) GetVersion() (string, error) {
+	cmd := c.execCommand("git", "describe", "--tags", "--always", "--dirty")
+	out, err := cmd.Output()
+	if err != nil {
+		return "dev", nil // Return "dev" as fallback instead of error
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// GetCommitHash gets the short commit hash
+func (c *Client) GetCommitHash() (string, error) {
+	cmd := c.execCommand("git", "rev-parse", "--short", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return "unknown", nil // Return "unknown" as fallback instead of error
+	}
+	return strings.TrimSpace(string(out)), nil
 }

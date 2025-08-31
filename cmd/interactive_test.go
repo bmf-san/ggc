@@ -142,6 +142,8 @@ func (m *MockGitClient) CleanFilesForce(_ []string) error { return nil }
 func (m *MockGitClient) ListFiles() (string, error)                      { return "", nil }
 func (m *MockGitClient) GetUpstreamBranchName(_ string) (string, error)  { return "", nil }
 func (m *MockGitClient) GetAheadBehindCount(_, _ string) (string, error) { return m.aheadBehind, nil }
+func (m *MockGitClient) GetVersion() (string, error)                     { return "test-version", nil }
+func (m *MockGitClient) GetCommitHash() (string, error)                  { return "test-commit", nil }
 
 // testUI is a test structure for UI
 type testUI struct {

@@ -172,6 +172,8 @@ func (m *mockBranchGitClient) GetUpstreamBranchName(_ string) (string, error) {
 func (m *mockBranchGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 	return "0	0", nil
 }
+func (m *mockBranchGitClient) GetVersion() (string, error)    { return "test-version", nil }
+func (m *mockBranchGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
 
 // Restore Operations methods
 func (m *mockBranchGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
