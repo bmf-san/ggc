@@ -57,6 +57,21 @@ Visit the [Releases](https://github.com/bmf-san/ggc/releases/) page to download 
 - Linux: `linux_amd64`, `linux_arm64`
 - Windows: `windows_amd64`
 
+### Homebrew
+
+Install via Homebrew (macOS Intel/Apple Silicon, Linux ARM64/x86_64):
+
+```sh
+brew install ggc
+# Upgrade later:
+# brew upgrade ggc
+# Verify:
+# ggc version
+```
+
+- Formula: https://formulae.brew.sh/formula/ggc
+- Platforms: macOS (Apple Silicon/Intel), Linux (ARM64/x86_64)
+
 ### Quick Install with Script
 
 The easiest way to install `ggc` is using the provided installation script:
