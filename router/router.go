@@ -68,49 +68,40 @@ func (r *Router) executeAlias(name string, args []string) {
 	}
 }
 
+// commandHandler represents a function that handles a command
+type commandHandler func([]string)
+
+// getCommandHandlers returns a map of command names to their handlers
+func (r *Router) getCommandHandlers() map[string]commandHandler {
+	return map[string]commandHandler{
+		"help":    func(_ []string) { r.Executer.Help() },
+		"add":     r.Executer.Add,
+		"branch":  r.Executer.Branch,
+		"clean":   r.Executer.Clean,
+		"commit":  r.Executer.Commit,
+		"config":  r.Executer.Config,
+		"diff":    r.Executer.Diff,
+		"fetch":   r.Executer.Fetch,
+		"hook":    r.Executer.Hook,
+		"log":     r.Executer.Log,
+		"pull":    r.Executer.Pull,
+		"push":    r.Executer.Push,
+		"rebase":  r.Executer.Rebase,
+		"remote":  r.Executer.Remote,
+		"reset":   r.Executer.Reset,
+		"restore": r.Executer.Restore,
+		"stash":   r.Executer.Stash,
+		"status":  r.Executer.Status,
+		"tag":     r.Executer.Tag,
+		"version": r.Executer.Version,
+	}
+}
+
 func (r *Router) executeCommand(name string, args []string) {
-	switch name {
-	case "help":
-		r.Executer.Help()
-	case "add":
-		r.Executer.Add(args)
-	case "branch":
-		r.Executer.Branch(args)
-	case "clean":
-		r.Executer.Clean(args)
-	case "commit":
-		r.Executer.Commit(args)
-	case "config":
-		r.Executer.Config(args)
-	case "diff":
-		r.Executer.Diff(args)
-	case "fetch":
-		r.Executer.Fetch(args)
-	case "hook":
-		r.Executer.Hook(args)
-	case "log":
-		r.Executer.Log(args)
-	case "pull":
-		r.Executer.Pull(args)
-	case "push":
-		r.Executer.Push(args)
-	case "rebase":
-		r.Executer.Rebase(args)
-	case "remote":
-		r.Executer.Remote(args)
-	case "reset":
-		r.Executer.Reset(args)
-	case "restore":
-		r.Executer.Restore(args)
-	case "stash":
-		r.Executer.Stash(args)
-	case "status":
-		r.Executer.Status(args)
-	case "tag":
-		r.Executer.Tag(args)
-	case "version":
-		r.Executer.Version(args)
-	default:
+	handlers := r.getCommandHandlers()
+	if handler, exists := handlers[name]; exists {
+		handler(args)
+	} else {
 		r.Executer.Help()
 	}
 }

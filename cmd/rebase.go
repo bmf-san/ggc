@@ -50,56 +50,71 @@ func (r *Rebaser) Rebase(args []string) {
 
 // RebaseInteractive executes interactive rebase.
 func (r *Rebaser) RebaseInteractive() {
-	// Get current branch name
-	currentBranch, err := r.gitClient.GetCurrentBranch()
-	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+	ctx, ok := r.prepareRebaseContext()
+	if !ok {
 		return
 	}
-
-	// Get upstream or main branch
-	upstream, err := r.gitClient.GetUpstreamBranch(currentBranch)
-	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+	r.printCommitChoices(ctx.currentBranch, ctx.lines)
+	num, ok := r.promptRebaseCount(len(ctx.lines))
+	if !ok {
 		return
 	}
-
-	// Get commit history for current branch only (from upstream/main to HEAD)
-	output, err := r.gitClient.LogOneline(upstream, "HEAD")
-	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
-		return
-	}
-
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: no commit history found\n")
-		return
-	}
-
-	_, _ = fmt.Fprintf(r.outputWriter, "Current branch: %s\n", currentBranch)
-	_, _ = fmt.Fprintln(r.outputWriter, "Select number of commits to rebase (commits are shown from oldest to newest):")
-	for i, line := range lines {
-		_, _ = fmt.Fprintf(r.outputWriter, "  [%d] %s\n", i+1, line)
-	}
-	_, _ = fmt.Fprint(r.outputWriter, "> ")
-
-	input, err := r.inputReader.ReadString('\n')
-	if err != nil || strings.TrimSpace(input) == "" {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: operation cancelled\n")
-		return
-	}
-
-	num, err := strconv.Atoi(strings.TrimSpace(input))
-	if err != nil || num < 1 || num > len(lines) {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: invalid number\n")
-		return
-	}
-
-	// Start interactive rebase using HEAD~n format
 	if err := r.gitClient.RebaseInteractive(num); err != nil {
 		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return
 	}
 	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+}
+
+type rebaseCtx struct {
+	currentBranch string
+	upstream      string
+	lines         []string
+}
+
+func (r *Rebaser) prepareRebaseContext() (rebaseCtx, bool) {
+	currentBranch, err := r.gitClient.GetCurrentBranch()
+	if err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return rebaseCtx{}, false
+	}
+	upstream, err := r.gitClient.GetUpstreamBranch(currentBranch)
+	if err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return rebaseCtx{}, false
+	}
+	output, err := r.gitClient.LogOneline(upstream, "HEAD")
+	if err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return rebaseCtx{}, false
+	}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: no commit history found\n")
+		return rebaseCtx{}, false
+	}
+	return rebaseCtx{currentBranch: currentBranch, upstream: upstream, lines: lines}, true
+}
+
+func (r *Rebaser) printCommitChoices(currentBranch string, lines []string) {
+	_, _ = fmt.Fprintf(r.outputWriter, "Current branch: %s\n", currentBranch)
+	_, _ = fmt.Fprintln(r.outputWriter, "Select number of commits to rebase (commits are shown from oldest to newest):")
+	for i, line := range lines {
+		_, _ = fmt.Fprintf(r.outputWriter, "  [%d] %s\n", i+1, line)
+	}
+}
+
+func (r *Rebaser) promptRebaseCount(max int) (int, bool) {
+	_, _ = fmt.Fprint(r.outputWriter, "> ")
+	input, err := r.inputReader.ReadString('\n')
+	if err != nil || strings.TrimSpace(input) == "" {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: operation canceled\n")
+		return 0, false
+	}
+	num, err := strconv.Atoi(strings.TrimSpace(input))
+	if err != nil || num < 1 || num > max {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: invalid number\n")
+		return 0, false
+	}
+	return num, true
 }

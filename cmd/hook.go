@@ -36,47 +36,30 @@ func (h *Hooker) Hook(args []string) {
 		h.helper.ShowHookHelp()
 		return
 	}
+	handlers := map[string]func([]string){
+		"list":      func(_ []string) { h.listHooks() },
+		"install":   h.withName(h.installHook),
+		"uninstall": h.withName(h.uninstallHook),
+		"enable":    h.withName(h.enableHook),
+		"disable":   h.withName(h.disableHook),
+		"edit":      h.withName(h.editHook),
+	}
+	if fn, ok := handlers[args[0]]; ok {
+		fn(args[1:])
+		return
+	}
+	h.helper.ShowHookHelp()
+}
 
-	switch args[0] {
-	case "list":
-		h.listHooks()
-	case "install":
-		if len(args) < 2 {
+// withName wraps a single-string handler to require an argument
+func (h *Hooker) withName(f func(string)) func([]string) {
+	return func(rest []string) {
+		if len(rest) < 1 {
 			_, _ = fmt.Fprintf(h.outputWriter, "Error: hook name required\n")
 			h.helper.ShowHookHelp()
 			return
 		}
-		h.installHook(args[1])
-	case "uninstall":
-		if len(args) < 2 {
-			_, _ = fmt.Fprintf(h.outputWriter, "Error: hook name required\n")
-			h.helper.ShowHookHelp()
-			return
-		}
-		h.uninstallHook(args[1])
-	case "enable":
-		if len(args) < 2 {
-			_, _ = fmt.Fprintf(h.outputWriter, "Error: hook name required\n")
-			h.helper.ShowHookHelp()
-			return
-		}
-		h.enableHook(args[1])
-	case "disable":
-		if len(args) < 2 {
-			_, _ = fmt.Fprintf(h.outputWriter, "Error: hook name required\n")
-			h.helper.ShowHookHelp()
-			return
-		}
-		h.disableHook(args[1])
-	case "edit":
-		if len(args) < 2 {
-			_, _ = fmt.Fprintf(h.outputWriter, "Error: hook name required\n")
-			h.helper.ShowHookHelp()
-			return
-		}
-		h.editHook(args[1])
-	default:
-		h.helper.ShowHookHelp()
+		f(rest[0])
 	}
 }
 

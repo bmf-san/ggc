@@ -5,9 +5,6 @@ run:
   tests: true
   modules-download-mode: readonly
 
-output:
-  format: github-actions
-
 linters:
   enable:
     - revive
@@ -20,75 +17,75 @@ linters:
     - errorlint
     - gocritic
 
-linters-settings:
-  goimports:
-    local-prefixes: github.com/bmf-san/ggc
-
-  misspell:
-    locale: US
-
-  gocritic:
-    enabled-checks:
-      # Style
-      - ifElseChain
-      - boolExprSimplify
-      - commentedOutCode
-      - emptyStringTest
-      - underef
-
-      # Performance
-      - hugeParam
-      - rangeValCopy
-      - sloppyLen
-      - appendAssign
-
-      # Bug detection
-      - badCond
-      - dupBranchBody
-      - nilValReturn
-      - offBy1
-
-  unparam:
-    check-exported: false
-
-  revive:
+  exclusions:
+    paths:
+      - ".*_mock\\.go"
+      - ".*\\.pb\\.go"
+      - "testdata/.*"
     rules:
-      # Documentation
-      - name: exported
-      - name: package-comments
+      # Relax rules for test files
+      - path: _test\.go
+        linters:
+          - revive
+          - gocritic
+      - linters: [misspell]
+        text: "Statuser"
 
-      # Code quality
-      - name: unused-parameter
-      - name: var-naming
-      - name: function-result-limit
-        arguments: [3]
-      - name: argument-limit
-        arguments: [5]
-      - name: cyclomatic
-        arguments: [10]
+  settings:
+    misspell:
+      locale: US
+      ignore-rules:
+        - "statuser"
+    gocritic:
+      enabled-checks:
+        # Style
+        - boolExprSimplify
+        - commentedOutCode
+        - emptyStringTest
 
-      # Error handling
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
+        # Performance
+        - hugeParam
+        - rangeValCopy
 
-      # Best practices
-      - name: context-as-argument
-      - name: empty-block
-      - name: superfluous-else
+        # Bug detection
+        - nilValReturn
+
+    unparam:
+      check-exported: false
+
+    revive:
+      rules:
+        # Documentation
+        - name: exported
+        - name: package-comments
+
+        # Code quality
+        - name: unused-parameter
+        - name: var-naming
+        - name: function-result-limit
+          arguments: [3]
+        - name: argument-limit
+          arguments: [5]
+        - name: cyclomatic
+          arguments: [10]
+
+        # Error handling
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+
+        # Best practices
+        - name: context-as-argument
+        - name: empty-block
+        - name: superfluous-else
+
+formatters:
+  enable:
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: [github.com/bmf-san/ggc]
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-
-  exclude-rules:
-    # Relax rules for test files
-    - path: _test\.go
-      linters:
-        - revive
-        - gocritic
-
-skip-files:
-  - ".*_mock\\.go"
-  - ".*\\.pb\\.go"
-  - "testdata/.*"

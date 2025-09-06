@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
 	"go.yaml.in/yaml/v3"
+
+	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
 
 // newTestConfigManager creates a config manager for testing without executing git commands
