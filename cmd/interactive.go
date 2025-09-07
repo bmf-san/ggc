@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/bmf-san/ggc/v5/git"
 	"golang.org/x/term"
@@ -245,19 +247,43 @@ func (s *UIState) MoveDown() {
 
 // AddChar adds a character to the input at cursor position
 func (s *UIState) AddChar(c byte) {
+	s.AddRune(rune(c))
+}
+
+// AddRune adds a UTF-8 rune to the input at cursor position
+func (s *UIState) AddRune(r rune) {
 	if s.cursorPos <= len(s.input) {
-		s.input = s.input[:s.cursorPos] + string(c) + s.input[s.cursorPos:]
-		s.cursorPos++
-		s.UpdateFiltered()
+		// Convert current input to runes for proper cursor positioning
+		inputRunes := []rune(s.input)
+		if s.cursorPos <= len(inputRunes) {
+			// Insert the rune at the cursor position
+			newRunes := make([]rune, len(inputRunes)+1)
+			copy(newRunes[:s.cursorPos], inputRunes[:s.cursorPos])
+			newRunes[s.cursorPos] = r
+			copy(newRunes[s.cursorPos+1:], inputRunes[s.cursorPos:])
+			
+			s.input = string(newRunes)
+			s.cursorPos++
+			s.UpdateFiltered()
+		}
 	}
 }
 
 // RemoveChar removes character before cursor (backspace)
 func (s *UIState) RemoveChar() {
 	if s.cursorPos > 0 && len(s.input) > 0 {
-		s.input = s.input[:s.cursorPos-1] + s.input[s.cursorPos:]
-		s.cursorPos--
-		s.UpdateFiltered()
+		// Convert to runes for proper UTF-8 handling
+		inputRunes := []rune(s.input)
+		if s.cursorPos <= len(inputRunes) {
+			// Remove the rune before cursor
+			newRunes := make([]rune, len(inputRunes)-1)
+			copy(newRunes[:s.cursorPos-1], inputRunes[:s.cursorPos-1])
+			copy(newRunes[s.cursorPos-1:], inputRunes[s.cursorPos:])
+			
+			s.input = string(newRunes)
+			s.cursorPos--
+			s.UpdateFiltered()
+		}
 	}
 }
 
@@ -307,7 +333,7 @@ func (s *UIState) MoveToBeginning() {
 
 // MoveToEnd moves cursor to end of line (Ctrl+E)
 func (s *UIState) MoveToEnd() {
-	s.cursorPos = len(s.input)
+	s.cursorPos = utf8.RuneCountInString(s.input)
 }
 
 // GetSelectedCommand returns the currently selected command
@@ -341,44 +367,54 @@ type KeyHandler struct {
 	ui *UI
 }
 
-// HandleKey processes a single key input and returns true if should continue
+// HandleKey processes a single key input and returns true if should continue (legacy method)
 func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
-	switch b {
-	case 3: // Ctrl+C
-		h.handleCtrlC(oldState)
-		return false, nil
-	case 13: // Enter
-		return h.handleEnter(oldState)
-	case 16: // Ctrl+P (up)
-		h.ui.state.MoveUp()
-		return true, nil
-	case 14: // Ctrl+N (down)
-		h.ui.state.MoveDown()
-		return true, nil
-	case 21: // Ctrl+U (clear line)
-		h.ui.state.ClearInput()
-		return true, nil
-	case 23: // Ctrl+W (delete word)
-		h.ui.state.DeleteWord()
-		return true, nil
-	case 11: // Ctrl+K (delete to end)
-		h.ui.state.DeleteToEnd()
-		return true, nil
-	case 1: // Ctrl+A (beginning of line)
-		h.ui.state.MoveToBeginning()
-		return true, nil
-	case 5: // Ctrl+E (end of line)
-		h.ui.state.MoveToEnd()
-		return true, nil
-	case 127, 8: // Backspace
-		h.ui.state.RemoveChar()
-		return true, nil
-	default:
-		if b >= 32 && b <= 126 { // Printable ASCII
-			h.ui.state.AddChar(b)
+	return h.HandleKeyRune(rune(b), 1, oldState)
+}
+
+// HandleKeyRune processes a UTF-8 rune input and returns true if should continue
+func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool, []string) {
+	// Handle control characters (single byte)
+	if size == 1 {
+		b := byte(r)
+		switch b {
+		case 3: // Ctrl+C
+			h.handleCtrlC(oldState)
+			return false, nil
+		case 13: // Enter
+			return h.handleEnter(oldState)
+		case 16: // Ctrl+P (up)
+			h.ui.state.MoveUp()
+			return true, nil
+		case 14: // Ctrl+N (down)
+			h.ui.state.MoveDown()
+			return true, nil
+		case 21: // Ctrl+U (clear line)
+			h.ui.state.ClearInput()
+			return true, nil
+		case 23: // Ctrl+W (delete word)
+			h.ui.state.DeleteWord()
+			return true, nil
+		case 11: // Ctrl+K (delete to end)
+			h.ui.state.DeleteToEnd()
+			return true, nil
+		case 1: // Ctrl+A (beginning of line)
+			h.ui.state.MoveToBeginning()
+			return true, nil
+		case 5: // Ctrl+E (end of line)
+			h.ui.state.MoveToEnd()
+			return true, nil
+		case 127, 8: // Backspace
+			h.ui.state.RemoveChar()
+			return true, nil
 		}
-		return true, nil
 	}
+	
+	// Handle printable characters (including multibyte)
+	if unicode.IsPrint(r) {
+		h.ui.state.AddRune(r)
+	}
+	return true, nil
 }
 
 // handleCtrlC handles Ctrl+C key press
@@ -514,19 +550,16 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 		_ = h.ui.term.restore(fd, oldState)
 	}()
 
-	// Buffer for reading single bytes
-	buf := make([]byte, 1)
+	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		// Read one byte at a time
-		n, err := os.Stdin.Read(buf)
-		if err != nil || n == 0 {
+		// Read UTF-8 rune instead of single byte
+		r, _, err := reader.ReadRune()
+		if err != nil {
 			break
 		}
 
-		char := rune(buf[0])
-
-		switch char {
+		switch r {
 		case '\n', '\r':
 			// Enter pressed - confirm input
 			if input.Len() > 0 {
@@ -541,13 +574,15 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 
 		case '\b', 127: // Backspace
 			if input.Len() > 0 {
-				// Remove last character
+				// Remove last rune properly
 				str := input.String()
-				input.Reset()
-				input.WriteString(str[:len(str)-1])
-
-				// Update display: move back, write space, move back again
-				h.ui.write("\b \b")
+				runes := []rune(str)
+				if len(runes) > 0 {
+					input.Reset()
+					input.WriteString(string(runes[:len(runes)-1]))
+					// Update display: move back, write space, move back again
+					h.ui.write("\b \b")
+				}
 			}
 
 		case 3: // Ctrl+C
@@ -558,10 +593,10 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 			return ""
 
 		default:
-			// Regular character
-			if char >= 32 && char <= 126 { // Printable ASCII
-				input.WriteRune(char)
-				h.ui.write("%c", char)
+			// Accept all printable characters including multibyte
+			if unicode.IsPrint(r) {
+				input.WriteRune(r)
+				h.ui.write("%c", r)
 			}
 		}
 	}
@@ -1127,7 +1162,8 @@ func (ui *UI) Run() []string {
 		// Render the UI
 		ui.renderer.Render(ui, ui.state)
 
-		b, err := reader.ReadByte()
+		// Read UTF-8 rune instead of single byte
+		r, size, err := reader.ReadRune()
 		if err != nil {
 			if err == io.EOF {
 				return nil
@@ -1135,8 +1171,8 @@ func (ui *UI) Run() []string {
 			continue
 		}
 
-		// Handle key input
-		shouldContinue, result := ui.handler.HandleKey(b, oldState)
+		// Handle key input with rune
+		shouldContinue, result := ui.handler.HandleKeyRune(r, size, oldState)
 		if !shouldContinue {
 			return result
 		}

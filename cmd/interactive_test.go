@@ -352,6 +352,119 @@ func TestFuzzyMatch(t *testing.T) {
 	}
 }
 
+// Test multibyte character input support
+func TestUIState_AddRune_MultibyteCcharacters(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	// Test Japanese characters
+	testCases := []struct {
+		name     string
+		rune     rune
+		expected string
+	}{
+		{"Hiragana", 'こ', "こ"},
+		{"Katakana", 'テ', "テ"},
+		{"Kanji", '機', "機"},
+		{"Emoji", '🚀', "🚀"},
+		{"Chinese", '中', "中"},
+		{"Korean", '한', "한"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Reset state
+			state.input = ""
+			state.cursorPos = 0
+
+			// Add the multibyte character
+			state.AddRune(tc.rune)
+
+			if state.input != tc.expected {
+				t.Errorf("Expected input '%s', got '%s'", tc.expected, state.input)
+			}
+
+			if state.cursorPos != 1 {
+				t.Errorf("Expected cursor position 1, got %d", state.cursorPos)
+			}
+		})
+	}
+}
+
+// Test multibyte character removal
+func TestUIState_RemoveChar_Multibyte(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "こんにちは", // "Hello" in Japanese
+		cursorPos: 5,          // At the end
+		filtered:  []CommandInfo{},
+	}
+
+	// Remove last character (は)
+	state.RemoveChar()
+
+	expected := "こんにち"
+	if state.input != expected {
+		t.Errorf("Expected input '%s', got '%s'", expected, state.input)
+	}
+
+	if state.cursorPos != 4 {
+		t.Errorf("Expected cursor position 4, got %d", state.cursorPos)
+	}
+
+	// Remove another character (ち)
+	state.RemoveChar()
+
+	expected = "こんに"
+	if state.input != expected {
+		t.Errorf("Expected input '%s', got '%s'", expected, state.input)
+	}
+
+	if state.cursorPos != 3 {
+		t.Errorf("Expected cursor position 3, got %d", state.cursorPos)
+	}
+}
+
+// Test fuzzy matching with multibyte characters
+func TestUIState_UpdateFiltered_MultibyteFuzzy(t *testing.T) {
+	// Add a mock command with multibyte characters for testing
+	originalCommands := commands
+	defer func() { commands = originalCommands }()
+
+	commands = []CommandInfo{
+		{"commit 機能追加", "Add feature commit"},
+		{"branch テスト", "Test branch"},
+		{"add ファイル", "Add file"},
+		{"commit message", "Regular commit"},
+	}
+
+	state := &UIState{
+		selected:  0,
+		input:     "機能", // Should match "commit 機能追加"
+		cursorPos: 2,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	// Should find the command containing "機能"
+	found := false
+	for _, cmd := range state.filtered {
+		if strings.Contains(cmd.Command, "機能追加") {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("Expected to find command containing '機能追加' with fuzzy pattern '機能'")
+	}
+}
+
 func TestUIState_MoveUp(t *testing.T) {
 	state := &UIState{
 		selected:  2,
