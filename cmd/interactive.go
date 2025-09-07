@@ -358,10 +358,10 @@ type KeyHandler struct {
 	ui *UI
 }
 
-// HandleKey processes a single byte input and returns true if should continue
+// HandleKey processes single-byte input (ASCII characters and control codes only)
+// Note: This method cannot handle multibyte UTF-8 characters properly.
+// Use HandleKeyRune for proper multibyte character support.
 func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
-	r := rune(b)
-
 	// Handle control characters
 	switch b {
 	case 3: // Ctrl+C
@@ -394,9 +394,9 @@ func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
 		h.ui.state.RemoveChar()
 		return true, nil
 	default:
-		// Handle printable characters (including multibyte when converted to rune)
-		if unicode.IsPrint(r) {
-			h.ui.state.AddRune(r)
+		// Handle printable ASCII characters only (32-126)
+		if b >= 32 && b <= 126 {
+			h.ui.state.AddRune(rune(b))
 		}
 		return true, nil
 	}
