@@ -62,6 +62,37 @@ When implementing new features or modifying existing ones, please ensure to:
 - Update tests when adding or modifying features
 - Add test cases for error scenarios
 
+## Command Design Guidelines
+
+### Naming Conventions
+1. Struct Names: Use `-er` suffix consistently (e.g., `Brancher`, `Committer`)
+2. Field Names: Match struct names in lowercase (e.g., `brancher`, `committer`)
+3. Function Names: Use descriptive verbs (e.g., `GetCurrentBranch`, `ListLocalBranches`)
+
+### Command Structure
+1. Format: `ggc <command> <subcommand> [modifier] [arguments]`
+2. No Option Flags: Use subcommands instead of `-flag` or `--flag`
+3. No Hyphens: Use spaces to separate words (e.g., `clean interactive`)
+4. Hierarchical: Group related functionality under common commands
+
+### Examples
+- ✅ `ggc restore staged <file>`
+- ✅ `ggc commit allow empty`
+- ✅ `ggc branch set upstream <branch> <upstream>`
+- ❌ `ggc restore --staged <file>`
+- ❌ `ggc commit --allow-empty`
+- ❌ `ggc branch set-upstream <branch> <upstream>`
+
+### When Adding New Commands
+1. Follow the established hierarchy
+2. Use descriptive subcommand names
+3. Update all related files:
+   - Command implementation
+   - Help templates
+   - Interactive mode commands
+   - Completion scripts
+   - Documentation
+
 ## Other
 - If unsure, please open an Issue for discussion first!
 - Documentation and README improvements are also welcome.

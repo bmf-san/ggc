@@ -32,7 +32,7 @@ func (f *Fetcher) Fetch(args []string) {
 	}
 
 	switch args[0] {
-	case "--prune":
+	case "prune":
 		if err := f.gitClient.Fetch(true); err != nil {
 			_, _ = fmt.Fprintf(f.outputWriter, "Error: %v\n", err)
 		}

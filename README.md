@@ -202,31 +202,31 @@ ggc
 | `add <file>` | Add specific file to the index |
 | `add .` | Add all changes |
 | `add interactive` | Add changes interactively |
-| `add -p` | Add changes interactively (patch mode) |
+| `add patch` | Add changes interactively (patch mode) |
 | `branch current` | Show current branch |
 | `branch checkout` | Checkout existing branch |
-| `branch checkout-remote` | Checkout remote branch |
+| `branch checkout remote` | Checkout remote branch |
 | `branch create` | Create and checkout new branch |
 | `branch delete` | Delete a branch |
-| `branch delete-merged` | Delete merged branches |
+| `branch delete merged` | Delete merged branches |
 | `branch rename <old> <new>` | Rename a branch |
 | `branch move <branch> <commit>` | Move branch to specified commit |
-| `branch set-upstream <branch> <upstream>` | Set upstream for a branch |
+| `branch set upstream <branch> <upstream>` | Set upstream for a branch |
 | `branch info <branch>` | Show detailed branch information |
-| `branch list --verbose` | Show detailed branch listing |
+| `branch list verbose` | Show detailed branch listing |
 | `branch sort [date\|name]` | List branches sorted by date or name |
 | `branch contains <commit>` | Show branches containing a commit |
-| `branch list-local` | List local branches |
-| `branch list-remote` | List remote branches |
+| `branch list local` | List local branches |
+| `branch list remote` | List remote branches |
 | `clean files` | Clean untracked files |
 | `clean dirs` | Clean untracked directories |
 | `commit` | Commit staged changes |
 | `commit amend` | Amend previous commit |
-| `commit amend --no-edit` | Amend without editing message |
-| `commit allow-empty` | Create an empty commit |
+| `commit amend no-edit` | Amend without editing message |
+| `commit allow empty` | Create an empty commit |
 | `diff staged` | Show staged changes |
 | `diff unstaged` | Show unstaged changes |
-| `fetch --prune` | Fetch and prune remotes |
+| `fetch prune` | Fetch and prune remotes |
 | `log simple` | Show commit logs in simple format |
 | `log graph` | Show commit logs with a graph |
 | `pull current` | Pull current branch |
@@ -249,8 +249,8 @@ ggc
 | `hook edit <hook>` | Edit a hook |
 | `restore <file>` | Restore file in working directory from index
 | `restore .` | Restore all files in working directory from index
-| `restore --staged <file>` | Unstage file (restore from HEAD to index)
-| `restore --staged .` | Unstage all files
+| `restore staged <file>` | Unstage file (restore from HEAD to index)
+| `restore staged .` | Unstage all files
 | `restore <commit> <file>` | Restore file from specific commit
 | `tag list` | List all tags |
 | `tag create <v>` | Create a tag |

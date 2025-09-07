@@ -58,7 +58,7 @@ var mockNewConfigManager func() interface {
 	Set(string, any) error
 }
 
-func TestConfigureer_Config(t *testing.T) {
+func TestConfigurer_Config(t *testing.T) {
 	cases := []struct {
 		name           string
 		args           []string
@@ -196,7 +196,7 @@ func TestConfigureer_Config(t *testing.T) {
 				mockNewConfigManager = originalMockNewConfigManager
 			}()
 
-			c := &Configureer{
+			c := &Configurer{
 				gitClient:    testutil.NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),
@@ -222,7 +222,7 @@ func TestConfigureer_Config(t *testing.T) {
 	}
 }
 
-func TestConfigureer_LoadConfig(t *testing.T) {
+func TestConfigurer_LoadConfig(t *testing.T) {
 	cases := []struct {
 		name           string
 		mockConfig     *mockConfigManager
@@ -257,7 +257,7 @@ func TestConfigureer_LoadConfig(t *testing.T) {
 				mockNewConfigManager = originalMockNewConfigManager
 			}()
 
-			c := &Configureer{
+			c := &Configurer{
 				gitClient:    testutil.NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),

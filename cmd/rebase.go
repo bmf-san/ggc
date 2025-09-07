@@ -38,11 +38,8 @@ func (r *Rebaser) Rebase(args []string) {
 	}
 
 	switch args[0] {
-	case "-i", "--interactive":
-		r.RebaseInteractive()
 	case "interactive":
-		_, _ = fmt.Fprintln(r.outputWriter, "Error: 'ggc rebase interactive' is no longer supported. Use 'ggc rebase -i' or 'ggc rebase --interactive'.")
-		r.helper.ShowRebaseHelp()
+		r.RebaseInteractive()
 	default:
 		r.helper.ShowRebaseHelp()
 	}

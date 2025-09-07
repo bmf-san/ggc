@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/bmf-san/ggc/v5/git"
@@ -49,17 +50,17 @@ type Cmd struct {
 	resetter     *Resetter
 	cleaner      *Cleaner
 	adder        *Adder
-	remoteer     *Remoteer
+	remoter      *Remoter
 	rebaser      *Rebaser
 	stasher      *Stasher
-	configureer  *Configureer
+	configurer   *Configurer
 	hooker       *Hooker
 	tagger       *Tagger
-	statuseer    *Statuseer
-	versioneer   *Versioneer
+	statuser     *Statuser
+	versioner    *Versioner
 	completer    *Completer
 	differ       *Differ
-	restoreer    *Restoreer
+	restorer     *Restorer
 	fetcher      *Fetcher
 }
 
@@ -77,17 +78,17 @@ func NewCmd(client git.Clienter) *Cmd {
 		resetter:     NewResetter(client),
 		cleaner:      NewCleaner(client),
 		adder:        NewAdder(client),
-		remoteer:     NewRemoteer(client),
+		remoter:      NewRemoter(client),
 		rebaser:      NewRebaser(client),
 		stasher:      NewStasher(client),
-		configureer:  NewConfigureer(client),
+		configurer:   NewConfigurer(client),
 		hooker:       NewHooker(client),
 		tagger:       NewTagger(client),
-		statuseer:    NewStatuseer(client),
-		versioneer:   NewVersioneer(client),
+		statuser:     NewStatuser(client),
+		versioner:    NewVersioner(client),
 		completer:    NewCompleter(client),
 		differ:       NewDiffer(client),
-		restoreer:    NewRestoreer(client),
+		restorer:     NewRestorer(client),
 		fetcher:      NewFetcher(client),
 	}
 }
@@ -104,7 +105,7 @@ func (c *Cmd) Branch(args []string) {
 
 // Remote executes the remote command with the given arguments.
 func (c *Cmd) Remote(args []string) {
-	c.remoteer.Remote(args)
+	c.remoter.Remote(args)
 }
 
 // Rebase executes the rebase command with the given arguments.
@@ -139,12 +140,12 @@ func (c *Cmd) Add(args []string) {
 
 // Status executes the status command with the given arguments.
 func (c *Cmd) Status(args []string) {
-	c.statuseer.Status(args)
+	c.statuser.Status(args)
 }
 
 // Config executes the status command with the given arguments.
 func (c *Cmd) Config(args []string) {
-	c.configureer.Config(args)
+	c.configurer.Config(args)
 }
 
 // Hook executes the hook command with the given arguments.
@@ -164,12 +165,12 @@ func (c *Cmd) Diff(args []string) {
 
 // Restore executes the restore command with the given arguments.
 func (c *Cmd) Restore(args []string) {
-	c.restoreer.Restore(args)
+	c.restorer.Restore(args)
 }
 
 // Version executes the version command with the given arguments.
 func (c *Cmd) Version(args []string) {
-	c.versioneer.Version(args)
+	c.versioner.Version(args)
 }
 
 // Pull executes the pull command with the given arguments.
@@ -224,37 +225,6 @@ func (c *Cmd) Interactive() {
 	}
 }
 
-// commandHandler represents a function that handles a command
-type commandHandler func([]string)
-
-// getCommandHandlers returns a map of command names to their handlers
-func (c *Cmd) getCommandHandlers() map[string]commandHandler {
-	return map[string]commandHandler{
-		"help":              func(_ []string) { c.Help() },
-		"add":               c.adder.Add,
-		"branch":            c.Branch,
-		"commit":            c.Commit,
-		"log":               c.Log,
-		"pull":              c.Pull,
-		"push":              c.Push,
-		"reset":             c.Reset,
-		"clean":             c.Clean,
-		"version":           c.Version,
-		"clean-interactive": func(_ []string) { c.cleaner.CleanInteractive() },
-		"remote":            c.remoteer.Remote,
-		"rebase":            c.rebaser.Rebase,
-		"stash":             c.stasher.Stash,
-		"config":            c.configureer.Config,
-		"hook":              c.hooker.Hook,
-		"tag":               c.tagger.Tag,
-		"status":            c.statuseer.Status,
-		"complete":          c.completer.Complete,
-		"fetch":             c.fetcher.Fetch,
-		"diff":              c.differ.Diff,
-		"restore":           c.restoreer.Restore,
-	}
-}
-
 // Route routes the command to the appropriate handler based on args.
 func (c *Cmd) Route(args []string) {
 	if len(args) == 0 {
@@ -262,12 +232,226 @@ func (c *Cmd) Route(args []string) {
 		return
 	}
 
-	handlers := c.getCommandHandlers()
-	if handler, exists := handlers[args[0]]; exists {
-		handler(args[1:])
-	} else {
-		c.Help()
+	// Friendly hint for legacy syntax (flags/hyphens) without executing
+	if suggestion, ok := suggestNewSyntax(args); ok {
+		_, _ = fmt.Fprintf(c.outputWriter, "Legacy syntax detected.\nUse: ggc %s\n", suggestion)
+		return
 	}
+
+	c.routeCommand(args[0], args[1:])
+}
+
+// routeCommand routes to the appropriate command handler
+func (c *Cmd) routeCommand(cmd string, args []string) {
+	// Handle core commands first
+	if c.handleCoreCommand(cmd, args) {
+		return
+	}
+
+	// Handle extended commands
+	c.routeExtendedCommand(cmd, args)
+}
+
+// handleCoreCommand handles core git commands
+func (c *Cmd) handleCoreCommand(cmd string, args []string) bool {
+	coreCommands := map[string]func([]string){
+		"help":    func([]string) { c.Help() },
+		"add":     c.adder.Add,
+		"branch":  c.Branch,
+		"commit":  c.Commit,
+		"log":     c.Log,
+		"pull":    c.Pull,
+		"push":    c.Push,
+		"reset":   c.Reset,
+		"clean":   c.Clean,
+		"version": c.Version,
+	}
+
+	if handler, exists := coreCommands[cmd]; exists {
+		handler(args)
+		return true
+	}
+	return false
+}
+
+// routeExtendedCommand routes to extended command handlers
+func (c *Cmd) routeExtendedCommand(cmd string, args []string) {
+	extendedCommands := map[string]func([]string){
+		"remote":   c.remoter.Remote,
+		"rebase":   c.rebaser.Rebase,
+		"stash":    c.stasher.Stash,
+		"config":   c.configurer.Config,
+		"hook":     c.hooker.Hook,
+		"tag":      c.tagger.Tag,
+		"status":   c.statuser.Status,
+		"complete": c.completer.Complete,
+		"fetch":    c.fetcher.Fetch,
+		"diff":     c.differ.Diff,
+		"restore":  c.restorer.Restore,
+	}
+
+	if handler, exists := extendedCommands[cmd]; exists {
+		handler(args)
+		return
+	}
+	c.Help()
+}
+
+// suggestNewSyntax returns a friendly suggestion for unified syntax if a legacy
+// pattern is detected. It does not execute the command.
+func suggestNewSyntax(args []string) (string, bool) {
+	if len(args) == 0 {
+		return "", false
+	}
+
+	// Top-level hyphenated commands
+	if args[0] == "clean-interactive" {
+		return "clean interactive", true
+	}
+
+	// Check command-specific legacy syntax
+	switch args[0] {
+	case "rebase":
+		return checkRebaseSyntax(args[1:])
+	case "add":
+		return checkAddSyntax(args[1:])
+	case "restore":
+		return checkRestoreSyntax(args[1:])
+	case "fetch":
+		return checkFetchSyntax(args[1:])
+	case "commit":
+		return checkCommitSyntax(args[1:])
+	case "branch":
+		return checkBranchSyntax(args[1:])
+	}
+
+	return "", false
+}
+
+// checkRebaseSyntax checks for legacy rebase syntax
+func checkRebaseSyntax(args []string) (string, bool) {
+	for _, a := range args {
+		if a == "-i" || a == "--interactive" {
+			return "rebase interactive", true
+		}
+	}
+	return "", false
+}
+
+// checkAddSyntax checks for legacy add syntax
+func checkAddSyntax(args []string) (string, bool) {
+	for _, a := range args {
+		switch a {
+		case "-p":
+			return "add patch", true
+		case "-i", "--interactive":
+			return "add interactive", true
+		}
+	}
+	return "", false
+}
+
+// checkRestoreSyntax checks for legacy restore syntax
+func checkRestoreSyntax(args []string) (string, bool) {
+	out := []string{"restore"}
+	staged := false
+	rest := []string{}
+	for _, a := range args {
+		if a == "--staged" {
+			staged = true
+			continue
+		}
+		rest = append(rest, a)
+	}
+	if staged {
+		out = append(out, "staged")
+		out = append(out, rest...)
+		return strings.Join(out, " "), true
+	}
+	return "", false
+}
+
+// checkFetchSyntax checks for legacy fetch syntax
+func checkFetchSyntax(args []string) (string, bool) {
+	for _, a := range args {
+		if a == "--prune" {
+			return "fetch prune", true
+		}
+	}
+	return "", false
+}
+
+// checkCommitSyntax checks for legacy commit syntax
+func checkCommitSyntax(args []string) (string, bool) {
+	// Check for direct patterns first
+	if suggestion := checkDirectCommitPatterns(args); suggestion != "" {
+		return suggestion, true
+	}
+
+	// Check for amend patterns
+	if suggestion := checkAmendPatterns(args); suggestion != "" {
+		return suggestion, true
+	}
+
+	return "", false
+}
+
+// checkDirectCommitPatterns checks for direct commit patterns
+func checkDirectCommitPatterns(args []string) string {
+	for i, a := range args {
+		if a == "--allow-empty" || a == "allow-empty" {
+			return "commit allow empty"
+		}
+		// Check for amend --no-edit pattern
+		if a == "amend" && i+1 < len(args) {
+			for _, b := range args[i+1:] {
+				if b == "--no-edit" {
+					return "commit amend no-edit"
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// checkAmendPatterns checks for amend-related patterns
+func checkAmendPatterns(args []string) string {
+	hasAmend := false
+	hasNoEdit := false
+	for _, a := range args {
+		if a == "amend" || a == "--amend" {
+			hasAmend = true
+		}
+		if a == "--no-edit" {
+			hasNoEdit = true
+		}
+	}
+	if hasAmend {
+		if hasNoEdit {
+			return "commit amend no-edit"
+		}
+		return "commit amend"
+	}
+	return ""
+}
+
+// checkBranchSyntax checks for legacy branch syntax
+func checkBranchSyntax(args []string) (string, bool) {
+	if len(args) >= 1 {
+		switch args[0] {
+		case "checkout-remote":
+			return "branch checkout remote", true
+		case "delete-merged":
+			return "branch delete merged", true
+		case "set-upstream":
+			return "branch set upstream", true
+		case "list-local":
+			return "branch list local", true
+		case "list-remote":
+			return "branch list remote", true
+		}
+	}
+	return "", false
 }
 
 // waitForContinue waits for user input to continue

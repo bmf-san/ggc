@@ -8,19 +8,27 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean version restore hook diff status clean-interactive commit complete tag fetch log pull push rebase remote reset stash"
+complete -c ggc -f -a "add branch clean version restore hook diff status commit complete tag fetch log pull push rebase remote reset stash"
 
 # Branch subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout checkout-remote delete delete-merged rename move set-upstream info list-local list-remote list sort contains"
+complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout delete rename move set info list sort contains"
 
-# Branch checkout completion with dynamic branch names
-complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from checkout" -a "(__ggc_complete_branches)"
+# Branch checkout completion with dynamic branch names and keyword 'remote'
+complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from checkout" -a "remote (__ggc_complete_branches)"
 
-# Branch list options
-complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -l verbose
+# Branch list 'local', 'remote', 'verbose'
+complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"
+
+# Branch delete 'merged'
+complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
+
+# Branch set 'upstream'
+complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from set" -a "upstream"
 
 # Commit subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow-empty amend"
+complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow amend"
+complete -c ggc -f -n "__fish_seen_subcommand_from commit; and __fish_seen_subcommand_from allow" -a "empty"
+complete -c ggc -f -n "__fish_seen_subcommand_from commit; and __fish_seen_subcommand_from amend" -a "no-edit"
 
 # Push subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from push" -a "current force"
@@ -32,7 +40,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from pull" -a "current rebase"
 complete -c ggc -f -n "__fish_seen_subcommand_from log" -a "simple graph"
 
 # Clean subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from clean" -a "files dirs"
+complete -c ggc -f -n "__fish_seen_subcommand_from clean" -a "files dirs interactive"
 
 # Complete subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from complete" -a "bash zsh fish"
@@ -40,11 +48,11 @@ complete -c ggc -f -n "__fish_seen_subcommand_from complete" -a "bash zsh fish"
 # Remote subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from remote" -a "list add remove set-url"
 
-# Fetch options
-complete -c ggc -f -n "__fish_seen_subcommand_from fetch" -l prune
+# Fetch subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from fetch" -a "prune"
 
-# Rebase options
-complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -s i -l interactive
+# Rebase subcommands
+complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "interactive"
 
 # Tag subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from tag" -a "create delete show list annotated push"
@@ -55,12 +63,9 @@ complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "list edit install u
 # Stash subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "list show apply pop drop branch push save clear create store"
 
-# Rebase subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "interactive"
-
 # Restore subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from restore" -a "staged"
 
 # Add subcommands and file completion
-complete -c ggc -f -n "__fish_seen_subcommand_from add" -a "interactive"
+complete -c ggc -f -n "__fish_seen_subcommand_from add" -a "interactive patch"
 complete -c ggc -f -n "__fish_seen_subcommand_from add" -a "(__ggc_complete_files)"

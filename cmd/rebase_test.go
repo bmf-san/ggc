@@ -176,20 +176,20 @@ func TestRebaser_Rebase(t *testing.T) {
 		mockInput      string
 	}{
 		{
-			name:           "interactive rebase via -i",
-			args:           []string{"-i"},
+			name:           "interactive rebase",
+			args:           []string{"interactive"},
 			expectedOutput: "Current branch:",
 			mockInput:      "1\n",
 		},
 		{
 			name:           "no args",
 			args:           []string{},
-			expectedOutput: "Usage: ggc rebase",
+			expectedOutput: "Usage: ggc rebase [interactive]",
 		},
 		{
 			name:           "invalid command",
 			args:           []string{"invalid"},
-			expectedOutput: "Usage: ggc rebase",
+			expectedOutput: "Usage: ggc rebase [interactive]",
 		},
 	}
 
@@ -230,7 +230,7 @@ func TestRebaser_Rebase_InteractiveCancel(t *testing.T) {
 	}
 	r.helper.outputWriter = &buf
 
-	r.Rebase([]string{"-i"})
+	r.Rebase([]string{"interactive"})
 
 	output := buf.String()
 	if !strings.Contains(output, "Error: no commit history found") {
@@ -249,7 +249,7 @@ func TestRebaser_Rebase_Error(t *testing.T) {
 	}
 	r.helper.outputWriter = &buf
 
-	r.Rebase([]string{"-i"})
+	r.Rebase([]string{"interactive"})
 
 	output := buf.String()
 	if !strings.Contains(output, "Error:") {

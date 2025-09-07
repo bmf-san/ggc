@@ -9,16 +9,16 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
-// Statuseer handles status operations.
-type Statuseer struct {
+// Statuser handles status operations.
+type Statuser struct {
 	outputWriter io.Writer
 	helper       *Helper
 	gitClient    git.Clienter
 }
 
-// NewStatuseer creates a new Statuseer instance.
-func NewStatuseer(client git.Clienter) *Statuseer {
-	return &Statuseer{
+// NewStatuser creates a new Statuser instance.
+func NewStatuser(client git.Clienter) *Statuser {
+	return &Statuser{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		gitClient:    client,
@@ -26,7 +26,8 @@ func NewStatuseer(client git.Clienter) *Statuseer {
 }
 
 // getUpstreamStatus gets the upstream tracking status
-func (s *Statuseer) getUpstreamStatus(branch string) string {
+func (s *Statuser) getUpstreamStatus(branch string) string {
+	// Check if upstream exists
 	upstream, err := s.gitClient.GetUpstreamBranchName(branch)
 	if err != nil {
 		return ""
@@ -50,11 +51,11 @@ func parseCounts(output string) (string, string, bool) {
 	return counts[0], counts[1], true
 }
 
-func (s *Statuseer) formatUpToDate(upstream string) string {
+func (s *Statuser) formatUpToDate(upstream string) string {
 	return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
 }
 
-func (s *Statuseer) formatAheadBehind(upstream, ahead, behind string) string {
+func (s *Statuser) formatAheadBehind(upstream, ahead, behind string) string {
 	switch {
 	case ahead == "0" && behind == "0":
 		return s.formatUpToDate(upstream)
@@ -68,7 +69,7 @@ func (s *Statuseer) formatAheadBehind(upstream, ahead, behind string) string {
 }
 
 // Status executes git status with the given arguments.
-func (s *Statuseer) Status(args []string) {
+func (s *Statuser) Status(args []string) {
 	if len(args) == 0 {
 		// Show status with color and branch info
 		branch, err := s.gitClient.GetCurrentBranch()

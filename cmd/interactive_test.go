@@ -263,9 +263,9 @@ func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 	// Should match commands containing "commit"
 	expectedMatches := []string{
 		"commit <message>",
-		"commit allow-empty",
+		"commit allow empty",
 		"commit amend",
-		"commit amend --no-edit",
+		"commit amend no-edit",
 	}
 
 	// Check that expected commands are found

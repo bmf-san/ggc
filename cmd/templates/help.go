@@ -29,27 +29,29 @@ Main Commands:
   ggc add <file>              Stage file(s)
   ggc add .                   Stage all changes
   ggc add interactive         Stage changes interactively
-  ggc add -p                  Stage changes interactively (patch mode)
+  ggc add patch               Stage changes interactively (patch mode)
   ggc branch current          Show current branch name
   ggc branch checkout         Interactive branch switch
-  ggc branch checkout-remote  Create and checkout new local branch from remote
+  ggc branch checkout remote  Create and checkout new local branch from remote
   ggc branch delete          Interactive delete of local branches
-  ggc branch delete-merged   Interactive delete of merged local branches
+  ggc branch delete merged   Interactive delete of merged local branches
   ggc branch rename <old> <new>         Rename branch
   ggc branch move <branch> <commit>     Move branch pointer
-  ggc branch set-upstream <branch> <up> Set upstream branch
+  ggc branch set upstream <branch> <up> Set upstream branch
   ggc branch info <branch>              Show branch details
-  ggc branch list --verbose             Detailed branch list
+  ggc branch list verbose              Detailed branch list
+  ggc branch list local                List local branches
+  ggc branch list remote               List remote branches
   ggc branch sort [date|name]           Sort branches
   ggc branch contains <commit>          Show branches containing commit
   ggc clean files             Clean files
   ggc clean dirs              Clean directories
-  ggc clean-interactive       Interactive file cleaning
+  ggc clean interactive       Interactive file cleaning
   ggc commit amend            Amend to previous commit
-  ggc commit amend --no-edit  Amend without editing commit message
-  ggc commit allow-empty      Create empty commit
+  ggc commit amend no-edit    Amend without editing commit message
+  ggc commit allow empty      Create empty commit
   ggc complete <shell>        Generate shell completion script (bash|zsh)
-  ggc fetch --prune          Fetch and remove stale remote-tracking branches
+  ggc fetch prune            Fetch and remove stale remote-tracking branches
   ggc diff                    Show changes between commits, commit and working tree
   ggc tag                     Create, list, and delete tags
   ggc log simple              Show simple log
@@ -65,8 +67,8 @@ Main Commands:
   ggc remote set-url <n> <url> Change remote URL
   ggc restore <file>          Restore file in working directory from index
   ggc restore .               Restore all files in working directory from index
-  ggc restore --staged <file>   Unstage file (restore from HEAD to index)
-  ggc restore --staged .        Unstage all files
+  ggc restore staged <file>   Unstage file (restore from HEAD to index)
+  ggc restore staged .        Unstage all files
   ggc restore <commit> <file> Restore file from specific commit
   ggc version                 Show current ggc version
   ggc config                  Manage ggc configuration

@@ -59,9 +59,6 @@ _ggc() {
                 add)
                     _ggc_add
                     ;;
-                rebase)
-                    _ggc_rebase
-                    ;;
                 stash)
                     _ggc_stash
                     ;;
@@ -84,7 +81,6 @@ _ggc_commands() {
         'hook:Git hook management'
         'diff:Show differences'
         'status:Show repository status'
-        'clean-interactive:Interactive clean'
         'commit:Create commits'
         'complete:Shell completion'
         'tag:Tag management'
@@ -105,16 +101,12 @@ _ggc_branch() {
     local subcommands
     subcommands=(
         'current:Show current branch'
-        'checkout:Switch to branch'
-        'checkout-remote:Checkout remote branch'
-        'delete:Delete branch'
-        'delete-merged:Delete merged branches'
+        'checkout:Switch to branch or remote'
+        'delete:Delete branch or merged'
         'rename:Rename a branch'
         'move:Move branch to specified commit'
-        'set-upstream:Set upstream for a branch'
+        'set:Set upstream'
         'info:Show detailed branch information'
-        'list-local:List local branches'
-        'list-remote:List remote branches'
         'list:Show detailed branch listing'
         'sort:List branches sorted by date or name'
         'contains:Show branches containing a commit'
@@ -126,23 +118,32 @@ _ggc_branch() {
         # Dynamic completion for branch checkout
         local branches
         branches=(${(f)"$(ggc __complete branch 2>/dev/null)"})
-        _describe 'branches' branches
+        if [[ ${#branches[@]} -gt 0 ]]; then
+            _describe 'branches' branches
+        fi
+        _values 'keyword' remote
+    elif [[ $words[2] == "delete" && $CURRENT == 3 ]]; then
+        _values 'keyword' merged
+    elif [[ $words[2] == "set" && $CURRENT == 3 ]]; then
+        _values 'keyword' upstream
     elif [[ $words[2] == "list" && $CURRENT == 3 ]]; then
-        # Branch list options
-        local options
-        options=(
-            '--verbose:Show detailed branch information'
-        )
-        _describe 'list options' options
+        _values 'keyword' local remote verbose
     fi
 }
 
 _ggc_commit() {
     local subcommands
     subcommands=(
-        'allow-empty:Create an empty commit'
+        'allow:Allow empty commit'
         'amend:Amend previous commit'
     )
+    if [[ $CURRENT == 3 && $words[2] == "amend" ]]; then
+        _values 'keyword' no-edit
+        return
+    elif [[ $CURRENT == 3 && $words[2] == "allow" ]]; then
+        _values 'keyword' empty
+        return
+    fi
     _describe 'commit subcommands' subcommands
 }
 
@@ -207,6 +208,7 @@ _ggc_clean() {
     subcommands=(
         'files:Clean files'
         'dirs:Clean directories'
+        'interactive:Interactive clean'
     )
     _describe 'clean subcommands' subcommands
 }
@@ -232,11 +234,11 @@ _ggc_remote() {
 }
 
 _ggc_fetch() {
-    local options
-    options=(
-        '--prune:Prune remote branches'
+    local subcommands
+    subcommands=(
+        'prune:Prune remote branches'
     )
-    _describe 'fetch options' options
+    _describe 'fetch subcommands' subcommands
 }
 
 _ggc_tag() {
@@ -263,11 +265,11 @@ _ggc_config() {
 }
 
 _ggc_restore() {
-    local options
-    options=(
-        '--staged:Unstage file(s) (restore from HEAD to index)'
+    local subcommands
+    subcommands=(
+        'staged:Unstage file(s) (restore from HEAD to index)'
     )
-    _describe 'restore options' options
+    _describe 'restore subcommands' subcommands
 }
 
 _ggc_add() {
@@ -275,6 +277,7 @@ _ggc_add() {
     local subcommands
     subcommands=(
         'interactive:Interactive add'
+        'patch:Patch mode'
     )
     _describe 'add subcommands' subcommands
 
