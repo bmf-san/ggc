@@ -353,7 +353,7 @@ func TestFuzzyMatch(t *testing.T) {
 }
 
 // Test multibyte character input support
-func TestUIState_AddRune_MultibyteCcharacters(t *testing.T) {
+func TestUIState_AddRune_MultibyteCharacters(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "",
