@@ -296,7 +296,7 @@ func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 func TestUIState_UpdateFiltered_FuzzyNonConsecutive(t *testing.T) {
 	state := &UIState{
 		selected:  0,
-		input:     "bd",  // Should match "branch delete"
+		input:     "bd", // Should match "branch delete"
 		cursorPos: 2,
 		filtered:  []CommandInfo{},
 	}

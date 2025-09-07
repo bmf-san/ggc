@@ -212,20 +212,20 @@ func fuzzyMatch(text, pattern string) bool {
 	if pattern == "" {
 		return true
 	}
-	
+
 	textRunes := []rune(text)
 	patternRunes := []rune(pattern)
-	
+
 	textIdx := 0
 	patternIdx := 0
-	
+
 	for textIdx < len(textRunes) && patternIdx < len(patternRunes) {
 		if textRunes[textIdx] == patternRunes[patternIdx] {
 			patternIdx++
 		}
 		textIdx++
 	}
-	
+
 	return patternIdx == len(patternRunes)
 }
 

@@ -162,7 +162,7 @@ export PATH=$PATH:$HOME/go/bin
 
 ## Usage
 
-### Interactive Command Selection (Incremental Search UI)
+### Interactive Command Selection (Fuzzy Search UI)
 
 Just run:
 
@@ -170,13 +170,34 @@ Just run:
 ggc
 ```
 
-- Type to filter commands (incremental search)
-- Use ctrl+n/ctrl+p to move selection, Enter to execute
-- If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input (always left-aligned)
+**Search Features:**
+- **Fuzzy matching**: Type any characters that appear in the command (e.g., `"bd"` matches `"branch delete"`, `"ca"` matches `"commit amend"`)
+- **Case-insensitive**: Search works regardless of case
+- **Real-time filtering**: Results update as you type
+
+**Navigation & Editing:**
+- `Ctrl+n` / `Ctrl+p`: Navigate up/down through results
+- `Ctrl+a` / `Ctrl+e`: Move cursor to beginning/end of input
+- `Ctrl+u`: Clear all input
+- `Ctrl+w`: Delete word before cursor
+- `Ctrl+k`: Delete from cursor to end of line
+- `Backspace`: Delete character before cursor
+- `Enter`: Execute selected command
+- `Ctrl+c`: Exit interactive mode
+
+**Command Execution:**
+- If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
 - After command execution, results are displayed and you can press Enter to continue
 - After viewing results, you return to the command selection screen for continuous use
-- Use "quit" command or ctrl+c to exit interactive mode
+- Type `"quit"` or use `Ctrl+c` to exit interactive mode
 - All UI and prompts are in English
+
+**Examples of Fuzzy Search:**
+- `"bd"` → finds `"branch delete"`
+- `"ca"` → finds `"commit amend"`
+- `"ai"` → finds `"add interactive"`
+- `"ss"` → finds `"status short"`
+- `"brdel"` → finds `"branch delete"`
 
 ### Available Commands
 
