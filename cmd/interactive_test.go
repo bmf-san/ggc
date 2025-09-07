@@ -35,8 +35,6 @@ func (m *mockTerminal) restore(_ int, _ *term.State) error {
 	return nil
 }
 
-
-
 // testUI is a test structure for UI
 type testUI struct {
 	UI
@@ -242,16 +240,16 @@ func TestUIState_UpdateFiltered(t *testing.T) {
 		t.Error("Expected filtered commands for 'add' input")
 	}
 
-	// Check that all filtered commands start with 'add'
+	// Check that all filtered commands fuzzy match 'add'
 	for _, cmd := range state.filtered {
-		if !strings.HasPrefix(cmd.Command, "add") {
-			t.Errorf("Filtered command '%s' does not start with 'add'", cmd.Command)
+		if !fuzzyMatch(strings.ToLower(cmd.Command), "add") {
+			t.Errorf("Filtered command '%s' does not fuzzy match 'add'", cmd.Command)
 		}
 	}
 }
 
-// Test prefix matching behavior
-func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
+// Test fuzzy matching behavior
+func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "commit",
@@ -261,17 +259,12 @@ func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
 
 	state.UpdateFiltered()
 
-	// Should match commands starting with "commit"
+	// Should match commands containing "commit"
 	expectedMatches := []string{
 		"commit <message>",
 		"commit allow-empty",
 		"commit amend",
 		"commit amend --no-edit",
-	}
-
-	// Should NOT match commands containing "commit" but not starting with it
-	unexpectedMatches := []string{
-		"amend commit", // hypothetical - starts with "amend"
 	}
 
 	// Check that expected commands are found
@@ -284,23 +277,77 @@ func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("Expected to find command starting with 'commit': %s", expected)
+			t.Errorf("Expected to find command containing 'commit': %s", expected)
 		}
 	}
 
-	// Check that all filtered commands start with "commit"
+	// Check that all filtered commands fuzzy match "commit"
 	for _, cmd := range state.filtered {
-		if !strings.HasPrefix(cmd.Command, "commit") {
-			t.Errorf("Filtered command '%s' should start with 'commit'", cmd.Command)
+		if !fuzzyMatch(strings.ToLower(cmd.Command), "commit") {
+			t.Errorf("Filtered command '%s' should fuzzy match 'commit'", cmd.Command)
 		}
 	}
 
-	// Verify we don't get partial matches
-	for _, unexpected := range unexpectedMatches {
-		for _, filtered := range state.filtered {
-			if filtered.Command == unexpected {
-				t.Errorf("Should not match command that doesn't start with 'commit': %s", unexpected)
-			}
+	// Note: With substring matching, we now allow commands that contain "commit"
+	// even if they don't start with it, so this test section is no longer needed
+}
+
+// Test fuzzy matching with non-consecutive characters
+func TestUIState_UpdateFiltered_FuzzyNonConsecutive(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "bd", // Should match "branch delete"
+		cursorPos: 2,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	// Should find "branch delete" with fuzzy matching "bd" -> "Branch Delete"
+	found := false
+	for _, cmd := range state.filtered {
+		if strings.Contains(cmd.Command, "branch") && strings.Contains(cmd.Command, "delete") {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("Expected to find 'branch delete' with fuzzy pattern 'bd'")
+	}
+
+	// All filtered commands should fuzzy match "bd"
+	for _, cmd := range state.filtered {
+		if !fuzzyMatch(strings.ToLower(cmd.Command), "bd") {
+			t.Errorf("Filtered command '%s' should fuzzy match 'bd'", cmd.Command)
+		}
+	}
+}
+
+// Test fuzzy matching algorithm directly
+func TestFuzzyMatch(t *testing.T) {
+	testCases := []struct {
+		text     string
+		pattern  string
+		expected bool
+	}{
+		{"branch delete", "bd", true},
+		{"branch delete", "brdel", true},
+		{"commit amend", "ca", true},
+		{"commit amend", "cmtam", true},
+		{"add interactive", "ai", true},
+		{"add interactive", "addi", true},
+		{"status short", "ss", true},
+		{"branch delete", "db", false}, // wrong order
+		{"commit", "xyz", false},       // no match
+		{"", "", true},                 // empty pattern
+		{"test", "", true},             // empty pattern matches anything
+	}
+
+	for _, tc := range testCases {
+		result := fuzzyMatch(strings.ToLower(tc.text), strings.ToLower(tc.pattern))
+		if result != tc.expected {
+			t.Errorf("fuzzyMatch(%q, %q) = %v, expected %v", tc.text, tc.pattern, result, tc.expected)
 		}
 	}
 }

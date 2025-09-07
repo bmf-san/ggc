@@ -187,11 +187,13 @@ type UIState struct {
 	filtered  []CommandInfo
 }
 
-// UpdateFiltered updates the filtered commands based on current input
+// UpdateFiltered updates the filtered commands based on current input using fuzzy matching
 func (s *UIState) UpdateFiltered() {
 	s.filtered = []CommandInfo{}
+	input := strings.ToLower(s.input)
 	for _, cmd := range commands {
-		if strings.HasPrefix(cmd.Command, s.input) {
+		cmdLower := strings.ToLower(cmd.Command)
+		if fuzzyMatch(cmdLower, input) {
 			s.filtered = append(s.filtered, cmd)
 		}
 	}
@@ -202,6 +204,29 @@ func (s *UIState) UpdateFiltered() {
 	if s.selected < 0 {
 		s.selected = 0
 	}
+}
+
+// fuzzyMatch performs fuzzy matching between text and pattern
+// Returns true if all characters in pattern appear in text in order (but not necessarily consecutive)
+func fuzzyMatch(text, pattern string) bool {
+	if pattern == "" {
+		return true
+	}
+
+	textRunes := []rune(text)
+	patternRunes := []rune(pattern)
+
+	textIdx := 0
+	patternIdx := 0
+
+	for textIdx < len(textRunes) && patternIdx < len(patternRunes) {
+		if textRunes[textIdx] == patternRunes[patternIdx] {
+			patternIdx++
+		}
+		textIdx++
+	}
+
+	return patternIdx == len(patternRunes)
 }
 
 // MoveUp moves selection up
