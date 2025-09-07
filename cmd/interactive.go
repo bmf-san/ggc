@@ -381,7 +381,8 @@ func (h *KeyHandler) HandleKey(r rune, size int, oldState *term.State) (bool, []
 }
 
 // handleControlChar processes control characters and returns (handled, shouldContinue, result)
-// FIXME: nolint:revive // Control character handling inherently requires many cases
+//
+//nolint:revive // Control character handling inherently requires many cases
 func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool, []string) {
 	switch b {
 	case 3: // Ctrl+C

@@ -401,7 +401,7 @@ func TestUIState_MoveDown(t *testing.T) {
 	}
 }
 
-func TestUIState_AddChar(t *testing.T) {
+func TestUIState_AddRune_ASCII(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "",
@@ -417,6 +417,105 @@ func TestUIState_AddChar(t *testing.T) {
 	state.AddRune('d')
 	if state.input != "ad" {
 		t.Errorf("Expected input to be 'ad', got '%s'", state.input)
+	}
+}
+
+func TestUIState_AddRune_MultibyteCharacters(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	// Test Japanese hiragana
+	state.AddRune('こ')
+	if state.input != "こ" {
+		t.Errorf("Expected input to be 'こ', got '%s'", state.input)
+	}
+	if state.cursorPos != 1 {
+		t.Errorf("Expected cursor position to be 1, got %d", state.cursorPos)
+	}
+
+	// Test Japanese kanji
+	state.AddRune('漢')
+	if state.input != "こ漢" {
+		t.Errorf("Expected input to be 'こ漢', got '%s'", state.input)
+	}
+	if state.cursorPos != 2 {
+		t.Errorf("Expected cursor position to be 2, got %d", state.cursorPos)
+	}
+
+	// Test Chinese characters
+	state.input = ""
+	state.cursorPos = 0
+	state.AddRune('中')
+	state.AddRune('文')
+	if state.input != "中文" {
+		t.Errorf("Expected input to be '中文', got '%s'", state.input)
+	}
+
+	// Test emoji
+	state.input = ""
+	state.cursorPos = 0
+	state.AddRune('🎉')
+	state.AddRune('✨')
+	if state.input != "🎉✨" {
+		t.Errorf("Expected input to be '🎉✨', got '%s'", state.input)
+	}
+	if state.cursorPos != 2 {
+		t.Errorf("Expected cursor position to be 2, got %d", state.cursorPos)
+	}
+}
+
+func TestUIState_RemoveChar_Multibyte(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "こんにちは",
+		cursorPos: 5, // At the end
+		filtered:  []CommandInfo{},
+	}
+
+	// Remove last character 'は'
+	state.RemoveChar()
+	if state.input != "こんにち" {
+		t.Errorf("Expected input to be 'こんにち', got '%s'", state.input)
+	}
+	if state.cursorPos != 4 {
+		t.Errorf("Expected cursor position to be 4, got %d", state.cursorPos)
+	}
+
+	// Remove middle character
+	state.cursorPos = 2 // Position after 'ん'
+	state.RemoveChar()
+	if state.input != "こにち" {
+		t.Errorf("Expected input to be 'こにち', got '%s'", state.input)
+	}
+	if state.cursorPos != 1 {
+		t.Errorf("Expected cursor position to be 1, got %d", state.cursorPos)
+	}
+}
+
+func TestUIState_UpdateFiltered_MultibyteFuzzy(t *testing.T) {
+	state := &UIState{
+		input: "こ", // Japanese hiragana input
+	}
+
+	// This test verifies that multibyte input doesn't crash the UpdateFiltered method
+	// and that the fuzzy matching algorithm can handle UTF-8 characters correctly
+	state.UpdateFiltered()
+
+	// The test passes if no panic occurs and filtered slice is initialized
+	if state.filtered == nil {
+		t.Error("Expected filtered slice to be initialized")
+	}
+
+	// Test with emoji input
+	state.input = "🎉"
+	state.UpdateFiltered()
+
+	if state.filtered == nil {
+		t.Error("Expected filtered slice to be initialized with emoji input")
 	}
 }
 
