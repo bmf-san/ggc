@@ -80,7 +80,7 @@ func TestNewConfigManager(t *testing.T) {
 		t.Fatal("Expected config to be initialized")
 		return
 	}
-	
+
 	if cm.configPath != "" {
 		t.Errorf("Expected configPath to be empty initially, got %s", cm.configPath)
 	}
