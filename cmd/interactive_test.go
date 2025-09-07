@@ -242,16 +242,16 @@ func TestUIState_UpdateFiltered(t *testing.T) {
 		t.Error("Expected filtered commands for 'add' input")
 	}
 
-	// Check that all filtered commands start with 'add'
+	// Check that all filtered commands contain 'add'
 	for _, cmd := range state.filtered {
-		if !strings.HasPrefix(cmd.Command, "add") {
-			t.Errorf("Filtered command '%s' does not start with 'add'", cmd.Command)
+		if !strings.Contains(strings.ToLower(cmd.Command), "add") {
+			t.Errorf("Filtered command '%s' does not contain 'add'", cmd.Command)
 		}
 	}
 }
 
-// Test prefix matching behavior
-func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
+// Test substring matching behavior
+func TestUIState_UpdateFiltered_SubstringMatching(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "commit",
@@ -261,17 +261,12 @@ func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
 
 	state.UpdateFiltered()
 
-	// Should match commands starting with "commit"
+	// Should match commands containing "commit"
 	expectedMatches := []string{
 		"commit <message>",
 		"commit allow-empty",
 		"commit amend",
 		"commit amend --no-edit",
-	}
-
-	// Should NOT match commands containing "commit" but not starting with it
-	unexpectedMatches := []string{
-		"amend commit", // hypothetical - starts with "amend"
 	}
 
 	// Check that expected commands are found
@@ -284,23 +279,49 @@ func TestUIState_UpdateFiltered_PrefixMatching(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("Expected to find command starting with 'commit': %s", expected)
+			t.Errorf("Expected to find command containing 'commit': %s", expected)
 		}
 	}
 
-	// Check that all filtered commands start with "commit"
+	// Check that all filtered commands contain "commit"
 	for _, cmd := range state.filtered {
-		if !strings.HasPrefix(cmd.Command, "commit") {
-			t.Errorf("Filtered command '%s' should start with 'commit'", cmd.Command)
+		if !strings.Contains(strings.ToLower(cmd.Command), "commit") {
+			t.Errorf("Filtered command '%s' should contain 'commit'", cmd.Command)
 		}
 	}
 
-	// Verify we don't get partial matches
-	for _, unexpected := range unexpectedMatches {
-		for _, filtered := range state.filtered {
-			if filtered.Command == unexpected {
-				t.Errorf("Should not match command that doesn't start with 'commit': %s", unexpected)
-			}
+	// Note: With substring matching, we now allow commands that contain "commit" 
+	// even if they don't start with it, so this test section is no longer needed
+}
+
+// Test that substring matching works for keywords in the middle of commands
+func TestUIState_UpdateFiltered_MiddleKeywordMatching(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "delete",
+		cursorPos: 6,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	// Should find "branch delete" even though "delete" is not at the beginning
+	found := false
+	for _, cmd := range state.filtered {
+		if strings.Contains(cmd.Command, "delete") {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("Expected to find commands containing 'delete' (e.g., 'branch delete')")
+	}
+
+	// All filtered commands should contain "delete"
+	for _, cmd := range state.filtered {
+		if !strings.Contains(strings.ToLower(cmd.Command), "delete") {
+			t.Errorf("Filtered command '%s' should contain 'delete'", cmd.Command)
 		}
 	}
 }

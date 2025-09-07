@@ -190,8 +190,10 @@ type UIState struct {
 // UpdateFiltered updates the filtered commands based on current input
 func (s *UIState) UpdateFiltered() {
 	s.filtered = []CommandInfo{}
+	input := strings.ToLower(s.input)
 	for _, cmd := range commands {
-		if strings.HasPrefix(cmd.Command, s.input) {
+		cmdLower := strings.ToLower(cmd.Command)
+		if strings.Contains(cmdLower, input) {
 			s.filtered = append(s.filtered, cmd)
 		}
 	}
