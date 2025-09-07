@@ -74,16 +74,16 @@ func TestNewConfigManager(t *testing.T) {
 
 	if cm == nil {
 		t.Fatal("Expected config manager to be created")
-		return // This will never be reached, but helps static analysis
+		return
 	}
 	if cm.config == nil {
 		t.Fatal("Expected config to be initialized")
-		return // This will never be reached, but helps static analysis
+		return
 	}
+	
 	if cm.configPath != "" {
 		t.Errorf("Expected configPath to be empty initially, got %s", cm.configPath)
 	}
-
 	if cm.config.Default.Branch != "main" {
 		t.Errorf("Expected default branch to be 'main', got %s", cm.config.Default.Branch)
 	}

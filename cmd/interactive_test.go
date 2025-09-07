@@ -653,12 +653,12 @@ func TestUIState_GetSelectedCommand(t *testing.T) {
 	}
 
 	cmd := state.GetSelectedCommand()
-	if cmd == nil {
-		t.Fatal("Expected non-nil command")
-		return // This will never be reached, but helps static analysis
-	}
-	if cmd.Command != "cmd2" {
-		t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
+	if cmd == nil || cmd.Command != "cmd2" {
+		if cmd == nil {
+			t.Fatal("Expected non-nil command")
+		} else {
+			t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
+		}
 	}
 
 	// Test out of bounds
@@ -816,14 +816,13 @@ func TestGetGitStatus(t *testing.T) {
 
 	if status == nil {
 		t.Fatal("Expected status to be non-nil with mock client")
-		return // This will never be reached, but helps static analysis
+		return
 	}
 
 	// Branch name should match mock
 	if status.Branch != "main" {
 		t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
 	}
-
 	// Should have 1 modified and 1 staged file
 	if status.Modified != 1 {
 		t.Errorf("Expected 1 modified file, got %d", status.Modified)
@@ -831,7 +830,6 @@ func TestGetGitStatus(t *testing.T) {
 	if status.Staged != 1 {
 		t.Errorf("Expected 1 staged file, got %d", status.Staged)
 	}
-
 	// Should have changes
 	if !status.HasChanges {
 		t.Error("Expected HasChanges to be true")
