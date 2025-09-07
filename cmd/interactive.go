@@ -252,11 +252,9 @@ func (s *UIState) AddRune(r rune) {
 		// Convert current input to runes for proper cursor positioning
 		inputRunes := []rune(s.input)
 		if s.cursorPos <= len(inputRunes) {
-			// Use append for more efficient insertion
-			inputRunes = append(inputRunes, 0) // Extend slice by one
-			copy(inputRunes[s.cursorPos+1:], inputRunes[s.cursorPos:len(inputRunes)-1])
-			inputRunes[s.cursorPos] = r
-
+			// Use append for completely copy-free insertion
+			inputRunes = append(inputRunes[:s.cursorPos], append([]rune{r}, inputRunes[s.cursorPos:]...)...)
+			
 			s.input = string(inputRunes)
 			s.cursorPos++
 			s.UpdateFiltered()
