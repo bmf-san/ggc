@@ -811,7 +811,7 @@ func TestGetGitStatus(t *testing.T) {
 
 	status := getGitStatus(mockClient)
 	// Mock design ensures status is never nil with valid mock data
-	
+
 	// Branch name should match mock
 	if status.Branch != "main" {
 		t.Errorf("Expected branch name to be 'main', got '%s'", status.Branch)
