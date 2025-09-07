@@ -102,7 +102,7 @@ func BenchmarkAddRune_LongString_Copy(b *testing.B) {
 func BenchmarkAddRune_LongString_NestedAppend(b *testing.B) {
 	input := "this is a very long string that contains many characters for testing performance with longer inputs"
 	cursorPos := 50
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = addRuneNested(input, cursorPos, 'X')
@@ -115,13 +115,13 @@ func BenchmarkUIState_RemoveChar_Append(b *testing.B) {
 		input:     "hello world test string",
 		cursorPos: 12, // Middle position
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Reset state for each iteration
 		state.input = "hello world test string"
 		state.cursorPos = 12
-		
+
 		// Remove a character
 		state.RemoveChar()
 	}
@@ -153,7 +153,7 @@ func removeCharAppend(input string, cursorPos int) string {
 func BenchmarkRemoveChar_Append(b *testing.B) {
 	input := "hello world test string"
 	cursorPos := 12
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = removeCharAppend(input, cursorPos)
@@ -163,7 +163,7 @@ func BenchmarkRemoveChar_Append(b *testing.B) {
 func BenchmarkRemoveChar_Copy(b *testing.B) {
 	input := "hello world test string"
 	cursorPos := 12
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = removeCharCopy(input, cursorPos)
@@ -173,7 +173,7 @@ func BenchmarkRemoveChar_Copy(b *testing.B) {
 func BenchmarkRemoveChar_ShortString_Append(b *testing.B) {
 	input := "short"
 	cursorPos := 3
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = removeCharAppend(input, cursorPos)
@@ -183,7 +183,7 @@ func BenchmarkRemoveChar_ShortString_Append(b *testing.B) {
 func BenchmarkRemoveChar_ShortString_Copy(b *testing.B) {
 	input := "short"
 	cursorPos := 3
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = removeCharCopy(input, cursorPos)

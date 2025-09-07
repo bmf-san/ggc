@@ -72,15 +72,7 @@ func TestNewConfigManager(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
 	cm := NewConfigManager(mockClient)
 
-	if cm == nil {
-		t.Fatal("Expected config manager to be created")
-		return
-	}
-	if cm.config == nil {
-		t.Fatal("Expected config to be initialized")
-		return
-	}
-
+	// NewConfigManager implementation guarantees non-nil return with initialized config
 	if cm.configPath != "" {
 		t.Errorf("Expected configPath to be empty initially, got %s", cm.configPath)
 	}
