@@ -365,7 +365,7 @@ type KeyHandler struct {
 // HandleKey processes a single byte input and returns true if should continue
 func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
 	r := rune(b)
-	
+
 	// Handle control characters
 	switch b {
 	case 3: // Ctrl+C
@@ -412,7 +412,7 @@ func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool
 	if size == 1 {
 		return h.HandleKey(byte(r), oldState)
 	}
-	
+
 	// Handle multibyte printable characters
 	if unicode.IsPrint(r) {
 		h.ui.state.AddRune(r)
