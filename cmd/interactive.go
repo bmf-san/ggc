@@ -254,7 +254,7 @@ func (s *UIState) AddRune(r rune) {
 		if s.cursorPos <= len(inputRunes) {
 			// Use append for completely copy-free insertion
 			inputRunes = append(inputRunes[:s.cursorPos], append([]rune{r}, inputRunes[s.cursorPos:]...)...)
-			
+
 			s.input = string(inputRunes)
 			s.cursorPos++
 			s.UpdateFiltered()
