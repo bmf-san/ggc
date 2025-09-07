@@ -249,7 +249,7 @@ func (s *UIState) MoveDown() {
 
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
-	if s.cursorPos <= len(s.input) {
+	if s.cursorPos <= utf8.RuneCountInString(s.input) {
 		// Convert current input to runes for proper cursor positioning
 		inputRunes := []rune(s.input)
 		if s.cursorPos <= len(inputRunes) {
@@ -294,28 +294,33 @@ func (s *UIState) DeleteWord() {
 		return
 	}
 
+	// Convert to runes for proper UTF-8 handling
+	inputRunes := []rune(s.input)
+
 	// Find start of current word (skip trailing spaces first)
 	pos := s.cursorPos - 1
-	for pos >= 0 && s.input[pos] == ' ' {
+	for pos >= 0 && inputRunes[pos] == ' ' {
 		pos--
 	}
 
 	// Find start of word
-	for pos >= 0 && s.input[pos] != ' ' {
+	for pos >= 0 && inputRunes[pos] != ' ' {
 		pos--
 	}
 	pos++ // Move to first character of word
 
 	// Delete from word start to cursor
-	s.input = s.input[:pos] + s.input[s.cursorPos:]
+	inputRunes = append(inputRunes[:pos], inputRunes[s.cursorPos:]...)
+	s.input = string(inputRunes)
 	s.cursorPos = pos
 	s.UpdateFiltered()
 }
 
 // DeleteToEnd deletes from cursor to end of line (Ctrl+K)
 func (s *UIState) DeleteToEnd() {
-	if s.cursorPos < len(s.input) {
-		s.input = s.input[:s.cursorPos]
+	if s.cursorPos < utf8.RuneCountInString(s.input) {
+		inputRunes := []rune(s.input)
+		s.input = string(inputRunes[:s.cursorPos])
 		s.UpdateFiltered()
 	}
 }
@@ -904,10 +909,11 @@ func (r *Renderer) formatInputWithCursor(state *UIState) string {
 		return fmt.Sprintf("%s█%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
 	}
 
-	beforeCursor := state.input[:state.cursorPos]
-	afterCursor := state.input[state.cursorPos:]
+	inputRunes := []rune(state.input)
+	beforeCursor := string(inputRunes[:state.cursorPos])
+	afterCursor := string(inputRunes[state.cursorPos:])
 	cursor := "│"
-	if state.cursorPos >= len(state.input) {
+	if state.cursorPos >= utf8.RuneCountInString(state.input) {
 		cursor = "█"
 	}
 

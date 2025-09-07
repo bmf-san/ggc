@@ -1272,3 +1272,131 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 		t.Errorf("Expected empty input after backspace, got '%s'", ui.state.input)
 	}
 }
+
+// TestUIState_MultibyteContinuousDeletion tests the bug where multibyte characters
+// couldn't be deleted continuously after some deletions
+func TestUIState_MultibyteContinuousDeletion(t *testing.T) {
+	ui := &UI{
+		state: &UIState{
+			input:     "",
+			cursorPos: 0,
+			filtered:  []CommandInfo{},
+		},
+	}
+
+	// Add multibyte characters
+	text := "こんにちは世界"
+	for _, r := range text {
+		ui.state.AddRune(r)
+	}
+
+	expectedRunes := []rune(text)
+	if ui.state.input != text {
+		t.Errorf("Expected input '%s', got '%s'", text, ui.state.input)
+	}
+	if ui.state.cursorPos != len(expectedRunes) {
+		t.Errorf("Expected cursor position %d, got %d", len(expectedRunes), ui.state.cursorPos)
+	}
+
+	// Delete all characters one by one
+	for i := len(expectedRunes); i > 0; i-- {
+		// Before deletion
+		if ui.state.cursorPos != i {
+			t.Errorf("Before deletion %d: expected cursor position %d, got %d",
+				len(expectedRunes)-i+1, i, ui.state.cursorPos)
+		}
+
+		// Perform deletion
+		ui.state.RemoveChar()
+
+		// After deletion
+		expectedAfter := string(expectedRunes[:i-1])
+		if ui.state.input != expectedAfter {
+			t.Errorf("After deletion %d: expected input '%s', got '%s'",
+				len(expectedRunes)-i+1, expectedAfter, ui.state.input)
+		}
+		if ui.state.cursorPos != i-1 {
+			t.Errorf("After deletion %d: expected cursor position %d, got %d",
+				len(expectedRunes)-i+1, i-1, ui.state.cursorPos)
+		}
+	}
+
+	// Final state should be empty
+	if ui.state.input != "" {
+		t.Errorf("Expected empty input after all deletions, got '%s'", ui.state.input)
+	}
+	if ui.state.cursorPos != 0 {
+		t.Errorf("Expected cursor position 0 after all deletions, got %d", ui.state.cursorPos)
+	}
+}
+
+// TestUIState_DeleteWord_Multibyte tests word deletion with multibyte characters
+func TestUIState_DeleteWord_Multibyte(t *testing.T) {
+	ui := &UI{
+		state: &UIState{
+			input:     "",
+			cursorPos: 0,
+			filtered:  []CommandInfo{},
+		},
+	}
+
+	// Add text with multibyte words
+	text := "hello こんにちは world"
+	for _, r := range text {
+		ui.state.AddRune(r)
+	}
+
+	// Position cursor after "world"
+	ui.state.MoveToEnd()
+
+	// Delete "world"
+	ui.state.DeleteWord()
+	expected := "hello こんにちは "
+	if ui.state.input != expected {
+		t.Errorf("After deleting 'world': expected '%s', got '%s'", expected, ui.state.input)
+	}
+
+	// Delete "こんにちは"
+	ui.state.DeleteWord()
+	expected = "hello "
+	if ui.state.input != expected {
+		t.Errorf("After deleting 'こんにちは': expected '%s', got '%s'", expected, ui.state.input)
+	}
+
+	// Delete "hello"
+	ui.state.DeleteWord()
+	expected = ""
+	if ui.state.input != expected {
+		t.Errorf("After deleting 'hello': expected '%s', got '%s'", expected, ui.state.input)
+	}
+}
+
+// TestUIState_DeleteToEnd_Multibyte tests deleting to end with multibyte characters
+func TestUIState_DeleteToEnd_Multibyte(t *testing.T) {
+	ui := &UI{
+		state: &UIState{
+			input:     "",
+			cursorPos: 0,
+			filtered:  []CommandInfo{},
+		},
+	}
+
+	// Add multibyte text
+	text := "こんにちは世界"
+	for _, r := range text {
+		ui.state.AddRune(r)
+	}
+
+	// Move cursor to middle (after "こん")
+	ui.state.cursorPos = 2
+
+	// Delete to end
+	ui.state.DeleteToEnd()
+	expected := "こん"
+	if ui.state.input != expected {
+		t.Errorf("After DeleteToEnd: expected '%s', got '%s'", expected, ui.state.input)
+	}
+	if ui.state.cursorPos != 2 {
+		t.Errorf("After DeleteToEnd: expected cursor position 2, got %d", ui.state.cursorPos)
+	}
+}
