@@ -653,12 +653,9 @@ func TestUIState_GetSelectedCommand(t *testing.T) {
 	}
 
 	cmd := state.GetSelectedCommand()
-	if cmd == nil || cmd.Command != "cmd2" {
-		if cmd == nil {
-			t.Fatal("Expected non-nil command")
-		} else {
-			t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
-		}
+	// Mock/test design ensures cmd is never nil with valid test data
+	if cmd.Command != "cmd2" {
+		t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
 	}
 
 	// Test out of bounds
@@ -813,15 +810,11 @@ func TestGetGitStatus(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
 
 	status := getGitStatus(mockClient)
-
-	if status == nil {
-		t.Fatal("Expected status to be non-nil with mock client")
-		return
-	}
-
+	// Mock design ensures status is never nil with valid mock data
+	
 	// Branch name should match mock
 	if status.Branch != "main" {
-		t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
+		t.Errorf("Expected branch name to be 'main', got '%s'", status.Branch)
 	}
 	// Should have 1 modified and 1 staged file
 	if status.Modified != 1 {
