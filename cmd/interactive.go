@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -1168,7 +1169,7 @@ func (ui *UI) Run() []string {
 		// Read UTF-8 rune instead of single byte
 		r, size, err := reader.ReadRune()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			continue

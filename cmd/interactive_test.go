@@ -400,7 +400,7 @@ func TestUIState_RemoveChar_Multibyte(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "こんにちは", // "Hello" in Japanese
-		cursorPos: 5,          // At the end
+		cursorPos: 5,       // At the end
 		filtered:  []CommandInfo{},
 	}
 
@@ -653,9 +653,11 @@ func TestUIState_GetSelectedCommand(t *testing.T) {
 	}
 
 	cmd := state.GetSelectedCommand()
+	//nolint:staticcheck // SA5011: false positive - this nil check is intentional
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
 	}
+	//nolint:staticcheck // SA5011: false positive after t.Fatal
 	if cmd.Command != "cmd2" {
 		t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
 	}
@@ -813,11 +815,13 @@ func TestGetGitStatus(t *testing.T) {
 
 	status := getGitStatus(mockClient)
 
+	//nolint:staticcheck // SA5011: false positive - this nil check is intentional
 	if status == nil {
 		t.Fatal("Expected status to be non-nil with mock client")
 	}
 
 	// Branch name should match mock
+	//nolint:staticcheck // SA5011: false positive after t.Fatal
 	if status.Branch != "main" {
 		t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
 	}
