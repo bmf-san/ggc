@@ -513,7 +513,7 @@ func TestUIState_MoveDown(t *testing.T) {
 	}
 }
 
-func TestUIState_AddChar(t *testing.T) {
+func TestUIState_AddRune_ASCII(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "",
@@ -521,12 +521,12 @@ func TestUIState_AddChar(t *testing.T) {
 		filtered:  []CommandInfo{},
 	}
 
-	state.AddChar('a')
+	state.AddRune('a')
 	if state.input != "a" {
 		t.Errorf("Expected input to be 'a', got '%s'", state.input)
 	}
 
-	state.AddChar('d')
+	state.AddRune('d')
 	if state.input != "ad" {
 		t.Errorf("Expected input to be 'ad', got '%s'", state.input)
 	}

@@ -245,10 +245,6 @@ func (s *UIState) MoveDown() {
 	}
 }
 
-// AddChar adds a character to the input at cursor position
-func (s *UIState) AddChar(c byte) {
-	s.AddRune(rune(c))
-}
 
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
