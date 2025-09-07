@@ -358,62 +358,56 @@ type KeyHandler struct {
 	ui *UI
 }
 
-// HandleKey processes single-byte input (ASCII characters and control codes only)
-// Note: This method cannot handle multibyte UTF-8 characters properly.
-// Use HandleKeyRune for proper multibyte character support.
-func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
-	// Handle control characters
-	switch b {
-	case 3: // Ctrl+C
-		h.handleCtrlC(oldState)
-		return false, nil
-	case 13: // Enter
-		return h.handleEnter(oldState)
-	case 16: // Ctrl+P (up)
-		h.ui.state.MoveUp()
-		return true, nil
-	case 14: // Ctrl+N (down)
-		h.ui.state.MoveDown()
-		return true, nil
-	case 21: // Ctrl+U (clear line)
-		h.ui.state.ClearInput()
-		return true, nil
-	case 23: // Ctrl+W (delete word)
-		h.ui.state.DeleteWord()
-		return true, nil
-	case 11: // Ctrl+K (delete to end)
-		h.ui.state.DeleteToEnd()
-		return true, nil
-	case 1: // Ctrl+A (beginning of line)
-		h.ui.state.MoveToBeginning()
-		return true, nil
-	case 5: // Ctrl+E (end of line)
-		h.ui.state.MoveToEnd()
-		return true, nil
-	case 127, 8: // Backspace
-		h.ui.state.RemoveChar()
-		return true, nil
-	default:
-		// Handle printable ASCII characters only (32-126)
-		if b >= 32 && b <= 126 {
-			h.ui.state.AddRune(rune(b))
-		}
-		return true, nil
-	}
-}
-
-// HandleKeyRune processes a UTF-8 rune input and returns true if should continue
+// HandleKeyRune processes UTF-8 rune input and returns true if should continue
+// This method handles both single-byte (ASCII/control) and multibyte characters
 func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool, []string) {
-	// For single-byte characters, delegate to HandleKey for consistency
+	// Handle control characters (single-byte)
 	if size == 1 {
-		return h.HandleKey(byte(r), oldState)
+		b := byte(r)
+		switch b {
+		case 3: // Ctrl+C
+			h.handleCtrlC(oldState)
+			return false, nil
+		case 13: // Enter
+			return h.handleEnter(oldState)
+		case 16: // Ctrl+P (up)
+			h.ui.state.MoveUp()
+			return true, nil
+		case 14: // Ctrl+N (down)
+			h.ui.state.MoveDown()
+			return true, nil
+		case 21: // Ctrl+U (clear line)
+			h.ui.state.ClearInput()
+			return true, nil
+		case 23: // Ctrl+W (delete word)
+			h.ui.state.DeleteWord()
+			return true, nil
+		case 11: // Ctrl+K (delete to end)
+			h.ui.state.DeleteToEnd()
+			return true, nil
+		case 1: // Ctrl+A (beginning of line)
+			h.ui.state.MoveToBeginning()
+			return true, nil
+		case 5: // Ctrl+E (end of line)
+			h.ui.state.MoveToEnd()
+			return true, nil
+		case 127, 8: // Backspace
+			h.ui.state.RemoveChar()
+			return true, nil
+		}
 	}
 
-	// Handle multibyte printable characters
+	// Handle printable characters (both ASCII and multibyte)
 	if unicode.IsPrint(r) {
 		h.ui.state.AddRune(r)
 	}
 	return true, nil
+}
+
+// HandleKey is deprecated. Use HandleKeyRune for proper UTF-8 support.
+// This method is kept for backward compatibility but delegates to HandleKeyRune.
+func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
+	return h.HandleKeyRune(rune(b), 1, oldState)
 }
 
 // handleCtrlC handles Ctrl+C key press
