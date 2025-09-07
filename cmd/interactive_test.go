@@ -401,7 +401,7 @@ func TestUIState_MoveDown(t *testing.T) {
 	}
 }
 
-func TestUIState_AddChar(t *testing.T) {
+func TestUIState_AddRune_ASCII(t *testing.T) {
 	state := &UIState{
 		selected:  0,
 		input:     "",
@@ -409,14 +409,113 @@ func TestUIState_AddChar(t *testing.T) {
 		filtered:  []CommandInfo{},
 	}
 
-	state.AddChar('a')
+	state.AddRune('a')
 	if state.input != "a" {
 		t.Errorf("Expected input to be 'a', got '%s'", state.input)
 	}
 
-	state.AddChar('d')
+	state.AddRune('d')
 	if state.input != "ad" {
 		t.Errorf("Expected input to be 'ad', got '%s'", state.input)
+	}
+}
+
+func TestUIState_AddRune_MultibyteCharacters(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "",
+		cursorPos: 0,
+		filtered:  []CommandInfo{},
+	}
+
+	// Test Japanese hiragana
+	state.AddRune('こ')
+	if state.input != "こ" {
+		t.Errorf("Expected input to be 'こ', got '%s'", state.input)
+	}
+	if state.cursorPos != 1 {
+		t.Errorf("Expected cursor position to be 1, got %d", state.cursorPos)
+	}
+
+	// Test Japanese kanji
+	state.AddRune('漢')
+	if state.input != "こ漢" {
+		t.Errorf("Expected input to be 'こ漢', got '%s'", state.input)
+	}
+	if state.cursorPos != 2 {
+		t.Errorf("Expected cursor position to be 2, got %d", state.cursorPos)
+	}
+
+	// Test Chinese characters
+	state.input = ""
+	state.cursorPos = 0
+	state.AddRune('中')
+	state.AddRune('文')
+	if state.input != "中文" {
+		t.Errorf("Expected input to be '中文', got '%s'", state.input)
+	}
+
+	// Test emoji
+	state.input = ""
+	state.cursorPos = 0
+	state.AddRune('🎉')
+	state.AddRune('✨')
+	if state.input != "🎉✨" {
+		t.Errorf("Expected input to be '🎉✨', got '%s'", state.input)
+	}
+	if state.cursorPos != 2 {
+		t.Errorf("Expected cursor position to be 2, got %d", state.cursorPos)
+	}
+}
+
+func TestUIState_RemoveChar_Multibyte(t *testing.T) {
+	state := &UIState{
+		selected:  0,
+		input:     "こんにちは",
+		cursorPos: 5, // At the end
+		filtered:  []CommandInfo{},
+	}
+
+	// Remove last character 'は'
+	state.RemoveChar()
+	if state.input != "こんにち" {
+		t.Errorf("Expected input to be 'こんにち', got '%s'", state.input)
+	}
+	if state.cursorPos != 4 {
+		t.Errorf("Expected cursor position to be 4, got %d", state.cursorPos)
+	}
+
+	// Remove middle character
+	state.cursorPos = 2 // Position after 'ん'
+	state.RemoveChar()
+	if state.input != "こにち" {
+		t.Errorf("Expected input to be 'こにち', got '%s'", state.input)
+	}
+	if state.cursorPos != 1 {
+		t.Errorf("Expected cursor position to be 1, got %d", state.cursorPos)
+	}
+}
+
+func TestUIState_UpdateFiltered_MultibyteFuzzy(t *testing.T) {
+	state := &UIState{
+		input: "こ", // Japanese hiragana input
+	}
+
+	// This test verifies that multibyte input doesn't crash the UpdateFiltered method
+	// and that the fuzzy matching algorithm can handle UTF-8 characters correctly
+	state.UpdateFiltered()
+
+	// The test passes if no panic occurs and filtered slice is initialized
+	if state.filtered == nil {
+		t.Error("Expected filtered slice to be initialized")
+	}
+
+	// Test with emoji input
+	state.input = "🎉"
+	state.UpdateFiltered()
+
+	if state.filtered == nil {
+		t.Error("Expected filtered slice to be initialized with emoji input")
 	}
 }
 
@@ -1153,7 +1252,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	handler := &KeyHandler{ui: ui}
 
 	// Test printable character
-	shouldContinue, result := handler.HandleKey('a', nil)
+	shouldContinue, result := handler.HandleKey('a', true, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after printable character")
 	}
@@ -1165,11 +1264,234 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	}
 
 	// Test backspace
-	shouldContinue, _ = handler.HandleKey(127, nil)
+	shouldContinue, _ = handler.HandleKey(127, true, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after backspace")
 	}
 	if ui.state.input != "" {
 		t.Errorf("Expected empty input after backspace, got '%s'", ui.state.input)
+	}
+}
+
+// TestUIState_MultibyteContinuousDeletion tests the bug where multibyte characters
+// couldn't be deleted continuously after some deletions
+func TestUIState_MultibyteContinuousDeletion(t *testing.T) {
+	ui := &UI{
+		state: &UIState{
+			input:     "",
+			cursorPos: 0,
+			filtered:  []CommandInfo{},
+		},
+	}
+
+	// Add multibyte characters
+	text := "こんにちは世界"
+	for _, r := range text {
+		ui.state.AddRune(r)
+	}
+
+	expectedRunes := []rune(text)
+	if ui.state.input != text {
+		t.Errorf("Expected input '%s', got '%s'", text, ui.state.input)
+	}
+	if ui.state.cursorPos != len(expectedRunes) {
+		t.Errorf("Expected cursor position %d, got %d", len(expectedRunes), ui.state.cursorPos)
+	}
+
+	// Delete all characters one by one
+	for i := len(expectedRunes); i > 0; i-- {
+		// Before deletion
+		if ui.state.cursorPos != i {
+			t.Errorf("Before deletion %d: expected cursor position %d, got %d",
+				len(expectedRunes)-i+1, i, ui.state.cursorPos)
+		}
+
+		// Perform deletion
+		ui.state.RemoveChar()
+
+		// After deletion
+		expectedAfter := string(expectedRunes[:i-1])
+		if ui.state.input != expectedAfter {
+			t.Errorf("After deletion %d: expected input '%s', got '%s'",
+				len(expectedRunes)-i+1, expectedAfter, ui.state.input)
+		}
+		if ui.state.cursorPos != i-1 {
+			t.Errorf("After deletion %d: expected cursor position %d, got %d",
+				len(expectedRunes)-i+1, i-1, ui.state.cursorPos)
+		}
+	}
+
+	// Final state should be empty
+	if ui.state.input != "" {
+		t.Errorf("Expected empty input after all deletions, got '%s'", ui.state.input)
+	}
+	if ui.state.cursorPos != 0 {
+		t.Errorf("Expected cursor position 0 after all deletions, got %d", ui.state.cursorPos)
+	}
+}
+
+// TestUIState_DeleteWord_Multibyte tests word deletion with multibyte characters
+func TestUIState_DeleteWord_Multibyte(t *testing.T) {
+	ui := &UI{
+		state: &UIState{
+			input:     "",
+			cursorPos: 0,
+			filtered:  []CommandInfo{},
+		},
+	}
+
+	// Add text with multibyte words
+	text := "hello こんにちは world"
+	for _, r := range text {
+		ui.state.AddRune(r)
+	}
+
+	// Position cursor after "world"
+	ui.state.MoveToEnd()
+
+	// Delete "world"
+	ui.state.DeleteWord()
+	expected := "hello こんにちは "
+	if ui.state.input != expected {
+		t.Errorf("After deleting 'world': expected '%s', got '%s'", expected, ui.state.input)
+	}
+
+	// Delete "こんにちは"
+	ui.state.DeleteWord()
+	expected = "hello "
+	if ui.state.input != expected {
+		t.Errorf("After deleting 'こんにちは': expected '%s', got '%s'", expected, ui.state.input)
+	}
+
+	// Delete "hello"
+	ui.state.DeleteWord()
+	expected = ""
+	if ui.state.input != expected {
+		t.Errorf("After deleting 'hello': expected '%s', got '%s'", expected, ui.state.input)
+	}
+}
+
+// TestUIState_DeleteToEnd_Multibyte tests deleting to end with multibyte characters
+func TestUIState_DeleteToEnd_Multibyte(t *testing.T) {
+	ui := &UI{
+		state: &UIState{
+			input:     "",
+			cursorPos: 0,
+			filtered:  []CommandInfo{},
+		},
+	}
+
+	// Add multibyte text
+	text := "こんにちは世界"
+	for _, r := range text {
+		ui.state.AddRune(r)
+	}
+
+	// Move cursor to middle (after "こん")
+	ui.state.cursorPos = 2
+
+	// Delete to end
+	ui.state.DeleteToEnd()
+	expected := "こん"
+	if ui.state.input != expected {
+		t.Errorf("After DeleteToEnd: expected '%s', got '%s'", expected, ui.state.input)
+	}
+	if ui.state.cursorPos != 2 {
+		t.Errorf("After DeleteToEnd: expected cursor position 2, got %d", ui.state.cursorPos)
+	}
+}
+
+// TestHandleInputChar_MultibyteBackspace tests multibyte character deletion in placeholder input
+func TestHandleInputChar_MultibyteBackspace(t *testing.T) {
+	ui := &UI{
+		colors: NewANSIColors(),
+		stdout: &strings.Builder{},
+	}
+	handler := &KeyHandler{ui: ui}
+
+	// Test with Japanese characters
+	var input strings.Builder
+
+	// Add some multibyte characters
+	text := "こんにちは"
+	for _, r := range text {
+		done, canceled := handler.handleInputChar(&input, r)
+		if done || canceled {
+			t.Errorf("Unexpected completion during character input: done=%v, canceled=%v", done, canceled)
+		}
+	}
+
+	if input.String() != text {
+		t.Errorf("Expected input '%s', got '%s'", text, input.String())
+	}
+
+	// Test backspace deletion
+	runesExpected := []rune(text)
+	for i := len(runesExpected); i > 0; i-- {
+		// Perform backspace
+		done, canceled := handler.handleInputChar(&input, '\b')
+		if done || canceled {
+			t.Errorf("Unexpected completion during backspace: done=%v, canceled=%v", done, canceled)
+		}
+
+		// Check remaining content
+		expected := string(runesExpected[:i-1])
+		if input.String() != expected {
+			t.Errorf("After backspace %d: expected '%s', got '%s'",
+				len(runesExpected)-i+1, expected, input.String())
+		}
+	}
+
+	// Final state should be empty
+	if input.String() != "" {
+		t.Errorf("Expected empty input after all backspaces, got '%s'", input.String())
+	}
+}
+
+// TestHandleInputChar_MultibyteDisplay tests multibyte character display in placeholder input
+func TestHandleInputChar_MultibyteDisplay(t *testing.T) {
+	var output strings.Builder
+	ui := &UI{
+		colors: NewANSIColors(),
+		stdout: &output,
+	}
+	handler := &KeyHandler{ui: ui}
+
+	// Test various multibyte characters
+	testCases := []struct {
+		name     string
+		char     rune
+		expected string
+	}{
+		{"Japanese Hiragana", 'こ', "こ"},
+		{"Japanese Katakana", 'ア', "ア"},
+		{"Japanese Kanji", '漢', "漢"},
+		{"Chinese Character", '中', "中"},
+		{"Emoji", '🚀', "🚀"},
+		{"Accented Character", 'é', "é"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var input strings.Builder
+			output.Reset()
+
+			// Add the multibyte character
+			done, canceled := handler.handleInputChar(&input, tc.char)
+			if done || canceled {
+				t.Errorf("Unexpected completion during character input: done=%v, canceled=%v", done, canceled)
+			}
+
+			// Check input buffer
+			if input.String() != tc.expected {
+				t.Errorf("Expected input '%s', got '%s'", tc.expected, input.String())
+			}
+
+			// Check terminal output contains the character
+			terminalOutput := output.String()
+			if !strings.Contains(terminalOutput, tc.expected) {
+				t.Errorf("Expected terminal output to contain '%s', got '%s'", tc.expected, terminalOutput)
+			}
+		})
 	}
 }
