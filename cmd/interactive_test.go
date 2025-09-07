@@ -409,12 +409,12 @@ func TestUIState_AddChar(t *testing.T) {
 		filtered:  []CommandInfo{},
 	}
 
-	state.AddChar('a')
+	state.AddRune('a')
 	if state.input != "a" {
 		t.Errorf("Expected input to be 'a', got '%s'", state.input)
 	}
 
-	state.AddChar('d')
+	state.AddRune('d')
 	if state.input != "ad" {
 		t.Errorf("Expected input to be 'ad', got '%s'", state.input)
 	}
@@ -1153,7 +1153,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	handler := &KeyHandler{ui: ui}
 
 	// Test printable character
-	shouldContinue, result := handler.HandleKey('a', nil)
+	shouldContinue, result := handler.HandleKey('a', 1, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after printable character")
 	}
@@ -1165,7 +1165,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	}
 
 	// Test backspace
-	shouldContinue, _ = handler.HandleKey(127, nil)
+	shouldContinue, _ = handler.HandleKey(127, 1, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after backspace")
 	}
