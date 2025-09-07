@@ -363,50 +363,57 @@ type KeyHandler struct {
 }
 
 // HandleKey processes a single byte input and returns true if should continue
-// This method converts byte input to rune and delegates to HandleKeyRune
 func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
-	return h.HandleKeyRune(rune(b), 1, oldState)
+	r := rune(b)
+	
+	// Handle control characters
+	switch b {
+	case 3: // Ctrl+C
+		h.handleCtrlC(oldState)
+		return false, nil
+	case 13: // Enter
+		return h.handleEnter(oldState)
+	case 16: // Ctrl+P (up)
+		h.ui.state.MoveUp()
+		return true, nil
+	case 14: // Ctrl+N (down)
+		h.ui.state.MoveDown()
+		return true, nil
+	case 21: // Ctrl+U (clear line)
+		h.ui.state.ClearInput()
+		return true, nil
+	case 23: // Ctrl+W (delete word)
+		h.ui.state.DeleteWord()
+		return true, nil
+	case 11: // Ctrl+K (delete to end)
+		h.ui.state.DeleteToEnd()
+		return true, nil
+	case 1: // Ctrl+A (beginning of line)
+		h.ui.state.MoveToBeginning()
+		return true, nil
+	case 5: // Ctrl+E (end of line)
+		h.ui.state.MoveToEnd()
+		return true, nil
+	case 127, 8: // Backspace
+		h.ui.state.RemoveChar()
+		return true, nil
+	default:
+		// Handle printable characters (including multibyte when converted to rune)
+		if unicode.IsPrint(r) {
+			h.ui.state.AddRune(r)
+		}
+		return true, nil
+	}
 }
 
 // HandleKeyRune processes a UTF-8 rune input and returns true if should continue
 func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool, []string) {
-	// Handle control characters (single byte)
+	// For single-byte characters, delegate to HandleKey for consistency
 	if size == 1 {
-		b := byte(r)
-		switch b {
-		case 3: // Ctrl+C
-			h.handleCtrlC(oldState)
-			return false, nil
-		case 13: // Enter
-			return h.handleEnter(oldState)
-		case 16: // Ctrl+P (up)
-			h.ui.state.MoveUp()
-			return true, nil
-		case 14: // Ctrl+N (down)
-			h.ui.state.MoveDown()
-			return true, nil
-		case 21: // Ctrl+U (clear line)
-			h.ui.state.ClearInput()
-			return true, nil
-		case 23: // Ctrl+W (delete word)
-			h.ui.state.DeleteWord()
-			return true, nil
-		case 11: // Ctrl+K (delete to end)
-			h.ui.state.DeleteToEnd()
-			return true, nil
-		case 1: // Ctrl+A (beginning of line)
-			h.ui.state.MoveToBeginning()
-			return true, nil
-		case 5: // Ctrl+E (end of line)
-			h.ui.state.MoveToEnd()
-			return true, nil
-		case 127, 8: // Backspace
-			h.ui.state.RemoveChar()
-			return true, nil
-		}
+		return h.HandleKey(byte(r), oldState)
 	}
-
-	// Handle printable characters (including multibyte)
+	
+	// Handle multibyte printable characters
 	if unicode.IsPrint(r) {
 		h.ui.state.AddRune(r)
 	}
