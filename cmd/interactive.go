@@ -250,20 +250,18 @@ func (s *UIState) MoveDown() {
 
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
-	if s.cursorPos <= utf8.RuneCountInString(s.input) {
-		// Convert current input to runes for proper cursor positioning
-		inputRunes := []rune(s.input)
-		if s.cursorPos <= len(inputRunes) {
-			// Efficiently insert the rune at the cursor position
-			newRunes := make([]rune, len(inputRunes)+1)
-			copy(newRunes, inputRunes[:s.cursorPos])
-			newRunes[s.cursorPos] = r
-			copy(newRunes[s.cursorPos+1:], inputRunes[s.cursorPos:])
+	// Convert current input to runes for proper cursor positioning
+	inputRunes := []rune(s.input)
+	if s.cursorPos <= len(inputRunes) {
+		// Efficiently insert the rune at the cursor position
+		newRunes := make([]rune, len(inputRunes)+1)
+		copy(newRunes, inputRunes[:s.cursorPos])
+		newRunes[s.cursorPos] = r
+		copy(newRunes[s.cursorPos+1:], inputRunes[s.cursorPos:])
 
-			s.input = string(newRunes)
-			s.cursorPos++
-			s.UpdateFiltered()
-		}
+		s.input = string(newRunes)
+		s.cursorPos++
+		s.UpdateFiltered()
 	}
 }
 
