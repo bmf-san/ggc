@@ -162,51 +162,100 @@ func (c *Client) GetBranchInfo(branch string) (*BranchInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, bi := range infos {
 		if bi.Name == branch {
 			b := bi
 			return &b, nil
 		}
 	}
+
 	// As a fallback, try to build minimal info with separate commands
-	shaCmd := c.execCommand("git", "rev-parse", "--short", branch)
-	shaOut, shaErr := shaCmd.Output()
-	if shaErr != nil {
-		return nil, NewError("get branch info", fmt.Sprintf("git rev-parse --short %s", branch), shaErr)
+	return c.buildBranchInfoFallback(branch)
+}
+
+// buildBranchInfoFallback builds BranchInfo using individual git commands
+func (c *Client) buildBranchInfoFallback(branch string) (*BranchInfo, error) {
+	sha, err := c.getBranchSHA(branch)
+	if err != nil {
+		return nil, err
 	}
-	msgCmd := c.execCommand("git", "log", "-1", "--pretty=%s", branch)
-	msgOut, msgErr := msgCmd.Output()
-	if msgErr != nil {
-		return nil, NewError("get branch info", fmt.Sprintf("git log -1 --pretty=%%s %s", branch), msgErr)
+
+	msg, err := c.getBranchLastCommitMsg(branch)
+	if err != nil {
+		return nil, err
 	}
+
 	current, _ := c.GetCurrentBranch()
 	upstream, _ := c.GetUpstreamBranchName(branch)
-	aheadBehind := ""
-	if upstream != "" {
-		if ab, err := c.GetAheadBehindCount(branch, upstream); err == nil {
-			// rev-list --left-right --count returns "<ahead>\t<behind>"
-			parts := strings.Split(strings.TrimSpace(ab), "\t")
-			if len(parts) == 2 && (parts[0] != "0" || parts[1] != "0") {
-				switch {
-				case parts[0] != "0" && parts[1] != "0":
-					aheadBehind = fmt.Sprintf("ahead %s, behind %s", parts[0], parts[1])
-				case parts[0] != "0":
-					aheadBehind = fmt.Sprintf("ahead %s", parts[0])
-				case parts[1] != "0":
-					aheadBehind = fmt.Sprintf("behind %s", parts[1])
-				}
-			}
-		}
-	}
+	aheadBehind := c.calculateAheadBehind(branch, upstream)
+
 	bi := BranchInfo{
 		Name:            branch,
 		IsCurrentBranch: branch == current,
 		Upstream:        upstream,
 		AheadBehind:     aheadBehind,
-		LastCommitSHA:   strings.TrimSpace(string(shaOut)),
-		LastCommitMsg:   strings.TrimSpace(string(msgOut)),
+		LastCommitSHA:   sha,
+		LastCommitMsg:   msg,
 	}
 	return &bi, nil
+}
+
+// getBranchSHA gets the SHA for a branch
+func (c *Client) getBranchSHA(branch string) (string, error) {
+	shaCmd := c.execCommand("git", "rev-parse", "--short", branch)
+	shaOut, shaErr := shaCmd.Output()
+	if shaErr != nil {
+		return "", NewError("get branch info", fmt.Sprintf("git rev-parse --short %s", branch), shaErr)
+	}
+	return strings.TrimSpace(string(shaOut)), nil
+}
+
+// getBranchLastCommitMsg gets the last commit message for a branch
+func (c *Client) getBranchLastCommitMsg(branch string) (string, error) {
+	msgCmd := c.execCommand("git", "log", "-1", "--pretty=%s", branch)
+	msgOut, msgErr := msgCmd.Output()
+	if msgErr != nil {
+		return "", NewError("get branch info", fmt.Sprintf("git log -1 --pretty=%%s %s", branch), msgErr)
+	}
+	return strings.TrimSpace(string(msgOut)), nil
+}
+
+// calculateAheadBehind calculates ahead/behind status for a branch vs upstream
+func (c *Client) calculateAheadBehind(branch, upstream string) string {
+	if upstream == "" {
+		return ""
+	}
+	ab, err := c.GetAheadBehindCount(branch, upstream)
+	if err != nil {
+		return ""
+	}
+	ahead, behind, ok := parseAheadBehind(strings.TrimSpace(ab))
+	if !ok || (ahead == "0" && behind == "0") {
+		return ""
+	}
+	return formatAheadBehind(ahead, behind)
+}
+
+func parseAheadBehind(s string) (string, string, bool) {
+	parts := strings.Split(s, "\t")
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
+}
+
+func formatAheadBehind(ahead, behind string) string {
+	if ahead != "0" && behind != "0" {
+		return fmt.Sprintf("ahead %s, behind %s", ahead, behind)
+	}
+	if ahead != "0" {
+		return fmt.Sprintf("ahead %s", ahead)
+	}
+	if behind != "0" {
+		return fmt.Sprintf("behind %s", behind)
+	}
+	return ""
 }
 
 // SortBranches lists branches sorted by the specified key ("name" or "date").

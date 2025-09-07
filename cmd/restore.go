@@ -34,37 +34,34 @@ func (r *Restoreer) Restore(args []string) {
 		r.helper.ShowRestoreHelp()
 		return
 	}
+	if args[0] == "--staged" {
+		r.restoreStaged(args[1:])
+		return
+	}
+	r.restoreCommitOrWorking(args)
+}
 
-	switch args[0] {
-	case "--staged":
-		if len(args) < 2 {
-			r.helper.ShowRestoreHelp()
-			return
-		}
+func (r *Restoreer) restoreStaged(paths []string) {
+	if len(paths) < 1 {
+		r.helper.ShowRestoreHelp()
+		return
+	}
+	if err := r.gitClient.RestoreStaged(paths...); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+	}
+}
 
+func (r *Restoreer) restoreCommitOrWorking(args []string) {
+	if len(args) >= 2 && (r.gitClient.RevParseVerify(args[0]) || isCommitLikeStrict(args[0])) {
+		commit := args[0]
 		paths := args[1:]
-		if err := r.gitClient.RestoreStaged(paths...); err != nil {
+		if err := r.gitClient.RestoreFromCommit(commit, paths...); err != nil {
 			_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
-			return
 		}
-
-	default:
-		// Prefer git to validate commit-ish to avoid false positives
-		if len(args) >= 2 && (r.gitClient.RevParseVerify(args[0]) || isCommitLikeStrict(args[0])) {
-			// Handle : ggc restore <commit> <file>
-			commit := args[0]
-			paths := args[1:]
-			if err := r.gitClient.RestoreFromCommit(commit, paths...); err != nil {
-				_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
-				return
-			}
-		} else {
-			// Handle : ggc restore <file> or ggc restore .
-			if err := r.gitClient.RestoreWorkingDir(args...); err != nil {
-				_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
-				return
-			}
-		}
+		return
+	}
+	if err := r.gitClient.RestoreWorkingDir(args...); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 	}
 }
 
@@ -72,30 +69,40 @@ func (r *Restoreer) Restore(args []string) {
 // It intentionally narrows matches to avoid false positives and defers to
 // RevParseVerify when available for authoritative validation.
 func isCommitLikeStrict(s string) bool {
-	// Tight HEAD variants
-	if s == "HEAD" || strings.HasPrefix(s, "HEAD^") || strings.HasPrefix(s, "HEAD~") || strings.HasPrefix(s, "HEAD@{") {
-		return true
+	return isHEADVariant(s) || isExplicitRef(s) || isRemoteRef(s) || isHexObjectName(s)
+}
+
+// isHEADVariant checks for tight HEAD variants
+func isHEADVariant(s string) bool {
+	return s == "HEAD" || strings.HasPrefix(s, "HEAD^") || strings.HasPrefix(s, "HEAD~") || strings.HasPrefix(s, "HEAD@{")
+}
+
+// isExplicitRef checks for explicit ref namespaces
+func isExplicitRef(s string) bool {
+	return strings.HasPrefix(s, "refs/") // e.g., refs/heads/main
+}
+
+// isRemoteRef checks for common remote ref format
+func isRemoteRef(s string) bool {
+	return strings.HasPrefix(s, "origin/") // e.g., origin/main
+}
+
+// isHexObjectName checks for hex-ish object name (short/long SHA)
+func isHexObjectName(s string) bool {
+	l := len(s)
+	if l < 7 || l > 64 { // Allow up to 64 for SHA-256 compatibility
+		return false
 	}
-	// Explicit ref namespaces
-	if strings.HasPrefix(s, "refs/") { // e.g., refs/heads/main
-		return true
-	}
-	// Common remote ref format. Note: other remotes will be caught by rev-parse.
-	if strings.HasPrefix(s, "origin/") { // e.g., origin/main
-		return true
-	}
-	// Hex-ish object name (short/long SHA). Allow up to 64 for SHA-256 compatibility.
-	if l := len(s); l >= 7 && l <= 64 {
-		isHex := true
-		for _, r := range s {
-			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
-				isHex = false
-				break
-			}
+
+	for _, r := range s {
+		if !isHexChar(r) {
+			return false
 		}
-		if isHex {
-			return true
-		}
 	}
-	return false
+	return true
+}
+
+// isHexChar checks if a rune is a valid hex character
+func isHexChar(r rune) bool {
+	return (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
 }

@@ -467,8 +467,8 @@ func TestBrancher_branchDelete_Cancel(t *testing.T) {
 	brancher.branchDelete()
 
 	output := buf.String()
-	if !strings.Contains(output, "Cancelled.") {
-		t.Error("Expected cancelled message")
+	if !strings.Contains(output, "Canceled.") {
+		t.Error("Expected canceled message")
 	}
 }
 
@@ -570,8 +570,8 @@ func TestBrancher_branchDeleteMerged_Cancel(t *testing.T) {
 	brancher.branchDeleteMerged()
 
 	output := buf.String()
-	if !strings.Contains(output, "Cancelled.") {
-		t.Error("Expected cancelled message")
+	if !strings.Contains(output, "Canceled.") {
+		t.Error("Expected canceled message")
 	}
 }
 
@@ -709,7 +709,7 @@ func TestBrancher_Branch_Create(t *testing.T) {
 		{
 			name:           "Error: Empty branch name",
 			input:          "\n",
-			expectedOutput: "Enter new branch name: Cancelled.\n",
+			expectedOutput: "Enter new branch name: Canceled.\n",
 			cmdOutput:      "",
 			cmdError:       false,
 		},
@@ -937,22 +937,22 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 		{
 			name:     "Empty input",
 			input:    "\n",
-			expected: "Cancelled",
+			expected: "Canceled",
 		},
 		{
 			name:     "Whitespace only",
 			input:    "   \n",
-			expected: "Cancelled",
+			expected: "Canceled",
 		},
 		{
 			name:     "Tab characters",
 			input:    "\t\t\n",
-			expected: "Cancelled",
+			expected: "Canceled",
 		},
 		{
 			name:     "Multiple newlines",
 			input:    "\n\n\n",
-			expected: "Cancelled",
+			expected: "Canceled",
 		},
 		{
 			name:     "Very long input",

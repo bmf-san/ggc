@@ -329,8 +329,8 @@ func TestCleaner_CleanInteractive_Cancel(t *testing.T) {
 
 	cleaner.CleanInteractive()
 
-	if !strings.Contains(buf.String(), "Cancelled.") {
-		t.Error("Expected output to contain 'Cancelled.'")
+	if !strings.Contains(buf.String(), "Canceled.") {
+		t.Error("Expected output to contain 'Canceled.'")
 	}
 }
 
@@ -367,8 +367,8 @@ func TestCleaner_CleanInteractive_EmptySelection(t *testing.T) {
 
 	cleaner.CleanInteractive()
 
-	if !strings.Contains(buf.String(), "Cancelled.") {
-		t.Error("Expected output to contain 'Cancelled.' for empty input")
+	if !strings.Contains(buf.String(), "Canceled.") {
+		t.Error("Expected output to contain 'Canceled.' for empty input")
 	}
 }
 

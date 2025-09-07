@@ -27,36 +27,44 @@ func NewStatuseer(client git.Clienter) *Statuseer {
 
 // getUpstreamStatus gets the upstream tracking status
 func (s *Statuseer) getUpstreamStatus(branch string) string {
-	// Check if upstream exists
 	upstream, err := s.gitClient.GetUpstreamBranchName(branch)
 	if err != nil {
 		return ""
 	}
-
-	// Get ahead/behind count
 	output, err := s.gitClient.GetAheadBehindCount(branch, upstream)
 	if err != nil {
-		return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
+		return s.formatUpToDate(upstream)
 	}
+	ahead, behind, ok := parseCounts(output)
+	if !ok {
+		return s.formatUpToDate(upstream)
+	}
+	return s.formatAheadBehind(upstream, ahead, behind)
+}
 
+func parseCounts(output string) (string, string, bool) {
 	counts := strings.Fields(strings.TrimSpace(output))
-	if len(counts) == 2 {
-		ahead := counts[0]
-		behind := counts[1]
-
-		switch {
-		case ahead == "0" && behind == "0":
-			return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
-		case ahead != "0" && behind == "0":
-			return fmt.Sprintf("Your branch is ahead of '%s' by %s commit(s)", upstream, ahead)
-		case ahead == "0" && behind != "0":
-			return fmt.Sprintf("Your branch is behind '%s' by %s commit(s)", upstream, behind)
-		default:
-			return fmt.Sprintf("Your branch and '%s' have diverged,\nand have %s and %s different commits each, respectively", upstream, ahead, behind)
-		}
+	if len(counts) != 2 {
+		return "", "", false
 	}
+	return counts[0], counts[1], true
+}
 
+func (s *Statuseer) formatUpToDate(upstream string) string {
 	return fmt.Sprintf("Your branch is up to date with '%s'", upstream)
+}
+
+func (s *Statuseer) formatAheadBehind(upstream, ahead, behind string) string {
+	switch {
+	case ahead == "0" && behind == "0":
+		return s.formatUpToDate(upstream)
+	case ahead != "0" && behind == "0":
+		return fmt.Sprintf("Your branch is ahead of '%s' by %s commit(s)", upstream, ahead)
+	case ahead == "0" && behind != "0":
+		return fmt.Sprintf("Your branch is behind '%s' by %s commit(s)", upstream, behind)
+	default:
+		return fmt.Sprintf("Your branch and '%s' have diverged,\nand have %s and %s different commits each, respectively", upstream, ahead, behind)
+	}
 }
 
 // Status executes git status with the given arguments.

@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/ggc/v5/git"
 	"golang.org/x/term"
+
+	"github.com/bmf-san/ggc/v5/git"
 )
 
 // GitStatus represents the current Git repository status
@@ -254,7 +255,7 @@ func (s *UIState) AddChar(c byte) {
 
 // RemoveChar removes character before cursor (backspace)
 func (s *UIState) RemoveChar() {
-	if s.cursorPos > 0 && len(s.input) > 0 {
+	if s.cursorPos > 0 && s.input != "" {
 		s.input = s.input[:s.cursorPos-1] + s.input[s.cursorPos:]
 		s.cursorPos--
 		s.UpdateFiltered()
@@ -343,42 +344,39 @@ type KeyHandler struct {
 
 // HandleKey processes a single key input and returns true if should continue
 func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
-	switch b {
-	case 3: // Ctrl+C
-		h.handleCtrlC(oldState)
-		return false, nil
-	case 13: // Enter
+	if b == 13 { // Enter
 		return h.handleEnter(oldState)
-	case 16: // Ctrl+P (up)
-		h.ui.state.MoveUp()
-		return true, nil
-	case 14: // Ctrl+N (down)
-		h.ui.state.MoveDown()
-		return true, nil
-	case 21: // Ctrl+U (clear line)
-		h.ui.state.ClearInput()
-		return true, nil
-	case 23: // Ctrl+W (delete word)
-		h.ui.state.DeleteWord()
-		return true, nil
-	case 11: // Ctrl+K (delete to end)
-		h.ui.state.DeleteToEnd()
-		return true, nil
-	case 1: // Ctrl+A (beginning of line)
-		h.ui.state.MoveToBeginning()
-		return true, nil
-	case 5: // Ctrl+E (end of line)
-		h.ui.state.MoveToEnd()
-		return true, nil
-	case 127, 8: // Backspace
-		h.ui.state.RemoveChar()
-		return true, nil
-	default:
-		if b >= 32 && b <= 126 { // Printable ASCII
-			h.ui.state.AddChar(b)
-		}
+	}
+	if handled := h.handleControlKeys(b, oldState); handled {
 		return true, nil
 	}
+	if b >= 32 && b <= 126 { // Printable ASCII
+		h.ui.state.AddChar(b)
+	}
+	return true, nil
+}
+
+func (h *KeyHandler) handleControlKeys(b byte, oldState *term.State) bool {
+	actions := map[byte]func(){
+		3:  func() { h.handleCtrlC(oldState) },      // Ctrl+C
+		16: func() { h.ui.state.MoveUp() },          // Ctrl+P
+		14: func() { h.ui.state.MoveDown() },        // Ctrl+N
+		21: func() { h.ui.state.ClearInput() },      // Ctrl+U
+		23: func() { h.ui.state.DeleteWord() },      // Ctrl+W
+		11: func() { h.ui.state.DeleteToEnd() },     // Ctrl+K
+		1:  func() { h.ui.state.MoveToBeginning() }, // Ctrl+A
+		5:  func() { h.ui.state.MoveToEnd() },       // Ctrl+E
+	}
+	// Backspace can be 127 or 8
+	if b == 127 || b == 8 {
+		h.ui.state.RemoveChar()
+		return true
+	}
+	if f, ok := actions[b]; ok {
+		f()
+		return true
+	}
+	return false
 }
 
 // handleCtrlC handles Ctrl+C key press
@@ -478,8 +476,8 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 		// Get input with real-time feedback
 		value := h.getRealTimeInput(ph)
 		if value == "" {
-			// User cancelled input
-			h.ui.write("\n%sOperation cancelled%s\n",
+			// User canceled input
+			h.ui.write("\n%sOperation canceled%s\n",
 				h.ui.colors.BrightRed,
 				h.ui.colors.Reset)
 			os.Exit(1)
@@ -502,71 +500,56 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 // getRealTimeInput gets user input with real-time display using raw terminal mode
 func (h *KeyHandler) getRealTimeInput(_ string) string {
 	var input strings.Builder
-
-	// Set terminal to raw mode for character-by-character input
 	fd := int(os.Stdin.Fd())
 	oldState, err := h.ui.term.makeRaw(fd)
 	if err != nil {
-		// Fallback to line-based input if raw mode fails
 		return h.getLineInput()
 	}
-	defer func() {
-		_ = h.ui.term.restore(fd, oldState)
-	}()
+	defer func() { _ = h.ui.term.restore(fd, oldState) }()
 
-	// Buffer for reading single bytes
 	buf := make([]byte, 1)
-
 	for {
-		// Read one byte at a time
 		n, err := os.Stdin.Read(buf)
 		if err != nil || n == 0 {
 			break
 		}
-
-		char := rune(buf[0])
-
-		switch char {
-		case '\n', '\r':
-			// Enter pressed - confirm input
-			if input.Len() > 0 {
-				h.ui.write("\r\n")
-				return input.String()
+		if done, canceled := h.handleInputChar(&input, rune(buf[0])); done {
+			if canceled {
+				return ""
 			}
-			// Empty input - show hint and continue
-			h.ui.write(" %s(required)%s",
-				h.ui.colors.BrightRed,
-				h.ui.colors.Reset)
-			continue
-
-		case '\b', 127: // Backspace
-			if input.Len() > 0 {
-				// Remove last character
-				str := input.String()
-				input.Reset()
-				input.WriteString(str[:len(str)-1])
-
-				// Update display: move back, write space, move back again
-				h.ui.write("\b \b")
-			}
-
-		case 3: // Ctrl+C
-			h.ui.write("\r\n%sOperation cancelled%s\r\n",
-				h.ui.colors.BrightRed,
-				h.ui.colors.Reset)
-			// Return empty string to indicate cancellation
-			return ""
-
-		default:
-			// Regular character
-			if char >= 32 && char <= 126 { // Printable ASCII
-				input.WriteRune(char)
-				h.ui.write("%c", char)
-			}
+			return input.String()
 		}
 	}
-
 	return input.String()
+}
+
+func (h *KeyHandler) handleInputChar(input *strings.Builder, char rune) (done bool, canceled bool) {
+	switch char {
+	case '\n', '\r':
+		if input.Len() > 0 {
+			h.ui.write("\r\n")
+			return true, false
+		}
+		h.ui.write(" %s(required)%s", h.ui.colors.BrightRed, h.ui.colors.Reset)
+		return false, false
+	case '\b', 127:
+		if input.Len() > 0 {
+			str := input.String()
+			input.Reset()
+			input.WriteString(str[:len(str)-1])
+			h.ui.write("\b \b")
+		}
+		return false, false
+	case 3: // Ctrl+C
+		h.ui.write("\r\n%sOperation canceled%s\r\n", h.ui.colors.BrightRed, h.ui.colors.Reset)
+		return true, true
+	default:
+		if char >= 32 && char <= 126 {
+			input.WriteRune(char)
+			h.ui.write("%c", char)
+		}
+		return false, false
+	}
 }
 
 // getLineInput provides fallback line-based input when raw mode is not available
@@ -870,7 +853,7 @@ func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
 
 // formatInputWithCursor formats the input string with cursor position
 func (r *Renderer) formatInputWithCursor(state *UIState) string {
-	if len(state.input) == 0 {
+	if state.input == "" {
 		return fmt.Sprintf("%s█%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
 	}
 

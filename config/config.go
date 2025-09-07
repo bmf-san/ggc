@@ -11,8 +11,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/bmf-san/ggc/v5/git"
 	"go.yaml.in/yaml/v3"
+
+	"github.com/bmf-san/ggc/v5/git"
 )
 
 // GitConfigExecutor interface for git config operations (for testing)
@@ -129,29 +130,39 @@ func (c *Config) validateBranch() error {
 
 func (c *Config) validateEditor() error {
 	editor := strings.TrimSpace(c.Default.Editor)
-	// Extract the first token, supporting simple quoted paths with spaces
-	bin := editor
-	if editor != "" {
-		if (strings.HasPrefix(editor, "\"") && strings.Count(editor, "\"") >= 2) || (strings.HasPrefix(editor, "'") && strings.Count(editor, "'") >= 2) {
-			q := editor[0:1]
-			if idx := strings.Index(editor[1:], q); idx >= 0 {
-				bin = editor[1 : 1+idx]
-			}
-		} else if i := strings.IndexAny(editor, " \t"); i > 0 {
-			bin = editor[:i]
-		}
-	}
-
-	// If the binary looks like a path, accept it if it exists; else use PATH lookup
-	if strings.ContainsAny(bin, "/\\") {
-		if _, err := os.Stat(bin); err == nil {
-			return nil
-		}
+	bin := parseEditorBinary(editor)
+	if validEditorPath(bin) {
+		return nil
 	}
 	if _, err := exec.LookPath(bin); err != nil {
 		return &ValidationError{"default.editor", editor, "command not found in PATH or invalid path"}
 	}
 	return nil
+}
+
+func parseEditorBinary(editor string) string {
+	if editor == "" {
+		return ""
+	}
+	// Support basic quoted paths or first token before whitespace
+	if (strings.HasPrefix(editor, "\"") && strings.Count(editor, "\"") >= 2) || (strings.HasPrefix(editor, "'") && strings.Count(editor, "'") >= 2) {
+		q := editor[0:1]
+		if idx := strings.Index(editor[1:], q); idx >= 0 {
+			return editor[1 : 1+idx]
+		}
+	}
+	if i := strings.IndexAny(editor, " \t"); i > 0 {
+		return editor[:i]
+	}
+	return editor
+}
+
+func validEditorPath(bin string) bool {
+	if !strings.ContainsAny(bin, "/\\") {
+		return false
+	}
+	_, err := os.Stat(bin)
+	return err == nil
 }
 
 func (c *Config) validateConfirmDestructive() error {
@@ -164,6 +175,19 @@ func (c *Config) validateConfirmDestructive() error {
 }
 
 func (c *Config) validateIntegrationTokens() error {
+	if err := c.validateGithubToken(); err != nil {
+		return err
+	}
+
+	if err := c.validateGitlabToken(); err != nil {
+		return err
+	}
+
+	return c.validateGithubRemote()
+}
+
+// validateGithubToken validates GitHub token format
+func (c *Config) validateGithubToken() error {
 	ghToken := c.Integration.Github.Token
 	if ghToken != "" {
 		if !githubTokenClassicRe.MatchString(ghToken) && !githubTokenFineRe.MatchString(ghToken) {
@@ -174,7 +198,11 @@ func (c *Config) validateIntegrationTokens() error {
 			}
 		}
 	}
+	return nil
+}
 
+// validateGitlabToken validates GitLab token format
+func (c *Config) validateGitlabToken() error {
 	glToken := c.Integration.Gitlab.Token
 	if glToken != "" {
 		if !gitlabTokenRe.MatchString(glToken) {
@@ -185,22 +213,30 @@ func (c *Config) validateIntegrationTokens() error {
 			}
 		}
 	}
+	return nil
+}
 
-	if remote := c.Integration.Github.DefaultRemote; remote != "" {
-		if !gitRemoteNameCharsRe.MatchString(remote) || strings.Contains(remote, " ") {
-			return &ValidationError{
-				Field:   "integration.github.default-remote",
-				Value:   remote,
-				Message: "Remote may contain letters, digits, ., _, -, and / only",
-			}
+// validateGithubRemote validates GitHub remote name format
+func (c *Config) validateGithubRemote() error {
+	remote := c.Integration.Github.DefaultRemote
+	if remote == "" {
+		return nil
+	}
+
+	if !gitRemoteNameCharsRe.MatchString(remote) || strings.Contains(remote, " ") {
+		return &ValidationError{
+			Field:   "integration.github.default-remote",
+			Value:   remote,
+			Message: "Remote may contain letters, digits, ., _, -, and / only",
 		}
-		// Additional structural checks: no leading/trailing '.' or '/', and no empty/unsafe segments
-		if strings.HasPrefix(remote, "/") || strings.HasSuffix(remote, "/") || strings.HasPrefix(remote, ".") || strings.HasSuffix(remote, ".") || strings.Contains(remote, "//") || strings.Contains(remote, "..") {
-			return &ValidationError{
-				Field:   "integration.github.default-remote",
-				Value:   remote,
-				Message: "Remote must not start/end with '.' or '/', nor contain '..' or '//'",
-			}
+	}
+
+	// Additional structural checks: no leading/trailing '.' or '/', and no empty/unsafe segments
+	if strings.HasPrefix(remote, "/") || strings.HasSuffix(remote, "/") || strings.HasPrefix(remote, ".") || strings.HasSuffix(remote, ".") || strings.Contains(remote, "//") || strings.Contains(remote, "..") {
+		return &ValidationError{
+			Field:   "integration.github.default-remote",
+			Value:   remote,
+			Message: "Remote must not start/end with '.' or '/', nor contain '..' or '//'",
 		}
 	}
 
@@ -209,46 +245,48 @@ func (c *Config) validateIntegrationTokens() error {
 
 func (c *Config) validateAliases() error {
 	for name, value := range c.Aliases {
-		if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
-			return &ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
+		if err := validateAliasName(name); err != nil {
+			return err
 		}
+		if err := validateAliasValue(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-		switch v := value.(type) {
-		case string:
-			// Simple alias validation
-			if strings.TrimSpace(v) == "" {
-				return &ValidationError{"aliases." + name, v, "alias command cannot be empty"}
-			}
+func validateAliasName(name string) error {
+	if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
+		return &ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
+	}
+	return nil
+}
 
-		case []interface{}:
-			// Sequence alias validation
-			if len(v) == 0 {
-				return &ValidationError{"aliases." + name, v, "alias sequence cannot be empty"}
-			}
-			for i, cmd := range v {
-				cmdStr, ok := cmd.(string)
-				if !ok {
-					return &ValidationError{
-						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
-						Value:   cmd,
-						Message: "sequence commands must be strings",
-					}
-				}
-				if strings.TrimSpace(cmdStr) == "" {
-					return &ValidationError{
-						Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
-						Value:   cmdStr,
-						Message: "command in sequence cannot be empty",
-					}
-				}
-			}
+func validateAliasValue(name string, value interface{}) error {
+	switch v := value.(type) {
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return &ValidationError{"aliases." + name, v, "alias command cannot be empty"}
+		}
+		return nil
+	case []interface{}:
+		return validateAliasSequence(name, v)
+	default:
+		return &ValidationError{Field: "aliases." + name, Value: value, Message: "alias must be either a string or array of strings"}
+	}
+}
 
-		default:
-			return &ValidationError{
-				Field:   "aliases." + name,
-				Value:   value,
-				Message: "alias must be either a string or array of strings",
-			}
+func validateAliasSequence(name string, seq []interface{}) error {
+	if len(seq) == 0 {
+		return &ValidationError{"aliases." + name, seq, "alias sequence cannot be empty"}
+	}
+	for i, cmd := range seq {
+		cmdStr, ok := cmd.(string)
+		if !ok {
+			return &ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmd, Message: "sequence commands must be strings"}
+		}
+		if strings.TrimSpace(cmdStr) == "" {
+			return &ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmdStr, Message: "command in sequence cannot be empty"}
 		}
 	}
 	return nil
@@ -425,23 +463,21 @@ func (cm *Manager) loadFromFile(path string) error {
 }
 
 func (cm *Manager) syncFromCommandName(command string) {
-	if value, err := cm.gitClient.ConfigGetGlobal(command); err == nil && value != "" {
-		switch command {
-		case "core.editor":
-			cm.config.Default.Editor = value
-		case "merge.tool":
-			cm.config.Default.MergeTool = value
-		case "init.defaultBranch":
-			cm.config.Default.Branch = value
-		case "color.ui":
-			cm.config.UI.Color = value == "true" || value == "auto"
-		case "core.pager":
-			cm.config.UI.Pager = value != "cat"
-		case "fetch.auto":
-			cm.config.Behavior.AutoFetch = value == "true"
-		case "push.default":
-			cm.config.Behavior.ConfirmDestructive = value
-		}
+	value, err := cm.gitClient.ConfigGetGlobal(command)
+	if err != nil || value == "" {
+		return
+	}
+	updaters := map[string]func(string){
+		"core.editor":        func(v string) { cm.config.Default.Editor = v },
+		"merge.tool":         func(v string) { cm.config.Default.MergeTool = v },
+		"init.defaultBranch": func(v string) { cm.config.Default.Branch = v },
+		"color.ui":           func(v string) { cm.config.UI.Color = v == "true" || v == "auto" },
+		"core.pager":         func(v string) { cm.config.UI.Pager = v != "cat" },
+		"fetch.auto":         func(v string) { cm.config.Behavior.AutoFetch = v == "true" },
+		"push.default":       func(v string) { cm.config.Behavior.ConfirmDestructive = v },
+	}
+	if f, ok := updaters[command]; ok {
+		f(value)
 	}
 }
 
@@ -464,6 +500,23 @@ func (cm *Manager) syncFromGitConfig() {
 func (cm *Manager) syncToGitConfig() error {
 	config := cm.GetConfig()
 
+	if err := cm.syncDefaultSettings(config); err != nil {
+		return err
+	}
+
+	if err := cm.syncUISettings(config); err != nil {
+		return err
+	}
+
+	if err := cm.syncBehaviorSettings(config); err != nil {
+		return err
+	}
+
+	return cm.syncAliases(config)
+}
+
+// syncDefaultSettings syncs default editor, merge tool, and branch settings
+func (cm *Manager) syncDefaultSettings(config *Config) error {
 	if config.Default.Editor != "" {
 		if err := cm.gitClient.ConfigSetGlobal("core.editor", config.Default.Editor); err != nil {
 			return fmt.Errorf("failed to set git editor: %w", err)
@@ -482,6 +535,11 @@ func (cm *Manager) syncToGitConfig() error {
 		}
 	}
 
+	return nil
+}
+
+// syncUISettings syncs color and pager settings
+func (cm *Manager) syncUISettings(config *Config) error {
 	colorValue := "false"
 	if config.UI.Color {
 		colorValue = "true"
@@ -490,6 +548,17 @@ func (cm *Manager) syncToGitConfig() error {
 		return fmt.Errorf("failed to set git color: %w", err)
 	}
 
+	if !config.UI.Pager {
+		if err := cm.gitClient.ConfigSetGlobal("core.pager", "cat"); err != nil {
+			return fmt.Errorf("failed to set git pager: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// syncBehaviorSettings syncs autofetch and push default settings
+func (cm *Manager) syncBehaviorSettings(config *Config) error {
 	autoFetchValue := "false"
 	if config.Behavior.AutoFetch {
 		autoFetchValue = "true"
@@ -502,12 +571,11 @@ func (cm *Manager) syncToGitConfig() error {
 		return fmt.Errorf("failed to set git push default: %w", err)
 	}
 
-	if !config.UI.Pager {
-		if err := cm.gitClient.ConfigSetGlobal("core.pager", "cat"); err != nil {
-			return fmt.Errorf("failed to set git pager: %w", err)
-		}
-	}
+	return nil
+}
 
+// syncAliases syncs alias settings to git config
+func (cm *Manager) syncAliases(config *Config) error {
 	for alias, value := range config.Aliases {
 		if cmdStr, ok := value.(string); ok {
 			if err := cm.gitClient.ConfigSetGlobal(fmt.Sprintf("alias.%s", alias), cmdStr); err != nil {
@@ -525,21 +593,28 @@ func (cm *Manager) Save() error {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-
 	data, err := yaml.Marshal(cm.config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-
-	// Validate before writing to avoid persisting invalid configs
 	if err := cm.config.Validate(); err != nil {
 		return fmt.Errorf("cannot save invalid config: %w", err)
 	}
+	tmpName, err := cm.writeTempConfig(dir, data)
+	if err != nil {
+		return err
+	}
+	if err := cm.replaceConfigFile(tmpName); err != nil {
+		return err
+	}
+	cm.hardenPermissions(cm.configPath)
+	return cm.syncToGitConfig()
+}
 
-	// Atomic write configuration
+func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) {
 	tmpFile, err := os.CreateTemp(dir, ".ggcconfig-*.tmp")
 	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
+		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpName := tmpFile.Name()
 	if runtime.GOOS != "windows" {
@@ -548,31 +623,33 @@ func (cm *Manager) Save() error {
 	if _, err := tmpFile.Write(data); err != nil {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpName)
-		return fmt.Errorf("failed to write temp config file: %w", err)
+		return "", fmt.Errorf("failed to write temp config file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
 		_ = os.Remove(tmpName)
-		return fmt.Errorf("failed to close temp config file: %w", err)
+		return "", fmt.Errorf("failed to close temp config file: %w", err)
 	}
+	return tmpName, nil
+}
 
-	// Basic atomic replace: on Windows, remove the target first
+func (cm *Manager) replaceConfigFile(tmpName string) error {
 	if runtime.GOOS == "windows" {
 		_ = os.Remove(cm.configPath)
 	}
 	if err := os.Rename(tmpName, cm.configPath); err != nil {
-		// Retry after removing destination if rename failed
 		_ = os.Remove(cm.configPath)
 		if err2 := os.Rename(tmpName, cm.configPath); err2 != nil {
 			_ = os.Remove(tmpName)
 			return fmt.Errorf("failed to replace config file: %w", err2)
 		}
 	}
+	return nil
+}
 
+func (cm *Manager) hardenPermissions(path string) {
 	if runtime.GOOS != "windows" {
-		_ = os.Chmod(cm.configPath, 0600)
+		_ = os.Chmod(path, 0600)
 	}
-
-	return cm.syncToGitConfig()
 }
 
 // Get retrieves a configuration value by key path (e.g., "ui.color", "default.branch")
@@ -659,68 +736,96 @@ func (cm *Manager) setValueByPath(obj any, path string, value any) error {
 	parts := strings.Split(path, ".")
 	current := reflect.ValueOf(obj)
 
-	// Navigate to the parent of the target field
-	for i, part := range parts[:len(parts)-1] {
-		if current.Kind() == reflect.Ptr {
-			current = current.Elem()
-		}
-
-		switch current.Kind() {
-		case reflect.Struct:
-			field, found := cm.findFieldByYamlTag(current.Type(), current, part)
-			if !found {
-				return fmt.Errorf("field '%s' not found", strings.Join(parts[:i+1], "."))
-			}
-			current = field
-
-		case reflect.Map:
-			mapValue := current.MapIndex(reflect.ValueOf(part))
-			if !mapValue.IsValid() {
-				return fmt.Errorf("key '%s' not found", strings.Join(parts[:i+1], "."))
-			}
-			current = mapValue
-
-		default:
-			return fmt.Errorf("cannot navigate into %s", current.Kind())
-		}
+	parent, err := cm.navigateToParent(current, parts)
+	if err != nil {
+		return err
 	}
 
-	// Set the final value
-	lastPart := parts[len(parts)-1]
+	return cm.setFinalValue(parent, parts[len(parts)-1], value)
+}
+
+// navigateToParent navigates to the parent of the target field
+func (cm *Manager) navigateToParent(current reflect.Value, parts []string) (reflect.Value, error) {
+	for i, part := range parts[:len(parts)-1] {
+		var err error
+		current, err = cm.navigateOneLevel(current, part, parts[:i+1])
+		if err != nil {
+			return reflect.Value{}, err
+		}
+	}
+	return current, nil
+}
+
+// navigateOneLevel navigates one level into a struct or map
+func (cm *Manager) navigateOneLevel(current reflect.Value, part string, pathSoFar []string) (reflect.Value, error) {
 	if current.Kind() == reflect.Ptr {
 		current = current.Elem()
 	}
 
 	switch current.Kind() {
 	case reflect.Struct:
-		field, found := cm.findFieldByYamlTag(current.Type(), current, lastPart)
-		if !found || !field.CanSet() {
-			return fmt.Errorf("field '%s' not found or cannot be set", lastPart)
+		field, found := cm.findFieldByYamlTag(current.Type(), current, part)
+		if !found {
+			return reflect.Value{}, fmt.Errorf("field '%s' not found", strings.Join(pathSoFar, "."))
 		}
-
-		newValue := reflect.ValueOf(value)
-		if !newValue.Type().ConvertibleTo(field.Type()) {
-			return fmt.Errorf("cannot convert %s to %s", newValue.Type(), field.Type())
-		}
-
-		field.Set(newValue.Convert(field.Type()))
+		return field, nil
 
 	case reflect.Map:
-		if current.Type().Key().Kind() != reflect.String {
-			return fmt.Errorf("map key must be string")
+		mapValue := current.MapIndex(reflect.ValueOf(part))
+		if !mapValue.IsValid() {
+			return reflect.Value{}, fmt.Errorf("key '%s' not found", strings.Join(pathSoFar, "."))
 		}
+		return mapValue, nil
 
-		newValue := reflect.ValueOf(value)
-		if !newValue.Type().ConvertibleTo(current.Type().Elem()) {
-			return fmt.Errorf("cannot convert %s to %s", newValue.Type(), current.Type().Elem())
-		}
+	default:
+		return reflect.Value{}, fmt.Errorf("cannot navigate into %s", current.Kind())
+	}
+}
 
-		current.SetMapIndex(reflect.ValueOf(lastPart), newValue.Convert(current.Type().Elem()))
+// setFinalValue sets the final value in the target location
+func (cm *Manager) setFinalValue(current reflect.Value, lastPart string, value any) error {
+	if current.Kind() == reflect.Ptr {
+		current = current.Elem()
+	}
 
+	switch current.Kind() {
+	case reflect.Struct:
+		return cm.setStructField(current, lastPart, value)
+	case reflect.Map:
+		return cm.setMapValue(current, lastPart, value)
 	default:
 		return fmt.Errorf("cannot set value in %s", current.Kind())
 	}
+}
 
+// setStructField sets a field value in a struct
+func (cm *Manager) setStructField(current reflect.Value, fieldName string, value any) error {
+	field, found := cm.findFieldByYamlTag(current.Type(), current, fieldName)
+	if !found || !field.CanSet() {
+		return fmt.Errorf("field '%s' not found or cannot be set", fieldName)
+	}
+
+	newValue := reflect.ValueOf(value)
+	if !newValue.Type().ConvertibleTo(field.Type()) {
+		return fmt.Errorf("cannot convert %s to %s", newValue.Type(), field.Type())
+	}
+
+	field.Set(newValue.Convert(field.Type()))
+	return nil
+}
+
+// setMapValue sets a value in a map
+func (cm *Manager) setMapValue(current reflect.Value, key string, value any) error {
+	if current.Type().Key().Kind() != reflect.String {
+		return fmt.Errorf("map key must be string")
+	}
+
+	newValue := reflect.ValueOf(value)
+	if !newValue.Type().ConvertibleTo(current.Type().Elem()) {
+		return fmt.Errorf("cannot convert %s to %s", newValue.Type(), current.Type().Elem())
+	}
+
+	current.SetMapIndex(reflect.ValueOf(key), newValue.Convert(current.Type().Elem()))
 	return nil
 }
 
@@ -730,41 +835,44 @@ func (cm *Manager) flattenConfig(obj any, prefix string, result map[string]any) 
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
-
 	switch value.Kind() {
 	case reflect.Struct:
-		structType := value.Type()
-		for i := 0; i < value.NumField(); i++ {
-			field := value.Field(i)
-			fieldType := structType.Field(i)
-
-			yamlTag := fieldType.Tag.Get("yaml")
-			fieldName := fieldType.Name
-			if yamlTag != "" {
-				fieldName = strings.Split(yamlTag, ",")[0]
-			}
-
-			key := fieldName
-			if prefix != "" {
-				key = prefix + "." + fieldName
-			}
-
-			if field.Kind() == reflect.Struct || (field.Kind() == reflect.Map && field.Type().Elem().Kind() != reflect.Interface) {
-				cm.flattenConfig(field.Interface(), key, result)
-			} else {
-				result[key] = field.Interface()
-			}
-		}
-
+		cm.flattenStruct(value, prefix, result)
 	case reflect.Map:
-		for _, mapKey := range value.MapKeys() {
-			mapValue := value.MapIndex(mapKey)
-			key := mapKey.String()
-			if prefix != "" {
-				key = prefix + "." + mapKey.String()
-			}
-			result[key] = mapValue.Interface()
+		cm.flattenMap(value, prefix, result)
+	}
+}
+
+func (cm *Manager) flattenStruct(value reflect.Value, prefix string, result map[string]any) {
+	structType := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		fieldType := structType.Field(i)
+
+		fieldName := fieldType.Name
+		if yamlTag := fieldType.Tag.Get("yaml"); yamlTag != "" {
+			fieldName = strings.Split(yamlTag, ",")[0]
 		}
+		key := fieldName
+		if prefix != "" {
+			key = prefix + "." + fieldName
+		}
+		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Map && field.Type().Elem().Kind() != reflect.Interface) {
+			cm.flattenConfig(field.Interface(), key, result)
+		} else {
+			result[key] = field.Interface()
+		}
+	}
+}
+
+func (cm *Manager) flattenMap(value reflect.Value, prefix string, result map[string]any) {
+	for _, mapKey := range value.MapKeys() {
+		mapValue := value.MapIndex(mapKey)
+		key := mapKey.String()
+		if prefix != "" {
+			key = prefix + "." + mapKey.String()
+		}
+		result[key] = mapValue.Interface()
 	}
 }
 

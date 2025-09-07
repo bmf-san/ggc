@@ -73,7 +73,7 @@ func TestRebaser_RebaseInteractive_Cancel(t *testing.T) {
 	r.RebaseInteractive()
 
 	output := buf.String()
-	if !strings.Contains(output, "Error: operation cancelled") {
+	if !strings.Contains(output, "Error: operation canceled") {
 		t.Errorf("expected cancellation message, got: %s", output)
 	}
 }

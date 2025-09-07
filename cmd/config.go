@@ -73,72 +73,85 @@ func (c *Configureer) Config(args []string) {
 		c.helper.ShowConfigHelp()
 		return
 	}
+
 	switch args[0] {
 	case "list":
-		cm := c.LoadConfig()
-		configs := cm.List()
-
-		keys := make([]string, 0, len(configs))
-		for key := range configs {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		for _, key := range keys {
-			val := configs[key]
-
-			if key == "aliases" {
-				if aliasMap, ok := val.(map[string]any); ok {
-					for aliasName, raw := range aliasMap {
-						commands, err := parseAliasValue(raw)
-						if err != nil {
-							_, _ = fmt.Fprintf(c.outputWriter, "%-30s = <invalid alias: %v>\n", "aliases."+aliasName, err)
-							continue
-						}
-						formatted := formatAliasValue(commands)
-						_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", "aliases."+aliasName, formatted)
-					}
-					continue
-				}
-			}
-
-			_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", key, formatValue(val))
-		}
-		return
+		c.configList()
 	case "get":
-		if len(args) < 2 {
-			_, _ = fmt.Fprintf(c.outputWriter, "must provide key to get (arg missing)\n")
-			return
-		}
-
-		cm := c.LoadConfig()
-
-		value, err := cm.Get(args[1])
-		if err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "failed to get config value: %s", err)
-		}
-
-		_, _ = fmt.Fprintf(c.outputWriter, "%s\n", formatValue(value))
-		return
+		c.configGet(args)
 	case "set":
-		if len(args) < 3 {
-			_, _ = fmt.Fprintf(c.outputWriter, "must provide key && value to set (arg(s) missing)\n")
-			return
-		}
-
-		cm := c.LoadConfig()
-
-		value := parseValue(args[2])
-		if err := cm.Set(args[1], value); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "failed to set config value: %s", err)
-		}
-
-		_, _ = fmt.Fprintf(c.outputWriter, "Set %s = %s\n", args[1], formatValue(value))
-		return
+		c.configSet(args)
 	default:
 		c.helper.ShowConfigHelp()
+	}
+}
+
+// configList lists all configuration values
+func (c *Configureer) configList() {
+	cm := c.LoadConfig()
+	configs := cm.List()
+
+	keys := make([]string, 0, len(configs))
+	for key := range configs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		val := configs[key]
+		if key == "aliases" {
+			c.displayAliases(val)
+			continue
+		}
+		_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", key, formatValue(val))
+	}
+}
+
+// displayAliases handles the special display logic for aliases
+func (c *Configureer) displayAliases(val any) {
+	if aliasMap, ok := val.(map[string]any); ok {
+		for aliasName, raw := range aliasMap {
+			commands, err := parseAliasValue(raw)
+			if err != nil {
+				_, _ = fmt.Fprintf(c.outputWriter, "%-30s = <invalid alias: %v>\n", "aliases."+aliasName, err)
+				continue
+			}
+			formatted := formatAliasValue(commands)
+			_, _ = fmt.Fprintf(c.outputWriter, "%-30s = %s\n", "aliases."+aliasName, formatted)
+		}
+	}
+}
+
+// configGet gets a configuration value
+func (c *Configureer) configGet(args []string) {
+	if len(args) < 2 {
+		_, _ = fmt.Fprintf(c.outputWriter, "must provide key to get (arg missing)\n")
 		return
 	}
+
+	cm := c.LoadConfig()
+	value, err := cm.Get(args[1])
+	if err != nil {
+		_, _ = fmt.Fprintf(c.outputWriter, "failed to get config value: %s", err)
+	}
+
+	_, _ = fmt.Fprintf(c.outputWriter, "%s\n", formatValue(value))
+}
+
+// configSet sets a configuration value
+func (c *Configureer) configSet(args []string) {
+	if len(args) < 3 {
+		_, _ = fmt.Fprintf(c.outputWriter, "must provide key && value to set (arg(s) missing)\n")
+		return
+	}
+
+	cm := c.LoadConfig()
+	value := parseValue(args[2])
+	if err := cm.Set(args[1], value); err != nil {
+		_, _ = fmt.Fprintf(c.outputWriter, "failed to set config value: %s", err)
+	}
+
+	_, _ = fmt.Fprintf(c.outputWriter, "Set %s = %s\n", args[1], formatValue(value))
 }
 
 func formatValue(value any) string {

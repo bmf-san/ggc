@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
 	"golang.org/x/term"
+
+	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
 
 // mockTerminal mocks terminal operations

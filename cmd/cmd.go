@@ -224,6 +224,37 @@ func (c *Cmd) Interactive() {
 	}
 }
 
+// commandHandler represents a function that handles a command
+type commandHandler func([]string)
+
+// getCommandHandlers returns a map of command names to their handlers
+func (c *Cmd) getCommandHandlers() map[string]commandHandler {
+	return map[string]commandHandler{
+		"help":              func(_ []string) { c.Help() },
+		"add":               c.adder.Add,
+		"branch":            c.Branch,
+		"commit":            c.Commit,
+		"log":               c.Log,
+		"pull":              c.Pull,
+		"push":              c.Push,
+		"reset":             c.Reset,
+		"clean":             c.Clean,
+		"version":           c.Version,
+		"clean-interactive": func(_ []string) { c.cleaner.CleanInteractive() },
+		"remote":            c.remoteer.Remote,
+		"rebase":            c.rebaser.Rebase,
+		"stash":             c.stasher.Stash,
+		"config":            c.configureer.Config,
+		"hook":              c.hooker.Hook,
+		"tag":               c.tagger.Tag,
+		"status":            c.statuseer.Status,
+		"complete":          c.completer.Complete,
+		"fetch":             c.fetcher.Fetch,
+		"diff":              c.differ.Diff,
+		"restore":           c.restoreer.Restore,
+	}
+}
+
 // Route routes the command to the appropriate handler based on args.
 func (c *Cmd) Route(args []string) {
 	if len(args) == 0 {
@@ -231,52 +262,10 @@ func (c *Cmd) Route(args []string) {
 		return
 	}
 
-	switch args[0] {
-	case "help":
-		c.Help()
-	case "add":
-		c.adder.Add(args[1:])
-	case "branch":
-		c.Branch(args[1:])
-	case "commit":
-		c.Commit(args[1:])
-	case "log":
-		c.Log(args[1:])
-	case "pull":
-		c.Pull(args[1:])
-	case "push":
-		c.Push(args[1:])
-	case "reset":
-		c.Reset(args[1:])
-	case "clean":
-		c.Clean(args[1:])
-	case "version":
-		c.Version(args[1:])
-	case "clean-interactive":
-		c.cleaner.CleanInteractive()
-	case "remote":
-		c.remoteer.Remote(args[1:])
-	case "rebase":
-		c.rebaser.Rebase(args[1:])
-	case "stash":
-		c.stasher.Stash(args[1:])
-	case "config":
-		c.configureer.Config(args[1:])
-	case "hook":
-		c.hooker.Hook(args[1:])
-	case "tag":
-		c.tagger.Tag(args[1:])
-	case "status":
-		c.statuseer.Status(args[1:])
-	case "complete":
-		c.completer.Complete(args[1:])
-	case "fetch":
-		c.fetcher.Fetch(args[1:])
-	case "diff":
-		c.differ.Diff(args[1:])
-	case "restore":
-		c.restoreer.Restore(args[1:])
-	default:
+	handlers := c.getCommandHandlers()
+	if handler, exists := handlers[args[0]]; exists {
+		handler(args[1:])
+	} else {
 		c.Help()
 	}
 }
