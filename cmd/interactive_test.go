@@ -1400,3 +1400,50 @@ func TestUIState_DeleteToEnd_Multibyte(t *testing.T) {
 		t.Errorf("After DeleteToEnd: expected cursor position 2, got %d", ui.state.cursorPos)
 	}
 }
+
+// TestHandleInputChar_MultibyteBackspace tests multibyte character deletion in placeholder input
+func TestHandleInputChar_MultibyteBackspace(t *testing.T) {
+	ui := &UI{
+		colors: NewANSIColors(),
+		stdout: &strings.Builder{},
+	}
+	handler := &KeyHandler{ui: ui}
+
+	// Test with Japanese characters
+	var input strings.Builder
+
+	// Add some multibyte characters
+	text := "こんにちは"
+	for _, r := range text {
+		done, canceled := handler.handleInputChar(&input, r)
+		if done || canceled {
+			t.Errorf("Unexpected completion during character input: done=%v, canceled=%v", done, canceled)
+		}
+	}
+
+	if input.String() != text {
+		t.Errorf("Expected input '%s', got '%s'", text, input.String())
+	}
+
+	// Test backspace deletion
+	runesExpected := []rune(text)
+	for i := len(runesExpected); i > 0; i-- {
+		// Perform backspace
+		done, canceled := handler.handleInputChar(&input, '\b')
+		if done || canceled {
+			t.Errorf("Unexpected completion during backspace: done=%v, canceled=%v", done, canceled)
+		}
+
+		// Check remaining content
+		expected := string(runesExpected[:i-1])
+		if input.String() != expected {
+			t.Errorf("After backspace %d: expected '%s', got '%s'",
+				len(runesExpected)-i+1, expected, input.String())
+		}
+	}
+
+	// Final state should be empty
+	if input.String() != "" {
+		t.Errorf("Expected empty input after all backspaces, got '%s'", input.String())
+	}
+}

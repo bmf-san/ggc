@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/term"
+	"golang.org/x/text/width"
 
 	"github.com/bmf-san/ggc/v5/git"
 )
@@ -571,6 +572,7 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 	return input.String()
 }
 
+//nolint:revive // Input character handling inherently requires multiple cases
 func (h *KeyHandler) handleInputChar(input *strings.Builder, char rune) (done bool, canceled bool) {
 	switch char {
 	case '\n', '\r':
@@ -585,9 +587,24 @@ func (h *KeyHandler) handleInputChar(input *strings.Builder, char rune) (done bo
 			str := input.String()
 			runes := []rune(str)
 			if len(runes) > 0 {
+				// Get the last rune to determine its display width
+				lastRune := runes[len(runes)-1]
+
+				// Remove the last rune from input
 				input.Reset()
 				input.WriteString(string(runes[:len(runes)-1]))
-				h.ui.write("\b \b")
+
+				// Determine the display width of the character to delete
+				runeWidth := 1 // Default width for most characters
+				switch width.LookupRune(lastRune).Kind() {
+				case width.EastAsianFullwidth, width.EastAsianWide:
+					runeWidth = 2 // Wide characters (like CJK) take 2 columns
+				}
+
+				// Clear the character(s) from terminal display
+				for i := 0; i < runeWidth; i++ {
+					h.ui.write("\b \b")
+				}
 			}
 		}
 		return false, false
