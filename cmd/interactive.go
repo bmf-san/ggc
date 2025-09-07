@@ -252,13 +252,12 @@ func (s *UIState) AddRune(r rune) {
 		// Convert current input to runes for proper cursor positioning
 		inputRunes := []rune(s.input)
 		if s.cursorPos <= len(inputRunes) {
-			// Insert the rune at the cursor position
-			newRunes := make([]rune, len(inputRunes)+1)
-			copy(newRunes[:s.cursorPos], inputRunes[:s.cursorPos])
-			newRunes[s.cursorPos] = r
-			copy(newRunes[s.cursorPos+1:], inputRunes[s.cursorPos:])
+			// Use append for more efficient insertion
+			inputRunes = append(inputRunes, 0) // Extend slice by one
+			copy(inputRunes[s.cursorPos+1:], inputRunes[s.cursorPos:len(inputRunes)-1])
+			inputRunes[s.cursorPos] = r
 
-			s.input = string(newRunes)
+			s.input = string(inputRunes)
 			s.cursorPos++
 			s.UpdateFiltered()
 		}
@@ -271,12 +270,10 @@ func (s *UIState) RemoveChar() {
 		// Convert to runes for proper UTF-8 handling
 		inputRunes := []rune(s.input)
 		if s.cursorPos <= len(inputRunes) {
-			// Remove the rune before cursor
-			newRunes := make([]rune, len(inputRunes)-1)
-			copy(newRunes[:s.cursorPos-1], inputRunes[:s.cursorPos-1])
-			copy(newRunes[s.cursorPos-1:], inputRunes[s.cursorPos:])
+			// Use append for more efficient removal
+			inputRunes = append(inputRunes[:s.cursorPos-1], inputRunes[s.cursorPos:]...)
 
-			s.input = string(newRunes)
+			s.input = string(inputRunes)
 			s.cursorPos--
 			s.UpdateFiltered()
 		}
