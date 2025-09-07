@@ -358,9 +358,9 @@ type KeyHandler struct {
 	ui *UI
 }
 
-// HandleKeyRune processes UTF-8 rune input and returns true if should continue
+// HandleKey processes UTF-8 rune input and returns true if should continue
 // This method handles both single-byte (ASCII/control) and multibyte characters
-func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool, []string) {
+func (h *KeyHandler) HandleKey(r rune, size int, oldState *term.State) (bool, []string) {
 	// Handle control characters (single-byte)
 	if size == 1 {
 		b := byte(r)
@@ -402,12 +402,6 @@ func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool
 		h.ui.state.AddRune(r)
 	}
 	return true, nil
-}
-
-// HandleKey is deprecated. Use HandleKeyRune for proper UTF-8 support.
-// This method is kept for backward compatibility but delegates to HandleKeyRune.
-func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
-	return h.HandleKeyRune(rune(b), 1, oldState)
 }
 
 // handleCtrlC handles Ctrl+C key press
@@ -1165,7 +1159,7 @@ func (ui *UI) Run() []string {
 		}
 
 		// Handle key input with rune
-		shouldContinue, result := ui.handler.HandleKeyRune(r, size, oldState)
+		shouldContinue, result := ui.handler.HandleKey(r, size, oldState)
 		if !shouldContinue {
 			return result
 		}
