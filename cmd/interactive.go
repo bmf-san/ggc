@@ -245,7 +245,6 @@ func (s *UIState) MoveDown() {
 	}
 }
 
-
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
 	if s.cursorPos <= len(s.input) {
@@ -363,7 +362,8 @@ type KeyHandler struct {
 	ui *UI
 }
 
-// HandleKey processes a single key input and returns true if should continue (legacy method)
+// HandleKey processes a single byte input and returns true if should continue
+// This method converts byte input to rune and delegates to HandleKeyRune
 func (h *KeyHandler) HandleKey(b byte, oldState *term.State) (bool, []string) {
 	return h.HandleKeyRune(rune(b), 1, oldState)
 }
