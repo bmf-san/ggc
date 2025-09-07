@@ -72,15 +72,14 @@ func TestNewConfigManager(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
 	cm := NewConfigManager(mockClient)
 
-	//nolint:staticcheck // SA5011: false positive - this nil check is intentional
 	if cm == nil {
 		t.Fatal("Expected config manager to be created")
+		return // This will never be reached, but helps static analysis
 	}
-	//nolint:staticcheck // SA5011: false positive after t.Fatal
 	if cm.config == nil {
 		t.Fatal("Expected config to be initialized")
+		return // This will never be reached, but helps static analysis
 	}
-	//nolint:staticcheck // SA5011: false positive after t.Fatal
 	if cm.configPath != "" {
 		t.Errorf("Expected configPath to be empty initially, got %s", cm.configPath)
 	}
