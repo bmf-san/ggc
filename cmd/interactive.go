@@ -367,9 +367,9 @@ type KeyHandler struct {
 
 // HandleKey processes UTF-8 rune input and returns true if should continue
 // This method handles both single-byte (ASCII/control) and multibyte characters
-func (h *KeyHandler) HandleKey(r rune, size int, oldState *term.State) (bool, []string) {
+func (h *KeyHandler) HandleKey(r rune, isSingleByte bool, oldState *term.State) (bool, []string) {
 	// Handle control characters (single-byte)
-	if size == 1 {
+	if isSingleByte {
 		if handled, shouldContinue, result := h.handleControlChar(byte(r), oldState); handled {
 			return shouldContinue, result
 		}
@@ -1188,7 +1188,7 @@ func (ui *UI) Run() []string {
 		}
 
 		// Handle key input with rune
-		shouldContinue, result := ui.handler.HandleKey(r, size, oldState)
+		shouldContinue, result := ui.handler.HandleKey(r, size == 1, oldState)
 		if !shouldContinue {
 			return result
 		}

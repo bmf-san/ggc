@@ -1252,7 +1252,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	handler := &KeyHandler{ui: ui}
 
 	// Test printable character
-	shouldContinue, result := handler.HandleKey('a', 1, nil)
+	shouldContinue, result := handler.HandleKey('a', true, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after printable character")
 	}
@@ -1264,7 +1264,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	}
 
 	// Test backspace
-	shouldContinue, _ = handler.HandleKey(127, 1, nil)
+	shouldContinue, _ = handler.HandleKey(127, true, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after backspace")
 	}
