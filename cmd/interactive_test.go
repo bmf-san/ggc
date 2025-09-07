@@ -1447,3 +1447,51 @@ func TestHandleInputChar_MultibyteBackspace(t *testing.T) {
 		t.Errorf("Expected empty input after all backspaces, got '%s'", input.String())
 	}
 }
+
+// TestHandleInputChar_MultibyteDisplay tests multibyte character display in placeholder input
+func TestHandleInputChar_MultibyteDisplay(t *testing.T) {
+	var output strings.Builder
+	ui := &UI{
+		colors: NewANSIColors(),
+		stdout: &output,
+	}
+	handler := &KeyHandler{ui: ui}
+
+	// Test various multibyte characters
+	testCases := []struct {
+		name     string
+		char     rune
+		expected string
+	}{
+		{"Japanese Hiragana", 'こ', "こ"},
+		{"Japanese Katakana", 'ア', "ア"},
+		{"Japanese Kanji", '漢', "漢"},
+		{"Chinese Character", '中', "中"},
+		{"Emoji", '🚀', "🚀"},
+		{"Accented Character", 'é', "é"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var input strings.Builder
+			output.Reset()
+
+			// Add the multibyte character
+			done, canceled := handler.handleInputChar(&input, tc.char)
+			if done || canceled {
+				t.Errorf("Unexpected completion during character input: done=%v, canceled=%v", done, canceled)
+			}
+
+			// Check input buffer
+			if input.String() != tc.expected {
+				t.Errorf("Expected input '%s', got '%s'", tc.expected, input.String())
+			}
+
+			// Check terminal output contains the character
+			terminalOutput := output.String()
+			if !strings.Contains(terminalOutput, tc.expected) {
+				t.Errorf("Expected terminal output to contain '%s', got '%s'", tc.expected, terminalOutput)
+			}
+		})
+	}
+}

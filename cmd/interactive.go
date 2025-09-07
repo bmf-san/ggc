@@ -613,7 +613,7 @@ func (h *KeyHandler) handleInputChar(input *strings.Builder, char rune) (done bo
 		// Accept all printable characters including multibyte
 		if unicode.IsPrint(char) {
 			input.WriteRune(char)
-			h.ui.write("%c", char)
+			h.ui.write("%s", string(char))
 		}
 		return false, false
 	}
