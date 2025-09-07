@@ -261,7 +261,7 @@ func (s *UIState) AddRune(r rune) {
 			copy(newRunes[:s.cursorPos], inputRunes[:s.cursorPos])
 			newRunes[s.cursorPos] = r
 			copy(newRunes[s.cursorPos+1:], inputRunes[s.cursorPos:])
-			
+
 			s.input = string(newRunes)
 			s.cursorPos++
 			s.UpdateFiltered()
@@ -279,7 +279,7 @@ func (s *UIState) RemoveChar() {
 			newRunes := make([]rune, len(inputRunes)-1)
 			copy(newRunes[:s.cursorPos-1], inputRunes[:s.cursorPos-1])
 			copy(newRunes[s.cursorPos-1:], inputRunes[s.cursorPos:])
-			
+
 			s.input = string(newRunes)
 			s.cursorPos--
 			s.UpdateFiltered()
@@ -409,7 +409,7 @@ func (h *KeyHandler) HandleKeyRune(r rune, size int, oldState *term.State) (bool
 			return true, nil
 		}
 	}
-	
+
 	// Handle printable characters (including multibyte)
 	if unicode.IsPrint(r) {
 		h.ui.state.AddRune(r)
