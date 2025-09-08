@@ -1181,3 +1181,30 @@ func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
 		})
 	}
 }
+
+// TestBrancher_branchList tests the branchList method
+func TestBrancher_branchList(t *testing.T) {
+	mockClient := &mockBranchGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+	}
+
+	// Test default list (no args)
+	brancher.branchList([]string{})
+
+	// Test verbose list
+	brancher.branchList([]string{"--verbose"})
+
+	// Test verbose list short
+	brancher.branchList([]string{"-v"})
+
+	// Should not panic
+	t.Log("branchList tests completed successfully")
+}
+
