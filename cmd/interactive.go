@@ -527,7 +527,17 @@ func (h *KeyHandler) handleCSISequence(r *bufio.Reader) {
 
 // processCSIFinalByte processes the final byte of a CSI sequence
 func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
-	isWord := strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+	isWord := false
+	if params != "" {
+		for _, p := range strings.Split(params, ";") {
+			if n, err := strconv.Atoi(p); err == nil {
+				if n == 3 || n == 5 || n == 9 {
+					isWord = true
+					break
+				}
+			}
+		}
+	}
 	switch final {
 	case 'C': // Right
 		if isWord {
