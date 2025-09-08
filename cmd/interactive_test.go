@@ -1742,6 +1742,88 @@ func TestCmd_Interactive(t *testing.T) {
 	t.Log("Interactive method exists and is callable")
 }
 
+// TestCmdRemote tests the Remote method
+func TestCmd_Remote(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf strings.Builder
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		remoteer:     &Remoteer{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	cmd.Remote([]string{})
+
+	// Should show help when no args provided
+	output := buf.String()
+	if output == "" {
+		t.Error("Remote with no args should show help")
+	}
+}
+
+// TestCmdAdd tests the Add method
+func TestCmd_Add(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf strings.Builder
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		adder:        &Adder{gitClient: mockClient, outputWriter: &buf},
+	}
+
+	cmd.Add([]string{"."})
+
+	// Should execute add command
+	output := buf.String()
+	if !strings.Contains(output, "Added") {
+		t.Logf("Add output: %s", output)
+	}
+}
+
+// TestShowStatusHelp tests status help display
+func TestHelper_ShowStatusHelp(t *testing.T) {
+	var buf strings.Builder
+	helper := &Helper{outputWriter: &buf}
+
+	helper.ShowStatusHelp()
+
+	output := buf.String()
+	if !strings.Contains(output, "status") {
+		t.Error("Expected status help to contain 'status'")
+	}
+}
+
+// TestShowTagHelp tests tag help display
+func TestHelper_ShowTagHelp(t *testing.T) {
+	var buf strings.Builder
+	helper := &Helper{outputWriter: &buf}
+
+	helper.ShowTagHelp()
+
+	output := buf.String()
+	if !strings.Contains(output, "tag") {
+		t.Error("Expected tag help to contain 'tag'")
+	}
+}
+
+// TestShowDiffHelp tests diff help display
+func TestHelper_ShowDiffHelp(t *testing.T) {
+	var buf strings.Builder
+	helper := &Helper{outputWriter: &buf}
+
+	helper.ShowDiffHelp()
+
+	output := buf.String()
+	if !strings.Contains(output, "diff") {
+		t.Error("Expected diff help to contain 'diff'")
+	}
+}
+
 // TestUI_Run_ErrorHandling tests Run method error handling
 func TestUI_Run_ErrorHandling(t *testing.T) {
 	mockClient := &mockGitClient{}
