@@ -182,6 +182,7 @@ type UI struct {
 	colors    *ANSIColors
 	gitStatus *GitStatus
 	gitClient git.Clienter
+	reader    *bufio.Reader
 }
 
 // UIState holds the current state of the interactive UI
@@ -334,6 +335,57 @@ func (s *UIState) MoveToEnd() {
 	s.cursorPos = utf8.RuneCountInString(s.input)
 }
 
+// MoveLeft moves cursor one rune left
+func (s *UIState) MoveLeft() {
+	if s.cursorPos > 0 {
+		s.cursorPos--
+	}
+}
+
+// MoveRight moves cursor one rune right
+func (s *UIState) MoveRight() {
+	if s.cursorPos < utf8.RuneCountInString(s.input) {
+		s.cursorPos++
+	}
+}
+
+// MoveWordLeft moves cursor to the beginning of the previous word
+func (s *UIState) MoveWordLeft() {
+	if s.cursorPos == 0 {
+		return
+	}
+	runes := []rune(s.input)
+	pos := s.cursorPos - 1
+	// Skip any spaces to the left
+	for pos >= 0 && unicode.IsSpace(runes[pos]) {
+		pos--
+	}
+	// Skip the word characters to the left
+	for pos >= 0 && !unicode.IsSpace(runes[pos]) {
+		pos--
+	}
+	s.cursorPos = pos + 1
+}
+
+// MoveWordRight moves cursor to the start of the next word
+func (s *UIState) MoveWordRight() {
+	runes := []rune(s.input)
+	n := len(runes)
+	pos := s.cursorPos
+	if pos >= n {
+		return
+	}
+	// Skip current word characters
+	for pos < n && !unicode.IsSpace(runes[pos]) {
+		pos++
+	}
+	// Skip following spaces
+	for pos < n && unicode.IsSpace(runes[pos]) {
+		pos++
+	}
+	s.cursorPos = pos
+}
+
 // GetSelectedCommand returns the currently selected command
 func (s *UIState) GetSelectedCommand() *CommandInfo {
 	if len(s.filtered) > 0 && s.selected >= 0 && s.selected < len(s.filtered) {
@@ -417,8 +469,88 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
 		return true, true, nil
+	case 27: // ESC: arrow keys and Option/Alt modifiers
+		h.handleEscapeSequence()
+		return true, true, nil
 	default:
 		return false, true, nil
+	}
+}
+
+// handleEscapeSequence parses common ESC sequences for arrow and word navigation.
+// Supports:
+// - Arrow keys: ESC [ C/D (right/left), ESC O C/D (application mode)
+// - Ctrl+Arrow: ESC [ 1;5 C/D or ESC [ 5 C/D
+// - Alt/Option+Arrow: ESC [ 1;3 C/D, ESC [ 1;9 C/D (varies by terminal)
+// - macOS Option word nav: ESC b / ESC f
+func (h *KeyHandler) handleEscapeSequence() {
+	if h.ui == nil || h.ui.reader == nil {
+		return
+	}
+
+	r := h.ui.reader
+	b, err := r.ReadByte()
+	if err != nil {
+		return
+	}
+
+	switch b {
+	case '[':
+		// CSI sequence: collect parameters until a final byte (A-Z or ~)
+		var params []byte
+		for {
+			nb, err := r.ReadByte()
+			if err != nil {
+				return
+			}
+			// Final byte in CSI
+			if (nb >= 'A' && nb <= 'Z') || nb == '~' {
+				final := nb
+				pstr := string(params)
+				// Word-motion modifiers: Ctrl=5, Alt/Meta=3 or 9
+				isWord := strings.Contains(pstr, "5") || strings.Contains(pstr, "3") || strings.Contains(pstr, "9")
+				switch final {
+				case 'C': // Right
+					if isWord {
+						h.ui.state.MoveWordRight()
+					} else {
+						h.ui.state.MoveRight()
+					}
+				case 'D': // Left
+					if isWord {
+						h.ui.state.MoveWordLeft()
+					} else {
+						h.ui.state.MoveLeft()
+					}
+				}
+				return
+			}
+			params = append(params, nb)
+		}
+	case 'O':
+		// Application cursor mode
+		nb, err := r.ReadByte()
+		if err != nil {
+			return
+		}
+		switch nb {
+		case 'C':
+			h.ui.state.MoveRight()
+		case 'D':
+			h.ui.state.MoveLeft()
+		}
+		return
+	case 'b':
+		// Meta-b (Option+b) → word left
+		h.ui.state.MoveWordLeft()
+		return
+	case 'f':
+		// Meta-f (Option+f) → word right
+		h.ui.state.MoveWordRight()
+		return
+	default:
+		// Unhandled ESC sequence
+		return
 	}
 }
 
@@ -542,7 +674,6 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 
 // getRealTimeInput gets user input with real-time display using raw terminal mode
 func (h *KeyHandler) getRealTimeInput(_ string) string {
-	var input strings.Builder
 	fd := int(os.Stdin.Fd())
 	oldState, err := h.ui.term.makeRaw(fd)
 	if err != nil {
@@ -551,8 +682,170 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 	defer func() { _ = h.ui.term.restore(fd, oldState) }()
 
 	reader := bufio.NewReader(os.Stdin)
+
+	// Placeholder input buffer and cursor (rune index)
+	inputRunes := make([]rune, 0, 64)
+	cursor := 0
+
+	// Helpers
+	runeWidth := func(r rune) int {
+		w := 1
+		switch width.LookupRune(r).Kind() {
+		case width.EastAsianFullwidth, width.EastAsianWide:
+			w = 2
+		}
+		return w
+	}
+	colsBetween := func(from, to int) int {
+		if from < 0 {
+			from = 0
+		}
+		if to < 0 {
+			to = 0
+		}
+		if from > to {
+			from, to = to, from
+		}
+		cols := 0
+		for i := from; i < to && i < len(inputRunes); i++ {
+			cols += runeWidth(inputRunes[i])
+		}
+		return cols
+	}
+	moveLeft := func(cols int) {
+		if cols <= 0 {
+			return
+		}
+		h.ui.write("\x1b[%dD", cols)
+	}
+	moveRight := func(cols int) {
+		if cols <= 0 {
+			return
+		}
+		h.ui.write("\x1b[%dC", cols)
+	}
+	printTailAndReposition := func(from int, clearedCols int) {
+		// Print substring from 'from' to end and clear leftover cells, then move cursor back
+		tailCols := 0
+		if from < len(inputRunes) {
+			tail := string(inputRunes[from:])
+			h.ui.write("%s", tail)
+			for _, rr := range inputRunes[from:] {
+				tailCols += runeWidth(rr)
+			}
+		}
+		if clearedCols > 0 {
+			h.ui.write("%s", strings.Repeat(" ", clearedCols))
+		}
+		// Move back over tail and cleared cells
+		moveLeft(tailCols + clearedCols)
+	}
+	moveWordLeft := func() {
+		if cursor == 0 {
+			return
+		}
+		i := cursor - 1
+		// skip spaces
+		for i >= 0 && unicode.IsSpace(inputRunes[i]) {
+			i--
+		}
+		// skip word
+		for i >= 0 && !unicode.IsSpace(inputRunes[i]) {
+			i--
+		}
+		newPos := i + 1
+		delta := colsBetween(newPos, cursor)
+		moveLeft(delta)
+		cursor = newPos
+	}
+	moveWordRight := func() {
+		n := len(inputRunes)
+		if cursor >= n {
+			return
+		}
+		i := cursor
+		// skip word
+		for i < n && !unicode.IsSpace(inputRunes[i]) {
+			i++
+		}
+		// skip spaces
+		for i < n && unicode.IsSpace(inputRunes[i]) {
+			i++
+		}
+		delta := colsBetween(cursor, i)
+		moveRight(delta)
+		cursor = i
+	}
+	handleEscape := func() {
+		b, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		switch b {
+		case '[':
+			// CSI params until final
+			var params []byte
+			for {
+				nb, err := reader.ReadByte()
+				if err != nil {
+					return
+				}
+				if (nb >= 'A' && nb <= 'Z') || nb == '~' {
+					final := nb
+					pstr := string(params)
+					isWord := strings.Contains(pstr, "5") || strings.Contains(pstr, "3") || strings.Contains(pstr, "9")
+					switch final {
+					case 'C': // Right
+						if isWord {
+							moveWordRight()
+						} else if cursor < len(inputRunes) {
+							moveRight(runeWidth(inputRunes[cursor]))
+							cursor++
+						}
+					case 'D': // Left
+						if isWord {
+							moveWordLeft()
+						} else if cursor > 0 {
+							moveLeft(runeWidth(inputRunes[cursor-1]))
+							cursor--
+						}
+					}
+					return
+				}
+				params = append(params, nb)
+			}
+		case 'O':
+			nb, err := reader.ReadByte()
+			if err != nil {
+				return
+			}
+			switch nb {
+			case 'C':
+				if cursor < len(inputRunes) {
+					moveRight(runeWidth(inputRunes[cursor]))
+					cursor++
+				}
+			case 'D':
+				if cursor > 0 {
+					moveLeft(runeWidth(inputRunes[cursor-1]))
+					cursor--
+				}
+			}
+			return
+		case 'b':
+			// Meta-b (Option+b): word left
+			moveWordLeft()
+			return
+		case 'f':
+			// Meta-f (Option+f): word right
+			moveWordRight()
+			return
+		default:
+			return
+		}
+	}
+
 	for {
-		// Read UTF-8 rune instead of single byte
 		r, _, err := reader.ReadRune()
 		if errors.Is(err, io.EOF) {
 			break
@@ -560,14 +853,48 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 		if err != nil {
 			continue
 		}
-		if done, canceled := h.handleInputChar(&input, r); done {
-			if canceled {
-				return ""
+
+		switch r {
+		case '\n', '\r':
+			if len(inputRunes) > 0 {
+				h.ui.write("\r\n")
+				return string(inputRunes)
 			}
-			return input.String()
+			h.ui.write(" %s(required)%s", h.ui.colors.BrightRed, h.ui.colors.Reset)
+		case 3: // Ctrl+C
+			h.ui.write("\r\n%sOperation canceled%s\r\n", h.ui.colors.BrightRed, h.ui.colors.Reset)
+			return ""
+		case 127, '\b': // Backspace
+			if cursor > 0 {
+				del := inputRunes[cursor-1]
+				delCols := runeWidth(del)
+				// Move left to the deleted character
+				moveLeft(delCols)
+				// Remove rune from buffer
+				inputRunes = append(inputRunes[:cursor-1], inputRunes[cursor:]...)
+				cursor--
+				// Redraw tail and clear leftover cells
+				printTailAndReposition(cursor, delCols)
+			}
+		case 27: // ESC sequences
+			handleEscape()
+		default:
+			if unicode.IsPrint(r) {
+				// Insert rune at cursor
+				if cursor == len(inputRunes) {
+					inputRunes = append(inputRunes, r)
+				} else {
+					inputRunes = append(inputRunes[:cursor], append([]rune{r}, inputRunes[cursor:]...)...)
+				}
+				// Echo inserted rune
+				h.ui.write("%s", string(r))
+				cursor++
+				// Print tail after new cursor and move back
+				printTailAndReposition(cursor, 0)
+			}
 		}
 	}
-	return input.String()
+	return string(inputRunes)
 }
 
 //nolint:revive // Input character handling inherently requires multiple cases
@@ -881,9 +1208,13 @@ func (r *Renderer) renderHeader(ui *UI) {
 	}
 
 	// Navigation subtitle
-	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %sCtrl+a/e%s move • %sEnter%s execute • %sCtrl+c%s quit%s",
+	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %s←/→%s move • %sCtrl+←/→%s word • %sCtrl+a/e%s line • %sEnter%s execute • %sCtrl+c%s quit%s",
 		r.colors.BrightBlack,
 		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
 		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
@@ -962,6 +1293,9 @@ func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 
 	// Available keybinds
 	keybinds := []struct{ key, desc string }{
+		{"←/→", "Move cursor"},
+		{"Ctrl+←/→", "Move by word"},
+		{"Option+←/→", "Move by word (macOS)"},
 		{"Ctrl+u", "Clear all input"},
 		{"Ctrl+w", "Delete word"},
 		{"Ctrl+k", "Delete to end"},
@@ -1059,9 +1393,13 @@ func (r *Renderer) renderCommandItem(ui *UI, cmd CommandInfo, index, selected, m
 // renderFooter renders the navigation footer
 func (r *Renderer) renderFooter(ui *UI) {
 	r.writeEmptyLine()
-	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %sCtrl+a/e%s Move  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
+	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %s←/→%s Move  %sCtrl+←/→%s Word  %sCtrl+a/e%s Line  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
 		r.colors.BrightBlack,
 		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
 		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
@@ -1169,7 +1507,7 @@ func (ui *UI) Run() []string {
 		}()
 	}
 
-	reader := bufio.NewReader(ui.stdin)
+	ui.reader = bufio.NewReader(ui.stdin)
 
 	for {
 		// Update filtered commands
@@ -1179,7 +1517,7 @@ func (ui *UI) Run() []string {
 		ui.renderer.Render(ui, ui.state)
 
 		// Read UTF-8 rune instead of single byte
-		r, size, err := reader.ReadRune()
+		r, size, err := ui.reader.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
