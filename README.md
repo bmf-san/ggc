@@ -31,15 +31,11 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 - Simple commands for common Git operations (add, push, pull, branch, log, etc.)
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
-- Implemented using the Go standard library and:
-    - [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) – for terminal interaction
-    - [golang.org/x/sys](https://pkg.go.dev/golang.org/x/sys) – for low-level OS interaction
-    - [go.yaml.in/yaml/v3](https://pkg.go.dev/go.yaml.in/yaml/v3) – for parsing `~/.ggcconfig.yaml`
+- Built with Go standard library and minimal dependencies
 
 ## Supported Environments
 - OS: macOS (Apple Silicon/Intel) - Verified
 - Go version: 1.25 or later recommended
-- Dependencies: Go standard library, `golang.org/x/term`, `golang.org/x/sys`, `go.yaml.in/yaml/v3`
 - Requirement: `git` command must be installed
 
 ## Installation
