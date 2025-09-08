@@ -18,6 +18,11 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
+// initialInputCapacity defines the initial capacity for the input rune buffer
+// used by the real-time editor. It helps minimize reallocations during typing
+// while keeping memory usage modest.
+const initialInputCapacity = 64
+
 // GitStatus represents the current Git repository status
 type GitStatus struct {
 	Branch     string
@@ -525,9 +530,15 @@ func (h *KeyHandler) handleCSISequence(r *bufio.Reader) {
 	}
 }
 
+// isWordMotionParam reports whether CSI params include a word-motion modifier
+// commonly emitted by terminals (e.g., Ctrl/Alt variants use 5/3/9).
+func isWordMotionParam(params string) bool {
+	return strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+}
+
 // processCSIFinalByte processes the final byte of a CSI sequence
 func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
-	isWord := strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+	isWord := isWordMotionParam(params)
 	switch final {
 	case 'C': // Right
 		if isWord {
@@ -691,7 +702,7 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 // processRealTimeInput handles the main input processing loop
 func (h *KeyHandler) processRealTimeInput() string {
 	reader := bufio.NewReader(os.Stdin)
-	inputRunes := make([]rune, 0, 64)
+	inputRunes := make([]rune, 0, initialInputCapacity)
 	cursor := 0
 
 	editor := &realTimeEditor{
@@ -886,7 +897,7 @@ func (e *realTimeEditor) handleCSIEscape(reader *bufio.Reader) {
 
 // processCSIEscape handles CSI final byte for real-time input
 func (e *realTimeEditor) processCSIEscape(final byte, params string) {
-	isWord := strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+	isWord := isWordMotionParam(params)
 	switch final {
 	case 'C': // Right
 		if isWord {
