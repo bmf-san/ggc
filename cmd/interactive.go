@@ -494,63 +494,67 @@ func (h *KeyHandler) handleEscapeSequence() {
 		return
 	}
 
-	switch b {
-	case '[':
-		// CSI sequence: collect parameters until a final byte (A-Z or ~)
-		var params []byte
-		for {
-			nb, err := r.ReadByte()
-			if err != nil {
-				return
-			}
-			// Final byte in CSI
-			if (nb >= 'A' && nb <= 'Z') || nb == '~' {
-				final := nb
-				pstr := string(params)
-				// Word-motion modifiers: Ctrl=5, Alt/Meta=3 or 9
-				isWord := strings.Contains(pstr, "5") || strings.Contains(pstr, "3") || strings.Contains(pstr, "9")
-				switch final {
-				case 'C': // Right
-					if isWord {
-						h.ui.state.MoveWordRight()
-					} else {
-						h.ui.state.MoveRight()
-					}
-				case 'D': // Left
-					if isWord {
-						h.ui.state.MoveWordLeft()
-					} else {
-						h.ui.state.MoveLeft()
-					}
-				}
-				return
-			}
-			params = append(params, nb)
-		}
-	case 'O':
-		// Application cursor mode
+    switch b {
+    case '[':
+        h.handleCSISequence(r)
+    case 'O':
+        h.handleApplicationCursorMode(r)
+    case 'b':
+        h.ui.state.MoveWordLeft()
+    case 'f':
+        h.ui.state.MoveWordRight()
+    case 127, 8:
+        // Meta-Backspace (Option+Backspace): delete word left
+        h.ui.state.DeleteWord()
+    }
+}
+
+// handleCSISequence handles CSI (Control Sequence Introducer) sequences
+func (h *KeyHandler) handleCSISequence(r *bufio.Reader) {
+	var params []byte
+	for {
 		nb, err := r.ReadByte()
 		if err != nil {
 			return
 		}
-		switch nb {
-		case 'C':
+		if (nb >= 'A' && nb <= 'Z') || nb == '~' {
+			h.processCSIFinalByte(nb, string(params))
+			return
+		}
+		params = append(params, nb)
+	}
+}
+
+// processCSIFinalByte processes the final byte of a CSI sequence
+func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
+	isWord := strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+	switch final {
+	case 'C': // Right
+		if isWord {
+			h.ui.state.MoveWordRight()
+		} else {
 			h.ui.state.MoveRight()
-		case 'D':
+		}
+	case 'D': // Left
+		if isWord {
+			h.ui.state.MoveWordLeft()
+		} else {
 			h.ui.state.MoveLeft()
 		}
+	}
+}
+
+// handleApplicationCursorMode handles application cursor mode sequences
+func (h *KeyHandler) handleApplicationCursorMode(r *bufio.Reader) {
+	nb, err := r.ReadByte()
+	if err != nil {
 		return
-	case 'b':
-		// Meta-b (Option+b) → word left
-		h.ui.state.MoveWordLeft()
-		return
-	case 'f':
-		// Meta-f (Option+f) → word right
-		h.ui.state.MoveWordRight()
-		return
-	default:
-		// Unhandled ESC sequence
-		return
+	}
+	switch nb {
+	case 'C':
+		h.ui.state.MoveRight()
+	case 'D':
+		h.ui.state.MoveLeft()
 	}
 }
 
@@ -681,168 +685,19 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 	}
 	defer func() { _ = h.ui.term.restore(fd, oldState) }()
 
-	reader := bufio.NewReader(os.Stdin)
+	return h.processRealTimeInput()
+}
 
-	// Placeholder input buffer and cursor (rune index)
+// processRealTimeInput handles the main input processing loop
+func (h *KeyHandler) processRealTimeInput() string {
+	reader := bufio.NewReader(os.Stdin)
 	inputRunes := make([]rune, 0, 64)
 	cursor := 0
 
-	// Helpers
-	runeWidth := func(r rune) int {
-		w := 1
-		switch width.LookupRune(r).Kind() {
-		case width.EastAsianFullwidth, width.EastAsianWide:
-			w = 2
-		}
-		return w
-	}
-	colsBetween := func(from, to int) int {
-		if from < 0 {
-			from = 0
-		}
-		if to < 0 {
-			to = 0
-		}
-		if from > to {
-			from, to = to, from
-		}
-		cols := 0
-		for i := from; i < to && i < len(inputRunes); i++ {
-			cols += runeWidth(inputRunes[i])
-		}
-		return cols
-	}
-	moveLeft := func(cols int) {
-		if cols <= 0 {
-			return
-		}
-		h.ui.write("\x1b[%dD", cols)
-	}
-	moveRight := func(cols int) {
-		if cols <= 0 {
-			return
-		}
-		h.ui.write("\x1b[%dC", cols)
-	}
-	printTailAndReposition := func(from int, clearedCols int) {
-		// Print substring from 'from' to end and clear leftover cells, then move cursor back
-		tailCols := 0
-		if from < len(inputRunes) {
-			tail := string(inputRunes[from:])
-			h.ui.write("%s", tail)
-			for _, rr := range inputRunes[from:] {
-				tailCols += runeWidth(rr)
-			}
-		}
-		if clearedCols > 0 {
-			h.ui.write("%s", strings.Repeat(" ", clearedCols))
-		}
-		// Move back over tail and cleared cells
-		moveLeft(tailCols + clearedCols)
-	}
-	moveWordLeft := func() {
-		if cursor == 0 {
-			return
-		}
-		i := cursor - 1
-		// skip spaces
-		for i >= 0 && unicode.IsSpace(inputRunes[i]) {
-			i--
-		}
-		// skip word
-		for i >= 0 && !unicode.IsSpace(inputRunes[i]) {
-			i--
-		}
-		newPos := i + 1
-		delta := colsBetween(newPos, cursor)
-		moveLeft(delta)
-		cursor = newPos
-	}
-	moveWordRight := func() {
-		n := len(inputRunes)
-		if cursor >= n {
-			return
-		}
-		i := cursor
-		// skip word
-		for i < n && !unicode.IsSpace(inputRunes[i]) {
-			i++
-		}
-		// skip spaces
-		for i < n && unicode.IsSpace(inputRunes[i]) {
-			i++
-		}
-		delta := colsBetween(cursor, i)
-		moveRight(delta)
-		cursor = i
-	}
-	handleEscape := func() {
-		b, err := reader.ReadByte()
-		if err != nil {
-			return
-		}
-		switch b {
-		case '[':
-			// CSI params until final
-			var params []byte
-			for {
-				nb, err := reader.ReadByte()
-				if err != nil {
-					return
-				}
-				if (nb >= 'A' && nb <= 'Z') || nb == '~' {
-					final := nb
-					pstr := string(params)
-					isWord := strings.Contains(pstr, "5") || strings.Contains(pstr, "3") || strings.Contains(pstr, "9")
-					switch final {
-					case 'C': // Right
-						if isWord {
-							moveWordRight()
-						} else if cursor < len(inputRunes) {
-							moveRight(runeWidth(inputRunes[cursor]))
-							cursor++
-						}
-					case 'D': // Left
-						if isWord {
-							moveWordLeft()
-						} else if cursor > 0 {
-							moveLeft(runeWidth(inputRunes[cursor-1]))
-							cursor--
-						}
-					}
-					return
-				}
-				params = append(params, nb)
-			}
-		case 'O':
-			nb, err := reader.ReadByte()
-			if err != nil {
-				return
-			}
-			switch nb {
-			case 'C':
-				if cursor < len(inputRunes) {
-					moveRight(runeWidth(inputRunes[cursor]))
-					cursor++
-				}
-			case 'D':
-				if cursor > 0 {
-					moveLeft(runeWidth(inputRunes[cursor-1]))
-					cursor--
-				}
-			}
-			return
-		case 'b':
-			// Meta-b (Option+b): word left
-			moveWordLeft()
-			return
-		case 'f':
-			// Meta-f (Option+f): word right
-			moveWordRight()
-			return
-		default:
-			return
-		}
+	editor := &realTimeEditor{
+		ui:         h.ui,
+		inputRunes: &inputRunes,
+		cursor:     &cursor,
 	}
 
 	for {
@@ -854,47 +709,288 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 			continue
 		}
 
-		switch r {
-		case '\n', '\r':
-			if len(inputRunes) > 0 {
-				h.ui.write("\r\n")
-				return string(inputRunes)
-			}
-			h.ui.write(" %s(required)%s", h.ui.colors.BrightRed, h.ui.colors.Reset)
-		case 3: // Ctrl+C
-			h.ui.write("\r\n%sOperation canceled%s\r\n", h.ui.colors.BrightRed, h.ui.colors.Reset)
+		result := editor.handleInput(r, reader)
+		if result.done {
+			return result.text
+		}
+		if result.canceled {
 			return ""
-		case 127, '\b': // Backspace
-			if cursor > 0 {
-				del := inputRunes[cursor-1]
-				delCols := runeWidth(del)
-				// Move left to the deleted character
-				moveLeft(delCols)
-				// Remove rune from buffer
-				inputRunes = append(inputRunes[:cursor-1], inputRunes[cursor:]...)
-				cursor--
-				// Redraw tail and clear leftover cells
-				printTailAndReposition(cursor, delCols)
-			}
-		case 27: // ESC sequences
-			handleEscape()
-		default:
-			if unicode.IsPrint(r) {
-				// Insert rune at cursor
-				if cursor == len(inputRunes) {
-					inputRunes = append(inputRunes, r)
-				} else {
-					inputRunes = append(inputRunes[:cursor], append([]rune{r}, inputRunes[cursor:]...)...)
-				}
-				// Echo inserted rune
-				h.ui.write("%s", string(r))
-				cursor++
-				// Print tail after new cursor and move back
-				printTailAndReposition(cursor, 0)
-			}
 		}
 	}
 	return string(inputRunes)
+}
+
+// inputResult represents the result of handling input
+type inputResult struct {
+	done     bool
+	canceled bool
+	text     string
+}
+
+// realTimeEditor handles real-time input editing
+type realTimeEditor struct {
+	ui         *UI
+	inputRunes *[]rune
+	cursor     *int
+}
+
+// handleInput processes a single input rune
+func (e *realTimeEditor) handleInput(r rune, reader *bufio.Reader) inputResult {
+	switch r {
+	case '\n', '\r':
+		return e.handleEnter()
+	case 3: // Ctrl+C
+		return e.handleCtrlC()
+	case 127, '\b': // Backspace
+		e.handleBackspace()
+		return inputResult{}
+	case 27: // ESC sequences
+		e.handleEscape(reader)
+		return inputResult{}
+	default:
+		if unicode.IsPrint(r) {
+			e.handlePrintableChar(r)
+		}
+		return inputResult{}
+	}
+}
+
+// handleEnter processes Enter key
+func (e *realTimeEditor) handleEnter() inputResult {
+	if len(*e.inputRunes) > 0 {
+		e.ui.write("\r\n")
+		return inputResult{done: true, text: string(*e.inputRunes)}
+	}
+	e.ui.write(" %s(required)%s", e.ui.colors.BrightRed, e.ui.colors.Reset)
+	return inputResult{}
+}
+
+// handleCtrlC processes Ctrl+C
+func (e *realTimeEditor) handleCtrlC() inputResult {
+	e.ui.write("\r\n%sOperation canceled%s\r\n", e.ui.colors.BrightRed, e.ui.colors.Reset)
+	return inputResult{canceled: true}
+}
+
+// handleBackspace processes backspace key
+func (e *realTimeEditor) handleBackspace() {
+	if *e.cursor > 0 {
+		del := (*e.inputRunes)[*e.cursor-1]
+		delCols := e.runeWidth(del)
+		e.moveLeft(delCols)
+		*e.inputRunes = append((*e.inputRunes)[:*e.cursor-1], (*e.inputRunes)[*e.cursor:]...)
+		*e.cursor--
+		e.printTailAndReposition(*e.cursor, delCols)
+	}
+}
+
+// handlePrintableChar processes printable characters
+func (e *realTimeEditor) handlePrintableChar(r rune) {
+	if *e.cursor == len(*e.inputRunes) {
+		*e.inputRunes = append(*e.inputRunes, r)
+	} else {
+		*e.inputRunes = append((*e.inputRunes)[:*e.cursor], append([]rune{r}, (*e.inputRunes)[*e.cursor:]...)...)
+	}
+	e.ui.write("%s", string(r))
+	*e.cursor++
+	e.printTailAndReposition(*e.cursor, 0)
+}
+
+// handleEscape processes escape sequences for real-time input
+func (e *realTimeEditor) handleEscape(reader *bufio.Reader) {
+    b, err := reader.ReadByte()
+    if err != nil {
+        return
+    }
+    switch b {
+    case '[':
+        e.handleCSIEscape(reader)
+    case 'O':
+        e.handleApplicationEscape(reader)
+    case 'b':
+        e.moveWordLeft()
+    case 'f':
+        e.moveWordRight()
+    case 127, '\b':
+        // Option+Backspace: delete previous word
+        e.deleteWordLeft()
+    }
+}
+
+// handleCSIEscape processes CSI escape sequences for real-time input
+func (e *realTimeEditor) handleCSIEscape(reader *bufio.Reader) {
+	var params []byte
+	for {
+		nb, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		if (nb >= 'A' && nb <= 'Z') || nb == '~' {
+			e.processCSIEscape(nb, string(params))
+			return
+		}
+		params = append(params, nb)
+	}
+}
+
+// processCSIEscape handles CSI final byte for real-time input
+func (e *realTimeEditor) processCSIEscape(final byte, params string) {
+	isWord := strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+	switch final {
+	case 'C': // Right
+		if isWord {
+			e.moveWordRight()
+		} else if *e.cursor < len(*e.inputRunes) {
+			e.moveRight(e.runeWidth((*e.inputRunes)[*e.cursor]))
+			*e.cursor++
+		}
+	case 'D': // Left
+		if isWord {
+			e.moveWordLeft()
+		} else if *e.cursor > 0 {
+			e.moveLeft(e.runeWidth((*e.inputRunes)[*e.cursor-1]))
+			*e.cursor--
+		}
+	}
+}
+
+// handleApplicationEscape processes application mode escape sequences
+func (e *realTimeEditor) handleApplicationEscape(reader *bufio.Reader) {
+	nb, err := reader.ReadByte()
+	if err != nil {
+		return
+	}
+	switch nb {
+	case 'C':
+		if *e.cursor < len(*e.inputRunes) {
+			e.moveRight(e.runeWidth((*e.inputRunes)[*e.cursor]))
+			*e.cursor++
+		}
+	case 'D':
+		if *e.cursor > 0 {
+			e.moveLeft(e.runeWidth((*e.inputRunes)[*e.cursor-1]))
+			*e.cursor--
+		}
+	}
+}
+
+// Helper methods for realTimeEditor
+
+func (e *realTimeEditor) runeWidth(r rune) int {
+	w := 1
+	switch width.LookupRune(r).Kind() {
+	case width.EastAsianFullwidth, width.EastAsianWide:
+		w = 2
+	}
+	return w
+}
+
+func (e *realTimeEditor) colsBetween(from, to int) int {
+	if from < 0 {
+		from = 0
+	}
+	if to < 0 {
+		to = 0
+	}
+	if from > to {
+		from, to = to, from
+	}
+	cols := 0
+	for i := from; i < to && i < len(*e.inputRunes); i++ {
+		cols += e.runeWidth((*e.inputRunes)[i])
+	}
+	return cols
+}
+
+func (e *realTimeEditor) moveLeft(cols int) {
+	if cols <= 0 {
+		return
+	}
+	e.ui.write("\x1b[%dD", cols)
+}
+
+func (e *realTimeEditor) moveRight(cols int) {
+	if cols <= 0 {
+		return
+	}
+	e.ui.write("\x1b[%dC", cols)
+}
+
+func (e *realTimeEditor) printTailAndReposition(from int, clearedCols int) {
+	tailCols := 0
+	if from < len(*e.inputRunes) {
+		tail := string((*e.inputRunes)[from:])
+		e.ui.write("%s", tail)
+		for _, rr := range (*e.inputRunes)[from:] {
+			tailCols += e.runeWidth(rr)
+		}
+	}
+	if clearedCols > 0 {
+		e.ui.write("%s", strings.Repeat(" ", clearedCols))
+	}
+	e.moveLeft(tailCols + clearedCols)
+}
+
+func (e *realTimeEditor) moveWordLeft() {
+	if *e.cursor == 0 {
+		return
+	}
+	i := *e.cursor - 1
+	for i >= 0 && unicode.IsSpace((*e.inputRunes)[i]) {
+		i--
+	}
+	for i >= 0 && !unicode.IsSpace((*e.inputRunes)[i]) {
+		i--
+	}
+	newPos := i + 1
+	delta := e.colsBetween(newPos, *e.cursor)
+	e.moveLeft(delta)
+	*e.cursor = newPos
+}
+
+func (e *realTimeEditor) moveWordRight() {
+	n := len(*e.inputRunes)
+	if *e.cursor >= n {
+		return
+	}
+	i := *e.cursor
+	for i < n && !unicode.IsSpace((*e.inputRunes)[i]) {
+		i++
+	}
+	for i < n && unicode.IsSpace((*e.inputRunes)[i]) {
+		i++
+	}
+	delta := e.colsBetween(*e.cursor, i)
+	e.moveRight(delta)
+	*e.cursor = i
+}
+
+// deleteWordLeft deletes the word before the cursor and updates the display
+func (e *realTimeEditor) deleteWordLeft() {
+    if *e.cursor == 0 {
+        return
+    }
+    // Find new cursor position at the beginning of previous word
+    i := *e.cursor - 1
+    for i >= 0 && unicode.IsSpace((*e.inputRunes)[i]) {
+        i--
+    }
+    for i >= 0 && !unicode.IsSpace((*e.inputRunes)[i]) {
+        i--
+    }
+    newPos := i + 1
+    // Compute columns to move left and columns to clear
+    moveCols := e.colsBetween(newPos, *e.cursor)
+    clearedCols := 0
+    for j := newPos; j < *e.cursor; j++ {
+        clearedCols += e.runeWidth((*e.inputRunes)[j])
+    }
+    // Move cursor left to newPos
+    e.moveLeft(moveCols)
+    // Delete runes in [newPos, cursor)
+    *e.inputRunes = append((*e.inputRunes)[:newPos], (*e.inputRunes)[*e.cursor:]...)
+    *e.cursor = newPos
+    // Redraw tail and clear leftover cells
+    e.printTailAndReposition(*e.cursor, clearedCols)
 }
 
 //nolint:revive // Input character handling inherently requires multiple cases
@@ -1292,17 +1388,18 @@ func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 	r.writeEmptyLine()
 
 	// Available keybinds
-	keybinds := []struct{ key, desc string }{
-		{"←/→", "Move cursor"},
-		{"Ctrl+←/→", "Move by word"},
-		{"Option+←/→", "Move by word (macOS)"},
-		{"Ctrl+u", "Clear all input"},
-		{"Ctrl+w", "Delete word"},
-		{"Ctrl+k", "Delete to end"},
-		{"Ctrl+a", "Move to beginning"},
-		{"Ctrl+e", "Move to end"},
-		{"Backspace", "Delete character"},
-	}
+    keybinds := []struct{ key, desc string }{
+        {"←/→", "Move cursor"},
+        {"Ctrl+←/→", "Move by word"},
+        {"Option+←/→", "Move by word (macOS)"},
+        {"Option+Backspace", "Delete word (macOS)"},
+        {"Ctrl+u", "Clear all input"},
+        {"Ctrl+w", "Delete word"},
+        {"Ctrl+k", "Delete to end"},
+        {"Ctrl+a", "Move to beginning"},
+        {"Ctrl+e", "Move to end"},
+        {"Backspace", "Delete character"},
+    }
 
 	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
 		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))

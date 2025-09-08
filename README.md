@@ -173,9 +173,13 @@ ggc
 
 **Navigation & Editing:**
 - `Ctrl+n` / `Ctrl+p`: Navigate up/down through results
+- `←` / `→`: Move cursor left/right
+- `Ctrl+←` / `Ctrl+→`: Move by word
+- `Option+←` / `Option+→` (macOS): Move by word
 - `Ctrl+a` / `Ctrl+e`: Move cursor to beginning/end of input
 - `Ctrl+u`: Clear all input
 - `Ctrl+w`: Delete word before cursor
+- `Option+Backspace` (macOS): Delete word before cursor
 - `Ctrl+k`: Delete from cursor to end of line
 - `Backspace`: Delete character before cursor
 - `Enter`: Execute selected command
