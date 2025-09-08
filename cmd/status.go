@@ -25,7 +25,7 @@ func NewStatuser(client git.Clienter) *Statuser {
 	}
 }
 
-// getUpstreamStatus gets the upstream tracking status
+// getUpstreamStatus gets the upstream tracking status ahead/behind counts.
 func (s *Statuser) getUpstreamStatus(branch string) string {
 	// Check if upstream exists
 	upstream, err := s.gitClient.GetUpstreamBranchName(branch)
