@@ -276,3 +276,42 @@ func TestHelper_ShowCommandHelp_EmptyExamples(t *testing.T) {
 		t.Error("Expected description in output")
 	}
 }
+
+// TestHelper_ShowStatusHelp tests status help display
+func TestHelper_ShowStatusHelp(t *testing.T) {
+	var buf bytes.Buffer
+	helper := &Helper{outputWriter: &buf}
+
+	helper.ShowStatusHelp()
+
+	output := buf.String()
+	if !strings.Contains(output, "status") {
+		t.Error("Expected status help to contain 'status'")
+	}
+}
+
+// TestHelper_ShowTagHelp tests tag help display
+func TestHelper_ShowTagHelp(t *testing.T) {
+	var buf bytes.Buffer
+	helper := &Helper{outputWriter: &buf}
+
+	helper.ShowTagHelp()
+
+	output := buf.String()
+	if !strings.Contains(output, "tag") {
+		t.Error("Expected tag help to contain 'tag'")
+	}
+}
+
+// TestHelper_ShowDiffHelp tests diff help display
+func TestHelper_ShowDiffHelp(t *testing.T) {
+	var buf bytes.Buffer
+	helper := &Helper{outputWriter: &buf}
+
+	helper.ShowDiffHelp()
+
+	output := buf.String()
+	if !strings.Contains(output, "diff") {
+		t.Error("Expected diff help to contain 'diff'")
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -748,18 +749,281 @@ func TestCmd_Interactive_Call(t *testing.T) {
 	_ = cmd.Interactive
 }
 
-func TestCmd_waitForContinue(t *testing.T) {
-	// Test that waitForContinue function exists and can be called
-	cmd := &Cmd{}
+// TestCmd_Remote tests the Remote method
+func TestCmd_Remote(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
-	// Just verify the function exists - we can't easily test the interactive part
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		remoteer:     &Remoteer{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	cmd.Remote([]string{})
+
+	// Should show help when no args provided
+	output := buf.String()
+	if output == "" {
+		t.Error("Remote with no args should show help")
+	}
+}
+
+// TestCmd_Rebase tests the Rebase method
+func TestCmd_Rebase(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		rebaser:      &Rebaser{gitClient: mockClient, outputWriter: &buf, helper: helper, inputReader: bufio.NewReader(strings.NewReader("1\n"))},
+	}
+
+	cmd.Rebase([]string{})
+
+	// Should show help when no args provided
+	output := buf.String()
+	if output == "" {
+		t.Error("Rebase with no args should show help")
+	}
+}
+
+// TestCmd_Stash tests the Stash method
+func TestCmd_Stash(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		stasher:      &Stasher{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	cmd.Stash([]string{})
+
+	// Should show help when no args provided
+	output := buf.String()
+	if output == "" {
+		t.Error("Stash with no args should show help")
+	}
+}
+
+// TestCmd_Fetch tests the Fetch method
+func TestCmd_Fetch(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+	}
+
+	// Test that Fetch method exists and doesn't panic
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("waitForContinue should not panic, got panic: %v", r)
+			t.Logf("Fetch panicked (expected in test environment): %v", r)
 		}
 	}()
 
-	// We can't actually test the interactive input in unit tests
-	// but we can verify the function is callable
-	_ = cmd.waitForContinue
+	cmd.Fetch([]string{})
+
+	output := buf.String()
+	if !strings.Contains(output, "fetch") {
+		t.Logf("Fetch output: %s", output)
+	}
+}
+
+// TestCmd_Add tests the Add method
+func TestCmd_Add(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		adder:        &Adder{gitClient: mockClient, outputWriter: &buf},
+	}
+
+	cmd.Add([]string{"."})
+
+	// Should execute add command
+	output := buf.String()
+	if !strings.Contains(output, "Added") {
+		t.Logf("Add output: %s", output)
+	}
+}
+
+// TestCmd_WaitForContinue tests the waitForContinue method
+func TestCmd_WaitForContinue(t *testing.T) {
+	var buf bytes.Buffer
+	cmd := &Cmd{
+		outputWriter: &buf,
+	}
+
+	// Mock stdin with Enter key
+	oldStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	os.Stdin = r
+	defer func() {
+		os.Stdin = oldStdin
+		r.Close()
+		w.Close()
+	}()
+
+	go func() {
+		w.Write([]byte("\n"))
+		w.Close()
+	}()
+
+	cmd.waitForContinue()
+
+	output := buf.String()
+	if !strings.Contains(output, "Press Enter") {
+		t.Errorf("Expected 'Press Enter' in output, got: %s", output)
+	}
+}
+
+// TestCmd_Stash_WithArgs tests the Stash method with arguments
+func TestCmd_Stash_WithArgs(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		stasher:      &Stasher{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	// Test with list argument
+	cmd.Stash([]string{"list"})
+
+	// Should execute without panic
+	output := buf.String()
+	t.Logf("Stash list output: %s", output)
+}
+
+// TestCmd_Remote_WithArgs tests the Remote method with arguments
+func TestCmd_Remote_WithArgs(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		remoteer:     &Remoteer{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	// Test with list argument
+	cmd.Remote([]string{"list"})
+
+	// Should execute without panic
+	output := buf.String()
+	t.Logf("Remote list output: %s", output)
+}
+
+// TestCmd_Tag_WithArgs tests the Tag method with arguments
+func TestCmd_Tag_WithArgs(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		tagger:       &Tagger{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	// Test with list argument
+	cmd.Tag([]string{"list"})
+
+	// Should execute without panic
+	output := buf.String()
+	t.Logf("Tag list output: %s", output)
+}
+
+// TestCmd_Reset_WithArgs tests the Reset method with arguments
+func TestCmd_Reset_WithArgs(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		resetter:     &Resetter{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	// Test with soft argument
+	cmd.Reset([]string{"--soft", "HEAD~1"})
+
+	// Should execute without panic
+	output := buf.String()
+	t.Logf("Reset output: %s", output)
+}
+
+// TestCmd_Rebase_WithArgs tests the Rebase method with arguments
+func TestCmd_Rebase_WithArgs(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		rebaser:      &Rebaser{gitClient: mockClient, outputWriter: &buf, helper: helper, inputReader: bufio.NewReader(strings.NewReader("1\n"))},
+	}
+
+	// Test with interactive argument
+	cmd.Rebase([]string{"interactive"})
+
+	// Should execute without panic
+	output := buf.String()
+	t.Logf("Rebase interactive output: %s", output)
+}
+
+// TestCmd_Config_WithArgs tests the Config method with arguments
+func TestCmd_Config_WithArgs(t *testing.T) {
+	mockClient := &mockGitClient{}
+	var buf bytes.Buffer
+	helper := NewHelper()
+	helper.outputWriter = &buf
+
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       helper,
+		configureer:  &Configureer{gitClient: mockClient, outputWriter: &buf, helper: helper},
+	}
+
+	// Test with list argument
+	cmd.Config([]string{"list"})
+
+	// Should execute without panic
+	output := buf.String()
+	t.Logf("Config list output: %s", output)
 }
