@@ -538,7 +538,17 @@ func isWordMotionParam(params string) bool {
 
 // processCSIFinalByte processes the final byte of a CSI sequence
 func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
-	isWord := isWordMotionParam(params)
+	isWord := false
+	if params != "" {
+		for _, p := range strings.Split(params, ";") {
+			if n, err := strconv.Atoi(p); err == nil {
+				if n == 3 || n == 5 || n == 9 {
+					isWord = true
+					break
+				}
+			}
+		}
+	}
 	switch final {
 	case 'C': // Right
 		if isWord {
