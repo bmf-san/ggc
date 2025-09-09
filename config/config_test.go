@@ -7,11 +7,108 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"go.yaml.in/yaml/v3"
 
 	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
+
+// MockFileOps implements FileOps for testing
+type MockFileOps struct {
+	files map[string][]byte
+	dirs  map[string]bool
+}
+
+func NewMockFileOps() *MockFileOps {
+	return &MockFileOps{
+		files: make(map[string][]byte),
+		dirs:  map[string]bool{"/": true, ".": true},
+	}
+}
+
+func (m *MockFileOps) ReadFile(filename string) ([]byte, error) {
+	if data, ok := m.files[filename]; ok {
+		return data, nil
+	}
+	return nil, &os.PathError{Op: "open", Path: filename, Err: os.ErrNotExist}
+}
+
+func (m *MockFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	m.files[filename] = data
+	return nil
+}
+
+func (m *MockFileOps) Stat(name string) (os.FileInfo, error) {
+	if _, ok := m.files[name]; ok {
+		return &mockFileInfo{name: name, size: int64(len(m.files[name]))}, nil
+	}
+	if m.dirs[name] {
+		return &mockFileInfo{name: name, isDir: true}, nil
+	}
+	return nil, &os.PathError{Op: "stat", Path: name, Err: os.ErrNotExist}
+}
+
+func (m *MockFileOps) MkdirAll(path string, perm os.FileMode) error {
+	m.dirs[path] = true
+	return nil
+}
+
+func (m *MockFileOps) CreateTemp(dir, pattern string) (TempFile, error) {
+	if !m.dirs[dir] && dir != "." && dir != "/" {
+		return nil, &os.PathError{Op: "createtemp", Path: dir, Err: os.ErrNotExist}
+	}
+	name := dir + "/temp_" + pattern
+	return &mockTempFile{name: name, fs: m}, nil
+}
+
+func (m *MockFileOps) Remove(name string) error {
+	delete(m.files, name)
+	return nil
+}
+
+func (m *MockFileOps) Rename(oldpath, newpath string) error {
+	if data, ok := m.files[oldpath]; ok {
+		m.files[newpath] = data
+		delete(m.files, oldpath)
+	}
+	return nil
+}
+
+func (m *MockFileOps) Chmod(name string, mode os.FileMode) error {
+	return nil // No-op for testing
+}
+
+type mockFileInfo struct {
+	name  string
+	size  int64
+	isDir bool
+}
+
+func (m *mockFileInfo) Name() string       { return m.name }
+func (m *mockFileInfo) Size() int64        { return m.size }
+func (m *mockFileInfo) Mode() os.FileMode  { return 0644 }
+func (m *mockFileInfo) ModTime() time.Time { return time.Now() }
+func (m *mockFileInfo) IsDir() bool        { return m.isDir }
+func (m *mockFileInfo) Sys() interface{}   { return nil }
+
+type mockTempFile struct {
+	name string
+	data []byte
+	fs   *MockFileOps
+}
+
+func (m *mockTempFile) Write(p []byte) (n int, err error) {
+	m.data = append(m.data, p...)
+	return len(p), nil
+}
+
+func (m *mockTempFile) Close() error {
+	m.fs.files[m.name] = m.data
+	return nil
+}
+
+func (m *mockTempFile) Name() string { return m.name }
 
 // newTestConfigManager creates a config manager for testing without executing git commands
 func newTestConfigManager() *Manager {
@@ -192,8 +289,14 @@ func TestLoad(t *testing.T) {
 
 // TestSave tests saving configuration to file
 func TestSave(t *testing.T) {
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "config.yaml")
+	mockFS := NewMockFileOps()
+	configPath := "/test/config.yaml"
+
+	// Create directory in mock filesystem
+	err := mockFS.MkdirAll("/test", 0755)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
 
 	cm := newTestConfigManager()
 	cm.configPath = configPath
@@ -202,18 +305,18 @@ func TestSave(t *testing.T) {
 	cm.config.UI.Color = false
 	cm.config.Aliases["test"] = "help"
 
-	err := cm.Save()
+	err = cm.SaveWithFileOps(mockFS)
 	if err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
 
-	// Check that file was created
-	_, err = os.Stat(configPath)
+	// Check that file was created in mock filesystem
+	_, err = mockFS.Stat(configPath)
 	if err != nil {
 		t.Fatalf("Config file was not created: %v", err)
 	}
 
-	data, err := os.ReadFile(configPath)
+	data, err := mockFS.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to read saved config: %v", err)
 	}
@@ -238,8 +341,14 @@ func TestSave(t *testing.T) {
 // TestSaveDoesNotWriteOnInvalidConfig ensures Save validates before writing
 // and does not leave a config file on disk when validation fails.
 func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "invalid-config.yaml")
+	mockFS := NewMockFileOps()
+	configPath := "/test/invalid-config.yaml"
+
+	// Create directory in mock filesystem
+	err := mockFS.MkdirAll("/test", 0755)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
 
 	cm := newTestConfigManager()
 	cm.configPath = configPath
@@ -247,13 +356,13 @@ func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
 	// Force an invalid editor so validation fails
 	cm.config.Default.Editor = "this-editor-should-not-exist-xyz"
 
-	err := cm.Save()
+	err = cm.SaveWithFileOps(mockFS)
 	if err == nil {
 		t.Fatal("expected Save to fail validation, got nil error")
 	}
 
-	// Check that no config file was written
-	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
+	// Check that no config file was written to mock filesystem
+	if _, statErr := mockFS.Stat(configPath); statErr == nil {
 		t.Fatal("expected no config file to be written, but file exists")
 	}
 }

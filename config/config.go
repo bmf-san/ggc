@@ -16,6 +16,41 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
+// TempFile interface for temporary file operations
+type TempFile interface {
+	Write([]byte) (int, error)
+	Close() error
+	Name() string
+}
+
+// FileOps interface for file operations (for testability)
+type FileOps interface {
+	ReadFile(filename string) ([]byte, error)
+	WriteFile(filename string, data []byte, perm os.FileMode) error
+	Stat(name string) (os.FileInfo, error)
+	MkdirAll(path string, perm os.FileMode) error
+	CreateTemp(dir, pattern string) (TempFile, error)
+	Remove(name string) error
+	Rename(oldpath, newpath string) error
+	Chmod(name string, mode os.FileMode) error
+}
+
+// OSFileOps implements FileOps using real OS operations
+type OSFileOps struct{}
+
+func (OSFileOps) ReadFile(filename string) ([]byte, error) { return os.ReadFile(filename) }
+func (OSFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	return os.WriteFile(filename, data, perm)
+}
+func (OSFileOps) Stat(name string) (os.FileInfo, error)        { return os.Stat(name) }
+func (OSFileOps) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
+func (OSFileOps) CreateTemp(dir, pattern string) (TempFile, error) {
+	return os.CreateTemp(dir, pattern)
+}
+func (OSFileOps) Remove(name string) error                  { return os.Remove(name) }
+func (OSFileOps) Rename(oldpath, newpath string) error      { return os.Rename(oldpath, newpath) }
+func (OSFileOps) Chmod(name string, mode os.FileMode) error { return os.Chmod(name, mode) }
+
 // Config represents the complete configuration structure
 type Config struct {
 	Meta struct {
@@ -418,12 +453,17 @@ func (cm *Manager) getConfigPaths() []string {
 
 // Load loads configuration from the first available config file
 func (cm *Manager) Load() error {
+	return cm.LoadWithFileOps(OSFileOps{})
+}
+
+// LoadWithFileOps loads configuration with custom file operations (for testing)
+func (cm *Manager) LoadWithFileOps(fileOps FileOps) error {
 	paths := cm.getConfigPaths()
 
 	for _, path := range paths {
-		if _, err := os.Stat(path); err == nil {
+		if _, err := fileOps.Stat(path); err == nil {
 			cm.configPath = path
-			return cm.loadFromFile(path)
+			return cm.loadFromFileWithOps(path, fileOps)
 		}
 	}
 
@@ -436,7 +476,12 @@ func (cm *Manager) Load() error {
 
 // loadFromFile loads configuration from a specific file
 func (cm *Manager) loadFromFile(path string) error {
-	data, err := os.ReadFile(path)
+	return cm.loadFromFileWithOps(path, OSFileOps{})
+}
+
+// loadFromFileWithOps loads configuration from a specific file with custom file operations
+func (cm *Manager) loadFromFileWithOps(path string, fileOps FileOps) error {
+	data, err := fileOps.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -578,8 +623,13 @@ func (cm *Manager) syncAliases(config *Config) error {
 
 // Save writes the configuration using restrictive permissions to prevent token disclosure.
 func (cm *Manager) Save() error {
+	return cm.SaveWithFileOps(OSFileOps{})
+}
+
+// SaveWithFileOps saves configuration with custom file operations (for testing)
+func (cm *Manager) SaveWithFileOps(fileOps FileOps) error {
 	dir := filepath.Dir(cm.configPath)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := fileOps.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 	data, err := yaml.Marshal(cm.config)
@@ -589,46 +639,54 @@ func (cm *Manager) Save() error {
 	if err := cm.config.Validate(); err != nil {
 		return fmt.Errorf("cannot save invalid config: %w", err)
 	}
-	tmpName, err := cm.writeTempConfig(dir, data)
+	tmpName, err := cm.writeTempConfigWithOps(dir, data, fileOps)
 	if err != nil {
 		return err
 	}
-	if err := cm.replaceConfigFile(tmpName); err != nil {
+	if err := cm.replaceConfigFileWithOps(tmpName, fileOps); err != nil {
 		return err
 	}
-	cm.hardenPermissions(cm.configPath)
+	cm.hardenPermissionsWithOps(cm.configPath, fileOps)
 	return cm.syncToGitConfig()
 }
 
 func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) {
-	tmpFile, err := os.CreateTemp(dir, ".ggcconfig-*.tmp")
+	return cm.writeTempConfigWithOps(dir, data, OSFileOps{})
+}
+
+func (cm *Manager) writeTempConfigWithOps(dir string, data []byte, fileOps FileOps) (string, error) {
+	tmpFile, err := fileOps.CreateTemp(dir, ".ggcconfig-*.tmp")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpName := tmpFile.Name()
 	if runtime.GOOS != "windows" {
-		_ = os.Chmod(tmpName, 0600)
+		_ = fileOps.Chmod(tmpName, 0600)
 	}
 	if _, err := tmpFile.Write(data); err != nil {
 		_ = tmpFile.Close()
-		_ = os.Remove(tmpName)
+		_ = fileOps.Remove(tmpName)
 		return "", fmt.Errorf("failed to write temp config file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
-		_ = os.Remove(tmpName)
+		_ = fileOps.Remove(tmpName)
 		return "", fmt.Errorf("failed to close temp config file: %w", err)
 	}
 	return tmpName, nil
 }
 
 func (cm *Manager) replaceConfigFile(tmpName string) error {
+	return cm.replaceConfigFileWithOps(tmpName, OSFileOps{})
+}
+
+func (cm *Manager) replaceConfigFileWithOps(tmpName string, fileOps FileOps) error {
 	if runtime.GOOS == "windows" {
-		_ = os.Remove(cm.configPath)
+		_ = fileOps.Remove(cm.configPath)
 	}
-	if err := os.Rename(tmpName, cm.configPath); err != nil {
-		_ = os.Remove(cm.configPath)
-		if err2 := os.Rename(tmpName, cm.configPath); err2 != nil {
-			_ = os.Remove(tmpName)
+	if err := fileOps.Rename(tmpName, cm.configPath); err != nil {
+		_ = fileOps.Remove(cm.configPath)
+		if err2 := fileOps.Rename(tmpName, cm.configPath); err2 != nil {
+			_ = fileOps.Remove(tmpName)
 			return fmt.Errorf("failed to replace config file: %w", err2)
 		}
 	}
@@ -636,8 +694,12 @@ func (cm *Manager) replaceConfigFile(tmpName string) error {
 }
 
 func (cm *Manager) hardenPermissions(path string) {
+	cm.hardenPermissionsWithOps(path, OSFileOps{})
+}
+
+func (cm *Manager) hardenPermissionsWithOps(path string, fileOps FileOps) {
 	if runtime.GOOS != "windows" {
-		_ = os.Chmod(path, 0600)
+		_ = fileOps.Chmod(path, 0600)
 	}
 }
 
