@@ -16,14 +16,14 @@ import (
 // newTestConfigManager creates a config manager for testing without executing git commands
 func newTestConfigManager() *Manager {
 	mockClient := testutil.NewMockGitClient()
-	memFS := NewMemoryFileSystem()
-	return NewConfigManagerWithFS(mockClient, memFS)
+	memFS := NewMemoryFileOps()
+	return NewConfigManagerForTesting(mockClient, memFS, memFS)
 }
 
-// newTestConfigManagerWithFS creates a config manager with a specific filesystem for testing
-func newTestConfigManagerWithFS(fs FileSystem) *Manager {
+// newTestConfigManagerWithFileOps creates a config manager with specific file operations for testing
+func newTestConfigManagerWithFileOps(reader FileReader, writer FileWriter) *Manager {
 	mockClient := testutil.NewMockGitClient()
-	return NewConfigManagerWithFS(mockClient, fs)
+	return NewConfigManagerForTesting(mockClient, reader, writer)
 }
 
 // TestGetDefaultConfig tests the default configuration values
@@ -114,7 +114,7 @@ func TestGetConfigPaths(t *testing.T) {
 
 // TestLoadFromFile tests loading configuration from a file
 func TestLoadFromFile(t *testing.T) {
-	memFS := NewMemoryFileSystem()
+	memFS := NewMemoryFileOps()
 	configPath := "/test/config.yaml"
 
 	testConfig := `
@@ -146,13 +146,13 @@ integration:
 	if err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	
+
 	err = memFS.WriteFile(configPath, []byte(testConfig), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
 	}
 
-	cm := newTestConfigManagerWithFS(memFS)
+	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 	err = cm.loadFromFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config from file: %v", err)
@@ -196,7 +196,7 @@ func TestLoad(t *testing.T) {
 	if cm.configPath == "" {
 		t.Error("Expected config path to be set after Load()")
 	}
-	
+
 	// Verify that default config is loaded
 	if cm.config == nil {
 		t.Error("Expected config to be loaded with defaults")
@@ -205,7 +205,7 @@ func TestLoad(t *testing.T) {
 
 // TestSave tests saving configuration to file
 func TestSave(t *testing.T) {
-	memFS := NewMemoryFileSystem()
+	memFS := NewMemoryFileOps()
 	configPath := "/test/config.yaml"
 
 	// Create directory in memory filesystem
@@ -214,7 +214,7 @@ func TestSave(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	cm := newTestConfigManagerWithFS(memFS)
+	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 	cm.configPath = configPath
 
 	cm.config.Default.Branch = "development"
@@ -257,7 +257,7 @@ func TestSave(t *testing.T) {
 // TestSaveDoesNotWriteOnInvalidConfig ensures Save validates before writing
 // and does not leave a config file on disk when validation fails.
 func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
-	memFS := NewMemoryFileSystem()
+	memFS := NewMemoryFileOps()
 	configPath := "/test/invalid-config.yaml"
 
 	// Create directory in memory filesystem
@@ -266,7 +266,7 @@ func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	cm := newTestConfigManagerWithFS(memFS)
+	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 	cm.configPath = configPath
 
 	// Force an invalid editor so validation fails
@@ -381,7 +381,7 @@ func TestGet(t *testing.T) {
 
 // TestSet tests the Set method
 func TestSet(t *testing.T) {
-	memFS := NewMemoryFileSystem()
+	memFS := NewMemoryFileOps()
 	configPath := "/test/config.yaml"
 
 	// Create directory in memory filesystem
@@ -390,7 +390,7 @@ func TestSet(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	cm := newTestConfigManagerWithFS(memFS)
+	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 	cm.configPath = configPath
 
 	err = cm.Set("default.branch", "develop")
@@ -1303,8 +1303,8 @@ func TestLoadConfigErrorHandling(t *testing.T) {
 
 // TestWriteTempConfig tests error cases in writeTempConfig
 func TestWriteTempConfig(t *testing.T) {
-	memFS := NewMemoryFileSystem()
-	cm := newTestConfigManagerWithFS(memFS)
+	memFS := NewMemoryFileOps()
+	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 
 	// Test with invalid directory
 	_, err := cm.writeTempConfig("/nonexistent/directory", []byte("test"))
@@ -1341,8 +1341,8 @@ func TestWriteTempConfig(t *testing.T) {
 
 // TestReplaceConfigFile tests the replaceConfigFile function
 func TestReplaceConfigFile(t *testing.T) {
-	memFS := NewMemoryFileSystem()
-	cm := newTestConfigManagerWithFS(memFS)
+	memFS := NewMemoryFileOps()
+	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 
 	// Create directory and source file in memory filesystem
 	err := memFS.MkdirAll("/test", 0755)

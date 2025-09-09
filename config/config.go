@@ -83,7 +83,8 @@ type Manager struct {
 	config     *Config
 	configPath string
 	gitClient  git.Clienter
-	fs         FileSystem
+	reader     FileReader
+	writer     FileWriter
 }
 
 var (
@@ -99,19 +100,22 @@ var (
 
 // NewConfigManager creates a new configuration manager with the provided git client
 func NewConfigManager(gitClient git.Clienter) *Manager {
+	fileOps := NewOSFileOps()
 	return &Manager{
 		config:    getDefaultConfig(gitClient),
 		gitClient: gitClient,
-		fs:        NewOSFileSystem(),
+		reader:    fileOps,
+		writer:    fileOps,
 	}
 }
 
-// NewConfigManagerWithFS creates a new configuration manager with custom filesystem (for testing)
-func NewConfigManagerWithFS(gitClient git.Clienter, fs FileSystem) *Manager {
+// NewConfigManagerForTesting creates a new configuration manager with custom file operations (for testing)
+func NewConfigManagerForTesting(gitClient git.Clienter, reader FileReader, writer FileWriter) *Manager {
 	return &Manager{
 		config:    getDefaultConfig(gitClient),
 		gitClient: gitClient,
-		fs:        fs,
+		reader:    reader,
+		writer:    writer,
 	}
 }
 
@@ -443,7 +447,7 @@ func (cm *Manager) Load() error {
 	paths := cm.getConfigPaths()
 
 	for _, path := range paths {
-		if _, err := cm.fs.Stat(path); err == nil {
+		if _, err := cm.reader.Stat(path); err == nil {
 			cm.configPath = path
 			return cm.loadFromFile(path)
 		}
@@ -458,7 +462,7 @@ func (cm *Manager) Load() error {
 
 // loadFromFile loads configuration from a specific file
 func (cm *Manager) loadFromFile(path string) error {
-	data, err := cm.fs.ReadFile(path)
+	data, err := cm.reader.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -601,7 +605,7 @@ func (cm *Manager) syncAliases(config *Config) error {
 // Save writes the configuration using restrictive permissions to prevent token disclosure.
 func (cm *Manager) Save() error {
 	dir := filepath.Dir(cm.configPath)
-	if err := cm.fs.MkdirAll(dir, 0700); err != nil {
+	if err := cm.writer.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 	data, err := yaml.Marshal(cm.config)
@@ -623,21 +627,21 @@ func (cm *Manager) Save() error {
 }
 
 func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) {
-	tmpFile, err := cm.fs.CreateTemp(dir, ".ggcconfig-*.tmp")
+	tmpFile, err := cm.writer.CreateTemp(dir, ".ggcconfig-*.tmp")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpName := tmpFile.Name()
 	if runtime.GOOS != "windows" {
-		_ = cm.fs.Chmod(tmpName, 0600)
+		_ = cm.writer.Chmod(tmpName, 0600)
 	}
 	if _, err := tmpFile.Write(data); err != nil {
 		_ = tmpFile.Close()
-		_ = cm.fs.Remove(tmpName)
+		_ = cm.writer.Remove(tmpName)
 		return "", fmt.Errorf("failed to write temp config file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
-		_ = cm.fs.Remove(tmpName)
+		_ = cm.writer.Remove(tmpName)
 		return "", fmt.Errorf("failed to close temp config file: %w", err)
 	}
 	return tmpName, nil
@@ -645,12 +649,12 @@ func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) {
 
 func (cm *Manager) replaceConfigFile(tmpName string) error {
 	if runtime.GOOS == "windows" {
-		_ = cm.fs.Remove(cm.configPath)
+		_ = cm.writer.Remove(cm.configPath)
 	}
-	if err := cm.fs.Rename(tmpName, cm.configPath); err != nil {
-		_ = cm.fs.Remove(cm.configPath)
-		if err2 := cm.fs.Rename(tmpName, cm.configPath); err2 != nil {
-			_ = cm.fs.Remove(tmpName)
+	if err := cm.writer.Rename(tmpName, cm.configPath); err != nil {
+		_ = cm.writer.Remove(cm.configPath)
+		if err2 := cm.writer.Rename(tmpName, cm.configPath); err2 != nil {
+			_ = cm.writer.Remove(tmpName)
 			return fmt.Errorf("failed to replace config file: %w", err2)
 		}
 	}
@@ -659,7 +663,7 @@ func (cm *Manager) replaceConfigFile(tmpName string) error {
 
 func (cm *Manager) hardenPermissions(path string) {
 	if runtime.GOOS != "windows" {
-		_ = cm.fs.Chmod(path, 0600)
+		_ = cm.writer.Chmod(path, 0600)
 	}
 }
 

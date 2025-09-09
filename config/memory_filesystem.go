@@ -9,15 +9,15 @@ import (
 	"time"
 )
 
-// MemoryFileSystem implements FileSystem in memory for testing
-type MemoryFileSystem struct {
+// MemoryFileOps implements both FileReader and FileWriter in memory for testing
+type MemoryFileOps struct {
 	files map[string][]byte
 	dirs  map[string]bool
 }
 
-// NewMemoryFileSystem creates a new memory-based filesystem for testing
-func NewMemoryFileSystem() *MemoryFileSystem {
-	mfs := &MemoryFileSystem{
+// NewMemoryFileOps creates a new memory-based file operations implementation for testing
+func NewMemoryFileOps() *MemoryFileOps {
+	mfs := &MemoryFileOps{
 		files: make(map[string][]byte),
 		dirs:  make(map[string]bool),
 	}
@@ -27,7 +27,8 @@ func NewMemoryFileSystem() *MemoryFileSystem {
 	return mfs
 }
 
-func (mfs *MemoryFileSystem) ReadFile(filename string) ([]byte, error) {
+// FileReader methods
+func (mfs *MemoryFileOps) ReadFile(filename string) ([]byte, error) {
 	data, exists := mfs.files[filename]
 	if !exists {
 		return nil, &os.PathError{Op: "open", Path: filename, Err: os.ErrNotExist}
@@ -38,7 +39,24 @@ func (mfs *MemoryFileSystem) ReadFile(filename string) ([]byte, error) {
 	return result, nil
 }
 
-func (mfs *MemoryFileSystem) WriteFile(filename string, data []byte, perm os.FileMode) error {
+func (mfs *MemoryFileOps) Stat(name string) (os.FileInfo, error) {
+	if data, exists := mfs.files[name]; exists {
+		return &memoryFileInfo{
+			name: filepath.Base(name),
+			size: int64(len(data)),
+		}, nil
+	}
+	if mfs.dirs[name] {
+		return &memoryFileInfo{
+			name:  filepath.Base(name),
+			isDir: true,
+		}, nil
+	}
+	return nil, &os.PathError{Op: "stat", Path: name, Err: os.ErrNotExist}
+}
+
+// FileWriter methods
+func (mfs *MemoryFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
 	// Ensure parent directory exists
 	dir := filepath.Dir(filename)
 	if !mfs.dirs[dir] && dir != "." && dir != "/" {
@@ -51,7 +69,7 @@ func (mfs *MemoryFileSystem) WriteFile(filename string, data []byte, perm os.Fil
 	return nil
 }
 
-func (mfs *MemoryFileSystem) MkdirAll(path string, perm os.FileMode) error {
+func (mfs *MemoryFileOps) MkdirAll(path string, perm os.FileMode) error {
 	// Normalize path
 	path = filepath.Clean(path)
 	
@@ -74,7 +92,7 @@ func (mfs *MemoryFileSystem) MkdirAll(path string, perm os.FileMode) error {
 	return nil
 }
 
-func (mfs *MemoryFileSystem) Remove(name string) error {
+func (mfs *MemoryFileOps) Remove(name string) error {
 	if _, exists := mfs.files[name]; exists {
 		delete(mfs.files, name)
 		return nil
@@ -86,7 +104,7 @@ func (mfs *MemoryFileSystem) Remove(name string) error {
 	return &os.PathError{Op: "remove", Path: name, Err: os.ErrNotExist}
 }
 
-func (mfs *MemoryFileSystem) Rename(oldpath, newpath string) error {
+func (mfs *MemoryFileOps) Rename(oldpath, newpath string) error {
 	data, exists := mfs.files[oldpath]
 	if !exists {
 		return &os.PathError{Op: "rename", Path: oldpath, Err: os.ErrNotExist}
@@ -103,23 +121,7 @@ func (mfs *MemoryFileSystem) Rename(oldpath, newpath string) error {
 	return nil
 }
 
-func (mfs *MemoryFileSystem) Stat(name string) (os.FileInfo, error) {
-	if data, exists := mfs.files[name]; exists {
-		return &memoryFileInfo{
-			name: filepath.Base(name),
-			size: int64(len(data)),
-		}, nil
-	}
-	if mfs.dirs[name] {
-		return &memoryFileInfo{
-			name:  filepath.Base(name),
-			isDir: true,
-		}, nil
-	}
-	return nil, &os.PathError{Op: "stat", Path: name, Err: os.ErrNotExist}
-}
-
-func (mfs *MemoryFileSystem) CreateTemp(dir, pattern string) (File, error) {
+func (mfs *MemoryFileOps) CreateTemp(dir, pattern string) (TempFile, error) {
 	// Ensure directory exists
 	if !mfs.dirs[dir] && dir != "." && dir != "/" {
 		return nil, &os.PathError{Op: "createtemp", Path: dir, Err: os.ErrNotExist}
@@ -127,10 +129,10 @@ func (mfs *MemoryFileSystem) CreateTemp(dir, pattern string) (File, error) {
 	
 	// Generate a unique temporary filename
 	name := filepath.Join(dir, fmt.Sprintf("temp_%s_%d", pattern, len(mfs.files)))
-	return &memoryFile{name: name, fs: mfs}, nil
+	return &memoryTempFile{name: name, fs: mfs}, nil
 }
 
-func (mfs *MemoryFileSystem) Chmod(name string, mode os.FileMode) error {
+func (mfs *MemoryFileOps) Chmod(name string, mode os.FileMode) error {
 	// Memory filesystem doesn't need permission handling for testing
 	// Just verify the file exists
 	if _, exists := mfs.files[name]; !exists && !mfs.dirs[name] {
@@ -139,22 +141,22 @@ func (mfs *MemoryFileSystem) Chmod(name string, mode os.FileMode) error {
 	return nil
 }
 
-// memoryFile implements File interface
-type memoryFile struct {
+// memoryTempFile implements TempFile interface
+type memoryTempFile struct {
 	name   string
 	buffer bytes.Buffer
-	fs     *MemoryFileSystem
+	fs     *MemoryFileOps
 	closed bool
 }
 
-func (mf *memoryFile) Write(p []byte) (n int, err error) {
+func (mf *memoryTempFile) Write(p []byte) (n int, err error) {
 	if mf.closed {
 		return 0, os.ErrClosed
 	}
 	return mf.buffer.Write(p)
 }
 
-func (mf *memoryFile) Close() error {
+func (mf *memoryTempFile) Close() error {
 	if mf.closed {
 		return nil
 	}
@@ -163,7 +165,7 @@ func (mf *memoryFile) Close() error {
 	return nil
 }
 
-func (mf *memoryFile) Name() string {
+func (mf *memoryTempFile) Name() string {
 	return mf.name
 }
 
