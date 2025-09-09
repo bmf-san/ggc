@@ -265,10 +265,14 @@ func (h *Helper) ShowVersionHelp() {
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.ShowCommandHelp(templates.HelpData{
-		Usage:       "ggc rebase [interactive]",
-		Description: "Rebase current branch (interactive supported)",
+		Usage:       "ggc rebase [interactive | <upstream> | continue | abort | skip]",
+		Description: "Rebase current branch onto another branch; supports interactive and common workflows",
 		Examples: []string{
 			"ggc rebase interactive   # Interactive rebase",
+			"ggc rebase main          # Rebase current branch onto 'main'",
+			"ggc rebase continue      # Continue after resolving conflicts",
+			"ggc rebase abort         # Abort the in-progress rebase",
+			"ggc rebase skip          # Skip current patch and continue",
 		},
 	})
 }

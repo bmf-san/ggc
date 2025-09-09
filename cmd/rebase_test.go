@@ -184,12 +184,12 @@ func TestRebaser_Rebase(t *testing.T) {
 		{
 			name:           "no args",
 			args:           []string{},
-			expectedOutput: "Usage: ggc rebase [interactive]",
+			expectedOutput: "Usage: ggc rebase [interactive | <upstream> | continue | abort | skip]",
 		},
 		{
-			name:           "invalid command",
+			name:           "invalid ref errors",
 			args:           []string{"invalid"},
-			expectedOutput: "Usage: ggc rebase [interactive]",
+			expectedOutput: "Error: unknown ref",
 		},
 	}
 
@@ -197,6 +197,9 @@ func TestRebaser_Rebase(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			mockClient := &mockAddGitClient{}
+			if tc.name == "invalid ref errors" {
+				mockClient.RevParseVerifyFunc = func(_ string) bool { return false }
+			}
 			r := &Rebaser{
 				gitClient:    mockClient,
 				outputWriter: &buf,
@@ -212,6 +215,75 @@ func TestRebaser_Rebase(t *testing.T) {
 				t.Errorf("expected output to contain %q, got %q", tc.expectedOutput, output)
 			}
 		})
+	}
+}
+
+func TestRebaser_Rebase_Subcommands(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	r := &Rebaser{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		inputReader:  bufio.NewReader(strings.NewReader("")),
+	}
+	r.helper.outputWriter = &buf
+
+	// continue
+	buf.Reset()
+	mockClient.RebaseContinueCalled = false
+	r.Rebase([]string{"continue"})
+	if !mockClient.RebaseContinueCalled {
+		t.Errorf("expected RebaseContinue to be called")
+	}
+	if !strings.Contains(buf.String(), "Rebase successful") {
+		t.Errorf("expected success message, got: %s", buf.String())
+	}
+
+	// abort
+	buf.Reset()
+	mockClient.RebaseAbortCalled = false
+	r.Rebase([]string{"abort"})
+	if !mockClient.RebaseAbortCalled {
+		t.Errorf("expected RebaseAbort to be called")
+	}
+	if !strings.Contains(buf.String(), "Rebase aborted") {
+		t.Errorf("expected abort message, got: %s", buf.String())
+	}
+
+	// skip
+	buf.Reset()
+	mockClient.RebaseSkipCalled = false
+	r.Rebase([]string{"skip"})
+	if !mockClient.RebaseSkipCalled {
+		t.Errorf("expected RebaseSkip to be called")
+	}
+	if !strings.Contains(buf.String(), "Rebase successful") {
+		t.Errorf("expected success message, got: %s", buf.String())
+	}
+}
+
+func TestRebaser_Rebase_BasicOnto(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	mockClient.RevParseVerifyFunc = func(ref string) bool {
+		return ref == "main" || ref == "origin/main"
+	}
+	r := &Rebaser{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		inputReader:  bufio.NewReader(strings.NewReader("")),
+	}
+	r.helper.outputWriter = &buf
+
+	buf.Reset()
+	r.Rebase([]string{"main"})
+	if !mockClient.RebaseCalled || mockClient.RebaseUpstream != "main" {
+		t.Errorf("expected Rebase to be called with 'main', got called=%v upstream=%q", mockClient.RebaseCalled, mockClient.RebaseUpstream)
+	}
+	if !strings.Contains(buf.String(), "Rebase successful") {
+		t.Errorf("expected success message, got: %s", buf.String())
 	}
 }
 

@@ -144,6 +144,10 @@ func (m *mockBranchGitClient) LogOneline(_, _ string) (string, error) { return "
 
 // Rebase Operations methods
 func (m *mockBranchGitClient) RebaseInteractive(_ int) error { return nil }
+func (m *mockBranchGitClient) Rebase(_ string) error         { return nil }
+func (m *mockBranchGitClient) RebaseContinue() error         { return nil }
+func (m *mockBranchGitClient) RebaseAbort() error            { return nil }
+func (m *mockBranchGitClient) RebaseSkip() error             { return nil }
 func (m *mockBranchGitClient) GetUpstreamBranch(_ string) (string, error) {
 	return "origin/main", nil
 }

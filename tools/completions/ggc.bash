@@ -91,7 +91,7 @@ _ggc()
             return 0
             ;;
         rebase)
-            subopts="interactive"
+            subopts="interactive continue abort skip"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -135,6 +135,21 @@ _ggc()
         files=$(ggc __complete files 2>/dev/null)
         COMPREPLY=( $(compgen -W "${files}" -- ${cur}) )
         return 0
+    fi
+
+    # Dynamic completion for rebase upstream (branch names)
+    if [[ ${COMP_WORDS[1]} == "rebase" && ${COMP_CWORD} -eq 2 ]]; then
+        # Only suggest branches when not selecting a subcommand
+        case ${cur} in
+            continue|abort|skip|interactive)
+                ;;
+            *)
+                local branches
+                branches=$(ggc __complete branch 2>/dev/null)
+                COMPREPLY=( $(compgen -W "${branches}" -- ${cur}) )
+                return 0
+                ;;
+        esac
     fi
 }
 complete -F _ggc ggc
