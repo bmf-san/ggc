@@ -91,9 +91,10 @@ _ggc()
             return 0
             ;;
         rebase)
+            # Offer subcommands, and let specialized logic below
+            # decide whether to also suggest branches.
             subopts="interactive continue abort skip"
-            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
-            return 0
+            COMPREPLY+=( $(compgen -W "${subopts}" -- ${cur}) )
             ;;
     esac
 
@@ -146,7 +147,7 @@ _ggc()
             *)
                 local branches
                 branches=$(ggc __complete branch 2>/dev/null)
-                COMPREPLY=( $(compgen -W "${branches}" -- ${cur}) )
+                COMPREPLY+=( $(compgen -W "${branches}" -- ${cur}) )
                 return 0
                 ;;
         esac

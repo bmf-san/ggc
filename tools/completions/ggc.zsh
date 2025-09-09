@@ -318,16 +318,13 @@ _ggc_rebase() {
         'skip:Skip current patch and continue'
     )
     if [[ $CURRENT == 2 ]]; then
+        # Show subcommands; also suggest branches unless the current word
+        # exactly matches a known subcommand.
         _describe 'rebase subcommands' subcommands
-        return
-    fi
-
-    # If completing the second token after 'rebase', suggest branch names
-    if [[ $CURRENT == 3 ]]; then
         case $words[$CURRENT] in
-            continue|abort|skip|interactive)
+            (continue|abort|skip|interactive)
                 ;;
-            *)
+            (*)
                 local branches
                 branches=(${(f)"$(ggc __complete branch 2>/dev/null)"})
                 if [[ ${#branches[@]} -gt 0 ]]; then
@@ -335,6 +332,7 @@ _ggc_rebase() {
                 fi
                 ;;
         esac
+        return
     fi
 }
 

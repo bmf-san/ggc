@@ -326,7 +326,6 @@ func suggestNewSyntax(args []string) (string, bool) {
 	return "", false
 }
 
-
 // checkAddSyntax checks for legacy add syntax
 func checkAddSyntax(args []string) (string, bool) {
 	for _, a := range args {
