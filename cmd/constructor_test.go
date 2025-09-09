@@ -126,9 +126,9 @@ func TestNewRebaser(t *testing.T) {
 	}
 }
 
-func TestNewRemoteer(t *testing.T) {
-	// Test that we can create a Remoteer structure
-	remoteer := &Remoteer{
+func TestNewRemoter(t *testing.T) {
+	// Test that we can create a Remoter structure
+	remoteer := &Remoter{
 		outputWriter: io.Discard,
 		helper:       NewHelper(),
 	}
@@ -162,9 +162,9 @@ func TestNewStasher(t *testing.T) {
 	}
 }
 
-func TestNewConfigureer(t *testing.T) {
-	// Test that we can create a Configureer structure
-	configureer := &Configureer{
+func TestNewConfigurer(t *testing.T) {
+	// Test that we can create a Configurer structure
+	configureer := &Configurer{
 		outputWriter: io.Discard,
 		helper:       NewHelper(),
 	}
@@ -186,9 +186,9 @@ func TestNewHooker(t *testing.T) {
 	}
 }
 
-func TestNewStatuseer(t *testing.T) {
-	// Test that we can create a Statuseer structure
-	statuseer := &Statuseer{
+func TestNewStatuser(t *testing.T) {
+	// Test that we can create a Statuser structure
+	statuseer := &Statuser{
 		outputWriter: io.Discard,
 		helper:       NewHelper(),
 	}
@@ -198,9 +198,9 @@ func TestNewStatuseer(t *testing.T) {
 	}
 }
 
-func TestNewRestoreer(t *testing.T) {
-	// Test that we can create a Restoreer structure
-	restoreer := &Restoreer{
+func TestNewRestorer(t *testing.T) {
+	// Test that we can create a Restorer structure
+	restoreer := &Restorer{
 		outputWriter: io.Discard,
 		helper:       NewHelper(),
 	}
@@ -222,9 +222,9 @@ func TestNewTagger(t *testing.T) {
 	}
 }
 
-func TestNewVersioneer(t *testing.T) {
-	// Test that we can create a Versioneer structure
-	versioneer := &Versioneer{
+func TestNewVersioner(t *testing.T) {
+	// Test that we can create a Versioner structure
+	versioneer := &Versioner{
 		outputWriter: io.Discard,
 		helper:       NewHelper(),
 	}
@@ -246,26 +246,26 @@ func TestNewCmd_Constructor(t *testing.T) {
 		outputWriter: &buf,
 		helper:       NewHelper(),
 		// Initialize with mock-based components
-		brancher:    &Brancher{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		committer:   &Committer{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		logger:      &Logger{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		puller:      &Puller{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		pusher:      &Pusher{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		resetter:    &Resetter{outputWriter: &buf, helper: NewHelper()},
-		cleaner:     &Cleaner{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
-		adder:       &Adder{gitClient: mockClient, outputWriter: &buf},
-		remoteer:    &Remoteer{outputWriter: &buf, helper: NewHelper()},
-		rebaser:     &Rebaser{outputWriter: &buf, helper: NewHelper()},
-		stasher:     &Stasher{outputWriter: &buf, helper: NewHelper()},
-		completer:   &Completer{gitClient: mockClient},
-		fetcher:     &Fetcher{outputWriter: &buf, helper: NewHelper()},
-		statuseer:   &Statuseer{outputWriter: &buf, helper: NewHelper()},
-		differ:      &Differ{outputWriter: &buf, helper: NewHelper()},
-		tagger:      &Tagger{outputWriter: &buf, helper: NewHelper()},
-		versioneer:  &Versioneer{outputWriter: &buf, helper: NewHelper()},
-		configureer: &Configureer{outputWriter: &buf, helper: NewHelper()},
-		hooker:      &Hooker{outputWriter: &buf, helper: NewHelper()},
-		restoreer:   &Restoreer{outputWriter: &buf, helper: NewHelper()},
+		brancher:   &Brancher{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		committer:  &Committer{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		logger:     &Logger{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		puller:     &Puller{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		pusher:     &Pusher{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		resetter:   &Resetter{outputWriter: &buf, helper: NewHelper()},
+		cleaner:    &Cleaner{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()},
+		adder:      &Adder{gitClient: mockClient, outputWriter: &buf},
+		remoter:    &Remoter{outputWriter: &buf, helper: NewHelper()},
+		rebaser:    &Rebaser{outputWriter: &buf, helper: NewHelper()},
+		stasher:    &Stasher{outputWriter: &buf, helper: NewHelper()},
+		completer:  &Completer{gitClient: mockClient},
+		fetcher:    &Fetcher{outputWriter: &buf, helper: NewHelper()},
+		statuser:   &Statuser{outputWriter: &buf, helper: NewHelper()},
+		differ:     &Differ{outputWriter: &buf, helper: NewHelper()},
+		tagger:     &Tagger{outputWriter: &buf, helper: NewHelper()},
+		versioner:  &Versioner{outputWriter: &buf, helper: NewHelper()},
+		configurer: &Configurer{outputWriter: &buf, helper: NewHelper()},
+		hooker:     &Hooker{outputWriter: &buf, helper: NewHelper()},
+		restorer:   &Restorer{outputWriter: &buf, helper: NewHelper()},
 	}
 
 	// Basic field checks - just verify the main components exist
@@ -276,10 +276,10 @@ func TestNewCmd_Constructor(t *testing.T) {
 	if cmd.brancher == nil || cmd.committer == nil || cmd.logger == nil ||
 		cmd.puller == nil || cmd.pusher == nil || cmd.resetter == nil ||
 		cmd.cleaner == nil || cmd.adder == nil ||
-		cmd.remoteer == nil || cmd.rebaser == nil || cmd.stasher == nil ||
-		cmd.completer == nil || cmd.fetcher == nil || cmd.statuseer == nil ||
-		cmd.differ == nil || cmd.tagger == nil || cmd.versioneer == nil ||
-		cmd.configureer == nil || cmd.hooker == nil || cmd.restoreer == nil {
+		cmd.remoter == nil || cmd.rebaser == nil || cmd.stasher == nil ||
+		cmd.completer == nil || cmd.fetcher == nil || cmd.statuser == nil ||
+		cmd.differ == nil || cmd.tagger == nil || cmd.versioner == nil ||
+		cmd.configurer == nil || cmd.hooker == nil || cmd.restorer == nil {
 		t.Error("Expected all command handlers to be initialized")
 	}
 }

@@ -9,16 +9,16 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
-// Remoteer provides functionality for the remote command.
-type Remoteer struct {
+// Remoter provides functionality for the remote command.
+type Remoter struct {
 	gitClient    git.Clienter
 	outputWriter io.Writer
 	helper       *Helper
 }
 
-// NewRemoteer creates a new Remoteer.
-func NewRemoteer(client git.Clienter) *Remoteer {
-	r := &Remoteer{
+// NewRemoter creates a new Remoter.
+func NewRemoter(client git.Clienter) *Remoter {
+	r := &Remoter{
 		gitClient:    client,
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
@@ -28,7 +28,7 @@ func NewRemoteer(client git.Clienter) *Remoteer {
 }
 
 // Remote executes the remote command with the given arguments.
-func (r *Remoteer) Remote(args []string) {
+func (r *Remoter) Remote(args []string) {
 	if len(args) == 0 {
 		r.helper.ShowRemoteHelp()
 		return
@@ -60,13 +60,13 @@ func (r *Remoteer) Remote(args []string) {
 	}
 }
 
-func (r *Remoteer) remoteList() {
+func (r *Remoter) remoteList() {
 	if err := r.gitClient.RemoteList(); err != nil {
 		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 	}
 }
 
-func (r *Remoteer) remoteAdd(name, url string) {
+func (r *Remoter) remoteAdd(name, url string) {
 	if err := r.gitClient.RemoteAdd(name, url); err != nil {
 		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return
@@ -74,7 +74,7 @@ func (r *Remoteer) remoteAdd(name, url string) {
 	_, _ = fmt.Fprintf(r.outputWriter, "Remote '%s' added\n", name)
 }
 
-func (r *Remoteer) remoteRemove(name string) {
+func (r *Remoter) remoteRemove(name string) {
 	if err := r.gitClient.RemoteRemove(name); err != nil {
 		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return
@@ -82,7 +82,7 @@ func (r *Remoteer) remoteRemove(name string) {
 	_, _ = fmt.Fprintf(r.outputWriter, "Remote '%s' removed\n", name)
 }
 
-func (r *Remoteer) remoteSetURL(name, url string) {
+func (r *Remoter) remoteSetURL(name, url string) {
 	if err := r.gitClient.RemoteSetURL(name, url); err != nil {
 		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
 		return

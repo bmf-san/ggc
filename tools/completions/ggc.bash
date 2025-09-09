@@ -7,21 +7,21 @@ _ggc()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
 
-    opts="add branch clean version config hook restore diff status clean-interactive commit complete tag fetch log pull push rebase remote reset stash"
+    opts="add branch clean version config hook restore diff status commit complete tag fetch log pull push rebase remote reset stash"
 
     case ${prev} in
         branch)
-            subopts="current checkout checkout-remote delete delete-merged rename move set-upstream info list-local list-remote list sort contains"
+            subopts="current checkout create delete rename move set info list sort contains"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
         list)
-            subopts="--verbose"
+            subopts="local remote verbose"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
         commit)
-            subopts="allow-empty amend"
+            subopts="allow amend"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -46,7 +46,7 @@ _ggc()
             return 0
             ;;
         clean)
-            subopts="files dirs"
+            subopts="files dirs interactive"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -61,12 +61,12 @@ _ggc()
             return 0
             ;;
         fetch)
-            subopts="--prune"
+            subopts="prune"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
         amend)
-            subopts="--no-edit"
+            subopts="no-edit"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -102,11 +102,31 @@ _ggc()
         return 0
     fi
 
-    # Dynamic completion for branch checkout
-    if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "checkout" ]]; then
+    # Dynamic completion for branch checkout (local branches)
+    if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "checkout" && ${COMP_WORDS[3]} != "remote" ]]; then
         local branches
         branches=$(ggc __complete branch 2>/dev/null)
         COMPREPLY=( $(compgen -W "${branches}" -- ${cur}) )
+        return 0
+    fi
+    # Support 'branch checkout remote' keyword
+    if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "checkout" ]]; then
+        COMPREPLY+=( $(compgen -W "remote" -- ${cur}) )
+        # Do not return; allow merging with branch names
+    fi
+    # Support 'branch delete merged'
+    if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "delete" ]]; then
+        COMPREPLY=( $(compgen -W "merged" -- ${cur}) )
+        return 0
+    fi
+    # Support 'branch set upstream'
+    if [[ ${COMP_WORDS[1]} == "branch" && ${COMP_WORDS[2]} == "set" ]]; then
+        COMPREPLY=( $(compgen -W "upstream" -- ${cur}) )
+        return 0
+    fi
+    # Support 'commit allow empty'
+    if [[ ${COMP_WORDS[1]} == "commit" && ${COMP_WORDS[2]} == "allow" ]]; then
+        COMPREPLY=( $(compgen -W "empty" -- ${cur}) )
         return 0
     fi
     # Dynamic completion for add

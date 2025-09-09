@@ -32,42 +32,42 @@ func NewBrancher(client git.Clienter) *Brancher {
 }
 
 // Branch executes the branch command with the given arguments.
-// branchCommandHandler represents a function that handles a branch command
-type branchCommandHandler func([]string)
-
-// getBranchCommandHandlers returns a map of branch command names to their handlers
-func (b *Brancher) getBranchCommandHandlers() map[string]branchCommandHandler {
-	return map[string]branchCommandHandler{
-		"current":         b.branchCurrent,
-		"checkout":        func(_ []string) { b.branchCheckout() },
-		"checkout-remote": func(_ []string) { b.branchCheckoutRemote() },
-		"create":          func(_ []string) { b.branchCreate() },
-		"delete":          func(_ []string) { b.branchDelete() },
-		"delete-merged":   func(_ []string) { b.branchDeleteMerged() },
-		"rename":          func(_ []string) { b.branchRename() },
-		"move":            func(_ []string) { b.branchMove() },
-		"set-upstream":    func(_ []string) { b.branchSetUpstream() },
-		"info":            func(_ []string) { b.branchInfo() },
-		"list":            b.branchList,
-		"sort":            func(_ []string) { b.branchSort() },
-		"contains":        func(_ []string) { b.branchContains() },
-	}
-}
 
 // Branch executes the branch command with the given arguments.
 func (b *Brancher) Branch(args []string) {
-	if len(args) > 0 {
-		handlers := b.getBranchCommandHandlers()
-		if handler, exists := handlers[args[0]]; exists {
-			handler(args[1:])
-			return
-		}
+	if len(args) == 0 {
+		b.helper.ShowBranchHelp()
+		return
+	}
+
+	b.handleBranchCommand(args[0], args[1:])
+}
+
+// handleBranchCommand processes the specific branch subcommand
+func (b *Brancher) handleBranchCommand(cmd string, args []string) {
+	branchCommands := map[string]func([]string){
+		"current":  func([]string) { b.handleCurrentBranch() },
+		"checkout": b.handleCheckoutCommand,
+		"create":   func([]string) { b.branchCreate() },
+		"delete":   b.handleDeleteCommand,
+		"rename":   func([]string) { b.branchRename() },
+		"move":     func([]string) { b.branchMove() },
+		"set":      b.handleSetCommand,
+		"info":     func([]string) { b.branchInfo() },
+		"list":     b.handleListCommand,
+		"sort":     func([]string) { b.branchSort() },
+		"contains": func([]string) { b.branchContains() },
+	}
+
+	if handler, exists := branchCommands[cmd]; exists {
+		handler(args)
+		return
 	}
 	b.helper.ShowBranchHelp()
 }
 
-// branchCurrent displays the current branch
-func (b *Brancher) branchCurrent(_ []string) {
+// handleCurrentBranch shows the current branch
+func (b *Brancher) handleCurrentBranch() {
 	branch, err := b.gitClient.GetCurrentBranch()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -76,14 +76,47 @@ func (b *Brancher) branchCurrent(_ []string) {
 	_, _ = fmt.Fprintln(b.outputWriter, branch)
 }
 
-// branchList handles the list command with optional verbose flag
-func (b *Brancher) branchList(args []string) {
-	// Support list --verbose
-	if len(args) > 0 && (args[0] == "--verbose" || args[0] == "-v") {
-		b.branchListVerbose()
+// handleCheckoutCommand handles checkout subcommand
+func (b *Brancher) handleCheckoutCommand(args []string) {
+	if len(args) > 0 && args[0] == "remote" {
+		b.branchCheckoutRemote()
+	} else {
+		b.branchCheckout()
+	}
+}
+
+// handleDeleteCommand handles delete subcommand
+func (b *Brancher) handleDeleteCommand(args []string) {
+	if len(args) > 0 && args[0] == "merged" {
+		b.branchDeleteMerged()
+	} else {
+		b.branchDelete()
+	}
+}
+
+// handleSetCommand handles set subcommand
+func (b *Brancher) handleSetCommand(args []string) {
+	if len(args) > 0 && args[0] == "upstream" {
+		b.branchSetUpstream()
 		return
 	}
-	// Default list behavior (if any) would go here
+	b.helper.ShowBranchHelp()
+}
+
+// handleListCommand handles list subcommand
+func (b *Brancher) handleListCommand(args []string) {
+	if len(args) == 0 {
+		return
+	}
+
+	switch args[0] {
+	case "verbose", "--verbose", "-v":
+		b.branchListVerbose()
+	case "local":
+		b.branchListLocal()
+	case "remote":
+		b.branchListRemote()
+	}
 }
 
 func (b *Brancher) branchCheckout() {
@@ -617,6 +650,36 @@ func (b *Brancher) branchListVerbose() {
 			extra = fmt.Sprintf(" [%s]", bi.Upstream)
 		}
 		_, _ = fmt.Fprintf(b.outputWriter, "%s %s %s%s %s\n", marker, bi.Name, bi.LastCommitSHA, extra, bi.LastCommitMsg)
+	}
+}
+
+func (b *Brancher) branchListLocal() {
+	branches, err := b.gitClient.ListLocalBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+	for _, br := range branches {
+		_, _ = fmt.Fprintln(b.outputWriter, br)
+	}
+}
+
+func (b *Brancher) branchListRemote() {
+	branches, err := b.gitClient.ListRemoteBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No remote branches found.")
+		return
+	}
+	for _, br := range branches {
+		_, _ = fmt.Fprintln(b.outputWriter, br)
 	}
 }
 

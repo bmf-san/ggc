@@ -13,17 +13,17 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
-// Configureer handles config operations.
-type Configureer struct {
+// Configurer handles config operations.
+type Configurer struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
 	gitClient    git.Clienter
 }
 
-// NewConfigureer creates a new Configureer instance.
-func NewConfigureer(client git.Clienter) *Configureer {
-	return &Configureer{
+// NewConfigurer creates a new Configurer instance.
+func NewConfigurer(client git.Clienter) *Configurer {
+	return &Configurer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
@@ -32,7 +32,7 @@ func NewConfigureer(client git.Clienter) *Configureer {
 }
 
 // LoadConfig executes loads the configuration.
-func (c *Configureer) LoadConfig() *config.Manager {
+func (c *Configurer) LoadConfig() *config.Manager {
 	cm := config.NewConfigManager(c.gitClient)
 	if err := cm.Load(); err != nil {
 		_, _ = fmt.Fprintf(c.outputWriter, "failed to load config: %s", err)
@@ -68,7 +68,7 @@ func formatAliasValue(commands []string) string {
 }
 
 // Config executes config command operations with the given arguments.
-func (c *Configureer) Config(args []string) {
+func (c *Configurer) Config(args []string) {
 	if len(args) == 0 {
 		c.helper.ShowConfigHelp()
 		return
@@ -87,7 +87,7 @@ func (c *Configureer) Config(args []string) {
 }
 
 // configList lists all configuration values
-func (c *Configureer) configList() {
+func (c *Configurer) configList() {
 	cm := c.LoadConfig()
 	configs := cm.List()
 
@@ -108,7 +108,7 @@ func (c *Configureer) configList() {
 }
 
 // displayAliases handles the special display logic for aliases
-func (c *Configureer) displayAliases(val any) {
+func (c *Configurer) displayAliases(val any) {
 	if aliasMap, ok := val.(map[string]any); ok {
 		for aliasName, raw := range aliasMap {
 			commands, err := parseAliasValue(raw)
@@ -123,7 +123,7 @@ func (c *Configureer) displayAliases(val any) {
 }
 
 // configGet gets a configuration value
-func (c *Configureer) configGet(args []string) {
+func (c *Configurer) configGet(args []string) {
 	if len(args) < 2 {
 		_, _ = fmt.Fprintf(c.outputWriter, "must provide key to get (arg missing)\n")
 		return
@@ -139,7 +139,7 @@ func (c *Configureer) configGet(args []string) {
 }
 
 // configSet sets a configuration value
-func (c *Configureer) configSet(args []string) {
+func (c *Configurer) configSet(args []string) {
 	if len(args) < 3 {
 		_, _ = fmt.Fprintf(c.outputWriter, "must provide key && value to set (arg(s) missing)\n")
 		return

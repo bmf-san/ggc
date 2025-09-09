@@ -305,8 +305,8 @@ func TestCmd_Commit(t *testing.T) {
 		wantCalled func(mc *mockGitClient) bool
 	}{
 		{
-			name: "allow-empty",
-			args: []string{"allow-empty"},
+			name: "allow empty",
+			args: []string{"allow", "empty"},
 			wantCalled: func(mc *mockGitClient) bool {
 				return mc.commitAllowEmptyCalled
 			},
@@ -413,7 +413,7 @@ func TestNewCmd(t *testing.T) {
 	if cmd.rebaser == nil {
 		t.Error("rebaser should not be nil")
 	}
-	if cmd.remoteer == nil {
+	if cmd.remoter == nil {
 		t.Error("remoteer should not be nil")
 	}
 	if cmd.resetter == nil {
@@ -493,26 +493,26 @@ func TestCmd_Route(t *testing.T) {
 		outputWriter: io.Discard,
 		helper:       helper,
 		// Initialize all components with mock clients to avoid side effects
-		adder:       &Adder{gitClient: mockClient, outputWriter: io.Discard},
-		brancher:    &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: io.Discard, helper: helper},
-		committer:   &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		logger:      &Logger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		puller:      &Puller{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		pusher:      &Pusher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		resetter:    &Resetter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		cleaner:     &Cleaner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		remoteer:    &Remoteer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		rebaser:     &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
-		stasher:     &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		configureer: &Configureer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		hooker:      &Hooker{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		tagger:      &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		statuseer:   &Statuseer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		versioneer:  &Versioneer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		completer:   &Completer{gitClient: mockClient},
-		differ:      &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		restoreer:   &Restoreer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		fetcher:     &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		adder:      &Adder{gitClient: mockClient, outputWriter: io.Discard},
+		brancher:   &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: io.Discard, helper: helper},
+		committer:  &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		logger:     &Logger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		puller:     &Puller{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		pusher:     &Pusher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		resetter:   &Resetter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		cleaner:    &Cleaner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		remoter:    &Remoter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		rebaser:    &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
+		stasher:    &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		configurer: &Configurer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		hooker:     &Hooker{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		tagger:     &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		statuser:   &Statuser{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		versioner:  &Versioner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		completer:  &Completer{gitClient: mockClient},
+		differ:     &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		restorer:   &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		fetcher:    &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
 
 	testCases := []struct {
@@ -584,10 +584,10 @@ func TestCmd_Status(t *testing.T) {
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mockClient,
-		statuseer:    &Statuseer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		statuser:     &Statuser{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
 
-	// Test that Status calls the statuseer
+	// Test that Status calls the statuser
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Status should not panic, got: %v", r)
@@ -605,10 +605,10 @@ func TestCmd_Config(t *testing.T) {
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mockClient,
-		configureer:  &Configureer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		configurer:   &Configurer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
 
-	// Test that Config calls the configureer
+	// Test that Config calls the configurer
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Config should not panic, got: %v", r)
@@ -689,10 +689,10 @@ func TestCmd_Restore(t *testing.T) {
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mockClient,
-		restoreer:    &Restoreer{outputWriter: io.Discard, helper: helper},
+		restorer:     &Restorer{outputWriter: io.Discard, helper: helper},
 	}
 
-	// Test that Restore calls the restoreer
+	// Test that Restore calls the restorer
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Restore should not panic, got: %v", r)
@@ -715,10 +715,10 @@ func TestCmd_Version(t *testing.T) {
 	cmd := &Cmd{
 		outputWriter: io.Discard,
 		gitClient:    mockClient,
-		versioneer:   &Versioneer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		versioner:    &Versioner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
 
-	// Test that Version calls the versioneer
+	// Test that Version calls the versioner
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Version should not panic, got: %v", r)

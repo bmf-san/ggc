@@ -22,17 +22,17 @@ func SetVersionGetter(getter VersionGetter) {
 	getVersionInfo = getter
 }
 
-// Versioneer handles version operations.
-type Versioneer struct {
+// Versioner handles version operations.
+type Versioner struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
 	gitClient    git.Clienter
 }
 
-// NewVersioneer creates a new Versioneer instance.
-func NewVersioneer(client git.Clienter) *Versioneer {
-	return &Versioneer{
+// NewVersioner creates a new Versioner instance.
+func NewVersioner(client git.Clienter) *Versioner {
+	return &Versioner{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
@@ -41,7 +41,7 @@ func NewVersioneer(client git.Clienter) *Versioneer {
 }
 
 // Version returns the ggc version with the given arguments.
-func (v *Versioneer) Version(args []string) {
+func (v *Versioner) Version(args []string) {
 	if len(args) == 0 {
 		configManager := config.NewConfigManager(v.gitClient)
 		configManager.LoadConfig()

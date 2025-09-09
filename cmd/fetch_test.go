@@ -17,7 +17,7 @@ func TestFetcher_Fetch(t *testing.T) {
 	}{
 		{
 			name:           "fetch with prune",
-			args:           []string{"--prune"},
+			args:           []string{"prune"},
 			expectedCmd:    "git fetch --prune",
 			expectedOutput: "",
 			mockOutput:     []byte(""),
@@ -26,12 +26,12 @@ func TestFetcher_Fetch(t *testing.T) {
 		{
 			name:           "fetch with no args",
 			args:           []string{},
-			expectedOutput: "Usage: ggc fetch [options]",
+			expectedOutput: "Usage: ggc fetch [subcommand]",
 		},
 		{
 			name:           "fetch with invalid arg",
 			args:           []string{"invalid"},
-			expectedOutput: "Usage: ggc fetch [options]",
+			expectedOutput: "Usage: ggc fetch [subcommand]",
 		},
 	}
 

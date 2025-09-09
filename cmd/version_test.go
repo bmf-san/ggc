@@ -9,7 +9,7 @@ import (
 	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
 
-func TestVersioneer_Version(t *testing.T) {
+func TestVersioner_Version(t *testing.T) {
 	cases := []struct {
 		name           string
 		args           []string
@@ -59,7 +59,7 @@ func TestVersioneer_Version(t *testing.T) {
 			})
 
 			var buf bytes.Buffer
-			v := &Versioneer{
+			v := &Versioner{
 				gitClient:    testutil.NewMockGitClient(),
 				outputWriter: &buf,
 				helper:       NewHelper(),

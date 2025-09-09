@@ -262,7 +262,7 @@ func TestBrancher_Branch_CheckoutRemote(t *testing.T) {
 	}
 	brancher.helper.outputWriter = &buf
 
-	brancher.Branch([]string{"checkout-remote"})
+	brancher.Branch([]string{"checkout", "remote"})
 
 	output := buf.String()
 	if !strings.Contains(output, "Remote branches:") {
@@ -304,7 +304,7 @@ func TestBrancher_Branch_DeleteMerged(t *testing.T) {
 	}
 	brancher.helper.outputWriter = &buf
 
-	brancher.Branch([]string{"delete-merged"})
+	brancher.Branch([]string{"delete", "merged"})
 
 	output := buf.String()
 	if !strings.Contains(output, "Select merged local branches to delete") {
