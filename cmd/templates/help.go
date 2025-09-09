@@ -81,6 +81,11 @@ Main Commands:
   ggc reset                   Reset and clean
   ggc stash                   Stash changes
   ggc status                  Show the working tree status
+
+Notes:
+  - Unified syntax: no option flags (-/--) — use subcommands and words.
+  - To pass a literal that starts with '-', use the '--' separator:
+      ggc commit -- - fix leading dash
 `
 
 	commandHelpTemplate = `{{.Logo}}
