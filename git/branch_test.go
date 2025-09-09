@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -245,5 +246,209 @@ func TestClient_BranchesContaining(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, []string{"main", "feature", "bugfix"}) {
 		t.Errorf("unexpected branches: %v", got)
+	}
+}
+
+func TestClient_CheckoutBranch(t *testing.T) {
+	tests := []struct {
+		name       string
+		branchName string
+		err        error
+		wantErr    bool
+	}{
+		{
+			name:       "success_checkout_main",
+			branchName: "main",
+			err:        nil,
+			wantErr:    false,
+		},
+		{
+			name:       "success_checkout_feature_branch",
+			branchName: "feature/new-feature",
+			err:        nil,
+			wantErr:    false,
+		},
+		{
+			name:       "error_branch_not_found",
+			branchName: "nonexistent-branch",
+			err:        errors.New("error: pathspec 'nonexistent-branch' did not match any file(s) known to git"),
+			wantErr:    true,
+		},
+		{
+			name:       "error_uncommitted_changes",
+			branchName: "develop",
+			err:        errors.New("error: Your local changes to the following files would be overwritten by checkout"),
+			wantErr:    true,
+		},
+		{
+			name:       "success_checkout_with_special_chars",
+			branchName: "feature/user-story_123",
+			err:        nil,
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Client{
+				execCommand: func(name string, arg ...string) *exec.Cmd {
+					expectedArgs := []string{"checkout", tt.branchName}
+					if name != "git" || len(arg) != len(expectedArgs) {
+						t.Errorf("unexpected command: %s %v", name, arg)
+					}
+					for i, a := range arg {
+						if a != expectedArgs[i] {
+							t.Errorf("unexpected arg[%d]: got %s, want %s", i, a, expectedArgs[i])
+						}
+					}
+					return helperCommand(t, "", tt.err)
+				},
+			}
+
+			err := c.CheckoutBranch(tt.branchName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CheckoutBranch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
+	tests := []struct {
+		name         string
+		localBranch  string
+		remoteBranch string
+		err          error
+		wantErr      bool
+	}{
+		{
+			name:         "success_checkout_from_origin",
+			localBranch:  "feature",
+			remoteBranch: "origin/feature",
+			err:          nil,
+			wantErr:      false,
+		},
+		{
+			name:         "success_checkout_from_upstream",
+			localBranch:  "develop",
+			remoteBranch: "upstream/develop",
+			err:          nil,
+			wantErr:      false,
+		},
+		{
+			name:         "error_remote_branch_not_found",
+			localBranch:  "feature",
+			remoteBranch: "origin/nonexistent",
+			err:          errors.New("fatal: 'origin/nonexistent' is not a commit and a branch 'feature' cannot be created from it"),
+			wantErr:      true,
+		},
+		{
+			name:         "error_local_branch_exists",
+			localBranch:  "main",
+			remoteBranch: "origin/main",
+			err:          errors.New("fatal: A branch named 'main' already exists"),
+			wantErr:      true,
+		},
+		{
+			name:         "success_deep_branch_hierarchy",
+			localBranch:  "feature-local",
+			remoteBranch: "origin/feature/user/story/implementation",
+			err:          nil,
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Client{
+				execCommand: func(name string, arg ...string) *exec.Cmd {
+					expectedArgs := []string{"checkout", "-b", tt.localBranch, "--track", tt.remoteBranch}
+					if name != "git" || len(arg) != len(expectedArgs) {
+						t.Errorf("unexpected command: %s %v", name, arg)
+					}
+					for i, a := range arg {
+						if a != expectedArgs[i] {
+							t.Errorf("unexpected arg[%d]: got %s, want %s", i, a, expectedArgs[i])
+						}
+					}
+					return helperCommand(t, "", tt.err)
+				},
+			}
+
+			err := c.CheckoutNewBranchFromRemote(tt.localBranch, tt.remoteBranch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CheckoutNewBranchFromRemote() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_DeleteBranch(t *testing.T) {
+	tests := []struct {
+		name       string
+		branchName string
+		err        error
+		wantErr    bool
+	}{
+		{
+			name:       "success_delete_merged_branch",
+			branchName: "feature-completed",
+			err:        nil,
+			wantErr:    false,
+		},
+		{
+			name:       "success_delete_feature_branch",
+			branchName: "feature/old-feature",
+			err:        nil,
+			wantErr:    false,
+		},
+		{
+			name:       "error_delete_unmerged_branch",
+			branchName: "feature-unmerged",
+			err:        errors.New("error: The branch 'feature-unmerged' is not fully merged"),
+			wantErr:    true,
+		},
+		{
+			name:       "error_delete_current_branch",
+			branchName: "main",
+			err:        errors.New("error: Cannot delete branch 'main' checked out at"),
+			wantErr:    true,
+		},
+		{
+			name:       "error_branch_not_found",
+			branchName: "nonexistent-branch",
+			err:        errors.New("error: branch 'nonexistent-branch' not found"),
+			wantErr:    true,
+		},
+		{
+			name:       "success_delete_bugfix_branch",
+			branchName: "bugfix/issue-123",
+			err:        nil,
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Client{
+				execCommand: func(name string, arg ...string) *exec.Cmd {
+					expectedArgs := []string{"branch", "-d", tt.branchName}
+					if name != "git" || len(arg) != len(expectedArgs) {
+						t.Errorf("unexpected command: %s %v", name, arg)
+					}
+					for i, a := range arg {
+						if a != expectedArgs[i] {
+							t.Errorf("unexpected arg[%d]: got %s, want %s", i, a, expectedArgs[i])
+						}
+					}
+					return helperCommand(t, "", tt.err)
+				},
+			}
+
+			err := c.DeleteBranch(tt.branchName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DeleteBranch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
