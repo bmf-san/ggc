@@ -91,7 +91,7 @@ func (c *Client) ListMergedBranches() ([]string, error) {
 	}
 
 	branches := strings.Split(strings.TrimSpace(string(out)), "\n")
-	var result []string
+	result := []string{}
 	for _, branch := range branches {
 		branch = strings.TrimSpace(branch)
 		if branch != "" && !strings.HasPrefix(branch, "*") {

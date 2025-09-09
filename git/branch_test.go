@@ -452,3 +452,112 @@ func TestClient_DeleteBranch(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_ListMergedBranches(t *testing.T) {
+	tests := []struct {
+		name    string
+		output  string
+		err     error
+		want    []string
+		wantErr bool
+	}{
+		{
+			name:    "success_multiple_merged_branches",
+			output:  "  feature/completed\n* main\n  bugfix/issue-123\n  hotfix/security-fix\n",
+			err:     nil,
+			want:    []string{"feature/completed", "bugfix/issue-123", "hotfix/security-fix"},
+			wantErr: false,
+		},
+		{
+			name:    "success_single_merged_branch",
+			output:  "  feature/old-feature\n* main\n",
+			err:     nil,
+			want:    []string{"feature/old-feature"},
+			wantErr: false,
+		},
+		{
+			name:    "success_no_merged_branches",
+			output:  "* main\n",
+			err:     nil,
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name:    "success_empty_output",
+			output:  "",
+			err:     nil,
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name:    "success_with_extra_whitespace",
+			output:  "  feature/merged  \n* main  \n  another/merged  \n",
+			err:     nil,
+			want:    []string{"feature/merged", "another/merged"},
+			wantErr: false,
+		},
+		{
+			name:    "success_exclude_current_branch_variations",
+			output:  "* develop\n  feature/merged\n  hotfix/merged\n",
+			err:     nil,
+			want:    []string{"feature/merged", "hotfix/merged"},
+			wantErr: false,
+		},
+		{
+			name:    "error_git_command_failed",
+			output:  "",
+			err:     errors.New("fatal: not a git repository"),
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "error_permission_denied",
+			output:  "",
+			err:     errors.New("permission denied"),
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "error_corrupted_repository",
+			output:  "",
+			err:     errors.New("fatal: bad object HEAD"),
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "success_mixed_branch_formats",
+			output:  "  release/v1.0\n* main\n  feature/user-story_123\n  bugfix-urgent\n",
+			err:     nil,
+			want:    []string{"release/v1.0", "feature/user-story_123", "bugfix-urgent"},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Client{
+				execCommand: func(name string, arg ...string) *exec.Cmd {
+					expectedArgs := []string{"branch", "--merged"}
+					if name != "git" || len(arg) != len(expectedArgs) {
+						t.Errorf("unexpected command: %s %v", name, arg)
+					}
+					for i, a := range arg {
+						if a != expectedArgs[i] {
+							t.Errorf("unexpected arg[%d]: got %s, want %s", i, a, expectedArgs[i])
+						}
+					}
+					return helperCommand(t, tt.output, tt.err)
+				},
+			}
+
+			got, err := c.ListMergedBranches()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ListMergedBranches() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ListMergedBranches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
