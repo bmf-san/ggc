@@ -231,3 +231,167 @@ func TestClient_StashClear(t *testing.T) {
 		t.Errorf("StashClear() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
+
+// Error case tests for better coverage
+func TestClient_Stash_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.Stash()
+	if err == nil {
+		t.Error("Expected Stash to return an error")
+	}
+}
+
+func TestClient_StashList_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.StashList()
+	if err == nil {
+		t.Error("Expected StashList to return an error")
+	}
+}
+
+func TestClient_StashShow_Error(t *testing.T) {
+	tests := []struct {
+		name  string
+		stash string
+	}{
+		{
+			name:  "error with default stash",
+			stash: "",
+		},
+		{
+			name:  "error with specific stash",
+			stash: "stash@{1}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					return exec.Command("false") // Command that always fails
+				},
+			}
+
+			err := client.StashShow(tt.stash)
+			if err == nil {
+				t.Error("Expected StashShow to return an error")
+			}
+		})
+	}
+}
+
+func TestClient_StashApply_Error(t *testing.T) {
+	tests := []struct {
+		name  string
+		stash string
+	}{
+		{
+			name:  "error with default stash",
+			stash: "",
+		},
+		{
+			name:  "error with specific stash",
+			stash: "stash@{1}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					return exec.Command("false") // Command that always fails
+				},
+			}
+
+			err := client.StashApply(tt.stash)
+			if err == nil {
+				t.Error("Expected StashApply to return an error")
+			}
+		})
+	}
+}
+
+func TestClient_StashPop_Error(t *testing.T) {
+	tests := []struct {
+		name  string
+		stash string
+	}{
+		{
+			name:  "error with default stash",
+			stash: "",
+		},
+		{
+			name:  "error with specific stash",
+			stash: "stash@{1}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					return exec.Command("false") // Command that always fails
+				},
+			}
+
+			err := client.StashPop(tt.stash)
+			if err == nil {
+				t.Error("Expected StashPop to return an error")
+			}
+		})
+	}
+}
+
+func TestClient_StashDrop_Error(t *testing.T) {
+	tests := []struct {
+		name  string
+		stash string
+	}{
+		{
+			name:  "error with default stash",
+			stash: "",
+		},
+		{
+			name:  "error with specific stash",
+			stash: "stash@{1}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					return exec.Command("false") // Command that always fails
+				},
+			}
+
+			err := client.StashDrop(tt.stash)
+			if err == nil {
+				t.Error("Expected StashDrop to return an error")
+			}
+		})
+	}
+}
+
+func TestClient_StashClear_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.StashClear()
+	if err == nil {
+		t.Error("Expected StashClear to return an error")
+	}
+}

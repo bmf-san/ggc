@@ -1,5 +1,7 @@
 // Package testutil provides testing utilities for the ggc CLI tool.
 // This file contains testing utilities for git clients.
+//
+// This file is excluded from coverage reports as it contains test utilities.
 package testutil
 
 import (

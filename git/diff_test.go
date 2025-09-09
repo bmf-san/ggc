@@ -83,3 +83,43 @@ func TestClient_DiffHead(t *testing.T) {
 		t.Errorf("DiffHead() result = %v, want %v", result, expectedOutput)
 	}
 }
+
+// Error case tests for better coverage
+func TestClient_Diff_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.Diff()
+	if err == nil {
+		t.Error("Expected Diff to return an error")
+	}
+}
+
+func TestClient_DiffStaged_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.DiffStaged()
+	if err == nil {
+		t.Error("Expected DiffStaged to return an error")
+	}
+}
+
+func TestClient_DiffHead_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.DiffHead()
+	if err == nil {
+		t.Error("Expected DiffHead to return an error")
+	}
+}

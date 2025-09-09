@@ -45,11 +45,11 @@ clean:
 	rm -f $(APP_NAME)
 
 cover:
-	go test ./... -coverprofile=coverage.out
+	go test $$(go list ./... | grep -v testutil) -coverprofile=coverage.out
 	go tool cover -func=coverage.out
 
 test-cover:
-	go test ./... -coverprofile=$(OUT)
+	go test $$(go list ./... | grep -v testutil) -coverprofile=$(OUT)
 
 test-and-lint: test lint
 	@echo "All tests and lint checks passed"

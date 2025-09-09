@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>router: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/bmf-san/ggc/v5/router/router.go (41.9%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package router provides routing functionality for the ggc CLI tool with alias support.
+package router
+
+import (
+        "fmt"
+        "os"
+        "strings"
+
+        "github.com/bmf-san/ggc/v5/cmd"
+        "github.com/bmf-san/ggc/v5/config"
+)
+
+// Router represents the command router with config support.
+type Router struct {
+        Executer      cmd.Executer
+        ConfigManager *config.Manager
+}
+
+// NewRouter creates a new Router with a config manager.
+func NewRouter(e cmd.Executer, cm *config.Manager) *Router <span class="cov8" title="1">{
+        return &amp;Router{Executer: e, ConfigManager: cm}
+}</span>
+
+// Route routes the command to the appropriate handler
+func (r *Router) Route(args []string) <span class="cov8" title="1">{
+        if len(args) == 0 </span><span class="cov8" title="1">{
+                r.Executer.Interactive()
+                return
+        }</span>
+
+        <span class="cov8" title="1">cmdName, cmdArgs := args[0], args[1:]
+
+        if r.ConfigManager != nil &amp;&amp; r.ConfigManager.GetConfig().IsAlias(cmdName) </span><span class="cov0" title="0">{
+                r.executeAlias(cmdName, cmdArgs)
+        }</span> else<span class="cov8" title="1"> {
+                r.executeCommand(cmdName, cmdArgs)
+        }</span>
+}
+
+func (r *Router) executeAlias(name string, args []string) <span class="cov0" title="0">{
+        cfg := r.ConfigManager.GetConfig()
+        cmds, err := cfg.GetAliasCommands(name)
+        if err != nil </span><span class="cov0" title="0">{
+                _, _ = fmt.Fprintf(os.Stderr, "Alias '%s' error: %v\n", name, err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">alias, err := cfg.ParseAlias(name)
+        if err != nil </span><span class="cov0" title="0">{
+                _, _ = fmt.Fprintf(os.Stderr, "error parsing alias: %v\n", err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">switch alias.Type </span>{
+        case config.SimpleAlias:<span class="cov0" title="0">
+                r.executeCommand(cmds[0], args)</span>
+
+        case config.SequenceAlias:<span class="cov0" title="0">
+                if len(args) &gt; 0 </span><span class="cov0" title="0">{
+                        _, _ = fmt.Fprintf(os.Stderr, "Warning: arguments ignored for sequence alias '%s'\n", name)
+                }</span>
+
+                <span class="cov0" title="0">for _, c := range cmds </span><span class="cov0" title="0">{
+                        fmt.Printf("Executing: %s\n", c)
+                        command := strings.Split(c, " ")
+                        r.executeCommand(command[0], command[1:])
+                }</span>
+        }
+}
+
+// commandHandler represents a function that handles a command
+type commandHandler func([]string)
+
+// getCommandHandlers returns a map of command names to their handlers
+func (r *Router) getCommandHandlers() map[string]commandHandler <span class="cov8" title="1">{
+        return map[string]commandHandler{
+                "help":    func(_ []string) </span><span class="cov8" title="1">{ r.Executer.Help() }</span>,
+                "add":     r.Executer.Add,
+                "branch":  r.Executer.Branch,
+                "clean":   r.Executer.Clean,
+                "commit":  r.Executer.Commit,
+                "config":  r.Executer.Config,
+                "diff":    r.Executer.Diff,
+                "fetch":   r.Executer.Fetch,
+                "hook":    r.Executer.Hook,
+                "log":     r.Executer.Log,
+                "pull":    r.Executer.Pull,
+                "push":    r.Executer.Push,
+                "rebase":  r.Executer.Rebase,
+                "remote":  r.Executer.Remote,
+                "reset":   r.Executer.Reset,
+                "restore": r.Executer.Restore,
+                "stash":   r.Executer.Stash,
+                "status":  r.Executer.Status,
+                "tag":     r.Executer.Tag,
+                "version": r.Executer.Version,
+        }
+}
+
+func (r *Router) executeCommand(name string, args []string) <span class="cov8" title="1">{
+        handlers := r.getCommandHandlers()
+        if handler, exists := handlers[name]; exists </span><span class="cov8" title="1">{
+                handler(args)
+        }</span> else<span class="cov8" title="1"> {
+                r.Executer.Help()
+        }</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

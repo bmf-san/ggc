@@ -1,0 +1,995 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>config: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/bmf-san/ggc/v5/config/config.go (78.3%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package config provides a base configuration schema for ggc.
+package config
+
+import (
+        "fmt"
+        "os"
+        "os/exec"
+        "path/filepath"
+        "reflect"
+        "regexp"
+        "runtime"
+        "strings"
+
+        "go.yaml.in/yaml/v3"
+
+        "github.com/bmf-san/ggc/v5/git"
+)
+
+// GitConfigExecutor interface for git config operations (for testing)
+type GitConfigExecutor interface {
+        ConfigSetGlobal(key, value string) error
+        ConfigGetGlobal(key string) (string, error)
+}
+
+// Config represents the complete configuration structure
+type Config struct {
+        Meta struct {
+                Version       string `yaml:"version"`
+                Commit        string `yaml:"commit"`
+                CreatedAt     string `yaml:"created-at"`
+                ConfigVersion string `yaml:"config-version"`
+        } `yaml:"meta"`
+
+        Default struct {
+                Branch    string `yaml:"branch"`
+                Editor    string `yaml:"editor"`
+                MergeTool string `yaml:"merge-tool"`
+        } `yaml:"default"`
+
+        UI struct {
+                Color bool `yaml:"color"`
+                Pager bool `yaml:"pager"`
+        } `yaml:"ui"`
+
+        Behavior struct {
+                AutoPush           bool   `yaml:"auto-push"`
+                ConfirmDestructive string `yaml:"confirm-destructive"`
+                AutoFetch          bool   `yaml:"auto-fetch"`
+                StashBeforeSwitch  bool   `yaml:"stash-before-switch"`
+        } `yaml:"behavior"`
+
+        Aliases map[string]interface{} `yaml:"aliases"`
+
+        Integration struct {
+                Github struct {
+                        Token         string `yaml:"token"`
+                        DefaultRemote string `yaml:"default-remote"`
+                } `yaml:"github"`
+                Gitlab struct {
+                        Token string `yaml:"token"`
+                } `yaml:"gitlab"`
+        } `yaml:"integration"`
+}
+
+// AliasType represents the type of alias
+type AliasType int
+
+const (
+        // SimpleAlias represents a simple string alias
+        SimpleAlias AliasType = iota
+        // SequenceAlias represents an array string alias
+        SequenceAlias
+)
+
+// ParsedAlias represents a parsed alias with its type and commands
+type ParsedAlias struct {
+        Type     AliasType
+        Commands []string
+}
+
+// Manager handles configuration loading, saving, and operations
+type Manager struct {
+        config     *Config
+        configPath string
+        gitClient  git.Clienter
+}
+
+var (
+        // Accept classic GitHub tokens like ghp_, gho_, ghu_, ghs_, ghr_
+        githubTokenClassicRe = regexp.MustCompile(`^gh[opusr]_[A-Za-z0-9]{20,250}$`)
+        // Accept fine-grained PATs starting with github_pat_
+        githubTokenFineRe = regexp.MustCompile(`^github_pat_[A-Za-z0-9_-]{20,255}$`)
+        // Accept GitLab tokens with optional glpat- prefix
+        gitlabTokenRe = regexp.MustCompile(`^(glpat-)?[A-Za-z0-9_-]{20,100}$`)
+        // Allow slashes; additional structural checks are applied separately
+        gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
+)
+
+// NewConfigManager creates a new configuration manager with the provided git client
+func NewConfigManager(gitClient git.Clienter) *Manager <span class="cov8" title="1">{
+        return &amp;Manager{
+                config:    getDefaultConfig(gitClient),
+                gitClient: gitClient,
+        }
+}</span>
+
+// ValidationError creates a new error manager for validation operations
+type ValidationError struct {
+        Field   string
+        Value   any
+        Message string
+}
+
+func (e *ValidationError) Error() string <span class="cov8" title="1">{
+        return fmt.Sprintf("invalid value for '%s': %v (%s)", e.Field, e.Value, e.Message)
+}</span>
+
+// Validator creates an interface for validating config
+type Validator interface {
+        Validate() error
+}
+
+func (c *Config) validateBranch() error <span class="cov8" title="1">{
+        branch := c.Default.Branch
+        if strings.TrimSpace(branch) == "" || strings.Contains(branch, " ") </span><span class="cov0" title="0">{
+                return &amp;ValidationError{"default.branch", branch, "must not contain spaces or be empty"}
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (c *Config) validateEditor() error <span class="cov8" title="1">{
+        editor := strings.TrimSpace(c.Default.Editor)
+        bin := parseEditorBinary(editor)
+        if validEditorPath(bin) </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov8" title="1">if _, err := exec.LookPath(bin); err != nil </span><span class="cov8" title="1">{
+                return &amp;ValidationError{"default.editor", editor, "command not found in PATH or invalid path"}
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func parseEditorBinary(editor string) string <span class="cov8" title="1">{
+        if editor == "" </span><span class="cov8" title="1">{
+                return ""
+        }</span>
+        // Support basic quoted paths or first token before whitespace
+        <span class="cov8" title="1">if (strings.HasPrefix(editor, "\"") &amp;&amp; strings.Count(editor, "\"") &gt;= 2) || (strings.HasPrefix(editor, "'") &amp;&amp; strings.Count(editor, "'") &gt;= 2) </span><span class="cov0" title="0">{
+                q := editor[0:1]
+                if idx := strings.Index(editor[1:], q); idx &gt;= 0 </span><span class="cov0" title="0">{
+                        return editor[1 : 1+idx]
+                }</span>
+        }
+        <span class="cov8" title="1">if i := strings.IndexAny(editor, " \t"); i &gt; 0 </span><span class="cov0" title="0">{
+                return editor[:i]
+        }</span>
+        <span class="cov8" title="1">return editor</span>
+}
+
+func validEditorPath(bin string) bool <span class="cov8" title="1">{
+        if !strings.ContainsAny(bin, "/\\") </span><span class="cov8" title="1">{
+                return false
+        }</span>
+        <span class="cov0" title="0">_, err := os.Stat(bin)
+        return err == nil</span>
+}
+
+func (c *Config) validateConfirmDestructive() error <span class="cov8" title="1">{
+        val := c.Behavior.ConfirmDestructive
+        valid := map[string]bool{"simple": true, "always": true, "never": true}
+        if !valid[val] </span><span class="cov0" title="0">{
+                return &amp;ValidationError{"behavior.confirm-destructive", val, "must be one of: simple, always, never"}
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (c *Config) validateIntegrationTokens() error <span class="cov8" title="1">{
+        if err := c.validateGithubToken(); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">if err := c.validateGitlabToken(); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return c.validateGithubRemote()</span>
+}
+
+// validateGithubToken validates GitHub token format
+func (c *Config) validateGithubToken() error <span class="cov8" title="1">{
+        ghToken := c.Integration.Github.Token
+        if ghToken != "" </span><span class="cov8" title="1">{
+                if !githubTokenClassicRe.MatchString(ghToken) &amp;&amp; !githubTokenFineRe.MatchString(ghToken) </span><span class="cov8" title="1">{
+                        return &amp;ValidationError{
+                                Field:   "integration.github.token",
+                                Value:   "[REDACTED]",
+                                Message: "GitHub token must be a valid classic (gh[pousr]_) or fine-grained (github_pat_) token",
+                        }
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// validateGitlabToken validates GitLab token format
+func (c *Config) validateGitlabToken() error <span class="cov8" title="1">{
+        glToken := c.Integration.Gitlab.Token
+        if glToken != "" </span><span class="cov8" title="1">{
+                if !gitlabTokenRe.MatchString(glToken) </span><span class="cov8" title="1">{
+                        return &amp;ValidationError{
+                                Field:   "integration.gitlab.token",
+                                Value:   "[REDACTED]",
+                                Message: "GitLab token must be 20-100 characters (alphanumeric, _ or -), with optional glpat- prefix",
+                        }
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// validateGithubRemote validates GitHub remote name format
+func (c *Config) validateGithubRemote() error <span class="cov8" title="1">{
+        remote := c.Integration.Github.DefaultRemote
+        if remote == "" </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">if !gitRemoteNameCharsRe.MatchString(remote) || strings.Contains(remote, " ") </span><span class="cov0" title="0">{
+                return &amp;ValidationError{
+                        Field:   "integration.github.default-remote",
+                        Value:   remote,
+                        Message: "Remote may contain letters, digits, ., _, -, and / only",
+                }
+        }</span>
+
+        // Additional structural checks: no leading/trailing '.' or '/', and no empty/unsafe segments
+        <span class="cov8" title="1">if strings.HasPrefix(remote, "/") || strings.HasSuffix(remote, "/") || strings.HasPrefix(remote, ".") || strings.HasSuffix(remote, ".") || strings.Contains(remote, "//") || strings.Contains(remote, "..") </span><span class="cov0" title="0">{
+                return &amp;ValidationError{
+                        Field:   "integration.github.default-remote",
+                        Value:   remote,
+                        Message: "Remote must not start/end with '.' or '/', nor contain '..' or '//'",
+                }
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (c *Config) validateAliases() error <span class="cov8" title="1">{
+        for name, value := range c.Aliases </span><span class="cov8" title="1">{
+                if err := validateAliasName(name); err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">if err := validateAliasValue(name, value); err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func validateAliasName(name string) error <span class="cov8" title="1">{
+        if strings.TrimSpace(name) == "" || strings.Contains(name, " ") </span><span class="cov8" title="1">{
+                return &amp;ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func validateAliasValue(name string, value interface{}) error <span class="cov8" title="1">{
+        switch v := value.(type) </span>{
+        case string:<span class="cov8" title="1">
+                if strings.TrimSpace(v) == "" </span><span class="cov0" title="0">{
+                        return &amp;ValidationError{"aliases." + name, v, "alias command cannot be empty"}
+                }</span>
+                <span class="cov8" title="1">return nil</span>
+        case []interface{}:<span class="cov8" title="1">
+                return validateAliasSequence(name, v)</span>
+        default:<span class="cov8" title="1">
+                return &amp;ValidationError{Field: "aliases." + name, Value: value, Message: "alias must be either a string or array of strings"}</span>
+        }
+}
+
+func validateAliasSequence(name string, seq []interface{}) error <span class="cov8" title="1">{
+        if len(seq) == 0 </span><span class="cov8" title="1">{
+                return &amp;ValidationError{"aliases." + name, seq, "alias sequence cannot be empty"}
+        }</span>
+        <span class="cov8" title="1">for i, cmd := range seq </span><span class="cov8" title="1">{
+                cmdStr, ok := cmd.(string)
+                if !ok </span><span class="cov8" title="1">{
+                        return &amp;ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmd, Message: "sequence commands must be strings"}
+                }</span>
+                <span class="cov8" title="1">if strings.TrimSpace(cmdStr) == "" </span><span class="cov0" title="0">{
+                        return &amp;ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmdStr, Message: "command in sequence cannot be empty"}
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Validate is a function that handles validation operations
+func (c *Config) Validate() error <span class="cov8" title="1">{
+        if err := c.validateBranch(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := c.validateEditor(); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := c.validateConfirmDestructive(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := c.validateIntegrationTokens(); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := c.validateAliases(); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// ParseAlias parses an alias value and returns its type and commands
+func (c *Config) ParseAlias(name string) (*ParsedAlias, error) <span class="cov8" title="1">{
+        value, exists := c.Aliases[name]
+        if !exists </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("alias '%s' not found", name)
+        }</span>
+
+        <span class="cov8" title="1">switch v := value.(type) </span>{
+        case string:<span class="cov8" title="1">
+                return &amp;ParsedAlias{
+                        Type:     SimpleAlias,
+                        Commands: []string{v},
+                }, nil</span>
+
+        case []interface{}:<span class="cov8" title="1">
+                commands := make([]string, len(v))
+                for i, cmd := range v </span><span class="cov8" title="1">{
+                        cmdStr, ok := cmd.(string)
+                        if !ok </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("invalid command type in alias '%s'", name)
+                        }</span>
+                        <span class="cov8" title="1">commands[i] = cmdStr</span>
+                }
+                <span class="cov8" title="1">return &amp;ParsedAlias{
+                        Type:     SequenceAlias,
+                        Commands: commands,
+                }, nil</span>
+
+        default:<span class="cov0" title="0">
+                return nil, fmt.Errorf("invalid alias type for '%s'", name)</span>
+        }
+}
+
+// IsAlias checks if a given name is an alias
+func (c *Config) IsAlias(name string) bool <span class="cov8" title="1">{
+        _, exists := c.Aliases[name]
+        return exists
+}</span>
+
+// GetAliasCommands returns the commands for a given alias
+func (c *Config) GetAliasCommands(name string) ([]string, error) <span class="cov8" title="1">{
+        parsed, err := c.ParseAlias(name)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return parsed.Commands, nil</span>
+}
+
+// GetAllAliases returns all aliases with their parsed commands
+func (c *Config) GetAllAliases() map[string]*ParsedAlias <span class="cov8" title="1">{
+        result := make(map[string]*ParsedAlias)
+        for name := range c.Aliases </span><span class="cov8" title="1">{
+                if parsed, err := c.ParseAlias(name); err == nil </span><span class="cov8" title="1">{
+                        result[name] = parsed
+                }</span>
+        }
+        <span class="cov8" title="1">return result</span>
+}
+
+// Note: getGitVersion, getGitCommit, and updateMeta functions removed
+// to eliminate direct git command execution. Meta values are now set
+// manually in getDefaultConfig() to avoid side effects in tests.
+
+// getDefaultConfig returns the default configuration values
+func getDefaultConfig(gitClient git.Clienter) *Config <span class="cov8" title="1">{
+        config := &amp;Config{
+                Aliases: make(map[string]interface{}),
+        }
+
+        // Set default values
+        config.Default.Branch = "main"
+        config.Default.Editor = "vim"
+        config.Default.MergeTool = "vimdiff"
+
+        config.UI.Color = true
+        config.UI.Pager = true
+
+        config.Behavior.AutoPush = false
+        config.Behavior.ConfirmDestructive = "simple"
+        config.Behavior.AutoFetch = true
+        config.Behavior.StashBeforeSwitch = true
+
+        config.Integration.Github.DefaultRemote = "origin"
+
+        // Set meta values using gitClient
+        if version, err := gitClient.GetVersion(); err == nil </span><span class="cov8" title="1">{
+                config.Meta.Version = version
+        }</span> else<span class="cov0" title="0"> {
+                config.Meta.Version = "dev"
+        }</span>
+
+        <span class="cov8" title="1">if commit, err := gitClient.GetCommitHash(); err == nil </span><span class="cov8" title="1">{
+                config.Meta.Commit = commit
+        }</span> else<span class="cov0" title="0"> {
+                config.Meta.Commit = "unknown"
+        }</span>
+
+        // Only set ConfigVersion if it's empty (preserving original updateMeta behavior)
+        <span class="cov8" title="1">if config.Meta.ConfigVersion == "" </span><span class="cov8" title="1">{
+                config.Meta.ConfigVersion = "1.0"
+        }</span>
+
+        <span class="cov8" title="1">return config</span>
+}
+
+// getConfigPaths returns possible configuration file paths in order of priority
+func (cm *Manager) getConfigPaths() []string <span class="cov8" title="1">{
+        homeDir, _ := os.UserHomeDir()
+
+        return []string{
+                filepath.Join(homeDir, ".ggcconfig.yaml"),               // Home directory
+                filepath.Join(homeDir, ".config", "ggc", "config.yaml"), // XDG config
+        }
+}</span>
+
+// Load loads configuration from the first available config file
+func (cm *Manager) Load() error <span class="cov8" title="1">{
+        paths := cm.getConfigPaths()
+
+        for _, path := range paths </span><span class="cov8" title="1">{
+                if _, err := os.Stat(path); err == nil </span><span class="cov8" title="1">{
+                        cm.configPath = path
+                        return cm.loadFromFile(path)
+                }</span>
+        }
+
+        <span class="cov8" title="1">if err := cm.config.Validate(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">cm.configPath = paths[0]
+        return nil</span>
+}
+
+// loadFromFile loads configuration from a specific file
+func (cm *Manager) loadFromFile(path string) error <span class="cov8" title="1">{
+        data, err := os.ReadFile(path)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to read config file: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">config := getDefaultConfig(cm.gitClient)
+        if err := yaml.Unmarshal(data, config); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("failed to parse config file: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">cm.syncFromGitConfig()
+        cm.config = config
+        return nil</span>
+}
+
+func (cm *Manager) syncFromCommandName(command string) <span class="cov8" title="1">{
+        value, err := cm.gitClient.ConfigGetGlobal(command)
+        if err != nil || value == "" </span><span class="cov8" title="1">{
+                return
+        }</span>
+        <span class="cov0" title="0">updaters := map[string]func(string){
+                "core.editor":        func(v string) </span><span class="cov0" title="0">{ cm.config.Default.Editor = v }</span>,
+                "merge.tool":         func(v string) <span class="cov0" title="0">{ cm.config.Default.MergeTool = v }</span>,
+                "init.defaultBranch": func(v string) <span class="cov0" title="0">{ cm.config.Default.Branch = v }</span>,
+                "color.ui":           func(v string) <span class="cov0" title="0">{ cm.config.UI.Color = v == "true" || v == "auto" }</span>,
+                "core.pager":         func(v string) <span class="cov0" title="0">{ cm.config.UI.Pager = v != "cat" }</span>,
+                "fetch.auto":         func(v string) <span class="cov0" title="0">{ cm.config.Behavior.AutoFetch = v == "true" }</span>,
+                "push.default":       func(v string) <span class="cov0" title="0">{ cm.config.Behavior.ConfirmDestructive = v }</span>,
+        }
+        <span class="cov0" title="0">if f, ok := updaters[command]; ok </span><span class="cov0" title="0">{
+                f(value)
+        }</span>
+}
+
+// syncFromGitConfig imports relevant Git config values into your app config
+func (cm *Manager) syncFromGitConfig() <span class="cov8" title="1">{
+        commands := []string{
+                "core.editor",
+                "merge.tool",
+                "init.defaultBranch",
+                "color.ui",
+                "core.pager",
+        }
+
+        for _, command := range commands </span><span class="cov8" title="1">{
+                cm.syncFromCommandName(command)
+        }</span>
+}
+
+// syncToGitConfig synchronizes relevant config values TO Git's global configuration
+func (cm *Manager) syncToGitConfig() error <span class="cov8" title="1">{
+        config := cm.GetConfig()
+
+        if err := cm.syncDefaultSettings(config); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">if err := cm.syncUISettings(config); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">if err := cm.syncBehaviorSettings(config); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return cm.syncAliases(config)</span>
+}
+
+// syncDefaultSettings syncs default editor, merge tool, and branch settings
+func (cm *Manager) syncDefaultSettings(config *Config) error <span class="cov8" title="1">{
+        if config.Default.Editor != "" </span><span class="cov8" title="1">{
+                if err := cm.gitClient.ConfigSetGlobal("core.editor", config.Default.Editor); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to set git editor: %w", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">if config.Default.MergeTool != "" </span><span class="cov8" title="1">{
+                if err := cm.gitClient.ConfigSetGlobal("merge.tool", config.Default.MergeTool); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to set git merge tool: %w", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">if config.Default.Branch != "" </span><span class="cov8" title="1">{
+                if err := cm.gitClient.ConfigSetGlobal("init.defaultBranch", config.Default.Branch); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to set git default branch: %w", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// syncUISettings syncs color and pager settings
+func (cm *Manager) syncUISettings(config *Config) error <span class="cov8" title="1">{
+        colorValue := "false"
+        if config.UI.Color </span><span class="cov8" title="1">{
+                colorValue = "true"
+        }</span>
+        <span class="cov8" title="1">if err := cm.gitClient.ConfigSetGlobal("color.ui", colorValue); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to set git color: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">if !config.UI.Pager </span><span class="cov0" title="0">{
+                if err := cm.gitClient.ConfigSetGlobal("core.pager", "cat"); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to set git pager: %w", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// syncBehaviorSettings syncs autofetch and push default settings
+func (cm *Manager) syncBehaviorSettings(config *Config) error <span class="cov8" title="1">{
+        autoFetchValue := "false"
+        if config.Behavior.AutoFetch </span><span class="cov8" title="1">{
+                autoFetchValue = "true"
+        }</span>
+        <span class="cov8" title="1">if err := cm.gitClient.ConfigSetGlobal("fetch.auto", autoFetchValue); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to set git autofetch: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">if err := cm.gitClient.ConfigSetGlobal("push.default", config.Behavior.ConfirmDestructive); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to set git push default: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// syncAliases syncs alias settings to git config
+func (cm *Manager) syncAliases(config *Config) error <span class="cov8" title="1">{
+        for alias, value := range config.Aliases </span><span class="cov8" title="1">{
+                if cmdStr, ok := value.(string); ok </span><span class="cov8" title="1">{
+                        if err := cm.gitClient.ConfigSetGlobal(fmt.Sprintf("alias.%s", alias), cmdStr); err != nil </span><span class="cov0" title="0">{
+                                return fmt.Errorf("failed to set git alias.%s: %w", alias, err)
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Save writes the configuration using restrictive permissions to prevent token disclosure.
+func (cm *Manager) Save() error <span class="cov8" title="1">{
+        dir := filepath.Dir(cm.configPath)
+        if err := os.MkdirAll(dir, 0700); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create config directory: %w", err)
+        }</span>
+        <span class="cov8" title="1">data, err := yaml.Marshal(cm.config)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to marshal config: %w", err)
+        }</span>
+        <span class="cov8" title="1">if err := cm.config.Validate(); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("cannot save invalid config: %w", err)
+        }</span>
+        <span class="cov8" title="1">tmpName, err := cm.writeTempConfig(dir, data)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := cm.replaceConfigFile(tmpName); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">cm.hardenPermissions(cm.configPath)
+        return cm.syncToGitConfig()</span>
+}
+
+func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) <span class="cov8" title="1">{
+        tmpFile, err := os.CreateTemp(dir, ".ggcconfig-*.tmp")
+        if err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("failed to create temp file: %w", err)
+        }</span>
+        <span class="cov8" title="1">tmpName := tmpFile.Name()
+        if runtime.GOOS != "windows" </span><span class="cov8" title="1">{
+                _ = os.Chmod(tmpName, 0600)
+        }</span>
+        <span class="cov8" title="1">if _, err := tmpFile.Write(data); err != nil </span><span class="cov0" title="0">{
+                _ = tmpFile.Close()
+                _ = os.Remove(tmpName)
+                return "", fmt.Errorf("failed to write temp config file: %w", err)
+        }</span>
+        <span class="cov8" title="1">if err := tmpFile.Close(); err != nil </span><span class="cov0" title="0">{
+                _ = os.Remove(tmpName)
+                return "", fmt.Errorf("failed to close temp config file: %w", err)
+        }</span>
+        <span class="cov8" title="1">return tmpName, nil</span>
+}
+
+func (cm *Manager) replaceConfigFile(tmpName string) error <span class="cov8" title="1">{
+        if runtime.GOOS == "windows" </span><span class="cov0" title="0">{
+                _ = os.Remove(cm.configPath)
+        }</span>
+        <span class="cov8" title="1">if err := os.Rename(tmpName, cm.configPath); err != nil </span><span class="cov0" title="0">{
+                _ = os.Remove(cm.configPath)
+                if err2 := os.Rename(tmpName, cm.configPath); err2 != nil </span><span class="cov0" title="0">{
+                        _ = os.Remove(tmpName)
+                        return fmt.Errorf("failed to replace config file: %w", err2)
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (cm *Manager) hardenPermissions(path string) <span class="cov8" title="1">{
+        if runtime.GOOS != "windows" </span><span class="cov8" title="1">{
+                _ = os.Chmod(path, 0600)
+        }</span>
+}
+
+// Get retrieves a configuration value by key path (e.g., "ui.color", "default.branch")
+func (cm *Manager) Get(key string) (any, error) <span class="cov8" title="1">{
+        return cm.getValueByPath(cm.config, key)
+}</span>
+
+// Set sets a configuration value by key path
+func (cm *Manager) Set(key string, value any) error <span class="cov8" title="1">{
+        if err := cm.setValueByPath(cm.config, key, value); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := cm.config.Validate(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return cm.Save()</span>
+}
+
+// List returns all configuration keys and values
+func (cm *Manager) List() map[string]any <span class="cov8" title="1">{
+        result := make(map[string]any)
+        cm.flattenConfig(cm.config, "", result)
+        return result
+}</span>
+
+// getValueByPath retrieves a value using dot notation path
+func (cm *Manager) getValueByPath(obj any, path string) (any, error) <span class="cov8" title="1">{
+        parts := strings.Split(path, ".")
+        current := reflect.ValueOf(obj)
+
+        for _, part := range parts </span><span class="cov8" title="1">{
+                if current.Kind() == reflect.Ptr </span><span class="cov8" title="1">{
+                        current = current.Elem()
+                }</span>
+
+                <span class="cov8" title="1">switch current.Kind() </span>{
+                case reflect.Struct:<span class="cov8" title="1">
+                        field, found := cm.findFieldByYamlTag(current.Type(), current, part)
+                        if !found </span><span class="cov8" title="1">{
+                                return nil, fmt.Errorf("field '%s' not found", part)
+                        }</span>
+                        <span class="cov8" title="1">current = field</span>
+
+                case reflect.Map:<span class="cov8" title="1">
+                        mapValue := current.MapIndex(reflect.ValueOf(part))
+                        if !mapValue.IsValid() </span><span class="cov8" title="1">{
+                                return nil, fmt.Errorf("key '%s' not found", part)
+                        }</span>
+                        <span class="cov8" title="1">current = mapValue</span>
+
+                default:<span class="cov8" title="1">
+                        return nil, fmt.Errorf("cannot navigate into %s", current.Kind())</span>
+                }
+        }
+
+        <span class="cov8" title="1">return current.Interface(), nil</span>
+}
+
+// findFieldByYamlTag finds a struct field by its YAML tag or field name
+func (cm *Manager) findFieldByYamlTag(structType reflect.Type, structValue reflect.Value, tagName string) (reflect.Value, bool) <span class="cov8" title="1">{
+        for i := 0; i &lt; structType.NumField(); i++ </span><span class="cov8" title="1">{
+                field := structType.Field(i)
+                fieldValue := structValue.Field(i)
+
+                // Check YAML tag first
+                yamlTag := field.Tag.Get("yaml")
+                if yamlTag != "" </span><span class="cov8" title="1">{
+                        yamlName := strings.Split(yamlTag, ",")[0]
+                        if yamlName == tagName </span><span class="cov8" title="1">{
+                                return fieldValue, true
+                        }</span>
+                }
+
+                // Fallback to field name (case-insensitive)
+                <span class="cov8" title="1">if strings.EqualFold(field.Name, tagName) </span><span class="cov8" title="1">{
+                        return fieldValue, true
+                }</span>
+        }
+        <span class="cov8" title="1">return reflect.Value{}, false</span>
+}
+
+// setValueByPath sets a value using dot notation path
+func (cm *Manager) setValueByPath(obj any, path string, value any) error <span class="cov8" title="1">{
+        parts := strings.Split(path, ".")
+        current := reflect.ValueOf(obj)
+
+        parent, err := cm.navigateToParent(current, parts)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return cm.setFinalValue(parent, parts[len(parts)-1], value)</span>
+}
+
+// navigateToParent navigates to the parent of the target field
+func (cm *Manager) navigateToParent(current reflect.Value, parts []string) (reflect.Value, error) <span class="cov8" title="1">{
+        for i, part := range parts[:len(parts)-1] </span><span class="cov8" title="1">{
+                var err error
+                current, err = cm.navigateOneLevel(current, part, parts[:i+1])
+                if err != nil </span><span class="cov8" title="1">{
+                        return reflect.Value{}, err
+                }</span>
+        }
+        <span class="cov8" title="1">return current, nil</span>
+}
+
+// navigateOneLevel navigates one level into a struct or map
+func (cm *Manager) navigateOneLevel(current reflect.Value, part string, pathSoFar []string) (reflect.Value, error) <span class="cov8" title="1">{
+        if current.Kind() == reflect.Ptr </span><span class="cov8" title="1">{
+                current = current.Elem()
+        }</span>
+
+        <span class="cov8" title="1">switch current.Kind() </span>{
+        case reflect.Struct:<span class="cov8" title="1">
+                field, found := cm.findFieldByYamlTag(current.Type(), current, part)
+                if !found </span><span class="cov8" title="1">{
+                        return reflect.Value{}, fmt.Errorf("field '%s' not found", strings.Join(pathSoFar, "."))
+                }</span>
+                <span class="cov8" title="1">return field, nil</span>
+
+        case reflect.Map:<span class="cov0" title="0">
+                mapValue := current.MapIndex(reflect.ValueOf(part))
+                if !mapValue.IsValid() </span><span class="cov0" title="0">{
+                        return reflect.Value{}, fmt.Errorf("key '%s' not found", strings.Join(pathSoFar, "."))
+                }</span>
+                <span class="cov0" title="0">return mapValue, nil</span>
+
+        default:<span class="cov0" title="0">
+                return reflect.Value{}, fmt.Errorf("cannot navigate into %s", current.Kind())</span>
+        }
+}
+
+// setFinalValue sets the final value in the target location
+func (cm *Manager) setFinalValue(current reflect.Value, lastPart string, value any) error <span class="cov8" title="1">{
+        if current.Kind() == reflect.Ptr </span><span class="cov0" title="0">{
+                current = current.Elem()
+        }</span>
+
+        <span class="cov8" title="1">switch current.Kind() </span>{
+        case reflect.Struct:<span class="cov8" title="1">
+                return cm.setStructField(current, lastPart, value)</span>
+        case reflect.Map:<span class="cov8" title="1">
+                return cm.setMapValue(current, lastPart, value)</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("cannot set value in %s", current.Kind())</span>
+        }
+}
+
+// setStructField sets a field value in a struct
+func (cm *Manager) setStructField(current reflect.Value, fieldName string, value any) error <span class="cov8" title="1">{
+        field, found := cm.findFieldByYamlTag(current.Type(), current, fieldName)
+        if !found || !field.CanSet() </span><span class="cov0" title="0">{
+                return fmt.Errorf("field '%s' not found or cannot be set", fieldName)
+        }</span>
+
+        <span class="cov8" title="1">newValue := reflect.ValueOf(value)
+        if !newValue.Type().ConvertibleTo(field.Type()) </span><span class="cov8" title="1">{
+                return fmt.Errorf("cannot convert %s to %s", newValue.Type(), field.Type())
+        }</span>
+
+        <span class="cov8" title="1">field.Set(newValue.Convert(field.Type()))
+        return nil</span>
+}
+
+// setMapValue sets a value in a map
+func (cm *Manager) setMapValue(current reflect.Value, key string, value any) error <span class="cov8" title="1">{
+        if current.Type().Key().Kind() != reflect.String </span><span class="cov0" title="0">{
+                return fmt.Errorf("map key must be string")
+        }</span>
+
+        <span class="cov8" title="1">newValue := reflect.ValueOf(value)
+        if !newValue.Type().ConvertibleTo(current.Type().Elem()) </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot convert %s to %s", newValue.Type(), current.Type().Elem())
+        }</span>
+
+        <span class="cov8" title="1">current.SetMapIndex(reflect.ValueOf(key), newValue.Convert(current.Type().Elem()))
+        return nil</span>
+}
+
+// flattenConfig converts nested config to flat key-value pairs
+func (cm *Manager) flattenConfig(obj any, prefix string, result map[string]any) <span class="cov8" title="1">{
+        value := reflect.ValueOf(obj)
+        if value.Kind() == reflect.Ptr </span><span class="cov8" title="1">{
+                value = value.Elem()
+        }</span>
+        <span class="cov8" title="1">switch value.Kind() </span>{
+        case reflect.Struct:<span class="cov8" title="1">
+                cm.flattenStruct(value, prefix, result)</span>
+        case reflect.Map:<span class="cov0" title="0">
+                cm.flattenMap(value, prefix, result)</span>
+        }
+}
+
+func (cm *Manager) flattenStruct(value reflect.Value, prefix string, result map[string]any) <span class="cov8" title="1">{
+        structType := value.Type()
+        for i := 0; i &lt; value.NumField(); i++ </span><span class="cov8" title="1">{
+                field := value.Field(i)
+                fieldType := structType.Field(i)
+
+                fieldName := fieldType.Name
+                if yamlTag := fieldType.Tag.Get("yaml"); yamlTag != "" </span><span class="cov8" title="1">{
+                        fieldName = strings.Split(yamlTag, ",")[0]
+                }</span>
+                <span class="cov8" title="1">key := fieldName
+                if prefix != "" </span><span class="cov8" title="1">{
+                        key = prefix + "." + fieldName
+                }</span>
+                <span class="cov8" title="1">if field.Kind() == reflect.Struct || (field.Kind() == reflect.Map &amp;&amp; field.Type().Elem().Kind() != reflect.Interface) </span><span class="cov8" title="1">{
+                        cm.flattenConfig(field.Interface(), key, result)
+                }</span> else<span class="cov8" title="1"> {
+                        result[key] = field.Interface()
+                }</span>
+        }
+}
+
+func (cm *Manager) flattenMap(value reflect.Value, prefix string, result map[string]any) <span class="cov0" title="0">{
+        for _, mapKey := range value.MapKeys() </span><span class="cov0" title="0">{
+                mapValue := value.MapIndex(mapKey)
+                key := mapKey.String()
+                if prefix != "" </span><span class="cov0" title="0">{
+                        key = prefix + "." + mapKey.String()
+                }</span>
+                <span class="cov0" title="0">result[key] = mapValue.Interface()</span>
+        }
+}
+
+// LoadConfig loads and saves the configuration file.
+func (cm *Manager) LoadConfig() <span class="cov8" title="1">{
+        if err := cm.Load(); err != nil </span><span class="cov0" title="0">{
+                _, _ = fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+        }</span>
+        <span class="cov8" title="1">if err := cm.Save(); err != nil </span><span class="cov0" title="0">{
+                _, _ = fmt.Fprintf(os.Stderr, "Failed to save config: %v\n", err)
+        }</span>
+}
+
+// GetConfig returns the current configuration
+func (cm *Manager) GetConfig() *Config <span class="cov8" title="1">{
+        return cm.config
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -109,3 +109,56 @@ func TestClient_StatusShortWithColor(t *testing.T) {
 		t.Errorf("StatusShortWithColor() result = %v, want %v", result, expectedOutput)
 	}
 }
+
+// Error case tests for better coverage
+func TestClient_Status_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.Status()
+	if err == nil {
+		t.Error("Expected Status to return an error")
+	}
+}
+
+func TestClient_StatusShort_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.StatusShort()
+	if err == nil {
+		t.Error("Expected StatusShort to return an error")
+	}
+}
+
+func TestClient_StatusWithColor_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.StatusWithColor()
+	if err == nil {
+		t.Error("Expected StatusWithColor to return an error")
+	}
+}
+
+func TestClient_StatusShortWithColor_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.StatusShortWithColor()
+	if err == nil {
+		t.Error("Expected StatusShortWithColor to return an error")
+	}
+}

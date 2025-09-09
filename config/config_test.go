@@ -1066,3 +1066,349 @@ func TestManagerLoadConfig(t *testing.T) {
 		}
 	})
 }
+
+// TestFlattenMap tests the flattenMap function by testing aliases flattening
+func TestFlattenMap(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// Test flattening a map with aliases
+	cfg := cm.GetConfig()
+	cfg.Aliases = map[string]interface{}{
+		"st":   "status",
+		"br":   "branch",
+		"sync": []interface{}{"pull current", "push current"},
+	}
+
+	result := cm.List()
+
+	// Check that aliases exist in the result (they're stored as a nested map in interface{})
+	aliasesValue, exists := result["aliases"]
+	if !exists {
+		t.Error("Expected 'aliases' key to exist in flattened result")
+		return
+	}
+
+	// Convert to map for checking
+	aliasesMap, ok := aliasesValue.(map[string]interface{})
+	if !ok {
+		t.Errorf("Expected aliases to be a map, got %T", aliasesValue)
+		return
+	}
+
+	// Check individual aliases
+	if aliasesMap["st"] != "status" {
+		t.Errorf("Expected aliases['st'] to be 'status', got %v", aliasesMap["st"])
+	}
+	if aliasesMap["br"] != "branch" {
+		t.Errorf("Expected aliases['br'] to be 'branch', got %v", aliasesMap["br"])
+	}
+	if aliasesMap["sync"] == nil {
+		t.Error("Expected aliases['sync'] to have a value")
+	}
+}
+
+// TestFlattenMapDirect tests the flattenMap function directly
+func TestFlattenMapDirect(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// Create a test map directly
+	testMap := map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
+		"nested": map[string]interface{}{
+			"subkey": "subvalue",
+		},
+	}
+
+	// Use reflection to call flattenMap directly
+	value := reflect.ValueOf(testMap)
+	result := make(map[string]any)
+
+	cm.flattenMap(value, "test", result)
+
+	// Check that the map was flattened
+	if result["test.key1"] != "value1" {
+		t.Errorf("Expected test.key1 to be 'value1', got %v", result["test.key1"])
+	}
+	if result["test.key2"] != "value2" {
+		t.Errorf("Expected test.key2 to be 'value2', got %v", result["test.key2"])
+	}
+
+	// Check nested value (should be stored as-is since it's interface{})
+	nested, exists := result["test.nested"]
+	if !exists {
+		t.Error("Expected test.nested to exist")
+	}
+	if nested == nil {
+		t.Error("Expected test.nested to have a value")
+	}
+}
+
+// TestParseEditorBinary tests the parseEditorBinary function
+func TestParseEditorBinary(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "simple binary",
+			input:    "vim",
+			expected: "vim",
+		},
+		{
+			name:     "binary with args",
+			input:    "vim -n",
+			expected: "vim",
+		},
+		{
+			name:     "quoted path with spaces",
+			input:    "\"/usr/local/bin/code\" --wait",
+			expected: "/usr/local/bin/code",
+		},
+		{
+			name:     "single quoted path",
+			input:    "'/usr/local/bin/sublime text' --wait",
+			expected: "/usr/local/bin/sublime text",
+		},
+		{
+			name:     "path with tab",
+			input:    "emacs\t-nw",
+			expected: "emacs",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseEditorBinary(tt.input)
+			if result != tt.expected {
+				t.Errorf("parseEditorBinary(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestValidEditorPath tests the validEditorPath function
+func TestValidEditorPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: false,
+		},
+		{
+			name:     "simple binary name",
+			input:    "vim",
+			expected: false, // No path separators
+		},
+		{
+			name:     "relative path",
+			input:    "./vim",
+			expected: false, // File doesn't exist
+		},
+		{
+			name:     "absolute path that doesn't exist",
+			input:    "/nonexistent/path/editor",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := validEditorPath(tt.input)
+			if result != tt.expected {
+				t.Errorf("validEditorPath(%q) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestSyncFromCommandName tests the syncFromCommandName function
+func TestSyncFromCommandName(t *testing.T) {
+	// Create a mock client that returns specific values
+	mockClient := testutil.NewMockGitClient()
+
+	// Test with a config manager
+	cm := &Manager{
+		config:    getDefaultConfig(mockClient),
+		gitClient: mockClient,
+	}
+
+	// Test syncing core.editor
+	cm.syncFromCommandName("core.editor")
+
+	// Test syncing merge.tool
+	cm.syncFromCommandName("merge.tool")
+
+	// Test syncing init.defaultBranch
+	cm.syncFromCommandName("init.defaultBranch")
+
+	// Test syncing color.ui
+	cm.syncFromCommandName("color.ui")
+
+	// Test syncing core.pager
+	cm.syncFromCommandName("core.pager")
+
+	// Test syncing fetch.auto
+	cm.syncFromCommandName("fetch.auto")
+
+	// Test syncing push.default
+	cm.syncFromCommandName("push.default")
+
+	// Test with unknown command
+	cm.syncFromCommandName("unknown.command")
+}
+
+// TestLoadConfig tests the LoadConfig function
+func TestLoadConfigErrorHandling(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// This should not panic and should handle errors gracefully
+	cm.LoadConfig()
+
+	// Config should still be accessible
+	cfg := cm.GetConfig()
+	if cfg == nil {
+		t.Error("Expected config to be available after LoadConfig")
+	}
+}
+
+// TestWriteTempConfig tests error cases in writeTempConfig
+func TestWriteTempConfig(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// Test with invalid directory
+	_, err := cm.writeTempConfig("/nonexistent/directory", []byte("test"))
+	if err == nil {
+		t.Error("Expected error when writing to nonexistent directory")
+	}
+
+	// Test with valid directory
+	tmpDir := t.TempDir()
+	tmpFile, err := cm.writeTempConfig(tmpDir, []byte("test content"))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Verify file was created
+	if _, err := os.Stat(tmpFile); os.IsNotExist(err) {
+		t.Error("Expected temp file to be created")
+	}
+
+	// Clean up
+	os.Remove(tmpFile)
+}
+
+// TestReplaceConfigFile tests the replaceConfigFile function
+func TestReplaceConfigFile(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// Create temporary files for testing
+	tmpDir := t.TempDir()
+
+	// Create source file
+	srcFile := filepath.Join(tmpDir, "source.yaml")
+	err := os.WriteFile(srcFile, []byte("test content"), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create source file: %v", err)
+	}
+
+	// Set destination path
+	destFile := filepath.Join(tmpDir, "dest.yaml")
+	cm.configPath = destFile
+
+	// Test replacing file
+	err = cm.replaceConfigFile(srcFile)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Verify destination file exists
+	if _, err := os.Stat(destFile); os.IsNotExist(err) {
+		t.Error("Expected destination file to exist after replace")
+	}
+
+	// Verify content
+	content, err := os.ReadFile(destFile)
+	if err != nil {
+		t.Fatalf("Failed to read destination file: %v", err)
+	}
+	if string(content) != "test content" {
+		t.Errorf("Expected content 'test content', got %q", string(content))
+	}
+}
+
+// TestSyncToGitConfigErrors tests error handling in syncToGitConfig
+func TestSyncToGitConfigErrors(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// This should not panic even if git operations fail
+	err := cm.syncToGitConfig()
+	// We expect no error with mock client, but test that it doesn't panic
+	if err != nil {
+		t.Logf("syncToGitConfig returned error: %v", err)
+	}
+}
+
+// TestNavigateOneLevel tests different path navigation scenarios
+func TestNavigateOneLevel(t *testing.T) {
+	cm := newTestConfigManager()
+	cfg := cm.GetConfig()
+
+	// Test navigating to struct field
+	value := reflect.ValueOf(cfg).Elem()
+	result, err := cm.navigateOneLevel(value, "default", []string{"default"})
+	if err != nil {
+		t.Errorf("Expected no error navigating to default, got %v", err)
+	}
+	if !result.IsValid() {
+		t.Error("Expected valid result when navigating to default")
+	}
+
+	// Test navigating to non-existent field
+	_, err = cm.navigateOneLevel(value, "nonexistent", []string{"nonexistent"})
+	if err == nil {
+		t.Error("Expected error when navigating to non-existent field")
+	}
+
+	// Test navigating into non-struct, non-map
+	stringValue := reflect.ValueOf("test")
+	_, err = cm.navigateOneLevel(stringValue, "field", []string{"field"})
+	if err == nil {
+		t.Error("Expected error when navigating into string value")
+	}
+}
+
+// TestSetMapValue tests setting values in maps
+func TestSetMapValue(t *testing.T) {
+	cm := newTestConfigManager()
+
+	// Create a test map
+	testMap := make(map[string]interface{})
+	mapValue := reflect.ValueOf(testMap)
+
+	// Test setting a string value
+	err := cm.setMapValue(mapValue, "testkey", "testvalue")
+	if err != nil {
+		t.Errorf("Expected no error setting map value, got %v", err)
+	}
+
+	if testMap["testkey"] != "testvalue" {
+		t.Errorf("Expected testkey to be 'testvalue', got %v", testMap["testkey"])
+	}
+
+	// Test setting incompatible type (this should work since it's interface{})
+	err = cm.setMapValue(mapValue, "intkey", 42)
+	if err != nil {
+		t.Errorf("Expected no error setting int value, got %v", err)
+	}
+}
