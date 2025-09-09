@@ -324,7 +324,7 @@ _ggc_rebase() {
 
     # If completing the second token after 'rebase', suggest branch names
     if [[ $CURRENT == 3 ]]; then
-        case $words[3] in
+        case $words[$CURRENT] in
             continue|abort|skip|interactive)
                 ;;
             *)
