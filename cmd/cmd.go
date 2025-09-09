@@ -235,7 +235,7 @@ func (c *Cmd) Route(args []string) {
 	// Treat legacy-like syntax as a hard error (no heuristics/suggestions)
 	if isLegacyLike(args) {
 		_, _ = fmt.Fprintln(c.outputWriter, "Error: legacy-like syntax is not supported.")
-		_, _ = fmt.Fprintln(c.outputWriter, "Use unified subcommands. See: ggc help [command]")
+		_, _ = fmt.Fprintln(c.outputWriter, "Use unified subcommands. See: ggc help <command>")
 		return
 	}
 
