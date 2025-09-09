@@ -74,6 +74,9 @@ func (v *Versioner) ensureCreatedAtSet(configManager *config.Manager, loadedConf
 
 // updateVersionInfoFromBuild updates version info from build info or ldflags
 func (v *Versioner) updateVersionInfoFromBuild(configManager *config.Manager, loadedConfig *config.Config) {
+	if getVersionInfo == nil {
+		return
+	}
 	newVersion, newCommit := getVersionInfo()
 	if newVersion == "" && newCommit == "" {
 		return
