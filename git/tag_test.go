@@ -330,4 +330,3 @@ func TestClient_TagExists(t *testing.T) {
 		})
 	}
 }
-
