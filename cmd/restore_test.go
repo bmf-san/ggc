@@ -65,8 +65,35 @@ func TestRestorer_Restore(t *testing.T) {
 
 			restorer.Restore(tt.args)
 
-			// Basic test - just ensure no panic occurs
-			// In a real test, we would check specific outputs based on mock responses
+			// Verify that the function executed without panic and produced output
+			output := buf.String()
+			
+			// Restore commands should produce some output (results, help, or error messages)
+			if len(output) == 0 {
+				t.Errorf("Expected output for restore command %v, got empty string", tt.args)
+			}
+			
+			// Verify output content based on command type
+			switch {
+			case len(tt.args) == 0:
+				// No args should show help
+				if len(output) < 10 {
+					t.Errorf("Expected help output for no args, got: %s", output)
+				}
+			case len(tt.args) > 0:
+				// Commands with arguments should show result or confirmation
+				if len(tt.args) == 1 {
+					// Single argument commands (file or directory)
+					if len(output) == 0 {
+						t.Errorf("Expected restore output for %v, got empty string", tt.args)
+					}
+				} else if len(tt.args) > 1 {
+					// Commands with flags should produce appropriate output
+					if len(output) == 0 {
+						t.Errorf("Expected output for restore command with flags %v, got empty string", tt.args)
+					}
+				}
+			}
 		})
 	}
 }

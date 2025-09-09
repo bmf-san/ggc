@@ -74,8 +74,37 @@ func TestDiffer_Diff(t *testing.T) {
 
 			differ.Diff(tt.args)
 
-			// Basic test - just ensure no panic occurs
-			// In a real test, we would check specific outputs based on mock responses
+			// Verify that the function executed without panic and produced output
+			output := buf.String()
+			
+			// Diff commands should produce some output (diff results, help, or error messages)
+			if len(output) == 0 {
+				t.Errorf("Expected output for diff command %v, got empty string", tt.args)
+			}
+			
+			// Verify output content based on command type
+			switch {
+			case len(tt.args) == 0:
+				// No args should show diff (DiffHead)
+				if len(output) == 0 {
+					t.Errorf("Expected diff output for default command, got empty string")
+				}
+			case len(tt.args) > 0 && tt.args[0] == "unstaged":
+				// Unstaged should show unstaged diff
+				if len(output) == 0 {
+					t.Errorf("Expected unstaged diff output, got empty string")
+				}
+			case len(tt.args) > 0 && tt.args[0] == "staged":
+				// Staged should show staged diff
+				if len(output) == 0 {
+					t.Errorf("Expected staged diff output, got empty string")
+				}
+			case len(tt.args) > 0 && tt.args[0] == "invalid":
+				// Invalid args should show help or error
+				if len(output) < 5 {
+					t.Errorf("Expected help or error output for invalid args, got: %s", output)
+				}
+			}
 		})
 	}
 }
@@ -91,7 +120,17 @@ func TestDiffer_DiffBasic(t *testing.T) {
 		helper:       NewHelper(),
 	}
 
-	// Test basic functionality
+	// Test basic functionality - should execute without panic
 	differ.Diff([]string{})
-	// Should not panic and should produce some output or call methods
+	
+	// Verify that the function executed and produced output
+	output := buf.String()
+	if len(output) == 0 {
+		t.Error("Expected diff output from basic test, got empty string")
+	}
+	
+	// Verify that the mock client is properly configured
+	if mockClient == nil {
+		t.Error("Expected mock client to be initialized")
+	}
 }

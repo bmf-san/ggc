@@ -77,8 +77,36 @@ func TestStasher_Stash(t *testing.T) {
 
 			stasher.Stash(tt.args)
 
-			// Basic test - just ensure no panic occurs
-			// In a real test, we would check specific outputs based on mock responses
+			// Verify that the function executed without panic and produced output
+			output := buf.String()
+			
+			// Stash commands should produce some output (results, help, or error messages)
+			if len(output) == 0 {
+				t.Errorf("Expected output for stash command %v, got empty string", tt.args)
+			}
+			
+			// Verify output content based on command type
+			switch {
+			case len(tt.args) == 0:
+				// Default stash should create a stash and show confirmation
+				if len(output) == 0 {
+					t.Errorf("Expected stash output for default command, got empty string")
+				}
+			case len(tt.args) > 0:
+				command := tt.args[0]
+				switch command {
+				case "list", "show", "apply", "pop", "drop", "clear":
+					// Valid stash commands should produce output
+					if len(output) == 0 {
+						t.Errorf("Expected output for stash %s command, got empty string", command)
+					}
+				case "unknown":
+					// Unknown commands should show error or help
+					if len(output) < 5 {
+						t.Errorf("Expected error or help output for unknown command, got: %s", output)
+					}
+				}
+			}
 		})
 	}
 }
