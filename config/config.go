@@ -3,7 +3,6 @@ package config
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,144 +10,11 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"time"
 
 	"go.yaml.in/yaml/v3"
 
 	"github.com/bmf-san/ggc/v5/git"
 )
-
-// Simple file operations for testing
-type fileReader interface {
-	ReadFile(filename string) ([]byte, error)
-	Stat(name string) (os.FileInfo, error)
-}
-
-type fileWriter interface {
-	WriteFile(filename string, data []byte, perm os.FileMode) error
-	MkdirAll(path string, perm os.FileMode) error
-	CreateTemp(dir, pattern string) (tempFile, error)
-	Remove(name string) error
-	Rename(oldpath, newpath string) error
-	Chmod(name string, mode os.FileMode) error
-}
-
-type tempFile interface {
-	io.WriteCloser
-	Name() string
-}
-
-// osFileOps implements file operations using the real OS
-type osFileOps struct{}
-
-func (osFileOps) ReadFile(filename string) ([]byte, error) { return os.ReadFile(filename) }
-func (osFileOps) Stat(name string) (os.FileInfo, error)    { return os.Stat(name) }
-func (osFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
-	return os.WriteFile(filename, data, perm)
-}
-func (osFileOps) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
-func (osFileOps) Remove(name string) error                     { return os.Remove(name) }
-func (osFileOps) Rename(oldpath, newpath string) error         { return os.Rename(oldpath, newpath) }
-func (osFileOps) CreateTemp(dir, pattern string) (tempFile, error) {
-	return os.CreateTemp(dir, pattern)
-}
-func (osFileOps) Chmod(name string, mode os.FileMode) error { return os.Chmod(name, mode) }
-
-// memoryFileOps implements file operations in memory for testing
-type memoryFileOps struct {
-	files map[string][]byte
-	dirs  map[string]bool
-}
-
-func newMemoryFileOps() *memoryFileOps {
-	return &memoryFileOps{
-		files: make(map[string][]byte),
-		dirs:  map[string]bool{"/": true, ".": true},
-	}
-}
-
-func (m *memoryFileOps) ReadFile(filename string) ([]byte, error) {
-	if data, ok := m.files[filename]; ok {
-		return data, nil
-	}
-	return nil, &os.PathError{Op: "open", Path: filename, Err: os.ErrNotExist}
-}
-
-func (m *memoryFileOps) Stat(name string) (os.FileInfo, error) {
-	if _, ok := m.files[name]; ok {
-		return &memFileInfo{name: name, size: int64(len(m.files[name]))}, nil
-	}
-	if m.dirs[name] {
-		return &memFileInfo{name: name, isDir: true}, nil
-	}
-	return nil, &os.PathError{Op: "stat", Path: name, Err: os.ErrNotExist}
-}
-
-func (m *memoryFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
-	m.files[filename] = data
-	return nil
-}
-
-func (m *memoryFileOps) MkdirAll(path string, perm os.FileMode) error {
-	m.dirs[path] = true
-	return nil
-}
-
-func (m *memoryFileOps) Remove(name string) error {
-	delete(m.files, name)
-	return nil
-}
-
-func (m *memoryFileOps) Rename(oldpath, newpath string) error {
-	if data, ok := m.files[oldpath]; ok {
-		m.files[newpath] = data
-		delete(m.files, oldpath)
-	}
-	return nil
-}
-
-func (m *memoryFileOps) CreateTemp(dir, pattern string) (tempFile, error) {
-	if !m.dirs[dir] && dir != "." && dir != "/" {
-		return nil, &os.PathError{Op: "createtemp", Path: dir, Err: os.ErrNotExist}
-	}
-	name := dir + "/temp_" + pattern
-	return &memTempFile{name: name, fs: m}, nil
-}
-
-func (m *memoryFileOps) Chmod(name string, mode os.FileMode) error {
-	return nil // No-op for testing
-}
-
-type memFileInfo struct {
-	name  string
-	size  int64
-	isDir bool
-}
-
-func (m *memFileInfo) Name() string       { return m.name }
-func (m *memFileInfo) Size() int64        { return m.size }
-func (m *memFileInfo) Mode() os.FileMode  { return 0644 }
-func (m *memFileInfo) ModTime() time.Time { return time.Now() }
-func (m *memFileInfo) IsDir() bool        { return m.isDir }
-func (m *memFileInfo) Sys() interface{}   { return nil }
-
-type memTempFile struct {
-	name string
-	data []byte
-	fs   *memoryFileOps
-}
-
-func (m *memTempFile) Write(p []byte) (n int, err error) {
-	m.data = append(m.data, p...)
-	return len(p), nil
-}
-
-func (m *memTempFile) Close() error {
-	m.fs.files[m.name] = m.data
-	return nil
-}
-
-func (m *memTempFile) Name() string { return m.name }
 
 // Config represents the complete configuration structure
 type Config struct {
@@ -211,8 +77,6 @@ type Manager struct {
 	config     *Config
 	configPath string
 	gitClient  git.Clienter
-	reader     fileReader
-	writer     fileWriter
 }
 
 var (
@@ -228,22 +92,9 @@ var (
 
 // NewConfigManager creates a new configuration manager with the provided git client
 func NewConfigManager(gitClient git.Clienter) *Manager {
-	fileOps := osFileOps{}
 	return &Manager{
 		config:    getDefaultConfig(gitClient),
 		gitClient: gitClient,
-		reader:    fileOps,
-		writer:    fileOps,
-	}
-}
-
-// NewConfigManagerForTesting creates a new configuration manager with custom file operations (for testing)
-func NewConfigManagerForTesting(gitClient git.Clienter, reader fileReader, writer fileWriter) *Manager {
-	return &Manager{
-		config:    getDefaultConfig(gitClient),
-		gitClient: gitClient,
-		reader:    reader,
-		writer:    writer,
 	}
 }
 
@@ -570,7 +421,7 @@ func (cm *Manager) Load() error {
 	paths := cm.getConfigPaths()
 
 	for _, path := range paths {
-		if _, err := cm.reader.Stat(path); err == nil {
+		if _, err := os.Stat(path); err == nil {
 			cm.configPath = path
 			return cm.loadFromFile(path)
 		}
@@ -585,7 +436,7 @@ func (cm *Manager) Load() error {
 
 // loadFromFile loads configuration from a specific file
 func (cm *Manager) loadFromFile(path string) error {
-	data, err := cm.reader.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -728,7 +579,7 @@ func (cm *Manager) syncAliases(config *Config) error {
 // Save writes the configuration using restrictive permissions to prevent token disclosure.
 func (cm *Manager) Save() error {
 	dir := filepath.Dir(cm.configPath)
-	if err := cm.writer.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 	data, err := yaml.Marshal(cm.config)
@@ -750,21 +601,21 @@ func (cm *Manager) Save() error {
 }
 
 func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) {
-	tmpFile, err := cm.writer.CreateTemp(dir, ".ggcconfig-*.tmp")
+	tmpFile, err := os.CreateTemp(dir, ".ggcconfig-*.tmp")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpName := tmpFile.Name()
 	if runtime.GOOS != "windows" {
-		_ = cm.writer.Chmod(tmpName, 0600)
+		_ = os.Chmod(tmpName, 0600)
 	}
 	if _, err := tmpFile.Write(data); err != nil {
 		_ = tmpFile.Close()
-		_ = cm.writer.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return "", fmt.Errorf("failed to write temp config file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
-		_ = cm.writer.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return "", fmt.Errorf("failed to close temp config file: %w", err)
 	}
 	return tmpName, nil
@@ -772,12 +623,12 @@ func (cm *Manager) writeTempConfig(dir string, data []byte) (string, error) {
 
 func (cm *Manager) replaceConfigFile(tmpName string) error {
 	if runtime.GOOS == "windows" {
-		_ = cm.writer.Remove(cm.configPath)
+		_ = os.Remove(cm.configPath)
 	}
-	if err := cm.writer.Rename(tmpName, cm.configPath); err != nil {
-		_ = cm.writer.Remove(cm.configPath)
-		if err2 := cm.writer.Rename(tmpName, cm.configPath); err2 != nil {
-			_ = cm.writer.Remove(tmpName)
+	if err := os.Rename(tmpName, cm.configPath); err != nil {
+		_ = os.Remove(cm.configPath)
+		if err2 := os.Rename(tmpName, cm.configPath); err2 != nil {
+			_ = os.Remove(tmpName)
 			return fmt.Errorf("failed to replace config file: %w", err2)
 		}
 	}
@@ -786,7 +637,7 @@ func (cm *Manager) replaceConfigFile(tmpName string) error {
 
 func (cm *Manager) hardenPermissions(path string) {
 	if runtime.GOOS != "windows" {
-		_ = cm.writer.Chmod(path, 0600)
+		_ = os.Chmod(path, 0600)
 	}
 }
 

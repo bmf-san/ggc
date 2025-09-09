@@ -16,14 +16,7 @@ import (
 // newTestConfigManager creates a config manager for testing without executing git commands
 func newTestConfigManager() *Manager {
 	mockClient := testutil.NewMockGitClient()
-	memFS := newMemoryFileOps()
-	return NewConfigManagerForTesting(mockClient, memFS, memFS)
-}
-
-// newTestConfigManagerWithFileOps creates a config manager with specific file operations for testing
-func newTestConfigManagerWithFileOps(reader fileReader, writer fileWriter) *Manager {
-	mockClient := testutil.NewMockGitClient()
-	return NewConfigManagerForTesting(mockClient, reader, writer)
+	return NewConfigManager(mockClient)
 }
 
 // TestGetDefaultConfig tests the default configuration values
@@ -114,8 +107,8 @@ func TestGetConfigPaths(t *testing.T) {
 
 // TestLoadFromFile tests loading configuration from a file
 func TestLoadFromFile(t *testing.T) {
-	memFS := newMemoryFileOps()
-	configPath := "/test/config.yaml"
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.yaml")
 
 	testConfig := `
 default:
@@ -141,18 +134,12 @@ integration:
     token: "gitlab-token"
 `
 
-	// Create directory and file in memory filesystem
-	err := memFS.MkdirAll("/test", 0755)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-
-	err = memFS.WriteFile(configPath, []byte(testConfig), 0644)
+	err := os.WriteFile(configPath, []byte(testConfig), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
 	}
 
-	cm := newTestConfigManagerWithFileOps(memFS, memFS)
+	cm := newTestConfigManager()
 	err = cm.loadFromFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config from file: %v", err)
@@ -205,34 +192,28 @@ func TestLoad(t *testing.T) {
 
 // TestSave tests saving configuration to file
 func TestSave(t *testing.T) {
-	memFS := newMemoryFileOps()
-	configPath := "/test/config.yaml"
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.yaml")
 
-	// Create directory in memory filesystem
-	err := memFS.MkdirAll("/test", 0755)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-
-	cm := newTestConfigManagerWithFileOps(memFS, memFS)
+	cm := newTestConfigManager()
 	cm.configPath = configPath
 
 	cm.config.Default.Branch = "development"
 	cm.config.UI.Color = false
 	cm.config.Aliases["test"] = "help"
 
-	err = cm.Save()
+	err := cm.Save()
 	if err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
 
-	// Check that file was created in memory filesystem
-	_, err = memFS.Stat(configPath)
+	// Check that file was created
+	_, err = os.Stat(configPath)
 	if err != nil {
 		t.Fatalf("Config file was not created: %v", err)
 	}
 
-	data, err := memFS.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to read saved config: %v", err)
 	}
@@ -257,28 +238,22 @@ func TestSave(t *testing.T) {
 // TestSaveDoesNotWriteOnInvalidConfig ensures Save validates before writing
 // and does not leave a config file on disk when validation fails.
 func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
-	memFS := newMemoryFileOps()
-	configPath := "/test/invalid-config.yaml"
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "invalid-config.yaml")
 
-	// Create directory in memory filesystem
-	err := memFS.MkdirAll("/test", 0755)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-
-	cm := newTestConfigManagerWithFileOps(memFS, memFS)
+	cm := newTestConfigManager()
 	cm.configPath = configPath
 
 	// Force an invalid editor so validation fails
 	cm.config.Default.Editor = "this-editor-should-not-exist-xyz"
 
-	err = cm.Save()
+	err := cm.Save()
 	if err == nil {
 		t.Fatal("expected Save to fail validation, got nil error")
 	}
 
-	// Check that no config file was written to memory filesystem
-	if _, statErr := memFS.Stat(configPath); statErr == nil {
+	// Check that no config file was written
+	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
 		t.Fatal("expected no config file to be written, but file exists")
 	}
 }
@@ -381,19 +356,13 @@ func TestGet(t *testing.T) {
 
 // TestSet tests the Set method
 func TestSet(t *testing.T) {
-	memFS := newMemoryFileOps()
-	configPath := "/test/config.yaml"
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.yaml")
 
-	// Create directory in memory filesystem
-	err := memFS.MkdirAll("/test", 0755)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-
-	cm := newTestConfigManagerWithFileOps(memFS, memFS)
+	cm := newTestConfigManager()
 	cm.configPath = configPath
 
-	err = cm.Set("default.branch", "develop")
+	err := cm.Set("default.branch", "develop")
 	if err != nil {
 		t.Fatalf("Failed to set value: %v", err)
 	}
@@ -1303,8 +1272,7 @@ func TestLoadConfigErrorHandling(t *testing.T) {
 
 // TestWriteTempConfig tests error cases in writeTempConfig
 func TestWriteTempConfig(t *testing.T) {
-	memFS := newMemoryFileOps()
-	cm := newTestConfigManagerWithFileOps(memFS, memFS)
+	cm := newTestConfigManager()
 
 	// Test with invalid directory
 	_, err := cm.writeTempConfig("/nonexistent/directory", []byte("test"))
@@ -1313,24 +1281,19 @@ func TestWriteTempConfig(t *testing.T) {
 	}
 
 	// Test with valid directory
-	tmpDir := "/test"
-	err = memFS.MkdirAll(tmpDir, 0755)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-
+	tmpDir := t.TempDir()
 	tmpFile, err := cm.writeTempConfig(tmpDir, []byte("test content"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	// Verify file was created in memory filesystem
-	if _, err := memFS.Stat(tmpFile); err != nil {
+	// Verify file was created
+	if _, err := os.Stat(tmpFile); err != nil {
 		t.Errorf("Expected temp file to be created, got error: %v", err)
 	}
 
 	// Verify content
-	data, err := memFS.ReadFile(tmpFile)
+	data, err := os.ReadFile(tmpFile)
 	if err != nil {
 		t.Errorf("Failed to read temp file: %v", err)
 	}
@@ -1341,23 +1304,18 @@ func TestWriteTempConfig(t *testing.T) {
 
 // TestReplaceConfigFile tests the replaceConfigFile function
 func TestReplaceConfigFile(t *testing.T) {
-	memFS := newMemoryFileOps()
-	cm := newTestConfigManagerWithFileOps(memFS, memFS)
+	tempDir := t.TempDir()
+	cm := newTestConfigManager()
 
-	// Create directory and source file in memory filesystem
-	err := memFS.MkdirAll("/test", 0755)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-
-	srcFile := "/test/source.yaml"
-	err = memFS.WriteFile(srcFile, []byte("test content"), 0600)
+	// Create source file
+	srcFile := filepath.Join(tempDir, "source.yaml")
+	err := os.WriteFile(srcFile, []byte("test content"), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 
 	// Set destination path
-	destFile := "/test/dest.yaml"
+	destFile := filepath.Join(tempDir, "dest.yaml")
 	cm.configPath = destFile
 
 	// Test replacing file
@@ -1367,12 +1325,12 @@ func TestReplaceConfigFile(t *testing.T) {
 	}
 
 	// Verify destination file exists
-	if _, err := memFS.Stat(destFile); err != nil {
+	if _, err := os.Stat(destFile); err != nil {
 		t.Errorf("Expected destination file to exist after replace, got error: %v", err)
 	}
 
 	// Verify content
-	content, err := memFS.ReadFile(destFile)
+	content, err := os.ReadFile(destFile)
 	if err != nil {
 		t.Fatalf("Failed to read destination file: %v", err)
 	}
@@ -1381,7 +1339,7 @@ func TestReplaceConfigFile(t *testing.T) {
 	}
 
 	// Verify source file no longer exists
-	if _, err := memFS.Stat(srcFile); err == nil {
+	if _, err := os.Stat(srcFile); !os.IsNotExist(err) {
 		t.Error("Expected source file to be removed after rename")
 	}
 }
