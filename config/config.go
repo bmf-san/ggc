@@ -38,17 +38,32 @@ type FileOps interface {
 // OSFileOps implements FileOps using real OS operations
 type OSFileOps struct{}
 
+// ReadFile reads a file from the filesystem
 func (OSFileOps) ReadFile(filename string) ([]byte, error) { return os.ReadFile(filename) }
+
+// WriteFile writes data to a file
 func (OSFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
 	return os.WriteFile(filename, data, perm)
 }
-func (OSFileOps) Stat(name string) (os.FileInfo, error)        { return os.Stat(name) }
+
+// Stat returns file information
+func (OSFileOps) Stat(name string) (os.FileInfo, error) { return os.Stat(name) }
+
+// MkdirAll creates directories recursively
 func (OSFileOps) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
+
+// CreateTemp creates a temporary file
 func (OSFileOps) CreateTemp(dir, pattern string) (TempFile, error) {
 	return os.CreateTemp(dir, pattern)
 }
-func (OSFileOps) Remove(name string) error                  { return os.Remove(name) }
-func (OSFileOps) Rename(oldpath, newpath string) error      { return os.Rename(oldpath, newpath) }
+
+// Remove removes a file
+func (OSFileOps) Remove(name string) error { return os.Remove(name) }
+
+// Rename renames a file
+func (OSFileOps) Rename(oldpath, newpath string) error { return os.Rename(oldpath, newpath) }
+
+// Chmod changes file permissions
 func (OSFileOps) Chmod(name string, mode os.FileMode) error { return os.Chmod(name, mode) }
 
 // Config represents the complete configuration structure
@@ -691,10 +706,6 @@ func (cm *Manager) replaceConfigFileWithOps(tmpName string, fileOps FileOps) err
 		}
 	}
 	return nil
-}
-
-func (cm *Manager) hardenPermissions(path string) {
-	cm.hardenPermissionsWithOps(path, OSFileOps{})
 }
 
 func (cm *Manager) hardenPermissionsWithOps(path string, fileOps FileOps) {
