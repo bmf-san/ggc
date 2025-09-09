@@ -313,8 +313,27 @@ _ggc_rebase() {
     local subcommands
     subcommands=(
         'interactive:Interactive rebase'
+        'continue:Continue an in-progress rebase'
+        'abort:Abort an in-progress rebase'
+        'skip:Skip current patch and continue'
     )
-    _describe 'rebase subcommands' subcommands
+    if [[ $CURRENT == 2 ]]; then
+        # Show subcommands; also suggest branches unless the current word
+        # exactly matches a known subcommand.
+        _describe 'rebase subcommands' subcommands
+        case $words[$CURRENT] in
+            (continue|abort|skip|interactive)
+                ;;
+            (*)
+                local branches
+                branches=(${(f)"$(ggc __complete branch 2>/dev/null)"})
+                if [[ ${#branches[@]} -gt 0 ]]; then
+                    _describe 'branches' branches
+                fi
+                ;;
+        esac
+        return
+    fi
 }
 
 compdef _ggc ggc

@@ -78,6 +78,10 @@ func (m *mockCommitGitClient) LogSimple() error                       { return n
 func (m *mockCommitGitClient) LogGraph() error                        { return nil }
 func (m *mockCommitGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
 func (m *mockCommitGitClient) RebaseInteractive(_ int) error          { return nil }
+func (m *mockCommitGitClient) Rebase(_ string) error                  { return nil }
+func (m *mockCommitGitClient) RebaseContinue() error                  { return nil }
+func (m *mockCommitGitClient) RebaseAbort() error                     { return nil }
+func (m *mockCommitGitClient) RebaseSkip() error                      { return nil }
 func (m *mockCommitGitClient) GetUpstreamBranch(_ string) (string, error) {
 	return "origin/main", nil
 }

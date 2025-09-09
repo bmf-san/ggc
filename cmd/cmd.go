@@ -311,8 +311,6 @@ func suggestNewSyntax(args []string) (string, bool) {
 
 	// Check command-specific legacy syntax
 	switch args[0] {
-	case "rebase":
-		return checkRebaseSyntax(args[1:])
 	case "add":
 		return checkAddSyntax(args[1:])
 	case "restore":
@@ -325,16 +323,6 @@ func suggestNewSyntax(args []string) (string, bool) {
 		return checkBranchSyntax(args[1:])
 	}
 
-	return "", false
-}
-
-// checkRebaseSyntax checks for legacy rebase syntax
-func checkRebaseSyntax(args []string) (string, bool) {
-	for _, a := range args {
-		if a == "-i" || a == "--interactive" {
-			return "rebase interactive", true
-		}
-	}
 	return "", false
 }
 

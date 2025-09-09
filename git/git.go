@@ -84,6 +84,10 @@ type Clienter interface {
 
 	// Rebase Operations
 	RebaseInteractive(commitCount int) error
+	Rebase(upstream string) error
+	RebaseContinue() error
+	RebaseAbort() error
+	RebaseSkip() error
 	GetUpstreamBranch(branch string) (string, error)
 
 	// Stash Operations
