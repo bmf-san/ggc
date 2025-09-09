@@ -52,7 +52,10 @@ complete -c ggc -f -n "__fish_seen_subcommand_from remote" -a "list add remove s
 complete -c ggc -f -n "__fish_seen_subcommand_from fetch" -a "prune"
 
 # Rebase subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "interactive"
+complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "interactive continue abort skip"
+
+# Rebase upstream completion (branch names) when not using a subcommand
+complete -c ggc -f -n "__fish_seen_subcommand_from rebase; and not __fish_seen_subcommand_from interactive; and not __fish_seen_subcommand_from continue; and not __fish_seen_subcommand_from abort; and not __fish_seen_subcommand_from skip" -a "(__ggc_complete_branches)"
 
 # Tag subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from tag" -a "create delete show list annotated push"

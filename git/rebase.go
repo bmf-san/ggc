@@ -28,6 +28,54 @@ func (c *Client) RebaseInteractive(commitCount int) error {
 	return nil
 }
 
+// Rebase performs a basic rebase onto the given upstream reference.
+func (c *Client) Rebase(upstream string) error {
+	cmd := c.execCommand("git", "rebase", upstream)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("rebase", fmt.Sprintf("git rebase %s", upstream), err)
+	}
+	return nil
+}
+
+// RebaseContinue continues an in-progress rebase.
+func (c *Client) RebaseContinue() error {
+	cmd := c.execCommand("git", "rebase", "--continue")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("rebase continue", "git rebase --continue", err)
+	}
+	return nil
+}
+
+// RebaseAbort aborts an in-progress rebase.
+func (c *Client) RebaseAbort() error {
+	cmd := c.execCommand("git", "rebase", "--abort")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("rebase abort", "git rebase --abort", err)
+	}
+	return nil
+}
+
+// RebaseSkip skips the current patch and continues rebasing.
+func (c *Client) RebaseSkip() error {
+	cmd := c.execCommand("git", "rebase", "--skip")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewError("rebase skip", "git rebase --skip", err)
+	}
+	return nil
+}
+
 // GetUpstreamBranch gets the upstream branch for the given branch.
 func (c *Client) GetUpstreamBranch(branch string) (string, error) {
 	cmd := c.execCommand("git", "rev-parse", "--abbrev-ref", fmt.Sprintf("%s@{upstream}", branch))

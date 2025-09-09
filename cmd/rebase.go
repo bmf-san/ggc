@@ -40,9 +40,63 @@ func (r *Rebaser) Rebase(args []string) {
 	switch args[0] {
 	case "interactive":
 		r.RebaseInteractive()
+	case "continue":
+		r.handleRebaseContinue()
+	case "abort":
+		r.handleRebaseAbort()
+	case "skip":
+		r.handleRebaseSkip()
 	default:
-		r.helper.ShowRebaseHelp()
+		r.handleStandardRebase(args[0])
 	}
+}
+
+func (r *Rebaser) handleRebaseContinue() {
+	if err := r.gitClient.RebaseContinue(); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+}
+
+func (r *Rebaser) handleRebaseAbort() {
+	if err := r.gitClient.RebaseAbort(); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Rebase aborted\n")
+}
+
+func (r *Rebaser) handleRebaseSkip() {
+	if err := r.gitClient.RebaseSkip(); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+}
+
+func (r *Rebaser) handleStandardRebase(ref string) {
+	upstream := r.resolveUpstream(ref)
+	if upstream == "" {
+		return
+	}
+	if err := r.gitClient.Rebase(upstream); err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+}
+
+func (r *Rebaser) resolveUpstream(ref string) string {
+	if r.gitClient.RevParseVerify(ref) {
+		return ref
+	}
+	try := "origin/" + ref
+	if r.gitClient.RevParseVerify(try) {
+		return try
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Error: unknown ref '%s'\n", ref)
+	return ""
 }
 
 // RebaseInteractive executes interactive rebase.

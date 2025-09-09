@@ -107,6 +107,10 @@ func (m *mockCompleteGitClient) TagExists(_ string) bool                { return
 func (m *mockCompleteGitClient) GetTagCommit(_ string) (string, error)  { return "abc123", nil }
 func (m *mockCompleteGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
 func (m *mockCompleteGitClient) RebaseInteractive(_ int) error          { return nil }
+func (m *mockCompleteGitClient) Rebase(_ string) error                  { return nil }
+func (m *mockCompleteGitClient) RebaseContinue() error                  { return nil }
+func (m *mockCompleteGitClient) RebaseAbort() error                     { return nil }
+func (m *mockCompleteGitClient) RebaseSkip() error                      { return nil }
 func (m *mockCompleteGitClient) GetUpstreamBranch(_ string) (string, error) {
 	return "origin/main", nil
 }
