@@ -88,6 +88,10 @@ func (m *testMockGitClient) LogOneline(_, _ string) (string, error) { return "",
 
 // Rebase Operations
 func (m *testMockGitClient) RebaseInteractive(_ int) error              { return nil }
+func (m *testMockGitClient) Rebase(_ string) error                      { return nil }
+func (m *testMockGitClient) RebaseContinue() error                      { return nil }
+func (m *testMockGitClient) RebaseAbort() error                         { return nil }
+func (m *testMockGitClient) RebaseSkip() error                          { return nil }
 func (m *testMockGitClient) GetUpstreamBranch(_ string) (string, error) { return "origin/main", nil }
 
 // Stash Operations

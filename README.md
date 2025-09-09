@@ -237,7 +237,11 @@ ggc
 | `pull rebase` | Pull with rebase |
 | `push current` | Push current branch |
 | `push force` | Force push current branch |
-| `rebase` | Rebase current branch |
+| `rebase interactive` | Interactive rebase |
+| `rebase <upstream>` | Rebase current branch onto <upstream> |
+| `rebase continue` | Continue an in-progress rebase |
+| `rebase abort` | Abort an in-progress rebase |
+| `rebase skip` | Skip current patch and continue |
 | `remote list` | List remotes |
 | `remote add <name> <url>` | Add a new remote |
 | `remote remove <name>` | Remove a remote |
@@ -277,6 +281,12 @@ ggc
 | `stash store <object> [message]` | Store stash object |
 | `status short` | Show concise status |
 | `version` | Show current ggc version |
+
+### Unified Syntax and “--” Separator
+
+- Unified commands: ggc uses a flagless, space-separated syntax (no `-x`/`--long` options). Use subcommands and words, e.g., `ggc fetch prune`, `ggc commit allow empty`.
+- Passing literals that begin with `-`: use the standard `--` separator to mark the end of options; everything after `--` is treated as data.
+  - Example: `ggc commit -- - fix leading dash`
 
 ## Command Aliases
 

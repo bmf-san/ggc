@@ -61,6 +61,11 @@ Main Commands:
   ggc push current            Push current branch
   ggc push force              Force push current branch
   ggc rebase interactive      Interactive rebase
+  ggc rebase <upstream>       Rebase current branch onto <upstream>
+  ggc rebase continue         Continue an in-progress rebase
+  ggc rebase abort            Abort an in-progress rebase
+  ggc rebase skip             Skip current patch and continue
+
   ggc remote list             Show remotes
   ggc remote add <n> <url>    Add remote
   ggc remote remove <n>       Remove remote
@@ -76,6 +81,11 @@ Main Commands:
   ggc reset                   Reset and clean
   ggc stash                   Stash changes
   ggc status                  Show the working tree status
+
+Notes:
+  - Unified syntax: no option flags (-/--) — use subcommands and words.
+  - To pass a literal that starts with '-', use the '--' separator:
+      ggc commit -- - fix leading dash
 `
 
 	commandHelpTemplate = `{{.Logo}}

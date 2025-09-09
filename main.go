@@ -3,6 +3,7 @@ package main
 
 import (
 	"os"
+	"runtime/debug"
 
 	"github.com/bmf-san/ggc/v5/cmd"
 	"github.com/bmf-san/ggc/v5/config"
@@ -17,7 +18,33 @@ var (
 
 // GetVersionInfo returns the version information
 func GetVersionInfo() (string, string) {
-	return version, commit
+	// Prefer ldflags-injected values when available
+	if version != "" || commit != "" {
+		return version, commit
+	}
+
+	// Fallback for `go install`: use module build info
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		v := bi.Main.Version
+		// Treat test/dev builds as unset
+		if v == "(devel)" {
+			v = ""
+		}
+		var rev string
+		for _, s := range bi.Settings {
+			if s.Key == "vcs.revision" {
+				if len(s.Value) >= 7 {
+					rev = s.Value[:7]
+				} else {
+					rev = s.Value
+				}
+				break
+			}
+		}
+		return v, rev
+	}
+
+	return "", ""
 }
 
 func main() {

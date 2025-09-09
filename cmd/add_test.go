@@ -35,6 +35,16 @@ type mockAddGitClient struct {
 	GetCurrentBranchFunc  func() (string, error)
 	LogOnelineFunc        func(from, to string) (string, error)
 	RebaseInteractiveFunc func(commitCount int) error
+	RebaseCalled          bool
+	RebaseUpstream        string
+	RebaseErr             error
+	RebaseContinueCalled  bool
+	RebaseContinueErr     error
+	RebaseAbortCalled     bool
+	RebaseAbortErr        error
+	RebaseSkipCalled      bool
+	RebaseSkipErr         error
+	RevParseVerifyFunc    func(ref string) bool
 }
 
 func (m *mockAddGitClient) Add(files ...string) error {
@@ -127,6 +137,23 @@ func (m *mockAddGitClient) RebaseInteractive(commitCount int) error {
 	}
 	return nil
 }
+func (m *mockAddGitClient) Rebase(upstream string) error {
+	m.RebaseCalled = true
+	m.RebaseUpstream = upstream
+	return m.RebaseErr
+}
+func (m *mockAddGitClient) RebaseContinue() error {
+	m.RebaseContinueCalled = true
+	return m.RebaseContinueErr
+}
+func (m *mockAddGitClient) RebaseAbort() error {
+	m.RebaseAbortCalled = true
+	return m.RebaseAbortErr
+}
+func (m *mockAddGitClient) RebaseSkip() error {
+	m.RebaseSkipCalled = true
+	return m.RebaseSkipErr
+}
 func (m *mockAddGitClient) GetUpstreamBranch(_ string) (string, error) {
 	return "origin/main", nil
 }
@@ -165,7 +192,12 @@ func (m *mockAddGitClient) GetAheadBehindCount(_, _ string) (string, error) {
 }
 func (m *mockAddGitClient) GetVersion() (string, error)    { return "test-version", nil }
 func (m *mockAddGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
-func (m *mockAddGitClient) RevParseVerify(_ string) bool   { return true }
+func (m *mockAddGitClient) RevParseVerify(ref string) bool {
+	if m.RevParseVerifyFunc != nil {
+		return m.RevParseVerifyFunc(ref)
+	}
+	return true
+}
 
 // Config Operations
 func (m *mockAddGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
