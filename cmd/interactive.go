@@ -18,6 +18,11 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
+// initialInputCapacity defines the initial capacity for the input rune buffer
+// used by the real-time editor. It helps minimize reallocations during typing
+// while keeping memory usage modest.
+const initialInputCapacity = 64
+
 // GitStatus represents the current Git repository status
 type GitStatus struct {
 	Branch     string
@@ -182,6 +187,7 @@ type UI struct {
 	colors    *ANSIColors
 	gitStatus *GitStatus
 	gitClient git.Clienter
+	reader    *bufio.Reader
 }
 
 // UIState holds the current state of the interactive UI
@@ -334,6 +340,57 @@ func (s *UIState) MoveToEnd() {
 	s.cursorPos = utf8.RuneCountInString(s.input)
 }
 
+// MoveLeft moves cursor one rune left
+func (s *UIState) MoveLeft() {
+	if s.cursorPos > 0 {
+		s.cursorPos--
+	}
+}
+
+// MoveRight moves cursor one rune right
+func (s *UIState) MoveRight() {
+	if s.cursorPos < utf8.RuneCountInString(s.input) {
+		s.cursorPos++
+	}
+}
+
+// MoveWordLeft moves cursor to the beginning of the previous word
+func (s *UIState) MoveWordLeft() {
+	if s.cursorPos == 0 {
+		return
+	}
+	runes := []rune(s.input)
+	pos := s.cursorPos - 1
+	// Skip any spaces to the left
+	for pos >= 0 && unicode.IsSpace(runes[pos]) {
+		pos--
+	}
+	// Skip the word characters to the left
+	for pos >= 0 && !unicode.IsSpace(runes[pos]) {
+		pos--
+	}
+	s.cursorPos = pos + 1
+}
+
+// MoveWordRight moves cursor to the start of the next word
+func (s *UIState) MoveWordRight() {
+	runes := []rune(s.input)
+	n := len(runes)
+	pos := s.cursorPos
+	if pos >= n {
+		return
+	}
+	// Skip current word characters
+	for pos < n && !unicode.IsSpace(runes[pos]) {
+		pos++
+	}
+	// Skip following spaces
+	for pos < n && unicode.IsSpace(runes[pos]) {
+		pos++
+	}
+	s.cursorPos = pos
+}
+
 // GetSelectedCommand returns the currently selected command
 func (s *UIState) GetSelectedCommand() *CommandInfo {
 	if len(s.filtered) > 0 && s.selected >= 0 && s.selected < len(s.filtered) {
@@ -417,8 +474,108 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
 		return true, true, nil
+	case 27: // ESC: arrow keys and Option/Alt modifiers
+		h.handleEscapeSequence()
+		return true, true, nil
 	default:
 		return false, true, nil
+	}
+}
+
+// handleEscapeSequence parses common ESC sequences for arrow and word navigation.
+// Supports:
+// - Arrow keys: ESC [ C/D (right/left), ESC O C/D (application mode)
+// - Ctrl+Arrow: ESC [ 1;5 C/D or ESC [ 5 C/D
+// - Alt/Option+Arrow: ESC [ 1;3 C/D, ESC [ 1;9 C/D (varies by terminal)
+// - macOS Option word nav: ESC b / ESC f
+func (h *KeyHandler) handleEscapeSequence() {
+	if h.ui == nil || h.ui.reader == nil {
+		return
+	}
+
+	r := h.ui.reader
+	b, err := r.ReadByte()
+	if err != nil {
+		return
+	}
+
+	switch b {
+	case '[':
+		h.handleCSISequence(r)
+	case 'O':
+		h.handleApplicationCursorMode(r)
+	case 'b':
+		h.ui.state.MoveWordLeft()
+	case 'f':
+		h.ui.state.MoveWordRight()
+	case 127, 8:
+		// Meta-Backspace (Option+Backspace): delete word left
+		h.ui.state.DeleteWord()
+	}
+}
+
+// handleCSISequence handles CSI (Control Sequence Introducer) sequences
+func (h *KeyHandler) handleCSISequence(r *bufio.Reader) {
+	var params []byte
+	for {
+		nb, err := r.ReadByte()
+		if err != nil {
+			return
+		}
+		if (nb >= 'A' && nb <= 'Z') || nb == '~' {
+			h.processCSIFinalByte(nb, string(params))
+			return
+		}
+		params = append(params, nb)
+	}
+}
+
+// isWordMotionParam reports whether CSI params include a word-motion modifier
+// commonly emitted by terminals (e.g., Ctrl/Alt variants use 5/3/9).
+func isWordMotionParam(params string) bool {
+	return strings.Contains(params, "5") || strings.Contains(params, "3") || strings.Contains(params, "9")
+}
+
+// processCSIFinalByte processes the final byte of a CSI sequence
+func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
+	isWord := false
+	if params != "" {
+		for _, p := range strings.Split(params, ";") {
+			if n, err := strconv.Atoi(p); err == nil {
+				if n == 3 || n == 5 || n == 9 {
+					isWord = true
+					break
+				}
+			}
+		}
+	}
+	switch final {
+	case 'C': // Right
+		if isWord {
+			h.ui.state.MoveWordRight()
+		} else {
+			h.ui.state.MoveRight()
+		}
+	case 'D': // Left
+		if isWord {
+			h.ui.state.MoveWordLeft()
+		} else {
+			h.ui.state.MoveLeft()
+		}
+	}
+}
+
+// handleApplicationCursorMode handles application cursor mode sequences
+func (h *KeyHandler) handleApplicationCursorMode(r *bufio.Reader) {
+	nb, err := r.ReadByte()
+	if err != nil {
+		return
+	}
+	switch nb {
+	case 'C':
+		h.ui.state.MoveRight()
+	case 'D':
+		h.ui.state.MoveLeft()
 	}
 }
 
@@ -542,7 +699,6 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 
 // getRealTimeInput gets user input with real-time display using raw terminal mode
 func (h *KeyHandler) getRealTimeInput(_ string) string {
-	var input strings.Builder
 	fd := int(os.Stdin.Fd())
 	oldState, err := h.ui.term.makeRaw(fd)
 	if err != nil {
@@ -550,9 +706,22 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 	}
 	defer func() { _ = h.ui.term.restore(fd, oldState) }()
 
+	return h.processRealTimeInput()
+}
+
+// processRealTimeInput handles the main input processing loop
+func (h *KeyHandler) processRealTimeInput() string {
 	reader := bufio.NewReader(os.Stdin)
+	inputRunes := make([]rune, 0, initialInputCapacity)
+	cursor := 0
+
+	editor := &realTimeEditor{
+		ui:         h.ui,
+		inputRunes: &inputRunes,
+		cursor:     &cursor,
+	}
+
 	for {
-		// Read UTF-8 rune instead of single byte
 		r, _, err := reader.ReadRune()
 		if errors.Is(err, io.EOF) {
 			break
@@ -560,14 +729,392 @@ func (h *KeyHandler) getRealTimeInput(_ string) string {
 		if err != nil {
 			continue
 		}
-		if done, canceled := h.handleInputChar(&input, r); done {
-			if canceled {
-				return ""
-			}
-			return input.String()
+
+		result := editor.handleInput(r, reader)
+		if result.done {
+			return result.text
+		}
+		if result.canceled {
+			return ""
 		}
 	}
-	return input.String()
+	return string(inputRunes)
+}
+
+// inputResult represents the result of handling input
+type inputResult struct {
+	done     bool
+	canceled bool
+	text     string
+}
+
+// realTimeEditor handles real-time input editing
+type realTimeEditor struct {
+	ui         *UI
+	inputRunes *[]rune
+	cursor     *int
+}
+
+// handleInput processes a single input rune
+func (e *realTimeEditor) handleInput(r rune, reader *bufio.Reader) inputResult {
+	switch r {
+	case '\n', '\r':
+		return e.handleEnter()
+	case 3: // Ctrl+C
+		return e.handleCtrlC()
+	case 127, '\b': // Backspace
+		e.handleBackspace()
+		return inputResult{}
+	case 27: // ESC sequences
+		e.handleEscape(reader)
+		return inputResult{}
+	default:
+		if unicode.IsPrint(r) {
+			e.handlePrintableChar(r)
+		}
+		return inputResult{}
+	}
+}
+
+// handleEnter processes Enter key
+func (e *realTimeEditor) handleEnter() inputResult {
+	if len(*e.inputRunes) > 0 {
+		e.ui.write("\r\n")
+		return inputResult{done: true, text: string(*e.inputRunes)}
+	}
+	e.ui.write(" %s(required)%s", e.ui.colors.BrightRed, e.ui.colors.Reset)
+	return inputResult{}
+}
+
+// handleCtrlC processes Ctrl+C
+func (e *realTimeEditor) handleCtrlC() inputResult {
+	e.ui.write("\r\n%sOperation canceled%s\r\n", e.ui.colors.BrightRed, e.ui.colors.Reset)
+	return inputResult{canceled: true}
+}
+
+// handleBackspace processes backspace key
+func (e *realTimeEditor) handleBackspace() {
+	if *e.cursor == 0 {
+		return
+	}
+	start := e.findGraphemeStart(*e.cursor - 1)
+	// Compute columns to move left/clear for the removed cluster
+	moveCols := e.colsBetween(start, *e.cursor)
+	clearedCols := 0
+	for i := start; i < *e.cursor; i++ {
+		clearedCols += e.runeWidth((*e.inputRunes)[i])
+	}
+	// Move cursor left, remove runes, and redraw tail
+	e.moveLeft(moveCols)
+	*e.inputRunes = append((*e.inputRunes)[:start], (*e.inputRunes)[*e.cursor:]...)
+	*e.cursor = start
+	e.printTailAndReposition(*e.cursor, clearedCols)
+}
+
+// findGraphemeStart finds the start of the grapheme cluster ending at the given position
+func (e *realTimeEditor) findGraphemeStart(pos int) int {
+	start := pos
+	start = e.skipCombiningMarks(start)
+	start = e.handleRegionalIndicators(start)
+	start = e.handleZWJSequences(start)
+	if start < 0 {
+		start = 0
+	}
+	return start
+}
+
+// skipCombiningMarks skips any trailing variation selectors or combining marks
+func (e *realTimeEditor) skipCombiningMarks(start int) int {
+	for start >= 0 && (isCombining((*e.inputRunes)[start]) || isVariationSelector((*e.inputRunes)[start])) {
+		start--
+	}
+	return start
+}
+
+// handleRegionalIndicators handles regional indicator pairs (flags)
+func (e *realTimeEditor) handleRegionalIndicators(start int) int {
+	if start >= 0 && isRegionalIndicator((*e.inputRunes)[start]) {
+		if start > 0 && isRegionalIndicator((*e.inputRunes)[start-1]) {
+			start--
+		}
+	}
+	return start
+}
+
+// handleZWJSequences handles ZWJ sequences by including the joiner and previous rune repeatedly
+func (e *realTimeEditor) handleZWJSequences(start int) int {
+	for {
+		if start > 0 && isZWJ((*e.inputRunes)[start-1]) {
+			// Include ZWJ and the previous rune
+			start -= 2
+			// Also include any combining marks attached to the new base
+			start = e.skipCombiningMarks(start)
+			continue
+		}
+		break
+	}
+	return start
+}
+
+// handlePrintableChar processes printable characters
+func (e *realTimeEditor) handlePrintableChar(r rune) {
+	if *e.cursor == len(*e.inputRunes) {
+		*e.inputRunes = append(*e.inputRunes, r)
+	} else {
+		*e.inputRunes = append((*e.inputRunes)[:*e.cursor], append([]rune{r}, (*e.inputRunes)[*e.cursor:]...)...)
+	}
+	e.ui.write("%s", string(r))
+	*e.cursor++
+	e.printTailAndReposition(*e.cursor, 0)
+}
+
+// handleEscape processes escape sequences for real-time input
+func (e *realTimeEditor) handleEscape(reader *bufio.Reader) {
+	b, err := reader.ReadByte()
+	if err != nil {
+		return
+	}
+	switch b {
+	case '[':
+		e.handleCSIEscape(reader)
+	case 'O':
+		e.handleApplicationEscape(reader)
+	case 'b':
+		e.moveWordLeft()
+	case 'f':
+		e.moveWordRight()
+	case 127, '\b':
+		// Option+Backspace: delete previous word
+		e.deleteWordLeft()
+	}
+}
+
+// handleCSIEscape processes CSI escape sequences for real-time input
+func (e *realTimeEditor) handleCSIEscape(reader *bufio.Reader) {
+	var params []byte
+	for {
+		nb, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		if (nb >= 'A' && nb <= 'Z') || nb == '~' {
+			e.processCSIEscape(nb, string(params))
+			return
+		}
+		params = append(params, nb)
+	}
+}
+
+// processCSIEscape handles CSI final byte for real-time input
+func (e *realTimeEditor) processCSIEscape(final byte, params string) {
+	isWord := isWordMotionParam(params)
+	switch final {
+	case 'C': // Right
+		if isWord {
+			e.moveWordRight()
+		} else if *e.cursor < len(*e.inputRunes) {
+			e.moveRight(e.runeWidth((*e.inputRunes)[*e.cursor]))
+			*e.cursor++
+		}
+	case 'D': // Left
+		if isWord {
+			e.moveWordLeft()
+		} else if *e.cursor > 0 {
+			e.moveLeft(e.runeWidth((*e.inputRunes)[*e.cursor-1]))
+			*e.cursor--
+		}
+	}
+}
+
+// handleApplicationEscape processes application mode escape sequences
+func (e *realTimeEditor) handleApplicationEscape(reader *bufio.Reader) {
+	nb, err := reader.ReadByte()
+	if err != nil {
+		return
+	}
+	switch nb {
+	case 'C':
+		if *e.cursor < len(*e.inputRunes) {
+			e.moveRight(e.runeWidth((*e.inputRunes)[*e.cursor]))
+			*e.cursor++
+		}
+	case 'D':
+		if *e.cursor > 0 {
+			e.moveLeft(e.runeWidth((*e.inputRunes)[*e.cursor-1]))
+			*e.cursor--
+		}
+	}
+}
+
+// Helper methods for realTimeEditor
+
+// isCombining reports whether r is a combining mark (zero display width)
+func isCombining(r rune) bool {
+	return unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Me, r) || unicode.Is(unicode.Mc, r)
+}
+
+// isVariationSelector reports whether r is a variation selector (zero width)
+func isVariationSelector(r rune) bool {
+	// U+FE00..U+FE0F (VS1..VS16) and U+E0100..U+E01EF (IVS)
+	return (r >= 0xFE00 && r <= 0xFE0F) || (r >= 0xE0100 && r <= 0xE01EF)
+}
+
+// isRegionalIndicator reports whether r is a regional indicator rune (used for flags)
+func isRegionalIndicator(r rune) bool { return r >= 0x1F1E6 && r <= 0x1F1FF }
+
+// isZWJ reports whether r is ZERO WIDTH JOINER
+func isZWJ(r rune) bool { return r == 0x200D }
+
+// isEmoji reports common emoji ranges that should render as width 2 on most terminals
+func isEmoji(r rune) bool {
+	return isEmojiRange1(r) || isEmojiRange2(r)
+}
+
+// isEmojiRange1 checks the first set of emoji Unicode ranges
+func isEmojiRange1(r rune) bool {
+	return (r >= 0x1F300 && r <= 0x1F5FF) || // Misc Symbols and Pictographs
+		(r >= 0x1F600 && r <= 0x1F64F) || // Emoticons
+		(r >= 0x1F680 && r <= 0x1F6FF) || // Transport and Map Symbols
+		(r >= 0x1F700 && r <= 0x1F77F) || // Alchemical Symbols
+		(r >= 0x1F780 && r <= 0x1F7FF) // Geometric Shapes Extended
+}
+
+// isEmojiRange2 checks the second set of emoji Unicode ranges
+func isEmojiRange2(r rune) bool {
+	return (r >= 0x1F800 && r <= 0x1F8FF) || // Supplemental Arrows-C
+		(r >= 0x1F900 && r <= 0x1F9FF) || // Supplemental Symbols and Pictographs
+		(r >= 0x1FA00 && r <= 0x1FAFF) || // Symbols and Pictographs Extended-A
+		(r >= 0x2600 && r <= 0x26FF) || // Misc symbols
+		(r >= 0x2700 && r <= 0x27BF) // Dingbats
+}
+
+// runeDisplayWidth returns the number of terminal columns used by r
+func runeDisplayWidth(r rune) int {
+	// Zero-width characters
+	if isCombining(r) || isVariationSelector(r) || isZWJ(r) {
+		return 0
+	}
+	// East Asian wide/fullwidth
+	switch width.LookupRune(r).Kind() {
+	case width.EastAsianFullwidth, width.EastAsianWide:
+		return 2
+	}
+	// Common emoji are typically 2 columns
+	if isEmoji(r) {
+		return 2
+	}
+	return 1
+}
+
+func (e *realTimeEditor) runeWidth(r rune) int { return runeDisplayWidth(r) }
+
+func (e *realTimeEditor) colsBetween(from, to int) int {
+	if from < 0 {
+		from = 0
+	}
+	if to < 0 {
+		to = 0
+	}
+	if from > to {
+		from, to = to, from
+	}
+	cols := 0
+	for i := from; i < to && i < len(*e.inputRunes); i++ {
+		cols += e.runeWidth((*e.inputRunes)[i])
+	}
+	return cols
+}
+
+func (e *realTimeEditor) moveLeft(cols int) {
+	if cols <= 0 {
+		return
+	}
+	e.ui.write("\x1b[%dD", cols)
+}
+
+func (e *realTimeEditor) moveRight(cols int) {
+	if cols <= 0 {
+		return
+	}
+	e.ui.write("\x1b[%dC", cols)
+}
+
+func (e *realTimeEditor) printTailAndReposition(from int, clearedCols int) {
+	tailCols := 0
+	if from < len(*e.inputRunes) {
+		tail := string((*e.inputRunes)[from:])
+		e.ui.write("%s", tail)
+		for _, rr := range (*e.inputRunes)[from:] {
+			tailCols += e.runeWidth(rr)
+		}
+	}
+	if clearedCols > 0 {
+		e.ui.write("%s", strings.Repeat(" ", clearedCols))
+	}
+	e.moveLeft(tailCols + clearedCols)
+}
+
+func (e *realTimeEditor) moveWordLeft() {
+	if *e.cursor == 0 {
+		return
+	}
+	i := *e.cursor - 1
+	for i >= 0 && unicode.IsSpace((*e.inputRunes)[i]) {
+		i--
+	}
+	for i >= 0 && !unicode.IsSpace((*e.inputRunes)[i]) {
+		i--
+	}
+	newPos := i + 1
+	delta := e.colsBetween(newPos, *e.cursor)
+	e.moveLeft(delta)
+	*e.cursor = newPos
+}
+
+func (e *realTimeEditor) moveWordRight() {
+	n := len(*e.inputRunes)
+	if *e.cursor >= n {
+		return
+	}
+	i := *e.cursor
+	for i < n && !unicode.IsSpace((*e.inputRunes)[i]) {
+		i++
+	}
+	for i < n && unicode.IsSpace((*e.inputRunes)[i]) {
+		i++
+	}
+	delta := e.colsBetween(*e.cursor, i)
+	e.moveRight(delta)
+	*e.cursor = i
+}
+
+// deleteWordLeft deletes the word before the cursor and updates the display
+func (e *realTimeEditor) deleteWordLeft() {
+	if *e.cursor == 0 {
+		return
+	}
+	// Find new cursor position at the beginning of previous word
+	i := *e.cursor - 1
+	for i >= 0 && unicode.IsSpace((*e.inputRunes)[i]) {
+		i--
+	}
+	for i >= 0 && !unicode.IsSpace((*e.inputRunes)[i]) {
+		i--
+	}
+	newPos := i + 1
+	// Compute columns to move left and columns to clear
+	moveCols := e.colsBetween(newPos, *e.cursor)
+	clearedCols := 0
+	for j := newPos; j < *e.cursor; j++ {
+		clearedCols += e.runeWidth((*e.inputRunes)[j])
+	}
+	// Move cursor left to newPos
+	e.moveLeft(moveCols)
+	// Delete runes in [newPos, cursor)
+	*e.inputRunes = append((*e.inputRunes)[:newPos], (*e.inputRunes)[*e.cursor:]...)
+	*e.cursor = newPos
+	// Redraw tail and clear leftover cells
+	e.printTailAndReposition(*e.cursor, clearedCols)
 }
 
 //nolint:revive // Input character handling inherently requires multiple cases
@@ -581,29 +1128,48 @@ func (h *KeyHandler) handleInputChar(input *strings.Builder, char rune) (done bo
 		h.ui.write(" %s(required)%s", h.ui.colors.BrightRed, h.ui.colors.Reset)
 		return false, false
 	case '\b', 127:
-		if input.Len() > 0 {
-			str := input.String()
-			runes := []rune(str)
-			if len(runes) > 0 {
-				// Get the last rune to determine its display width
-				lastRune := runes[len(runes)-1]
-
-				// Remove the last rune from input
-				input.Reset()
-				input.WriteString(string(runes[:len(runes)-1]))
-
-				// Determine the display width of the character to delete
-				runeWidth := 1 // Default width for most characters
-				switch width.LookupRune(lastRune).Kind() {
-				case width.EastAsianFullwidth, width.EastAsianWide:
-					runeWidth = 2 // Wide characters (like CJK) take 2 columns
-				}
-
-				// Clear the character(s) from terminal display
-				for i := 0; i < runeWidth; i++ {
-					h.ui.write("\b \b")
-				}
+		if input.Len() == 0 {
+			return false, false
+		}
+		runes := []rune(input.String())
+		if len(runes) == 0 {
+			return false, false
+		}
+		// Identify start of previous grapheme-like cluster
+		end := len(runes)
+		start := end - 1
+		for start >= 0 && (isCombining(runes[start]) || isVariationSelector(runes[start])) {
+			start--
+		}
+		if start >= 0 && isRegionalIndicator(runes[start]) {
+			if start > 0 && isRegionalIndicator(runes[start-1]) {
+				start--
 			}
+		}
+		for {
+			if start > 0 && isZWJ(runes[start-1]) {
+				start -= 2
+				for start >= 0 && (isCombining(runes[start]) || isVariationSelector(runes[start])) {
+					start--
+				}
+				continue
+			}
+			break
+		}
+		if start < 0 {
+			start = 0
+		}
+		// Calculate total columns to clear
+		cols := 0
+		for i := start; i < end; i++ {
+			cols += runeDisplayWidth(runes[i])
+		}
+		// Update input
+		input.Reset()
+		input.WriteString(string(runes[:start]))
+		// Clear terminal cells
+		for i := 0; i < cols; i++ {
+			h.ui.write("\b \b")
 		}
 		return false, false
 	case 3: // Ctrl+C
@@ -882,9 +1448,13 @@ func (r *Renderer) renderHeader(ui *UI) {
 	}
 
 	// Navigation subtitle
-	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %sCtrl+a/e%s move • %sEnter%s execute • %sCtrl+c%s quit%s",
+	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %s←/→%s move • %sCtrl+←/→%s word • %sCtrl+a/e%s line • %sEnter%s execute • %sCtrl+c%s quit%s",
 		r.colors.BrightBlack,
 		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
 		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
@@ -963,6 +1533,10 @@ func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 
 	// Available keybinds
 	keybinds := []struct{ key, desc string }{
+		{"←/→", "Move cursor"},
+		{"Ctrl+←/→", "Move by word"},
+		{"Option+←/→", "Move by word (macOS)"},
+		{"Option+Backspace", "Delete word (macOS)"},
 		{"Ctrl+u", "Clear all input"},
 		{"Ctrl+w", "Delete word"},
 		{"Ctrl+k", "Delete to end"},
@@ -1060,9 +1634,13 @@ func (r *Renderer) renderCommandItem(ui *UI, cmd CommandInfo, index, selected, m
 // renderFooter renders the navigation footer
 func (r *Renderer) renderFooter(ui *UI) {
 	r.writeEmptyLine()
-	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %sCtrl+a/e%s Move  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
+	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %s←/→%s Move  %sCtrl+←/→%s Word  %sCtrl+a/e%s Line  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
 		r.colors.BrightBlack,
 		r.colors.BrightGreen+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
+		r.colors.BrightBlack,
+		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
 		r.colors.BrightCyan+r.colors.Bold,
 		r.colors.BrightBlack,
@@ -1170,7 +1748,7 @@ func (ui *UI) Run() []string {
 		}()
 	}
 
-	reader := bufio.NewReader(ui.stdin)
+	ui.reader = bufio.NewReader(ui.stdin)
 
 	for {
 		// Update filtered commands
@@ -1180,7 +1758,7 @@ func (ui *UI) Run() []string {
 		ui.renderer.Render(ui, ui.state)
 
 		// Read UTF-8 rune instead of single byte
-		r, size, err := reader.ReadRune()
+		r, size, err := ui.reader.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
