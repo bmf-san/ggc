@@ -149,7 +149,7 @@ func TestCommitter_Commit_AllowEmpty(t *testing.T) {
 		helper:       NewHelper(),
 	}
 	c.helper.outputWriter = &buf
-	c.Commit([]string{"allow-empty"})
+	c.Commit([]string{"allow", "empty"})
 	if !mockClient.commitAllowEmptyCalled {
 		t.Error("CommitAllowEmpty should be called")
 	}
@@ -179,7 +179,7 @@ func TestCommitter_Commit_AllowEmpty_Error(t *testing.T) {
 		helper:       NewHelper(),
 	}
 	c.helper.outputWriter = &buf
-	c.Commit([]string{"allow-empty"})
+	c.Commit([]string{"allow", "empty"})
 
 	output := buf.String()
 	if output != "Error: fail\n" {
@@ -267,7 +267,7 @@ func TestCommitter_Commit_Amend_NoEdit(t *testing.T) {
 		helper:       NewHelper(),
 	}
 	c.helper.outputWriter = &buf
-	c.Commit([]string{"amend", "--no-edit"})
+	c.Commit([]string{"amend", "no-edit"})
 	if !mockClient.commitAmendNoEditCalled {
 		t.Error("git commit --amend --no-edit command should be called")
 	}
@@ -284,7 +284,7 @@ func TestCommitter_Commit_Amend_Error(t *testing.T) {
 		helper:       NewHelper(),
 	}
 	c.helper.outputWriter = &buf
-	c.Commit([]string{"--amend", "test", "message"})
+	c.Commit([]string{"amend", "test", "message"})
 	output := buf.String()
 	if !strings.Contains(output, "Error:") {
 		t.Errorf("Expected error message, got: %s", output)

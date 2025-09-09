@@ -36,30 +36,34 @@ func (c *Committer) Commit(args []string) {
 	}
 
 	switch args[0] {
-	case "allow-empty":
-		c.handleAllowEmpty()
+	case "allow":
+		c.handleAllowCommand(args[1:])
 	case "amend":
-		c.handleAmend(args[1:])
+		c.handleAmendCommand(args[1:])
 	default:
-		c.handleCommitMessage(args)
+		c.handleDefaultCommit(args)
 	}
 }
 
-// handleAllowEmpty creates an empty commit
-func (c *Committer) handleAllowEmpty() {
-	if err := c.gitClient.CommitAllowEmpty(); err != nil {
-		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+// handleAllowCommand handles the "allow" subcommand
+func (c *Committer) handleAllowCommand(args []string) {
+	if len(args) >= 1 && args[0] == "empty" {
+		if err := c.gitClient.CommitAllowEmpty(); err != nil {
+			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		}
+		return
 	}
+	c.helper.ShowCommitHelp()
 }
 
-// handleAmend processes amend variations
-func (c *Committer) handleAmend(args []string) {
+// handleAmendCommand handles the "amend" subcommand
+func (c *Committer) handleAmendCommand(args []string) {
 	switch {
 	case len(args) == 0:
 		if err := c.gitClient.CommitAmend(); err != nil {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
-	case args[0] == "--no-edit":
+	case args[0] == "no-edit":
 		if err := c.gitClient.CommitAmendNoEdit(); err != nil {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
@@ -71,8 +75,8 @@ func (c *Committer) handleAmend(args []string) {
 	}
 }
 
-// handleCommitMessage creates a normal commit with message
-func (c *Committer) handleCommitMessage(args []string) {
+// handleDefaultCommit handles regular commit with message
+func (c *Committer) handleDefaultCommit(args []string) {
 	msg := strings.Join(args, " ")
 	if err := c.gitClient.Commit(msg); err != nil {
 		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)

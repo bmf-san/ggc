@@ -247,34 +247,34 @@ func TestAdder_Add_RunError_PrintsError(t *testing.T) {
 	}
 }
 
-func TestAdder_Add_POption_CallsGitAddP(t *testing.T) {
+func TestAdder_Add_PatchSubcommand_CallsInteractive(t *testing.T) {
 	mockClient := &mockAddGitClient{}
 	adder := &Adder{
 		gitClient:    mockClient,
 		outputWriter: &bytes.Buffer{},
 	}
-	adder.Add([]string{"-p"})
+	adder.Add([]string{"patch"})
 
 	if !mockClient.addInteractiveCalled {
 		t.Error("AddInteractive was not called")
 	}
 	if mockClient.addCalled {
-		t.Error("Add should not be called for -p option")
+		t.Error("Add should not be called for patch subcommand")
 	}
 }
 
-func TestAdder_Add_POption_Error(t *testing.T) {
+func TestAdder_Add_PatchSubcommand_Error(t *testing.T) {
 	mockClient := &mockAddGitClient{addInteractiveError: errors.New("interactive add failed")}
 	var buf bytes.Buffer
 	adder := &Adder{
 		gitClient:    mockClient,
 		outputWriter: &buf,
 	}
-	adder.Add([]string{"-p"})
+	adder.Add([]string{"patch"})
 
 	output := buf.String()
 	if output == "" || output[:5] != "Error" {
-		t.Errorf("Error output not generated with -p option: %s", output)
+		t.Errorf("Error output not generated with patch subcommand: %s", output)
 	}
 }
 
@@ -286,11 +286,11 @@ func TestAdder_Add_Interactive(t *testing.T) {
 		outputWriter: &buf,
 	}
 
-	adder.Add([]string{"-p"})
+	adder.Add([]string{"patch"})
 
 	// Check that AddInteractive was called
 	if !mockClient.addInteractiveCalled {
-		t.Error("AddInteractive should be called for -p option")
+		t.Error("AddInteractive should be called for patch subcommand")
 	}
 }
 

@@ -48,6 +48,8 @@ func (c *Cleaner) Clean(args []string) {
 		if err := c.gitClient.CleanDirs(); err != nil {
 			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
 		}
+	case "interactive":
+		c.CleanInteractive()
 	default:
 		c.helper.ShowCleanHelp()
 	}

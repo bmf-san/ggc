@@ -26,43 +26,41 @@ func (c *Completer) Complete(args []string) {
 	}
 	switch args[0] {
 	case "branch":
-		c.completeBranch(args)
+		if len(args) == 1 {
+			// Suggest subcommand candidates
+			subs := []string{
+				"current",
+				"checkout",
+				"create",
+				"delete",
+				// follow-ups: 'delete merged'
+				// Enhanced branch management
+				"rename",
+				"move",
+				// follow-ups: 'set upstream'
+				"info",
+				"list",
+				// follow-ups: 'list verbose'
+				"sort",
+				"contains",
+			}
+			for _, s := range subs {
+				fmt.Println(s)
+			}
+			return
+		}
+		// For the second argument and beyond, suggest local branch names
+		branches, err := c.gitClient.ListLocalBranches()
+		if err != nil {
+			return
+		}
+		for _, b := range branches {
+			fmt.Println(b)
+		}
 	case "files":
 		c.completeFiles()
 	default:
 		// Other completions can be added in the future
-	}
-}
-
-func (c *Completer) completeBranch(args []string) {
-	if len(args) == 1 {
-		subs := []string{
-			"current",
-			"checkout",
-			"checkout-remote",
-			"create",
-			"delete",
-			"delete-merged",
-			"rename",
-			"move",
-			"set-upstream",
-			"info",
-			"list",
-			"list --verbose",
-			"sort",
-			"contains",
-		}
-		for _, s := range subs {
-			fmt.Println(s)
-		}
-		return
-	}
-	branches, err := c.gitClient.ListLocalBranches()
-	if err != nil {
-		return
-	}
-	for _, b := range branches {
-		fmt.Println(b)
 	}
 }
 

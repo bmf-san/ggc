@@ -10,17 +10,17 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
-// Restoreer handles restore operations.
-type Restoreer struct {
+// Restorer handles restore operations.
+type Restorer struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
 	gitClient    git.Clienter
 }
 
-// NewRestoreer creates a new Restoreer instance.
-func NewRestoreer(client git.Clienter) *Restoreer {
-	return &Restoreer{
+// NewRestorer creates a new Restorer instance.
+func NewRestorer(client git.Clienter) *Restorer {
+	return &Restorer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
 		execCommand:  exec.Command,
@@ -29,19 +29,24 @@ func NewRestoreer(client git.Clienter) *Restoreer {
 }
 
 // Restore executes git restore commands.
-func (r *Restoreer) Restore(args []string) {
+func (r *Restorer) Restore(args []string) {
 	if len(args) == 0 {
 		r.helper.ShowRestoreHelp()
 		return
 	}
-	if args[0] == "--staged" {
+	if args[0] == "staged" {
+		if len(args) < 2 {
+			r.helper.ShowRestoreHelp()
+			return
+		}
 		r.restoreStaged(args[1:])
 		return
 	}
+
 	r.restoreCommitOrWorking(args)
 }
 
-func (r *Restoreer) restoreStaged(paths []string) {
+func (r *Restorer) restoreStaged(paths []string) {
 	if len(paths) < 1 {
 		r.helper.ShowRestoreHelp()
 		return
@@ -51,7 +56,7 @@ func (r *Restoreer) restoreStaged(paths []string) {
 	}
 }
 
-func (r *Restoreer) restoreCommitOrWorking(args []string) {
+func (r *Restorer) restoreCommitOrWorking(args []string) {
 	if len(args) >= 2 && (r.gitClient.RevParseVerify(args[0]) || isCommitLikeStrict(args[0])) {
 		commit := args[0]
 		paths := args[1:]
