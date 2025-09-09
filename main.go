@@ -24,7 +24,7 @@ func GetVersionInfo() (string, string) {
 	}
 
 	// Fallback for `go install`: use module build info
-	if bi, ok := debug.ReadBuildInfo(); ok && bi != nil {
+	if bi, ok := debug.ReadBuildInfo(); ok {
 		v := bi.Main.Version
 		// Treat test/dev builds as unset
 		if v == "(devel)" {
