@@ -18,12 +18,6 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
-// GitConfigExecutor interface for git config operations (for testing)
-type GitConfigExecutor interface {
-	ConfigSetGlobal(key, value string) error
-	ConfigGetGlobal(key string) (string, error)
-}
-
 // Simple file operations for testing
 type fileReader interface {
 	ReadFile(filename string) ([]byte, error)
@@ -262,11 +256,6 @@ type ValidationError struct {
 
 func (e *ValidationError) Error() string {
 	return fmt.Sprintf("invalid value for '%s': %v (%s)", e.Field, e.Value, e.Message)
-}
-
-// Validator creates an interface for validating config
-type Validator interface {
-	Validate() error
 }
 
 func (c *Config) validateBranch() error {
