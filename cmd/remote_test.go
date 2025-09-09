@@ -83,12 +83,12 @@ func TestRemoter_Remote(t *testing.T) {
 
 			// Verify that the function executed without panic and produced output
 			output := buf.String()
-			
+
 			// Remote commands should produce some output (help, results, or error messages)
 			if len(output) == 0 {
 				t.Errorf("Expected output for remote command %v, got empty string", tt.args)
 			}
-			
+
 			// Verify output content based on command and arguments
 			switch {
 			case len(tt.args) == 0:
@@ -113,8 +113,8 @@ func TestRemoter_Remote(t *testing.T) {
 				}
 				// Commands with insufficient args should show error or help
 				if (tt.args[0] == "add" && len(tt.args) < 3) ||
-				   (tt.args[0] == "remove" && len(tt.args) < 2) ||
-				   (tt.args[0] == "set-url" && len(tt.args) < 3) {
+					(tt.args[0] == "remove" && len(tt.args) < 2) ||
+					(tt.args[0] == "set-url" && len(tt.args) < 3) {
 					// These should produce error or help output
 					if len(output) < 5 {
 						t.Errorf("Expected error or help for insufficient args in %s, got: %s", tt.args[0], output)

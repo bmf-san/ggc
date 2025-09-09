@@ -59,12 +59,12 @@ func TestStatuser_Status(t *testing.T) {
 
 			// Verify that the function executed without panic and produced output
 			output := buf.String()
-			
+
 			// Status commands should always produce some output
 			if len(output) == 0 {
 				t.Errorf("Expected status output for args %v, got empty string", tt.args)
 			}
-			
+
 			// Verify output content based on arguments
 			switch {
 			case len(tt.args) == 0:

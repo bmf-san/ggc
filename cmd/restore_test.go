@@ -67,12 +67,12 @@ func TestRestorer_Restore(t *testing.T) {
 
 			// Verify that the function executed without panic and produced output
 			output := buf.String()
-			
+
 			// Restore commands should produce some output (results, help, or error messages)
 			if len(output) == 0 {
 				t.Errorf("Expected output for restore command %v, got empty string", tt.args)
 			}
-			
+
 			// Verify output content based on command type
 			switch {
 			case len(tt.args) == 0:

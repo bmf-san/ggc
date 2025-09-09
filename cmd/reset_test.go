@@ -63,12 +63,12 @@ func TestResetter_Reset(t *testing.T) {
 
 			// Verify that the function executed without panic and produced output
 			output := buf.String()
-			
+
 			// Reset commands should produce some output (results, help, or error messages)
 			if len(output) == 0 {
 				t.Errorf("Expected output for reset command %v, got empty string", tt.args)
 			}
-			
+
 			// Verify output content based on command type
 			switch {
 			case len(tt.args) == 0:

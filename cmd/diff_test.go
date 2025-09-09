@@ -76,12 +76,12 @@ func TestDiffer_Diff(t *testing.T) {
 
 			// Verify that the function executed without panic and produced output
 			output := buf.String()
-			
+
 			// Diff commands should produce some output (diff results, help, or error messages)
 			if len(output) == 0 {
 				t.Errorf("Expected output for diff command %v, got empty string", tt.args)
 			}
-			
+
 			// Verify output content based on command type
 			switch {
 			case len(tt.args) == 0:
@@ -122,13 +122,13 @@ func TestDiffer_DiffBasic(t *testing.T) {
 
 	// Test basic functionality - should execute without panic
 	differ.Diff([]string{})
-	
+
 	// Verify that the function executed and produced output
 	output := buf.String()
 	if len(output) == 0 {
 		t.Error("Expected diff output from basic test, got empty string")
 	}
-	
+
 	// Verify that the mock client is properly configured
 	if mockClient == nil {
 		t.Error("Expected mock client to be initialized")

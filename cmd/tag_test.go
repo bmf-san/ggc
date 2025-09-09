@@ -84,12 +84,12 @@ func TestTagger_Tag(t *testing.T) {
 
 			// Verify that the function executed without panic and produced some output
 			output := buf.String()
-			
+
 			// For all tag commands, we expect some output (help text, results, or error messages)
 			if len(output) == 0 {
 				t.Errorf("Expected some output for tag command %v, got empty string", tt.args)
 			}
-			
+
 			// Verify specific output patterns based on command type
 			switch {
 			case len(tt.args) == 0:
