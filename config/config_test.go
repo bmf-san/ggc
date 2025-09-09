@@ -16,12 +16,12 @@ import (
 // newTestConfigManager creates a config manager for testing without executing git commands
 func newTestConfigManager() *Manager {
 	mockClient := testutil.NewMockGitClient()
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	return NewConfigManagerForTesting(mockClient, memFS, memFS)
 }
 
 // newTestConfigManagerWithFileOps creates a config manager with specific file operations for testing
-func newTestConfigManagerWithFileOps(reader FileReader, writer FileWriter) *Manager {
+func newTestConfigManagerWithFileOps(reader fileReader, writer fileWriter) *Manager {
 	mockClient := testutil.NewMockGitClient()
 	return NewConfigManagerForTesting(mockClient, reader, writer)
 }
@@ -114,7 +114,7 @@ func TestGetConfigPaths(t *testing.T) {
 
 // TestLoadFromFile tests loading configuration from a file
 func TestLoadFromFile(t *testing.T) {
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	configPath := "/test/config.yaml"
 
 	testConfig := `
@@ -205,7 +205,7 @@ func TestLoad(t *testing.T) {
 
 // TestSave tests saving configuration to file
 func TestSave(t *testing.T) {
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	configPath := "/test/config.yaml"
 
 	// Create directory in memory filesystem
@@ -257,7 +257,7 @@ func TestSave(t *testing.T) {
 // TestSaveDoesNotWriteOnInvalidConfig ensures Save validates before writing
 // and does not leave a config file on disk when validation fails.
 func TestSaveDoesNotWriteOnInvalidConfig(t *testing.T) {
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	configPath := "/test/invalid-config.yaml"
 
 	// Create directory in memory filesystem
@@ -381,7 +381,7 @@ func TestGet(t *testing.T) {
 
 // TestSet tests the Set method
 func TestSet(t *testing.T) {
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	configPath := "/test/config.yaml"
 
 	// Create directory in memory filesystem
@@ -1303,7 +1303,7 @@ func TestLoadConfigErrorHandling(t *testing.T) {
 
 // TestWriteTempConfig tests error cases in writeTempConfig
 func TestWriteTempConfig(t *testing.T) {
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 
 	// Test with invalid directory
@@ -1341,7 +1341,7 @@ func TestWriteTempConfig(t *testing.T) {
 
 // TestReplaceConfigFile tests the replaceConfigFile function
 func TestReplaceConfigFile(t *testing.T) {
-	memFS := NewMemoryFileOps()
+	memFS := newMemoryFileOps()
 	cm := newTestConfigManagerWithFileOps(memFS, memFS)
 
 	// Create directory and source file in memory filesystem
