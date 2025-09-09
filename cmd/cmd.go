@@ -232,9 +232,10 @@ func (c *Cmd) Route(args []string) {
 		return
 	}
 
-	// Friendly hint for legacy syntax (flags/hyphens) without executing
-	if suggestion, ok := suggestNewSyntax(args); ok {
-		_, _ = fmt.Fprintf(c.outputWriter, "Legacy syntax detected.\nUse: ggc %s\n", suggestion)
+	// Treat legacy-like syntax as a hard error (no heuristics/suggestions)
+	if isLegacyLike(args) {
+		_, _ = fmt.Fprintln(c.outputWriter, "Error: legacy-like syntax is not supported.")
+		_, _ = fmt.Fprintln(c.outputWriter, "Use unified subcommands. See: ggc help <command>")
 		return
 	}
 
@@ -297,149 +298,27 @@ func (c *Cmd) routeExtendedCommand(cmd string, args []string) {
 	c.Help()
 }
 
-// suggestNewSyntax returns a friendly suggestion for unified syntax if a legacy
-// pattern is detected. It does not execute the command.
-func suggestNewSyntax(args []string) (string, bool) {
+// isLegacyLike returns true if the provided args look like legacy-style usage
+// that is no longer supported post v6 (e.g., flags like -i/--prune or
+// top-level hyphenated commands like clean-interactive).
+func isLegacyLike(args []string) bool {
 	if len(args) == 0 {
-		return "", false
+		return false
 	}
-
-	// Top-level hyphenated commands
-	if args[0] == "clean-interactive" {
-		return "clean interactive", true
+	// Top-level command should never be hyphenated in unified syntax
+	if strings.Contains(args[0], "-") {
+		return true
 	}
-
-	// Check command-specific legacy syntax
-	switch args[0] {
-	case "add":
-		return checkAddSyntax(args[1:])
-	case "restore":
-		return checkRestoreSyntax(args[1:])
-	case "fetch":
-		return checkFetchSyntax(args[1:])
-	case "commit":
-		return checkCommitSyntax(args[1:])
-	case "branch":
-		return checkBranchSyntax(args[1:])
-	}
-
-	return "", false
-}
-
-// checkAddSyntax checks for legacy add syntax
-func checkAddSyntax(args []string) (string, bool) {
-	for _, a := range args {
-		switch a {
-		case "-p":
-			return "add patch", true
-		case "-i", "--interactive":
-			return "add interactive", true
+	// Any flag-style argument (starts with '-' or '--') is considered legacy-like
+	for _, a := range args[1:] {
+		if a == "--" { // treat everything after "--" as data
+			break
+		}
+		if strings.HasPrefix(a, "-") {
+			return true
 		}
 	}
-	return "", false
-}
-
-// checkRestoreSyntax checks for legacy restore syntax
-func checkRestoreSyntax(args []string) (string, bool) {
-	out := []string{"restore"}
-	staged := false
-	rest := []string{}
-	for _, a := range args {
-		if a == "--staged" {
-			staged = true
-			continue
-		}
-		rest = append(rest, a)
-	}
-	if staged {
-		out = append(out, "staged")
-		out = append(out, rest...)
-		return strings.Join(out, " "), true
-	}
-	return "", false
-}
-
-// checkFetchSyntax checks for legacy fetch syntax
-func checkFetchSyntax(args []string) (string, bool) {
-	for _, a := range args {
-		if a == "--prune" {
-			return "fetch prune", true
-		}
-	}
-	return "", false
-}
-
-// checkCommitSyntax checks for legacy commit syntax
-func checkCommitSyntax(args []string) (string, bool) {
-	// Check for direct patterns first
-	if suggestion := checkDirectCommitPatterns(args); suggestion != "" {
-		return suggestion, true
-	}
-
-	// Check for amend patterns
-	if suggestion := checkAmendPatterns(args); suggestion != "" {
-		return suggestion, true
-	}
-
-	return "", false
-}
-
-// checkDirectCommitPatterns checks for direct commit patterns
-func checkDirectCommitPatterns(args []string) string {
-	for i, a := range args {
-		if a == "--allow-empty" || a == "allow-empty" {
-			return "commit allow empty"
-		}
-		// Check for amend --no-edit pattern
-		if a == "amend" && i+1 < len(args) {
-			for _, b := range args[i+1:] {
-				if b == "--no-edit" {
-					return "commit amend no-edit"
-				}
-			}
-		}
-	}
-	return ""
-}
-
-// checkAmendPatterns checks for amend-related patterns
-func checkAmendPatterns(args []string) string {
-	hasAmend := false
-	hasNoEdit := false
-	for _, a := range args {
-		if a == "amend" || a == "--amend" {
-			hasAmend = true
-		}
-		if a == "--no-edit" {
-			hasNoEdit = true
-		}
-	}
-	if hasAmend {
-		if hasNoEdit {
-			return "commit amend no-edit"
-		}
-		return "commit amend"
-	}
-	return ""
-}
-
-// checkBranchSyntax checks for legacy branch syntax
-func checkBranchSyntax(args []string) (string, bool) {
-	if len(args) >= 1 {
-		switch args[0] {
-		case "checkout-remote":
-			return "branch checkout remote", true
-		case "delete-merged":
-			return "branch delete merged", true
-		case "set-upstream":
-			return "branch set upstream", true
-		case "list-local":
-			return "branch list local", true
-		case "list-remote":
-			return "branch list remote", true
-		}
-	}
-	return "", false
+	return false
 }
 
 // waitForContinue waits for user input to continue

@@ -562,6 +562,92 @@ func TestCmd_Route(t *testing.T) {
 	}
 }
 
+func TestCmd_Route_LegacyLikeError(t *testing.T) {
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{name: "top-level hyphenated", args: []string{"clean-interactive"}},
+		{name: "flag style prune", args: []string{"fetch", "--prune"}},
+		{name: "commit allow-empty flag", args: []string{"commit", "--allow-empty"}},
+		{name: "rebase interactive flag", args: []string{"rebase", "-i"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			cmd := &Cmd{outputWriter: &buf}
+
+			// Should not panic and should print legacy-like error message
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Route() should not panic for args %v, but got: %v", tc.args, r)
+				}
+			}()
+
+			cmd.Route(tc.args)
+
+			out := buf.String()
+			if !strings.Contains(out, "legacy-like syntax is not supported") {
+				t.Fatalf("expected legacy-like error message, got: %q", out)
+			}
+			if !strings.Contains(out, "ggc help") {
+				t.Fatalf("expected help pointer in message, got: %q", out)
+			}
+		})
+	}
+}
+
+func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
+	// Use mock client to avoid git command side effects
+	mockClient := &mockGitClient{}
+	helper := NewHelper()
+	helper.outputWriter = io.Discard
+
+	var buf bytes.Buffer
+	cmd := &Cmd{
+		gitClient:    mockClient,
+		outputWriter: &buf, // capture legacy-like error output if any
+		helper:       helper,
+		adder:        &Adder{gitClient: mockClient, outputWriter: io.Discard},
+		brancher:     &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: io.Discard, helper: helper},
+		committer:    &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		logger:       &Logger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		puller:       &Puller{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		pusher:       &Pusher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		resetter:     &Resetter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		cleaner:      &Cleaner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		remoter:      &Remoter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		rebaser:      &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
+		stasher:      &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		configurer:   &Configurer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		hooker:       &Hooker{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		tagger:       &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		statuser:     &Statuser{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		versioner:    &Versioner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		completer:    &Completer{gitClient: mockClient},
+		differ:       &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		restorer:     &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+		fetcher:      &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
+	}
+
+	// Using "--" should allow a value starting with '-' to pass through
+	// without triggering the legacy-like error.
+	args := []string{"commit", "--", "-leading dash message"}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Route() should not panic for args %v, but got: %v", args, r)
+		}
+	}()
+
+	cmd.Route(args)
+
+	if strings.Contains(buf.String(), "legacy-like syntax is not supported") {
+		t.Fatalf("did not expect legacy-like error when using '--' separator, got: %q", buf.String())
+	}
+}
+
 // Test some behavior of Interactive by mocking InteractiveUI
 func TestCmd_Interactive_Existence(t *testing.T) {
 	// Interactive is a complex interactive function, making complete testing difficult
