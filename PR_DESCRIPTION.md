@@ -1,43 +1,43 @@
-# テストカバレッジの大幅改善とGitパッケージ構造のリファクタリング
+# Improve test coverage and refactor git package structure
 
-## 📊 概要
+## Description of Changes
 
-このPRでは、プロジェクト全体のテストカバレッジを大幅に改善し、gitパッケージの構造をより一貫性のある設計にリファクタリングしました。
+This Pull Request significantly improves test coverage across multiple packages and refactors the git package structure for better organization and consistency.
 
-## 🎯 主な成果
+## 🎯 Key Achievements
 
-### テストカバレッジの改善
+### Test Coverage Improvements
 
-| パッケージ | Before | After | 改善幅 |
-|-----------|--------|-------|--------|
+| Package | Before | After | Improvement |
+|---------|--------|-------|-------------|
 | **cmd** | 54.4% | **60.2%** | +5.8% |
 | **router** | 78.3% | **93.5%** | +15.2% 🌟 |
 | **config** | 78.3% | **82.2%** | +3.9% |
 | **git** | 85.2% | **89.9%** | +4.7% |
-| **全体** | ~65% | **69.3%** | +4.3% |
+| **Overall** | ~65% | **69.3%** | +4.3% |
 
-### 新規作成されたテストファイル
+### New Test Files Created
 
-#### cmdパッケージ (7つの新しいテストファイル)
-- `cmd/diff_test.go` - Diffコマンドの包括的テスト
-- `cmd/remote_test.go` - Remoteコマンドの基本テスト
-- `cmd/status_test.go` - Statusコマンドとユーティリティ関数のテスト
-- `cmd/reset_test.go` - Resetコマンドのテスト
-- `cmd/restore_test.go` - Restoreコマンドのテスト
-- `cmd/stash_test.go` - Stashコマンドのテスト
-- `cmd/tag_test.go` - Tagコマンドとユーティリティメソッドのテスト
+#### cmd package (7 new test files)
+- `cmd/diff_test.go` - Comprehensive tests for Diff command
+- `cmd/remote_test.go` - Basic tests for Remote command
+- `cmd/status_test.go` - Tests for Status command and utility functions
+- `cmd/reset_test.go` - Tests for Reset command
+- `cmd/restore_test.go` - Tests for Restore command
+- `cmd/stash_test.go` - Tests for Stash command
+- `cmd/tag_test.go` - Tests for Tag command and utility methods
 
-#### gitパッケージ (新しい構造に対応)
-- `git/rev-list_test.go` - rev-listコマンド関数の包括的テスト
-- `git/ls-files_test.go` - ls-filesコマンド関数のテスト
+#### git package (supporting new structure)
+- `git/rev-list_test.go` - Comprehensive tests for rev-list command functions
+- `git/ls-files_test.go` - Tests for ls-files command functions
 
-## 🏗️ リファクタリング内容
+## 🏗️ Refactoring Details
 
-### gitパッケージの構造改善
+### Git Package Structure Improvement
 
-**Before: 一貫性のない設計**
+**Before: Inconsistent design**
 ```
-util.go (混在)
+util.go (mixed functions)
 ├── ListFiles() - git ls-files
 ├── GetUpstreamBranchName() - git rev-parse
 └── GetAheadBehindCount() - git rev-list
@@ -49,40 +49,40 @@ rev-parse.go
 └── GetCommitHash()
 
 tag.go
-└── GetTagCommit() - git rev-list (分散)
+└── GetTagCommit() - git rev-list (scattered)
 ```
 
-**After: コマンドベースの一貫した設計**
+**After: Command-based consistent design**
 ```
-rev-parse.go (全てのrev-parseコマンド)
+rev-parse.go (all rev-parse commands)
 ├── GetCurrentBranch()
 ├── GetBranchName()
 ├── RevParseVerify()
 ├── GetCommitHash()
-└── GetUpstreamBranchName() ← 移動
+└── GetUpstreamBranchName() ← moved
 
-rev-list.go (全てのrev-listコマンド)
-├── GetAheadBehindCount() ← 移動
-└── GetTagCommit() ← 移動
+rev-list.go (all rev-list commands)
+├── GetAheadBehindCount() ← moved
+└── GetTagCommit() ← moved
 
-ls-files.go (全てのls-filesコマンド)
-└── ListFiles() ← 移動
+ls-files.go (all ls-files commands)
+└── ListFiles() ← moved
 
-util.go → 削除 (全ての関数を適切なファイルに移動)
+util.go → deleted (all functions moved to appropriate files)
 ```
 
-### 改善されたテスト品質
+### Enhanced Test Quality
 
-#### 1. **エラーケースの包括的カバレッジ**
+#### 1. **Comprehensive Error Case Coverage**
 ```go
-// 正常系テスト
+// Normal case test
 func TestClient_Diff(t *testing.T) { /* ... */ }
 
-// エラー系テスト (新規追加)
+// Error case test (newly added)
 func TestClient_Diff_Error(t *testing.T) {
     client := &Client{
         execCommand: func(name string, args ...string) *exec.Cmd {
-            return exec.Command("false") // 失敗するコマンド
+            return exec.Command("false") // failing command
         },
     }
     _, err := client.Diff()
@@ -92,7 +92,7 @@ func TestClient_Diff_Error(t *testing.T) {
 }
 ```
 
-#### 2. **エイリアス機能の完全テスト (router)**
+#### 2. **Complete Alias Functionality Testing (router)**
 ```go
 func TestRouter_WithAliases(t *testing.T) {
     tests := []struct {
@@ -110,12 +110,12 @@ func TestRouter_WithAliases(t *testing.T) {
             args:     []string{},
             expected: []string{"status", "--short"},
         },
-        // ... 他のテストケース
+        // ... other test cases
     }
 }
 ```
 
-#### 3. **設定管理の詳細テスト (config)**
+#### 3. **Detailed Configuration Management Testing (config)**
 ```go
 func TestFlattenMapDirect(t *testing.T) {
     input := map[string]interface{}{
@@ -125,13 +125,13 @@ func TestFlattenMapDirect(t *testing.T) {
         },
     }
     result := flattenMap(input, "")
-    // 詳細な検証...
+    // detailed verification...
 }
 ```
 
-## 🔧 技術的改善
+## 🔧 Technical Improvements
 
-### 1. **testutilパッケージの適切な除外**
+### 1. **Proper Exclusion of testutil Package**
 ```makefile
 # Makefile
 cover:
@@ -139,14 +139,14 @@ cover:
 	go tool cover -func=coverage.out
 ```
 
-### 2. **モックの活用と標準化**
+### 2. **Mock Usage and Standardization**
 ```go
-// testutil.NewMockGitClient()を統一使用
+// Unified use of testutil.NewMockGitClient()
 mockClient := testutil.NewMockGitClient()
 tagger := NewTagger(mockClient)
 ```
 
-### 3. **テーブル駆動テストの活用**
+### 3. **Table-Driven Test Implementation**
 ```go
 tests := []struct {
     name           string
@@ -154,69 +154,86 @@ tests := []struct {
     expectedOutput string
     wantArgs       []string
 }{
-    // 複数のテストケースを効率的に管理
+    // Efficiently manage multiple test cases
 }
 ```
 
-## ✅ 品質保証
+## ✅ Quality Assurance
 
-### テスト実行結果
+### Test Execution Results
 ```bash
-=== 全てのテストが成功 ===
+=== All tests passing ===
 ok github.com/bmf-san/ggc/v5/cmd    1.185s coverage: 60.2%
 ok github.com/bmf-san/ggc/v5/config 0.735s coverage: 82.2%
 ok github.com/bmf-san/ggc/v5/git    1.598s coverage: 89.9%
 ok github.com/bmf-san/ggc/v5/router 1.470s coverage: 93.5%
 ```
 
-### カバレッジの100%達成関数
-- **git/diff.go**: 全関数100%
-- **git/status.go**: 全関数100%
-- **git/stash.go**: 全関数100%
-- **git/rebase.go**: 全関数100%
-- **git/rev-parse.go**: 全関数100%
-- **git/rev-list.go**: 全関数100%
-- **git/ls-files.go**: 全関数100%
+### Functions Achieving 100% Coverage
+- **git/diff.go**: All functions 100%
+- **git/status.go**: All functions 100%
+- **git/stash.go**: All functions 100%
+- **git/rebase.go**: All functions 100%
+- **git/rev-parse.go**: All functions 100%
+- **git/rev-list.go**: All functions 100%
+- **git/ls-files.go**: All functions 100%
 
-## 🚀 今後の展望
+## Related Issue
 
-1. **mainパッケージの改善** (現在42.9%) - エントリーポイントの詳細テスト
-2. **インタラクティブ機能のテスト強化** - UI操作の詳細テスト
-3. **統合テストの追加** - パッケージ間連携のテスト
+This addresses the need for improved test coverage and better code organization in the git package as discussed in internal development.
 
-## 📋 変更ファイル一覧
+## Checklist
 
-### 新規作成 (10ファイル)
-- `cmd/diff_test.go`
-- `cmd/remote_test.go`
-- `cmd/status_test.go`
-- `cmd/reset_test.go`
-- `cmd/restore_test.go`
-- `cmd/stash_test.go`
-- `cmd/tag_test.go`
-- `git/rev-list.go`
-- `git/rev-list_test.go`
-- `git/ls-files.go`
-- `git/ls-files_test.go`
+- [x] I have read the [CONTRIBUTING.md](https://github.com/bmf-san/ggc/blob/main/CONTRIBUTING.md)
+- [x] I have added or updated tests (9 new test files, enhanced existing tests)
+- [x] I have updated the documentation (if required) - Internal refactoring, no user-facing changes
+- [x] Code is formatted with `make fmt`
+- [x] Code passes linter checks via `make lint`
+- [x] All tests are passing
 
-### 更新 (8ファイル)
-- `Makefile` - testutil除外設定
-- `router/router_test.go` - エイリアステスト追加
-- `config/config_test.go` - 設定関数テスト追加
-- `git/rev-parse.go` - GetUpstreamBranchName追加
-- `git/rev-parse_test.go` - 新関数テスト追加
-- `git/diff_test.go` - エラーケーステスト追加
-- `git/status_test.go` - エラーケーステスト追加
-- `git/stash_test.go` - エラーケーステスト追加
-- `git/rebase_test.go` - 包括的テスト追加
-- `git/tag.go` - GetTagCommit関数削除
-- `git/tag_test.go` - 重複テスト削除
-- `internal/testutil/git_client.go` - ドキュメント追加
+## Screenshots (if appropriate)
 
-### 削除 (2ファイル)
-- `git/util.go` - 関数を適切なファイルに移動
-- `git/util_test.go` - 対応するテストも移動
+Not applicable - this is an internal refactoring and testing improvement.
 
----
+## Additional Context
 
-このPRにより、プロジェクトの**テスト品質**と**コード構造**が大幅に改善され、より保守しやすく信頼性の高いコードベースとなりました。
+### Files Changed Summary
+
+#### New Files Created (11 files)
+- 7 new test files in cmd/ package
+- 2 new git/ package files (rev-list.go, ls-files.go)
+- 2 new test files for git/ package
+
+#### Modified Files (10 files)
+- `Makefile` - testutil exclusion settings
+- `router/router_test.go` - Added alias tests
+- `config/config_test.go` - Added configuration function tests
+- `git/rev-parse.go` - Added GetUpstreamBranchName
+- `git/rev-parse_test.go` - Added new function tests
+- `git/diff_test.go` - Added error case tests
+- `git/status_test.go` - Added error case tests
+- `git/stash_test.go` - Added error case tests
+- `git/rebase_test.go` - Added comprehensive tests
+- `git/tag.go` - Removed GetTagCommit function
+- `git/tag_test.go` - Removed duplicate tests
+- `internal/testutil/git_client.go` - Added documentation
+
+#### Deleted Files (2 files)
+- `git/util.go` - Functions moved to appropriate files
+- `git/util_test.go` - Corresponding tests also moved
+
+### Why This Refactoring Was Needed
+
+1. **Inconsistent Design**: The original `git/util.go` mixed functions from different Git commands (ls-files, rev-parse, rev-list), making it difficult to maintain and understand.
+
+2. **Low Test Coverage**: Several packages had insufficient test coverage, particularly missing error case scenarios.
+
+3. **Code Organization**: Functions were scattered across files without logical grouping by their underlying Git command.
+
+### Impact on Users
+
+- **Zero Breaking Changes**: All user-facing commands remain exactly the same
+- **Improved Reliability**: Higher test coverage means more stable code
+- **Better Maintainability**: Cleaner code structure for future development
+
+This refactoring significantly improves the codebase quality while maintaining full backward compatibility for all users.
