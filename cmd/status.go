@@ -13,11 +13,11 @@ import (
 type Statuser struct {
 	outputWriter io.Writer
 	helper       *Helper
-	gitClient    git.Clienter
+	gitClient    git.StatusInfoReader
 }
 
 // NewStatuser creates a new Statuser instance.
-func NewStatuser(client git.Clienter) *Statuser {
+func NewStatuser(client git.StatusInfoReader) *Statuser {
 	return &Statuser{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

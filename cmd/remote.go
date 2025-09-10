@@ -11,13 +11,13 @@ import (
 
 // Remoter provides functionality for the remote command.
 type Remoter struct {
-	gitClient    git.Clienter
+	gitClient    git.RemoteManager
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewRemoter creates a new Remoter.
-func NewRemoter(client git.Clienter) *Remoter {
+func NewRemoter(client git.RemoteManager) *Remoter {
 	r := &Remoter{
 		gitClient:    client,
 		outputWriter: os.Stdout,

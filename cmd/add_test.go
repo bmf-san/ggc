@@ -396,3 +396,21 @@ func TestAdder_Add_Error(t *testing.T) {
 		t.Errorf("expected error message, got %q", output)
 	}
 }
+
+func TestAdder_Add_InteractiveSubcommand_CallsInteractive(t *testing.T) {
+	mockClient := &mockAddGitClient{}
+	var buf bytes.Buffer
+	adder := &Adder{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+	}
+
+	adder.Add([]string{"interactive"})
+
+	if !mockClient.addInteractiveCalled {
+		t.Error("AddInteractive was not called for 'interactive' subcommand")
+	}
+	if mockClient.addCalled {
+		t.Error("Add should not be called for 'interactive' subcommand")
+	}
+}

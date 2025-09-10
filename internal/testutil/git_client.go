@@ -9,7 +9,7 @@ import (
 )
 
 // NewMockGitClient creates a new mock git client for testing
-func NewMockGitClient() git.Clienter {
+func NewMockGitClient() *testMockGitClient {
 	return &testMockGitClient{
 		currentBranch: "main",
 		gitStatus:     "A  file1.txt\n M file2.txt\n",
@@ -29,10 +29,10 @@ func (m *testMockGitClient) GetBranchName() (string, error)    { return m.curren
 func (m *testMockGitClient) GetGitStatus() (string, error)     { return m.gitStatus, nil }
 
 // Status Operations
-func (m *testMockGitClient) Status() (string, error)               { return "", nil }
-func (m *testMockGitClient) StatusShort() (string, error)          { return "", nil }
-func (m *testMockGitClient) StatusWithColor() (string, error)      { return "", nil }
-func (m *testMockGitClient) StatusShortWithColor() (string, error) { return "", nil }
+func (m *testMockGitClient) Status() (string, error)               { return m.gitStatus, nil }
+func (m *testMockGitClient) StatusShort() (string, error)          { return m.gitStatus, nil }
+func (m *testMockGitClient) StatusWithColor() (string, error)      { return m.gitStatus, nil }
+func (m *testMockGitClient) StatusShortWithColor() (string, error) { return m.gitStatus, nil }
 
 // Staging Operations
 func (m *testMockGitClient) Add(_ ...string) error { return nil }

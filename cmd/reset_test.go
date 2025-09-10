@@ -5,11 +5,36 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
+type mockResetOps struct {
+	currentBranch           string
+	resetHardAndCleanCalled bool
+	resetHardCalled         bool
+	commit                  string
+}
+
+func (m *mockResetOps) GetCurrentBranch() (string, error) {
+	if m.currentBranch == "" {
+		return "main", nil
+	}
+	return m.currentBranch, nil
+}
+func (m *mockResetOps) ResetHardAndClean() error {
+	m.resetHardAndCleanCalled = true
+	return nil
+}
+func (m *mockResetOps) ResetHard(commit string) error {
+	m.resetHardCalled = true
+	m.commit = commit
+	return nil
+}
+
+var _ git.ResetOps = (*mockResetOps)(nil)
+
 func TestResetter_Constructor(t *testing.T) {
-	mockClient := testutil.NewMockGitClient()
+	mockClient := &mockResetOps{}
 	resetter := NewResetter(mockClient)
 
 	if resetter == nil {
@@ -62,7 +87,7 @@ func TestResetter_Reset(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockResetOps{}
 
 			resetter := &Resetter{
 				gitClient:    mockClient,
@@ -150,7 +175,7 @@ func TestResetter_ResetOperations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockResetOps{}
 
 			resetter := &Resetter{
 				gitClient:    mockClient,

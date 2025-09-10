@@ -12,14 +12,14 @@ import (
 
 // Logger provides functionality for the log command.
 type Logger struct {
-	gitClient    git.Clienter
+	gitClient    git.LogReader
 	outputWriter io.Writer
 	execCommand  func(name string, arg ...string) *exec.Cmd
 	helper       *Helper
 }
 
 // NewLogger creates a new Logger.
-func NewLogger(client git.Clienter) *Logger {
+func NewLogger(client git.LogReader) *Logger {
 	l := &Logger{
 		gitClient:    client,
 		outputWriter: os.Stdout,

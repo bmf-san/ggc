@@ -10,7 +10,7 @@ import (
 	"github.com/bmf-san/ggc/v5/git"
 )
 
-// mockBranchGitClient is a mock implementation of git.Clienter for branch tests
+// mockBranchGitClient is a mock implementation focused on branch operations for tests
 type mockBranchGitClient struct {
 	getCurrentBranchCalled bool
 	currentBranch          string
@@ -39,32 +39,6 @@ func (m *mockBranchGitClient) ListRemoteBranches() ([]string, error) {
 	}
 	return []string{"origin/main", "origin/feature/test"}, nil
 }
-
-// Repository Information methods
-func (m *mockBranchGitClient) GetBranchName() (string, error) { return "main", nil }
-func (m *mockBranchGitClient) GetGitStatus() (string, error)  { return "", nil }
-
-// Status Operations methods
-func (m *mockBranchGitClient) Status() (string, error)               { return "", nil }
-func (m *mockBranchGitClient) StatusShort() (string, error)          { return "", nil }
-func (m *mockBranchGitClient) StatusWithColor() (string, error)      { return "", nil }
-func (m *mockBranchGitClient) StatusShortWithColor() (string, error) { return "", nil }
-
-// Staging Operations methods
-func (m *mockBranchGitClient) Add(_ ...string) error { return nil }
-func (m *mockBranchGitClient) AddInteractive() error { return nil }
-
-// Commit Operations methods
-func (m *mockBranchGitClient) Commit(_ string) error                 { return nil }
-func (m *mockBranchGitClient) CommitAmend() error                    { return nil }
-func (m *mockBranchGitClient) CommitAmendNoEdit() error              { return nil }
-func (m *mockBranchGitClient) CommitAmendWithMessage(_ string) error { return nil }
-func (m *mockBranchGitClient) CommitAllowEmpty() error               { return nil }
-
-// Diff Operations methods
-func (m *mockBranchGitClient) Diff() (string, error)       { return "", nil }
-func (m *mockBranchGitClient) DiffStaged() (string, error) { return "", nil }
-func (m *mockBranchGitClient) DiffHead() (string, error)   { return "", nil }
 
 // Branch Operations methods
 func (m *mockBranchGitClient) CheckoutNewBranch(branchName string) error {
@@ -116,84 +90,26 @@ func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
 	return []string{"main", "feature"}, nil
 }
 
-// Remote Operations methods
-func (m *mockBranchGitClient) Push(_ bool) error              { return nil }
-func (m *mockBranchGitClient) Pull(_ bool) error              { return nil }
-func (m *mockBranchGitClient) Fetch(_ bool) error             { return nil }
-func (m *mockBranchGitClient) RemoteList() error              { return nil }
-func (m *mockBranchGitClient) RemoteAdd(_, _ string) error    { return nil }
-func (m *mockBranchGitClient) RemoteRemove(_ string) error    { return nil }
-func (m *mockBranchGitClient) RemoteSetURL(_, _ string) error { return nil }
+// Remote operations pruned (not needed by BranchOps)
 
-// Tag Operations methods
-func (m *mockBranchGitClient) TagList(_ []string) error              { return nil }
-func (m *mockBranchGitClient) TagCreate(_, _ string) error           { return nil }
-func (m *mockBranchGitClient) TagCreateAnnotated(_, _ string) error  { return nil }
-func (m *mockBranchGitClient) TagDelete(_ []string) error            { return nil }
-func (m *mockBranchGitClient) TagPush(_, _ string) error             { return nil }
-func (m *mockBranchGitClient) TagPushAll(_ string) error             { return nil }
-func (m *mockBranchGitClient) TagShow(_ string) error                { return nil }
-func (m *mockBranchGitClient) GetLatestTag() (string, error)         { return "v1.0.0", nil }
-func (m *mockBranchGitClient) TagExists(_ string) bool               { return false }
-func (m *mockBranchGitClient) GetTagCommit(_ string) (string, error) { return "abc123", nil }
+// Tag operations pruned (not needed by BranchOps)
 
-// Log Operations methods
-func (m *mockBranchGitClient) LogSimple() error                       { return nil }
-func (m *mockBranchGitClient) LogGraph() error                        { return nil }
-func (m *mockBranchGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
+// Log operations pruned (not needed by BranchOps)
 
-// Rebase Operations methods
-func (m *mockBranchGitClient) RebaseInteractive(_ int) error { return nil }
-func (m *mockBranchGitClient) Rebase(_ string) error         { return nil }
-func (m *mockBranchGitClient) RebaseContinue() error         { return nil }
-func (m *mockBranchGitClient) RebaseAbort() error            { return nil }
-func (m *mockBranchGitClient) RebaseSkip() error             { return nil }
-func (m *mockBranchGitClient) GetUpstreamBranch(_ string) (string, error) {
-	return "origin/main", nil
-}
+// Rebase operations pruned (not needed by BranchOps)
 
-// Stash Operations methods
-func (m *mockBranchGitClient) Stash() error               { return nil }
-func (m *mockBranchGitClient) StashList() (string, error) { return "", nil }
-func (m *mockBranchGitClient) StashShow(_ string) error   { return nil }
-func (m *mockBranchGitClient) StashApply(_ string) error  { return nil }
-func (m *mockBranchGitClient) StashPop(_ string) error    { return nil }
-func (m *mockBranchGitClient) StashDrop(_ string) error   { return nil }
-func (m *mockBranchGitClient) StashClear() error          { return nil }
+// Stash operations pruned (not needed by BranchOps)
 
-// Reset and Clean Operations methods
-func (m *mockBranchGitClient) ResetHardAndClean() error         { return nil }
-func (m *mockBranchGitClient) ResetHard(_ string) error         { return nil }
-func (m *mockBranchGitClient) CleanFiles() error                { return nil }
-func (m *mockBranchGitClient) CleanDirs() error                 { return nil }
-func (m *mockBranchGitClient) CleanDryRun() (string, error)     { return "", nil }
-func (m *mockBranchGitClient) CleanFilesForce(_ []string) error { return nil }
+// Reset/Clean operations pruned (not needed by BranchOps)
 
-// Utility Operations methods
-func (m *mockBranchGitClient) ListFiles() (string, error) { return "", nil }
-func (m *mockBranchGitClient) GetUpstreamBranchName(_ string) (string, error) {
-	return "origin/main", nil
-}
-func (m *mockBranchGitClient) GetAheadBehindCount(_, _ string) (string, error) {
-	return "0	0", nil
-}
-func (m *mockBranchGitClient) GetVersion() (string, error)    { return "test-version", nil }
-func (m *mockBranchGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
+// Utility methods pruned (not needed by BranchOps)
 
 // Restore Operations methods
-func (m *mockBranchGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
-func (m *mockBranchGitClient) RestoreStaged(_ ...string) error               { return nil }
-func (m *mockBranchGitClient) RestoreFromCommit(_ string, _ ...string) error { return nil }
-func (m *mockBranchGitClient) RestoreAll() error                             { return nil }
-func (m *mockBranchGitClient) RestoreAllStaged() error                       { return nil }
+// restore operations pruned (not needed by BranchOps)
 
 func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
 
-// Config Operations
-func (m *mockBranchGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
-func (m *mockBranchGitClient) ConfigSet(_, _ string) error              { return nil }
-func (m *mockBranchGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
-func (m *mockBranchGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
+// config operations pruned (not needed by BranchOps)
 
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer
@@ -368,42 +284,6 @@ func TestBrancher_branchCheckout_Error(t *testing.T) {
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to list branches") {
 		t.Errorf("Expected error message, got: %s", output)
-	}
-}
-
-func TestBrancher_branchCheckout_NoBranches(t *testing.T) {
-	var buf bytes.Buffer
-	mockClient := &mockBranchGitClient{}
-	// Override ListLocalBranches to return empty slice
-	mockClient.listLocalBranches = func() ([]string, error) {
-		return []string{}, nil
-	}
-	brancher := &Brancher{
-		gitClient:    mockClient,
-		outputWriter: &buf,
-	}
-	brancher.branchCheckout()
-
-	output := buf.String()
-	if !strings.Contains(output, "No local branches found.") {
-		t.Errorf("Expected no branches message, got: %s", output)
-	}
-}
-
-func TestBrancher_branchCheckout_InvalidNumber(t *testing.T) {
-	var buf bytes.Buffer
-	mockClient := &mockBranchGitClient{}
-	brancher := &Brancher{
-		gitClient:    mockClient,
-		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("invalid\n")),
-	}
-	brancher.branchCheckout()
-
-	output := buf.String()
-	if !strings.Contains(output, "Invalid number.") {
-		t.Errorf("Expected invalid number message, got: %s", output)
 	}
 }
 
@@ -762,6 +642,8 @@ func TestBrancher_branchCreate_ExistingBranch(t *testing.T) {
 	}
 }
 
+// Consolidated boundary tests for branch checkout input to avoid repetitive single-case tests.
+// Covers various numeric/non-numeric forms and validates expected outputs for each.
 func TestBrancher_Branch_BoundaryInputValues(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1006,6 +888,8 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 	}
 }
 
+// Consolidated boundary tests for listing/selection behavior (e.g., empty lists, long names),
+// reducing the need for separate, repetitive tests for each edge case.
 func TestBrancher_Branch_BoundaryListOperations(t *testing.T) {
 	tests := []struct {
 		name          string

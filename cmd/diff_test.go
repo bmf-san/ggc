@@ -5,11 +5,36 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
+// mockDiffClient implements git.DiffReader with simple call tracking.
+type mockDiffClient struct {
+	called      string
+	headOut     string
+	stagedOut   string
+	unstagedOut string
+}
+
+func (m *mockDiffClient) Diff() (string, error) {
+	m.called = "unstaged"
+	return m.unstagedOut, nil
+}
+
+func (m *mockDiffClient) DiffStaged() (string, error) {
+	m.called = "staged"
+	return m.stagedOut, nil
+}
+
+func (m *mockDiffClient) DiffHead() (string, error) {
+	m.called = "head"
+	return m.headOut, nil
+}
+
+var _ git.DiffReader = (*mockDiffClient)(nil)
+
 func TestDiffer_Constructor(t *testing.T) {
-	mockClient := testutil.NewMockGitClient()
+	mockClient := &mockDiffClient{}
 	differ := NewDiffer(mockClient)
 
 	if differ == nil {
@@ -36,24 +61,30 @@ func TestDiffer_Diff(t *testing.T) {
 		{
 			name:           "no args - should call DiffHead",
 			args:           []string{},
-			expectedOutput: "", // Mock returns empty diff
+			expectedOutput: "",
 			shouldShowHelp: false,
 		},
 		{
 			name:           "unstaged - should call Diff",
 			args:           []string{"unstaged"},
-			expectedOutput: "", // Mock returns empty diff
+			expectedOutput: "",
 			shouldShowHelp: false,
 		},
 		{
 			name:           "staged - should call DiffStaged",
 			args:           []string{"staged"},
-			expectedOutput: "", // Mock returns empty diff
+			expectedOutput: "",
 			shouldShowHelp: false,
 		},
 		{
-			name:           "invalid arg - should show help",
-			args:           []string{"invalid"},
+			name:           "head - should call DiffHead",
+			args:           []string{"head"},
+			expectedOutput: "",
+			shouldShowHelp: false,
+		},
+		{
+			name:           "unknown arg - should show help",
+			args:           []string{"unknown"},
 			expectedOutput: "Usage: ggc diff [options]",
 			shouldShowHelp: true,
 		},
@@ -62,34 +93,35 @@ func TestDiffer_Diff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockDiffClient{}
 
 			differ := &Differ{
 				gitClient:    mockClient,
 				outputWriter: buf,
 				helper:       NewHelper(),
 			}
-			// Set helper's output writer to capture help output
 			differ.helper.outputWriter = buf
 
 			differ.Diff(tt.args)
 
 			output := buf.String()
 
-			// Verify expected behavior
 			if tt.shouldShowHelp {
 				if !strings.Contains(output, tt.expectedOutput) {
 					t.Errorf("Expected help output containing '%s', got: %s", tt.expectedOutput, output)
 				}
 			} else {
-				// For diff operations, mock returns empty string - this is expected
-				// We verify the command executed without error
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in diff operation: %s", output)
+				if tt.expectedOutput == "" {
+					if strings.Contains(output, "Error:") {
+						t.Errorf("Unexpected error in diff operation: %s", output)
+					}
+				} else {
+					if !strings.Contains(output, tt.expectedOutput) {
+						t.Errorf("Expected output containing '%s', got: %s", tt.expectedOutput, output)
+					}
 				}
 			}
 
-			// Verify no panic occurred
 			if t.Failed() {
 				t.Logf("Command args: %v", tt.args)
 				t.Logf("Full output: %s", output)
@@ -102,42 +134,42 @@ func TestDiffer_DiffOperations(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     []string
-		testFunc func(*testing.T, *Differ, *bytes.Buffer)
+		testFunc func(*testing.T, *Differ, *mockDiffClient, *bytes.Buffer)
 	}{
 		{
-			name: "no args calls DiffHead",
+			name: "default calls DiffHead",
 			args: []string{},
-			testFunc: func(t *testing.T, differ *Differ, buf *bytes.Buffer) {
-				// Mock client returns empty string for DiffHead
-				output := buf.String()
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in DiffHead operation: %s", output)
+			testFunc: func(t *testing.T, differ *Differ, mock *mockDiffClient, buf *bytes.Buffer) {
+				if mock.called != "head" {
+					t.Errorf("Expected DiffHead to be called, got %s", mock.called)
 				}
-				// In a real test, we would verify DiffHead was called
 			},
 		},
 		{
 			name: "unstaged calls Diff",
 			args: []string{"unstaged"},
-			testFunc: func(t *testing.T, differ *Differ, buf *bytes.Buffer) {
-				// Mock client returns empty string for Diff
-				output := buf.String()
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in Diff operation: %s", output)
+			testFunc: func(t *testing.T, differ *Differ, mock *mockDiffClient, buf *bytes.Buffer) {
+				if mock.called != "unstaged" {
+					t.Errorf("Expected Diff to be called, got %s", mock.called)
 				}
-				// In a real test, we would verify Diff was called
 			},
 		},
 		{
 			name: "staged calls DiffStaged",
 			args: []string{"staged"},
-			testFunc: func(t *testing.T, differ *Differ, buf *bytes.Buffer) {
-				// Mock client returns empty string for DiffStaged
-				output := buf.String()
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in DiffStaged operation: %s", output)
+			testFunc: func(t *testing.T, differ *Differ, mock *mockDiffClient, buf *bytes.Buffer) {
+				if mock.called != "staged" {
+					t.Errorf("Expected DiffStaged to be called, got %s", mock.called)
 				}
-				// In a real test, we would verify DiffStaged was called
+			},
+		},
+		{
+			name: "head calls DiffHead",
+			args: []string{"head"},
+			testFunc: func(t *testing.T, differ *Differ, mock *mockDiffClient, buf *bytes.Buffer) {
+				if mock.called != "head" {
+					t.Errorf("Expected DiffHead to be called, got %s", mock.called)
+				}
 			},
 		},
 	}
@@ -145,79 +177,80 @@ func TestDiffer_DiffOperations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockDiffClient{}
 
 			differ := &Differ{
 				gitClient:    mockClient,
 				outputWriter: buf,
 				helper:       NewHelper(),
 			}
-			differ.helper.outputWriter = buf
 
 			differ.Diff(tt.args)
-			tt.testFunc(t, differ, buf)
+			tt.testFunc(t, differ, mockClient, buf)
 		})
 	}
 }
 
-func TestDiffer_ErrorHandling(t *testing.T) {
-	tests := []struct {
-		name     string
-		args     []string
-		testFunc func(*testing.T, *Differ, *bytes.Buffer)
-	}{
-		{
-			name: "basic diff operation without errors",
-			args: []string{},
-			testFunc: func(t *testing.T, differ *Differ, buf *bytes.Buffer) {
-				output := buf.String()
-				// Mock client doesn't return errors, so no "Error:" should appear
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in basic diff operation: %s", output)
-				}
-			},
-		},
-		{
-			name: "unstaged diff without errors",
-			args: []string{"unstaged"},
-			testFunc: func(t *testing.T, differ *Differ, buf *bytes.Buffer) {
-				output := buf.String()
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in unstaged diff operation: %s", output)
-				}
-			},
-		},
-		{
-			name: "staged diff without errors",
-			args: []string{"staged"},
-			testFunc: func(t *testing.T, differ *Differ, buf *bytes.Buffer) {
-				output := buf.String()
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in staged diff operation: %s", output)
-				}
-			},
-		},
+func TestDiffer_Diff_DefaultsToHead(t *testing.T) {
+	mc := &mockDiffClient{headOut: "HEAD DIFF"}
+	var buf bytes.Buffer
+
+	d := &Differ{gitClient: mc, outputWriter: &buf, helper: NewHelper()}
+	d.Diff([]string{})
+
+	if mc.called != "head" {
+		t.Fatalf("expected DiffHead to be called, got %q", mc.called)
 	}
+	if got := buf.String(); got != "HEAD DIFF" {
+		t.Fatalf("unexpected output: %q", got)
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+func TestDiffer_Diff_Unstaged(t *testing.T) {
+	mc := &mockDiffClient{unstagedOut: "UNSTAGED DIFF"}
+	var buf bytes.Buffer
 
-			differ := &Differ{
-				gitClient:    mockClient,
-				outputWriter: buf,
-				helper:       NewHelper(),
-			}
-			differ.helper.outputWriter = buf
+	d := &Differ{gitClient: mc, outputWriter: &buf, helper: NewHelper()}
+	d.Diff([]string{"unstaged"})
 
-			differ.Diff(tt.args)
-			tt.testFunc(t, differ, buf)
+	if mc.called != "unstaged" {
+		t.Fatalf("expected Diff to be called, got %q", mc.called)
+	}
+	if got := buf.String(); got != "UNSTAGED DIFF" {
+		t.Fatalf("unexpected output: %q", got)
+	}
+}
 
-			// Verify that the mock client is properly configured
-			if mockClient == nil {
-				t.Error("Expected mock client to be initialized")
-			}
-		})
+func TestDiffer_Diff_Staged(t *testing.T) {
+	mc := &mockDiffClient{stagedOut: "STAGED DIFF"}
+	var buf bytes.Buffer
+
+	d := &Differ{gitClient: mc, outputWriter: &buf, helper: NewHelper()}
+	d.Diff([]string{"staged"})
+
+	if mc.called != "staged" {
+		t.Fatalf("expected DiffStaged to be called, got %q", mc.called)
+	}
+	if got := buf.String(); got != "STAGED DIFF" {
+		t.Fatalf("unexpected output: %q", got)
+	}
+}
+
+func TestDiffer_Diff_InvalidArg_ShowsHelp(t *testing.T) {
+	mc := &mockDiffClient{}
+	var buf bytes.Buffer
+
+	// Use helper with our buffer to capture help output
+	h := NewHelper()
+	h.outputWriter = &buf
+
+	d := &Differ{gitClient: mc, outputWriter: &buf, helper: h}
+	d.Diff([]string{"unknown"})
+
+	if mc.called != "" {
+		t.Fatalf("diff methods should not be called for invalid arg, got %q", mc.called)
+	}
+	if buf.Len() == 0 {
+		t.Fatal("expected help output for invalid arg")
 	}
 }

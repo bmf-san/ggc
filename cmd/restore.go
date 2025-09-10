@@ -15,11 +15,11 @@ type Restorer struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
-	gitClient    git.Clienter
+	gitClient    git.RestoreOps
 }
 
 // NewRestorer creates a new Restorer instance.
-func NewRestorer(client git.Clienter) *Restorer {
+func NewRestorer(client git.RestoreOps) *Restorer {
 	return &Restorer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

@@ -11,12 +11,12 @@ import (
 
 // Adder provides functionality for the add command.
 type Adder struct {
-	gitClient    git.Clienter
+	gitClient    git.Stager
 	outputWriter io.Writer
 }
 
 // NewAdder creates a new Adder.
-func NewAdder(client git.Clienter) *Adder {
+func NewAdder(client git.Stager) *Adder {
 	return &Adder{
 		gitClient:    client,
 		outputWriter: os.Stdout,
@@ -30,14 +30,7 @@ func (a *Adder) Add(args []string) {
 		return
 	}
 
-	if len(args) == 1 && args[0] == "interactive" {
-		if err := a.gitClient.AddInteractive(); err != nil {
-			_, _ = fmt.Fprintf(a.outputWriter, "Error: %v\n", err)
-		}
-		return
-	}
-
-	if len(args) == 1 && args[0] == "patch" {
+	if len(args) == 1 && (args[0] == "interactive" || args[0] == "patch") {
 		if err := a.gitClient.AddInteractive(); err != nil {
 			_, _ = fmt.Fprintf(a.outputWriter, "Error: %v\n", err)
 		}

@@ -5,11 +5,46 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
+type mockRestoreOps struct {
+	restoreWorkingDirCalled bool
+	restoreStagedCalled     bool
+	restoreFromCommitCalled bool
+	revParseVerifyCalled    bool
+	paths                   []string
+	commit                  string
+	ref                     string
+	revParseResult          bool
+}
+
+func (m *mockRestoreOps) RestoreWorkingDir(paths ...string) error {
+	m.restoreWorkingDirCalled = true
+	m.paths = paths
+	return nil
+}
+func (m *mockRestoreOps) RestoreStaged(paths ...string) error {
+	m.restoreStagedCalled = true
+	m.paths = paths
+	return nil
+}
+func (m *mockRestoreOps) RestoreFromCommit(commit string, paths ...string) error {
+	m.restoreFromCommitCalled = true
+	m.commit = commit
+	m.paths = paths
+	return nil
+}
+func (m *mockRestoreOps) RevParseVerify(ref string) bool {
+	m.revParseVerifyCalled = true
+	m.ref = ref
+	return m.revParseResult
+}
+
+var _ git.RestoreOps = (*mockRestoreOps)(nil)
+
 func TestRestorer_Constructor(t *testing.T) {
-	mockClient := testutil.NewMockGitClient()
+	mockClient := &mockRestoreOps{}
 	restorer := NewRestorer(mockClient)
 
 	if restorer == nil {
@@ -80,7 +115,7 @@ func TestRestorer_Restore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockRestoreOps{}
 
 			restorer := &Restorer{
 				gitClient:    mockClient,
@@ -183,7 +218,7 @@ func TestRestorer_RestoreOperations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockRestoreOps{}
 
 			restorer := &Restorer{
 				gitClient:    mockClient,
@@ -242,7 +277,7 @@ func TestRestorer_CommitDetection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockRestoreOps{}
 
 			restorer := &Restorer{
 				gitClient:    mockClient,

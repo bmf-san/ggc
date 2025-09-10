@@ -12,13 +12,13 @@ import (
 
 // Stasher handles stash operations.
 type Stasher struct {
-	gitClient    git.Clienter
+	gitClient    git.StashOps
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewStasher creates a new Stasher instance.
-func NewStasher(client git.Clienter) *Stasher {
+func NewStasher(client git.StashOps) *Stasher {
 	return &Stasher{
 		gitClient:    client,
 		outputWriter: os.Stdout,

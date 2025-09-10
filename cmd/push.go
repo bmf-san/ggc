@@ -11,13 +11,13 @@ import (
 
 // Pusher provides functionality for the push command.
 type Pusher struct {
-	gitClient    git.Clienter
+	gitClient    git.Pusher
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewPusher creates a new Pusher.
-func NewPusher(client git.Clienter) *Pusher {
+func NewPusher(client git.Pusher) *Pusher {
 	p := &Pusher{
 		gitClient:    client,
 		outputWriter: os.Stdout,

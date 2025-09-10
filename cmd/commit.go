@@ -12,13 +12,13 @@ import (
 
 // Committer provides functionality for the commit command.
 type Committer struct {
-	gitClient    git.Clienter
+	gitClient    git.CommitWriter
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewCommitter creates a new Committer.
-func NewCommitter(client git.Clienter) *Committer {
+func NewCommitter(client git.CommitWriter) *Committer {
 	c := &Committer{
 		gitClient:    client,
 		outputWriter: os.Stdout,

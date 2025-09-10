@@ -15,14 +15,14 @@ import (
 
 // Brancher provides functionality for the branch command.
 type Brancher struct {
-	gitClient    git.Clienter
+	gitClient    git.BranchOps
 	inputReader  *bufio.Reader
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewBrancher creates a new Brancher.
-func NewBrancher(client git.Clienter) *Brancher {
+func NewBrancher(client git.BranchOps) *Brancher {
 	return &Brancher{
 		gitClient:    client,
 		inputReader:  bufio.NewReader(os.Stdin),
@@ -30,8 +30,6 @@ func NewBrancher(client git.Clienter) *Brancher {
 		helper:       NewHelper(),
 	}
 }
-
-// Branch executes the branch command with the given arguments.
 
 // Branch executes the branch command with the given arguments.
 func (b *Brancher) Branch(args []string) {
@@ -226,6 +224,16 @@ func (b *Brancher) branchDelete() {
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 		return
+	}
+	// Exclude current branch from deletion candidates to avoid failing UX
+	if curr, e := b.gitClient.GetCurrentBranch(); e == nil {
+		filtered := make([]string, 0, len(branches))
+		for _, br := range branches {
+			if br != curr {
+				filtered = append(filtered, br)
+			}
+		}
+		branches = filtered
 	}
 	if len(branches) == 0 {
 		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")

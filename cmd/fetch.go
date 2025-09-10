@@ -10,13 +10,13 @@ import (
 
 // Fetcher handles git fetch operations.
 type Fetcher struct {
-	gitClient    git.Clienter
+	gitClient    git.FetchOps
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewFetcher creates a new Fetcher instance.
-func NewFetcher(client git.Clienter) *Fetcher {
+func NewFetcher(client git.FetchOps) *Fetcher {
 	return &Fetcher{
 		gitClient:    client,
 		outputWriter: os.Stdout,

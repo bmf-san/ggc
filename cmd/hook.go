@@ -17,11 +17,11 @@ type Hooker struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
-	gitClient    git.Clienter
+	gitClient    git.ConfigOps
 }
 
 // NewHooker creates a new Hooker instance.
-func NewHooker(client git.Clienter) *Hooker {
+func NewHooker(client git.ConfigOps) *Hooker {
 	return &Hooker{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
