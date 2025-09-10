@@ -90,7 +90,6 @@ func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
 	return []string{"main", "feature"}, nil
 }
 
-// Remote operations pruned (not needed by BranchOps)
 
 // Tag operations pruned (not needed by BranchOps)
 
