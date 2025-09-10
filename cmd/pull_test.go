@@ -18,7 +18,6 @@ func (m *mockPullGitClient) Pull(rebase bool) error {
 	return m.err
 }
 
-// All other methods intentionally omitted
 
 func TestPuller_Pull(t *testing.T) {
 	tests := []struct {
