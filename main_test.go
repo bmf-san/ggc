@@ -159,7 +159,7 @@ func TestMain_Components(t *testing.T) {
 				if cm == nil {
 					t.Error("config manager should be created")
 				}
-				
+
 				// Test config loading (safe with mock)
 				cm.LoadConfig()
 				cfg := cm.GetConfig()
@@ -174,7 +174,7 @@ func TestMain_Components(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// Test version getter setup (safe, no git commands)
 				cmd.SetVersionGetter(GetVersionInfo)
-				
+
 				// Verify the version getter was set by calling it
 				v, c := GetVersionInfo()
 				t.Logf("Version getter set successfully: version='%s', commit='%s'", v, c)
@@ -211,14 +211,14 @@ func TestMain_Components(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// Test the complete initialization flow with mock components
 				mockClient := testutil.NewMockGitClient()
-				
+
 				// Initialize components like main() does
 				cm := config.NewConfigManager(mockClient)
 				cm.LoadConfig()
 				cmd.SetVersionGetter(GetVersionInfo)
 				c := cmd.NewCmd(mockClient)
 				r := router.NewRouter(c, cm)
-				
+
 				// Test safe routing (help command)
 				r.Route([]string{"help"})
 				t.Log("Integration test completed successfully")
@@ -269,7 +269,7 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			cm.LoadConfig()
 			c := cmd.NewCmd(mockClient)
 			r := router.NewRouter(c, cm)
-			
+
 			// Test routing with different arguments (safe with mock)
 			r.Route(tt.args)
 			t.Logf("%s: Successfully routed args %v", tt.desc, tt.args)
@@ -280,9 +280,9 @@ func TestMain_ArgumentHandling(t *testing.T) {
 func TestMain_OsArgsSimulation(t *testing.T) {
 	// Test os.Args simulation without actually modifying os.Args
 	testArgs := [][]string{
-		{"ggc"},           // Program name only
-		{"ggc", "help"},   // Help command
-		{"ggc", "status"}, // Status command
+		{"ggc"},            // Program name only
+		{"ggc", "help"},    // Help command
+		{"ggc", "status"},  // Status command
 		{"ggc", "version"}, // Version command
 	}
 
@@ -293,7 +293,7 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			if len(args) > 1 {
 				routeArgs = args[1:]
 			}
-			
+
 			// Test with mock components
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
@@ -301,7 +301,7 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			cmd.SetVersionGetter(GetVersionInfo)
 			c := cmd.NewCmd(mockClient)
 			r := router.NewRouter(c, cm)
-			
+
 			// Route the arguments (safe with mock)
 			r.Route(routeArgs)
 			t.Logf("Successfully simulated main() with args: %v -> route args: %v", args, routeArgs)
