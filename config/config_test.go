@@ -16,7 +16,9 @@ import (
 
 // MockFileOps implements FileOps for testing
 type MockFileOps struct {
+	// files maps file paths to their content.
 	files map[string][]byte
+	// dirs tracks directory existence.
 	dirs  map[string]bool
 }
 
