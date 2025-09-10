@@ -90,11 +90,7 @@ func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
 	return []string{"main", "feature"}, nil
 }
 
-
-
-
 func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
-
 
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer

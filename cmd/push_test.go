@@ -18,7 +18,6 @@ func (m *mockPushGitClient) Push(force bool) error {
 	return m.err
 }
 
-
 func TestPusher_Push(t *testing.T) {
 	tests := []struct {
 		name     string
