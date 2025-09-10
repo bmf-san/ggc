@@ -92,7 +92,6 @@ func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
 
 
 
-// Restore Operations methods
 
 func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
 
