@@ -19,6 +19,13 @@ type mockBranchGitClient struct {
 	listRemoteBranches     func() ([]string, error)
 	mergedBranches         []string
 	checkoutNewBranchError bool
+	
+	// Additional function fields for flexible testing
+	revParseVerifyFunc      func(string) bool
+	listBranchesVerboseFunc func() ([]git.BranchInfo, error)
+	sortBranchesFunc        func(string) ([]string, error)
+	branchesContainingFunc  func(string) ([]string, error)
+	getBranchInfoFunc       func(string) (*git.BranchInfo, error)
 }
 
 func (m *mockBranchGitClient) GetCurrentBranch() (string, error) {
@@ -92,6 +99,9 @@ func (m *mockBranchGitClient) RenameBranch(_, _ string) error      { return nil 
 func (m *mockBranchGitClient) MoveBranch(_, _ string) error        { return nil }
 func (m *mockBranchGitClient) SetUpstreamBranch(_, _ string) error { return nil }
 func (m *mockBranchGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
+	if m.getBranchInfoFunc != nil {
+		return m.getBranchInfoFunc(branch)
+	}
 	// Provide simple consistent info
 	bi := &git.BranchInfo{
 		Name:            branch,
@@ -104,15 +114,24 @@ func (m *mockBranchGitClient) GetBranchInfo(branch string) (*git.BranchInfo, err
 	return bi, nil
 }
 func (m *mockBranchGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
+	if m.listBranchesVerboseFunc != nil {
+		return m.listBranchesVerboseFunc()
+	}
 	return []git.BranchInfo{
 		{Name: "main", IsCurrentBranch: true, Upstream: "origin/main", LastCommitSHA: "1234567", LastCommitMsg: "msg"},
 		{Name: "feature", IsCurrentBranch: false, Upstream: "origin/feature", LastCommitSHA: "89abcde", LastCommitMsg: "msg2"},
 	}, nil
 }
-func (m *mockBranchGitClient) SortBranches(_ string) ([]string, error) {
+func (m *mockBranchGitClient) SortBranches(by string) ([]string, error) {
+	if m.sortBranchesFunc != nil {
+		return m.sortBranchesFunc(by)
+	}
 	return []string{"a", "b"}, nil
 }
-func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
+func (m *mockBranchGitClient) BranchesContaining(commit string) ([]string, error) {
+	if m.branchesContainingFunc != nil {
+		return m.branchesContainingFunc(commit)
+	}
 	return []string{"main", "feature"}, nil
 }
 
@@ -187,7 +206,12 @@ func (m *mockBranchGitClient) RestoreFromCommit(_ string, _ ...string) error { r
 func (m *mockBranchGitClient) RestoreAll() error                             { return nil }
 func (m *mockBranchGitClient) RestoreAllStaged() error                       { return nil }
 
-func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
+func (m *mockBranchGitClient) RevParseVerify(ref string) bool { 
+	if m.revParseVerifyFunc != nil {
+		return m.revParseVerifyFunc(ref)
+	}
+	return false 
+}
 
 // Config Operations
 func (m *mockBranchGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
@@ -1183,5 +1207,739 @@ func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
 				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
 			}
 		})
+	}
+}
+
+// Test handleSetCommand - currently 0.0% coverage
+func TestBrancher_handleSetCommand(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name:     "set upstream command",
+			args:     []string{"upstream"},
+			expected: "Local branches:",
+		},
+		{
+			name:     "invalid set command shows help",
+			args:     []string{"invalid"},
+			expected: "Usage:",
+		},
+		{
+			name:     "empty set command shows help",
+			args:     []string{},
+			expected: "Usage:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				helper:       NewHelper(),
+				inputReader:  bufio.NewReader(strings.NewReader("1\norigin/main\n")),
+			}
+			brancher.helper.outputWriter = &buf
+
+			brancher.handleSetCommand(tt.args)
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test handleListCommand - currently 0.0% coverage
+func TestBrancher_handleListCommand(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name:     "list verbose",
+			args:     []string{"verbose"},
+			expected: "main",
+		},
+		{
+			name:     "list with -v flag",
+			args:     []string{"-v"},
+			expected: "main",
+		},
+		{
+			name:     "list with --verbose flag",
+			args:     []string{"--verbose"},
+			expected: "main",
+		},
+		{
+			name:     "list local",
+			args:     []string{"local"},
+			expected: "main",
+		},
+		{
+			name:     "list remote",
+			args:     []string{"remote"},
+			expected: "origin/main",
+		},
+		{
+			name:     "empty args does nothing",
+			args:     []string{},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+			}
+
+			brancher.handleListCommand(tt.args)
+
+			output := buf.String()
+			if tt.expected != "" && !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test branchRename - currently 0.0% coverage
+func TestBrancher_branchRename(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "successful rename",
+			input:    "1\nnew-branch-name\n",
+			expected: "Enter the number of the branch to rename:",
+		},
+		{
+			name:     "cancel with empty name",
+			input:    "1\n\n",
+			expected: "Canceled.",
+		},
+		{
+			name:     "invalid branch number",
+			input:    "invalid\n",
+			expected: "Invalid number.",
+		},
+		{
+			name:     "out of range number",
+			input:    "999\n",
+			expected: "Invalid number.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchRename()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test branchMove - currently 0.0% coverage
+func TestBrancher_branchMove(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		revValid bool
+	}{
+		{
+			name:     "successful move",
+			input:    "1\nabc123\n",
+			expected: "Enter the number of the branch to move:",
+			revValid: true,
+		},
+		{
+			name:     "cancel with empty commit",
+			input:    "1\n\n",
+			expected: "Canceled.",
+			revValid: false,
+		},
+		{
+			name:     "invalid commit reference",
+			input:    "1\ninvalid-ref\n",
+			expected: "Invalid commit or ref.",
+			revValid: false,
+		},
+		{
+			name:     "invalid branch number",
+			input:    "invalid\n",
+			expected: "Invalid number.",
+			revValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				revParseVerifyFunc: func(string) bool {
+					return tt.revValid
+				},
+			}
+
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchMove()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test branchInfo - currently 0.0% coverage
+func TestBrancher_branchInfo(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "show branch info",
+			input:    "1\n",
+			expected: "Name: main",
+		},
+		{
+			name:     "invalid number",
+			input:    "invalid\n",
+			expected: "Invalid number.",
+		},
+		{
+			name:     "out of range",
+			input:    "999\n",
+			expected: "Invalid number.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchInfo()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test branchListVerbose - currently 0.0% coverage
+func TestBrancher_branchListVerbose(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected []string
+	}{
+		{
+			name: "verbose list with branches",
+			expected: []string{
+				"* main",
+				"feature",
+				"1234567",
+				"89abcde",
+				"origin/main",
+				"origin/feature",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+			}
+
+			brancher.branchListVerbose()
+
+			output := buf.String()
+			for _, expected := range tt.expected {
+				if !strings.Contains(output, expected) {
+					t.Errorf("Expected %q in output, got: %s", expected, output)
+				}
+			}
+		})
+	}
+}
+
+// Test branchListLocal - currently 0.0% coverage
+func TestBrancher_branchListLocal(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+
+	brancher.branchListLocal()
+
+	output := buf.String()
+	if !strings.Contains(output, "main") || !strings.Contains(output, "feature/test") {
+		t.Errorf("Expected branch names in output, got: %s", output)
+	}
+}
+
+// Test branchListRemote - currently 0.0% coverage
+func TestBrancher_branchListRemote(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+
+	brancher.branchListRemote()
+
+	output := buf.String()
+	if !strings.Contains(output, "origin/main") || !strings.Contains(output, "origin/feature/test") {
+		t.Errorf("Expected remote branch names in output, got: %s", output)
+	}
+}
+
+// Test branchSort - currently 0.0% coverage
+func TestBrancher_branchSort(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "sort by name (default)",
+			input:    "1\n",
+			expected: "a",
+		},
+		{
+			name:     "sort by date",
+			input:    "2\n",
+			expected: "a",
+		},
+		{
+			name:     "invalid input defaults to name",
+			input:    "invalid\n",
+			expected: "a",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchSort()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test branchContains - currently 0.0% coverage
+func TestBrancher_branchContains(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		revValid bool
+	}{
+		{
+			name:     "successful contains check",
+			input:    "abc123\n",
+			expected: "main",
+			revValid: true,
+		},
+		{
+			name:     "cancel with empty input",
+			input:    "\n",
+			expected: "Canceled.",
+			revValid: false,
+		},
+		{
+			name:     "invalid commit reference",
+			input:    "invalid-ref\n",
+			expected: "Invalid commit or ref.",
+			revValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				revParseVerifyFunc: func(string) bool {
+					return tt.revValid
+				},
+			}
+
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchContains()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test error cases for list operations
+func TestBrancher_ListOperations_Errors(t *testing.T) {
+	tests := []struct {
+		name     string
+		testFunc func(*Brancher)
+		expected string
+	}{
+		{
+			name: "branchListLocal with error",
+			testFunc: func(b *Brancher) {
+				b.branchListLocal()
+			},
+			expected: "Error:",
+		},
+		{
+			name: "branchListRemote with error",
+			testFunc: func(b *Brancher) {
+				b.branchListRemote()
+			},
+			expected: "Error:",
+		},
+		{
+			name: "branchListVerbose with error",
+			testFunc: func(b *Brancher) {
+				b.branchListVerbose()
+			},
+			expected: "Error:",
+		},
+		{
+			name: "branchSort with error",
+			testFunc: func(b *Brancher) {
+				b.branchSort()
+			},
+			expected: "Error:",
+		},
+		{
+			name: "branchContains with error",
+			testFunc: func(b *Brancher) {
+				b.branchContains()
+			},
+			expected: "Error:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				listLocalBranches: func() ([]string, error) {
+					return nil, errors.New("test error")
+				},
+				listRemoteBranches: func() ([]string, error) {
+					return nil, errors.New("test error")
+				},
+				listBranchesVerboseFunc: func() ([]git.BranchInfo, error) {
+					return nil, errors.New("test error")
+				},
+				sortBranchesFunc: func(string) ([]string, error) {
+					return nil, errors.New("test error")
+				},
+				branchesContainingFunc: func(string) ([]string, error) {
+					return nil, errors.New("test error")
+				},
+				revParseVerifyFunc: func(string) bool {
+					return true
+				},
+			}
+
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader("abc123\n1\n")),
+			}
+
+			tt.testFunc(brancher)
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test empty branch lists
+func TestBrancher_EmptyBranchLists(t *testing.T) {
+	tests := []struct {
+		name     string
+		testFunc func(*Brancher)
+		expected string
+	}{
+		{
+			name: "branchListLocal with empty list",
+			testFunc: func(b *Brancher) {
+				b.branchListLocal()
+			},
+			expected: "No local branches found.",
+		},
+		{
+			name: "branchListRemote with empty list",
+			testFunc: func(b *Brancher) {
+				b.branchListRemote()
+			},
+			expected: "No remote branches found.",
+		},
+		{
+			name: "branchListVerbose with empty list",
+			testFunc: func(b *Brancher) {
+				b.branchListVerbose()
+			},
+			expected: "No local branches found.",
+		},
+		{
+			name: "branchInfo with empty list",
+			testFunc: func(b *Brancher) {
+				b.branchInfo()
+			},
+			expected: "No local branches found.",
+		},
+		{
+			name: "branchRename with empty list",
+			testFunc: func(b *Brancher) {
+				b.branchRename()
+			},
+			expected: "No local branches found.",
+		},
+		{
+			name: "branchMove with empty list",
+			testFunc: func(b *Brancher) {
+				b.branchMove()
+			},
+			expected: "No local branches found.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockBranchGitClient{
+				listLocalBranches: func() ([]string, error) {
+					return []string{}, nil
+				},
+				listRemoteBranches: func() ([]string, error) {
+					return []string{}, nil
+				},
+				listBranchesVerboseFunc: func() ([]git.BranchInfo, error) {
+					return []git.BranchInfo{}, nil
+				},
+			}
+
+			brancher := &Brancher{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+			}
+
+			tt.testFunc(brancher)
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test branchSetUpstream and related functions
+func TestBrancher_branchSetUpstream(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "successful upstream set",
+			input:    "1\n1\n",
+			expected: "Local branches:",
+		},
+		{
+			name:     "cancel branch selection",
+			input:    "invalid\n",
+			expected: "Invalid number.",
+		},
+		{
+			name:     "cancel upstream selection",
+			input:    "1\n\n",
+			expected: "Canceled.",
+		},
+		{
+			name:     "upstream by name",
+			input:    "1\norigin/feature\n",
+			expected: "Local branches:",
+		},
+		{
+			name:     "upstream by number",
+			input:    "1\n2\n",
+			expected: "Local branches:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+			}
+
+			brancher.branchSetUpstream()
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expected) {
+				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
+			}
+		})
+	}
+}
+
+// Test printBranchInfo - currently 0.0% coverage
+func TestBrancher_printBranchInfo(t *testing.T) {
+	tests := []struct {
+		name     string
+		branch   string
+		expected []string
+	}{
+		{
+			name:   "complete branch info",
+			branch: "main",
+			expected: []string{
+				"Name: main",
+				"Current: true",
+				"Upstream: origin/main",
+				"Ahead/Behind: ahead 1",
+				"Last Commit: abc1234 Test commit",
+			},
+		},
+		{
+			name:   "branch with minimal info",
+			branch: "feature",
+			expected: []string{
+				"Name: feature",
+				"Current: false",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			brancher := &Brancher{
+				gitClient:    &mockBranchGitClient{},
+				outputWriter: &buf,
+			}
+
+			brancher.printBranchInfo(tt.branch)
+
+			output := buf.String()
+			for _, expected := range tt.expected {
+				if !strings.Contains(output, expected) {
+					t.Errorf("Expected %q in output, got: %s", expected, output)
+				}
+			}
+		})
+	}
+}
+
+// Test printBranchInfo error case
+func TestBrancher_printBranchInfo_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		getBranchInfoFunc: func(string) (*git.BranchInfo, error) {
+			return nil, errors.New("branch info error")
+		},
+	}
+
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+	}
+
+	brancher.printBranchInfo("test")
+
+	output := buf.String()
+	if !strings.Contains(output, "Error: branch info error") {
+		t.Errorf("Expected error message in output, got: %s", output)
+	}
+}
+
+// Test branchContains with no matching branches
+func TestBrancher_branchContains_NoBranches(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		revParseVerifyFunc: func(string) bool {
+			return true
+		},
+		branchesContainingFunc: func(string) ([]string, error) {
+			return []string{}, nil
+		},
+	}
+
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		inputReader:  bufio.NewReader(strings.NewReader("abc123\n")),
+	}
+
+	brancher.branchContains()
+
+	output := buf.String()
+	if !strings.Contains(output, "No branches contain the specified commit.") {
+		t.Errorf("Expected no branches message, got: %s", output)
 	}
 }
