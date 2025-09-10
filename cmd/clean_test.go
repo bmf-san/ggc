@@ -40,7 +40,6 @@ func (m *mockCleanGitClient) CleanFilesForce(_ []string) error {
 // - CleanFiles, CleanDirs: used by non-interactive cleaning subcommands
 // - CleanDryRun: used to list candidates in interactive mode
 // - CleanFilesForce: used to delete selected files after confirmation
-// All other Git client methods are omitted to keep this test doubly minimal and focused.
 
 func TestCleaner_Clean(t *testing.T) {
 	tests := []struct {
