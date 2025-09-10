@@ -185,97 +185,7 @@ func TestTagger_Tag(t *testing.T) {
 	}
 }
 
-func TestTagger_TagOperations(t *testing.T) {
-	tests := []struct {
-		name     string
-		args     []string
-		testFunc func(*testing.T, *Tagger, *bytes.Buffer)
-	}{
-		{
-			name: "list operation calls TagList",
-			args: []string{"list"},
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				output := buf.String()
-				// Mock client doesn't return errors for TagList
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in tag list: %s", output)
-				}
-			},
-		},
-		{
-			name: "create operation success message",
-			args: []string{"create", "v1.0.0"},
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				output := buf.String()
-				// Should show success message
-				if !strings.Contains(output, "Tag 'v1.0.0' created") {
-					t.Errorf("Expected create success message, got: %s", output)
-				}
-			},
-		},
-		{
-			name: "delete operation success message",
-			args: []string{"delete", "v1.0.0"},
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				output := buf.String()
-				// Should show success message
-				if !strings.Contains(output, "Tag 'v1.0.0' deleted") {
-					t.Errorf("Expected delete success message, got: %s", output)
-				}
-			},
-		},
-		{
-			name: "push all tags success message",
-			args: []string{"push"},
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				output := buf.String()
-				// Should show success message
-				if !strings.Contains(output, "All tags pushed to origin") {
-					t.Errorf("Expected push all success message, got: %s", output)
-				}
-			},
-		},
-		{
-			name: "push specific tag success message",
-			args: []string{"push", "v1.0.0"},
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				output := buf.String()
-				// Should show success message
-				if !strings.Contains(output, "Tag 'v1.0.0' pushed to origin") {
-					t.Errorf("Expected push tag success message, got: %s", output)
-				}
-			},
-		},
-		{
-			name: "show operation calls TagShow",
-			args: []string{"show", "v1.0.0"},
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				output := buf.String()
-				// Mock client doesn't return errors for TagShow
-				if strings.Contains(output, "Error:") {
-					t.Errorf("Unexpected error in tag show: %s", output)
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
-
-			tagger := &Tagger{
-				gitClient:    mockClient,
-				outputWriter: buf,
-				helper:       NewHelper(),
-			}
-			tagger.helper.outputWriter = buf
-
-			tagger.Tag(tt.args)
-			tt.testFunc(t, tagger, buf)
-		})
-	}
-}
+// TestTagger_TagOperations is removed as it duplicates TestTagger_Tag functionality
 
 func TestTagger_ErrorHandling(t *testing.T) {
 	tests := []struct {
@@ -581,7 +491,7 @@ func TestTagger_listTags_Coverage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
 			var mockClient git.Clienter
-			
+
 			if tt.mockError {
 				mockClient = newMockTagErrorClient()
 			} else {
@@ -613,13 +523,7 @@ func TestTagger_EdgeCases(t *testing.T) {
 		testFunc       func(*testing.T, *Tagger, *bytes.Buffer)
 		expectedOutput string
 	}{
-		{
-			name: "no args should call TagList",
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				tagger.Tag([]string{})
-			},
-			expectedOutput: "", // No output expected from successful TagList
-		},
+		// Removed "no args should call TagList" - already covered in TestTagger_Tag
 		{
 			name: "no args with git error should show error",
 			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
@@ -643,13 +547,7 @@ func TestTagger_EdgeCases(t *testing.T) {
 			},
 			expectedOutput: "Tag 'v1.0.0' pushed to upstream",
 		},
-		{
-			name: "create tag with long commit hash",
-			testFunc: func(t *testing.T, tagger *Tagger, buf *bytes.Buffer) {
-				tagger.createTag([]string{"v1.0.0", "abcdef1234567890abcdef1234567890abcdef12"})
-			},
-			expectedOutput: "Tag 'v1.0.0' created",
-		},
+		// Removed "create tag with long commit hash" - no special logic for long hashes
 	}
 
 	for _, tt := range tests {
@@ -675,60 +573,4 @@ func TestTagger_EdgeCases(t *testing.T) {
 	}
 }
 
-// Test comprehensive tag command routing
-func TestTagger_CommandRouting(t *testing.T) {
-	tests := []struct {
-		name           string
-		args           []string
-		expectedOutput string
-	}{
-		{
-			name:           "list command with l alias",
-			args:           []string{"l", "v*"},
-			expectedOutput: "", // Successful list operation
-		},
-		{
-			name:           "create command with c alias",
-			args:           []string{"c", "v3.0.0"},
-			expectedOutput: "Tag 'v3.0.0' created",
-		},
-		{
-			name:           "delete command with d alias",
-			args:           []string{"d", "v3.0.0"},
-			expectedOutput: "Tag 'v3.0.0' deleted",
-		},
-		{
-			name:           "invalid command shows help",
-			args:           []string{"invalid"},
-			expectedOutput: "Usage:",
-		},
-		{
-			name:           "empty string command shows help",
-			args:           []string{""},
-			expectedOutput: "Usage:",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
-
-			tagger := &Tagger{
-				gitClient:    mockClient,
-				outputWriter: buf,
-				helper:       NewHelper(),
-			}
-			tagger.helper.outputWriter = buf
-
-			tagger.Tag(tt.args)
-
-			output := buf.String()
-			if tt.expectedOutput != "" {
-				if !strings.Contains(output, tt.expectedOutput) {
-					t.Errorf("Expected output containing '%s', got: %s", tt.expectedOutput, output)
-				}
-			}
-		})
-	}
-}
+// TestTagger_CommandRouting is removed as it duplicates TestTagger_Tag alias testing
