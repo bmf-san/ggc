@@ -296,8 +296,8 @@ func TestMain_ArgumentHandling(t *testing.T) {
 func TestMain_OsArgsSimulation(t *testing.T) {
 	// Test os.Args simulation without actually modifying os.Args
 	testArgs := [][]string{
-		{"ggc", "help"},   // Help command (safe)
-		{"ggc", "status"}, // Status command (safe with mock)
+		{"ggc", "help"},           // Help command (safe)
+		{"ggc", "status"},         // Status command (safe with mock)
 		{"ggc", "config", "list"}, // Config command (safer than version)
 		// Note: Removed {"ggc"} (empty args) to avoid Interactive() side effects
 		// Note: Removed version command to avoid config file creation side effects
