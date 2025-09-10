@@ -159,7 +159,7 @@ func TestMain_Components(t *testing.T) {
 				if cm == nil {
 					t.Error("config manager should be created")
 				}
-				
+
 				// Test config creation without LoadConfig() to avoid file system side effects
 				cfg := cm.GetConfig()
 				if cfg == nil {
@@ -176,16 +176,16 @@ func TestMain_Components(t *testing.T) {
 				testGetter := func() (string, string) {
 					return "test-version", "test-commit"
 				}
-				
+
 				// Set and immediately test the getter
 				cmd.SetVersionGetter(testGetter)
-				
+
 				// Verify the getter works
 				if testGetter != nil {
 					v, c := testGetter()
 					t.Logf("Version getter test successful: version='%s', commit='%s'", v, c)
 				}
-				
+
 				// Note: We don't restore the original getter as it may not have been set
 				// This test focuses on the SetVersionGetter functionality itself
 			},
@@ -221,20 +221,20 @@ func TestMain_Components(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// Test the complete initialization flow with mock components (avoiding side effects)
 				mockClient := testutil.NewMockGitClient()
-				
+
 				// Initialize components like main() does (but safely)
 				cm := config.NewConfigManager(mockClient)
 				// Skip LoadConfig() to avoid file system side effects
-				
+
 				// Set a test version getter to avoid global state pollution
 				testGetter := func() (string, string) {
 					return "test-version", "test-commit"
 				}
 				cmd.SetVersionGetter(testGetter)
-				
+
 				c := cmd.NewCmd(mockClient)
 				r := router.NewRouter(c, cm)
-				
+
 				// Test safe routing (help command)
 				r.Route([]string{"help"})
 				t.Log("Integration test completed successfully (without file system side effects)")
@@ -261,9 +261,9 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			desc: "Test help command routing",
 		},
 		{
-			name: "version command",
-			args: []string{"version"},
-			desc: "Test version command routing",
+			name: "config command (safe)",
+			args: []string{"config", "list"},
+			desc: "Test config command routing (safer than version which may update files)",
 		},
 		{
 			name: "status command",
@@ -271,9 +271,9 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			desc: "Test status command routing",
 		},
 		{
-			name: "empty args",
-			args: []string{},
-			desc: "Test empty arguments (should trigger interactive mode)",
+			name: "help args (avoid interactive)",
+			args: []string{"help"},
+			desc: "Test help command (safer than empty args which trigger interactive mode)",
 		},
 	}
 
@@ -285,7 +285,7 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			// Skip LoadConfig() to avoid file system side effects
 			c := cmd.NewCmd(mockClient)
 			r := router.NewRouter(c, cm)
-			
+
 			// Test routing with different arguments (safe with mock)
 			r.Route(tt.args)
 			t.Logf("%s: Successfully routed args %v (no side effects)", tt.desc, tt.args)
@@ -296,10 +296,11 @@ func TestMain_ArgumentHandling(t *testing.T) {
 func TestMain_OsArgsSimulation(t *testing.T) {
 	// Test os.Args simulation without actually modifying os.Args
 	testArgs := [][]string{
-		{"ggc"},            // Program name only
-		{"ggc", "help"},    // Help command
-		{"ggc", "status"},  // Status command
-		{"ggc", "version"}, // Version command
+		{"ggc", "help"},   // Help command (safe)
+		{"ggc", "status"}, // Status command (safe with mock)
+		{"ggc", "config", "list"}, // Config command (safer than version)
+		// Note: Removed {"ggc"} (empty args) to avoid Interactive() side effects
+		// Note: Removed version command to avoid config file creation side effects
 	}
 
 	for _, args := range testArgs {
@@ -314,16 +315,16 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
 			// Skip LoadConfig() to avoid file system side effects
-			
+
 			// Set a test version getter to avoid global state pollution
 			testGetter := func() (string, string) {
 				return "test-version", "test-commit"
 			}
 			cmd.SetVersionGetter(testGetter)
-			
+
 			c := cmd.NewCmd(mockClient)
 			r := router.NewRouter(c, cm)
-			
+
 			// Route the arguments (safe with mock)
 			r.Route(routeArgs)
 			t.Logf("Successfully simulated main() with args: %v -> route args: %v (no side effects)", args, routeArgs)
