@@ -181,10 +181,8 @@ func TestMain_Components(t *testing.T) {
 				cmd.SetVersionGetter(testGetter)
 
 				// Verify the getter works
-				if testGetter != nil {
-					v, c := testGetter()
-					t.Logf("Version getter test successful: version='%s', commit='%s'", v, c)
-				}
+				v, c := testGetter()
+				t.Logf("Version getter test successful: version='%s', commit='%s'", v, c)
 
 				// Note: We don't restore the original getter as it may not have been set
 				// This test focuses on the SetVersionGetter functionality itself
