@@ -41,7 +41,7 @@ func (m *mockCompleteGitClient) ListFiles() (string, error) {
 	return "file1.go\nfile2.go\nREADME.md", nil
 }
 
-// Implement other required methods to satisfy git Clienter interface
+// Implement other methods only as needed for tests
 func (m *mockCompleteGitClient) GetCurrentBranch() (string, error)         { return "main", nil }
 func (m *mockCompleteGitClient) GetGitStatus() (string, error)             { return "", nil }
 func (m *mockCompleteGitClient) GetBranchName() (string, error)            { return "main", nil }
@@ -71,7 +71,7 @@ func (m *mockCompleteGitClient) ConfigSet(_, _ string) error              { retu
 func (m *mockCompleteGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
 func (m *mockCompleteGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
 
-// Add missing methods to satisfy git.Clienter interface
+// Additional methods used by other tests
 func (m *mockCompleteGitClient) Add(_ ...string) error                 { return nil }
 func (m *mockCompleteGitClient) AddInteractive() error                 { return nil }
 func (m *mockCompleteGitClient) Status() (string, error)               { return "", nil }

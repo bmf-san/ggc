@@ -11,13 +11,13 @@ import (
 
 // Puller provides functionality for the pull command.
 type Puller struct {
-	gitClient    git.Clienter
+	gitClient    git.Puller
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewPuller creates a new Puller.
-func NewPuller(client git.Clienter) *Puller {
+func NewPuller(client git.Puller) *Puller {
 	p := &Puller{
 		gitClient:    client,
 		outputWriter: os.Stdout,

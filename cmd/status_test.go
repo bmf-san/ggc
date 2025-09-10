@@ -5,11 +5,46 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
+type mockStatusInfoReader struct {
+	currentBranch        string
+	upstreamBranch       string
+	aheadBehindCount     string
+	statusWithColor      string
+	statusShortWithColor string
+}
+
+func (m *mockStatusInfoReader) GetCurrentBranch() (string, error) {
+	if m.currentBranch == "" {
+		return "main", nil
+	}
+	return m.currentBranch, nil
+}
+func (m *mockStatusInfoReader) GetUpstreamBranchName(string) (string, error) {
+	if m.upstreamBranch == "" {
+		return "origin/main", nil
+	}
+	return m.upstreamBranch, nil
+}
+func (m *mockStatusInfoReader) GetAheadBehindCount(string, string) (string, error) {
+	if m.aheadBehindCount == "" {
+		return "0 0", nil
+	}
+	return m.aheadBehindCount, nil
+}
+func (m *mockStatusInfoReader) StatusWithColor() (string, error) {
+	return m.statusWithColor, nil
+}
+func (m *mockStatusInfoReader) StatusShortWithColor() (string, error) {
+	return m.statusShortWithColor, nil
+}
+
+var _ git.StatusInfoReader = (*mockStatusInfoReader)(nil)
+
 func TestStatuser_Constructor(t *testing.T) {
-	mockClient := testutil.NewMockGitClient()
+	mockClient := &mockStatusInfoReader{}
 	statuser := NewStatuser(mockClient)
 
 	if statuser == nil {
@@ -56,7 +91,7 @@ func TestStatuser_Status(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockStatusInfoReader{}
 
 			statuser := &Statuser{
 				gitClient:    mockClient,
@@ -159,7 +194,7 @@ func TestStatuser_StatusOperations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockStatusInfoReader{}
 
 			statuser := &Statuser{
 				gitClient:    mockClient,
@@ -202,7 +237,7 @@ func TestStatuser_UpstreamStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockStatusInfoReader{}
 
 			statuser := &Statuser{
 				gitClient:    mockClient,

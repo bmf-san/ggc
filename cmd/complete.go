@@ -9,11 +9,18 @@ import (
 
 // Completer handles dynamic completion for subcommands/args
 type Completer struct {
-	gitClient git.Clienter
+	// Needs only local branches and file listing for completion
+	gitClient interface {
+		git.LocalBranchLister
+		git.FileLister
+	}
 }
 
 // NewCompleter creates a new Completer.
-var NewCompleter = func(client git.Clienter) *Completer {
+var NewCompleter = func(client interface {
+	git.LocalBranchLister
+	git.FileLister
+}) *Completer {
 	return &Completer{
 		gitClient: client,
 	}

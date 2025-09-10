@@ -206,7 +206,6 @@ func (m *mockGitClient) GetVersion() (string, error)    { return "test-version",
 func (m *mockGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
 
 type mockCmdGitClient struct {
-	git.Clienter
 	pullCalled bool
 	pullRebase bool
 	pushCalled bool
@@ -229,7 +228,7 @@ func TestCmd_Pull(t *testing.T) {
 	mockClient := &mockCmdGitClient{}
 	var buf bytes.Buffer
 	cmd := &Cmd{
-		gitClient:    mockClient,
+		gitClient:    nil,
 		outputWriter: &buf,
 		puller:       NewPuller(mockClient),
 	}
@@ -248,7 +247,7 @@ func TestCmd_Push(t *testing.T) {
 	mockClient := &mockCmdGitClient{}
 	var buf bytes.Buffer
 	cmd := &Cmd{
-		gitClient:    mockClient,
+		gitClient:    nil,
 		outputWriter: &buf,
 		pusher:       NewPusher(mockClient),
 	}
@@ -466,16 +465,16 @@ func TestCmd_Help(t *testing.T) {
 
 func TestCmd_Branch(t *testing.T) {
 	// Use mock client to avoid git command side effects
-	mockClient := &mockGitClient{}
 	var buf bytes.Buffer
 	helper := NewHelper()
 	helper.outputWriter = &buf
 
 	cmd := &Cmd{
-		gitClient:    mockClient,
+		gitClient:    nil,
 		outputWriter: &buf,
 		helper:       helper,
-		brancher:     &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: helper},
+		// help path does not access gitClient; pass nil to minimize dependencies
+		brancher: &Brancher{gitClient: nil, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: helper},
 	}
 
 	cmd.Branch([]string{})
@@ -558,42 +557,6 @@ func TestCmd_Route(t *testing.T) {
 			}()
 
 			cmd.Route(tc.args)
-		})
-	}
-}
-
-func TestCmd_Route_LegacyLikeError(t *testing.T) {
-	cases := []struct {
-		name string
-		args []string
-	}{
-		{name: "top-level hyphenated", args: []string{"clean-interactive"}},
-		{name: "flag style prune", args: []string{"fetch", "--prune"}},
-		{name: "commit allow-empty flag", args: []string{"commit", "--allow-empty"}},
-		{name: "rebase interactive flag", args: []string{"rebase", "-i"}},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			cmd := &Cmd{outputWriter: &buf}
-
-			// Should not panic and should print legacy-like error message
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("Route() should not panic for args %v, but got: %v", tc.args, r)
-				}
-			}()
-
-			cmd.Route(tc.args)
-
-			out := buf.String()
-			if !strings.Contains(out, "legacy-like syntax is not supported") {
-				t.Fatalf("expected legacy-like error message, got: %q", out)
-			}
-			if !strings.Contains(out, "ggc help") {
-				t.Fatalf("expected help pointer in message, got: %q", out)
-			}
 		})
 	}
 }

@@ -5,11 +5,52 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/internal/testutil"
+	"github.com/bmf-san/ggc/v5/git"
 )
 
+type mockStashOps struct {
+	stashCalled bool
+	listCalled  bool
+	showCalled  bool
+	applyCalled bool
+	popCalled   bool
+	dropCalled  bool
+	clearCalled bool
+	stashName   string
+	listOutput  string
+}
+
+func (m *mockStashOps) Stash() error { m.stashCalled = true; return nil }
+func (m *mockStashOps) StashList() (string, error) {
+	m.listCalled = true
+	return m.listOutput, nil
+}
+func (m *mockStashOps) StashShow(stash string) error {
+	m.showCalled = true
+	m.stashName = stash
+	return nil
+}
+func (m *mockStashOps) StashApply(stash string) error {
+	m.applyCalled = true
+	m.stashName = stash
+	return nil
+}
+func (m *mockStashOps) StashPop(stash string) error {
+	m.popCalled = true
+	m.stashName = stash
+	return nil
+}
+func (m *mockStashOps) StashDrop(stash string) error {
+	m.dropCalled = true
+	m.stashName = stash
+	return nil
+}
+func (m *mockStashOps) StashClear() error { m.clearCalled = true; return nil }
+
+var _ git.StashOps = (*mockStashOps)(nil)
+
 func TestStasher_Constructor(t *testing.T) {
-	mockClient := testutil.NewMockGitClient()
+	mockClient := &mockStashOps{}
 	stasher := NewStasher(mockClient)
 
 	if stasher == nil {
@@ -110,7 +151,7 @@ func TestStasher_Stash(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockStashOps{}
 
 			stasher := &Stasher{
 				gitClient:    mockClient,
@@ -248,7 +289,7 @@ func TestStasher_StashOperations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockStashOps{}
 
 			stasher := &Stasher{
 				gitClient:    mockClient,
@@ -318,7 +359,7 @@ func TestStasher_StashArgumentHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			mockClient := testutil.NewMockGitClient()
+			mockClient := &mockStashOps{}
 
 			stasher := &Stasher{
 				gitClient:    mockClient,

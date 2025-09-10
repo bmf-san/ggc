@@ -14,14 +14,14 @@ import (
 
 // Cleaner provides functionality for the clean command.
 type Cleaner struct {
-	gitClient    git.Clienter
+	gitClient    git.CleanOps
 	outputWriter io.Writer
 	inputReader  *bufio.Reader
 	helper       *Helper
 }
 
 // NewCleaner creates a new Cleaner.
-func NewCleaner(client git.Clienter) *Cleaner {
+func NewCleaner(client git.CleanOps) *Cleaner {
 	c := &Cleaner{
 		gitClient:    client,
 		outputWriter: os.Stdout,
@@ -119,12 +119,8 @@ func (c *Cleaner) displayFileSelection(files []string) {
 // handleSpecialCommands processes "all" and "none" commands
 func (c *Cleaner) handleSpecialCommands(input string, files []string) bool {
 	if input == "all" {
-		if err := c.gitClient.CleanFilesForce(files); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
-			return true
-		}
-		_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
-		return true
+		// Confirm before destructive action for consistency with manual selection
+		return c.confirmAndDelete(files)
 	}
 	if input == "none" {
 		return false // Continue loop

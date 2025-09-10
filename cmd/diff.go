@@ -10,13 +10,13 @@ import (
 
 // Differ handles git diff operations.
 type Differ struct {
-	gitClient    git.Clienter
+	gitClient    git.DiffReader
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewDiffer creates a new Differ instance.
-func NewDiffer(client git.Clienter) *Differ {
+func NewDiffer(client git.DiffReader) *Differ {
 	return &Differ{
 		gitClient:    client,
 		outputWriter: os.Stdout,
@@ -37,6 +37,8 @@ func (d *Differ) Diff(args []string) {
 			output, err = d.gitClient.Diff()
 		case "staged":
 			output, err = d.gitClient.DiffStaged()
+		case "head":
+			output, err = d.gitClient.DiffHead()
 		default:
 			d.helper.ShowDiffHelp()
 			return

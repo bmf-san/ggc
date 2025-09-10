@@ -3,7 +3,7 @@
 
 package git
 
-// MockClient is a mock of Clienter.
+// MockClient is a test-only composite mock for selected git operations.
 type MockClient struct {
 	GetCurrentBranchFunc   func() (string, error)
 	ListLocalBranchesFunc  func() ([]string, error)
@@ -19,7 +19,7 @@ type MockClient struct {
 	PullFunc               func(rebase bool) error
 	PushFunc               func(force bool) error
 	ResetHardAndCleanFunc  func() error
-	DeleteBranchFunc       func(branch string, force bool) error
+	DeleteBranchFunc       func(branch string) error
 	DeleteMergedBranchFunc func() error
 	GetGitStatusFunc       func() (string, error)
 	GetBranchNameFunc      func() (string, error)
@@ -102,8 +102,8 @@ func (m *MockClient) ResetHardAndClean() error {
 }
 
 // DeleteBranch is a mock of DeleteBranch.
-func (m *MockClient) DeleteBranch(branch string, force bool) error {
-	return m.DeleteBranchFunc(branch, force)
+func (m *MockClient) DeleteBranch(branch string) error {
+	return m.DeleteBranchFunc(branch)
 }
 
 // DeleteMergedBranch is a mock of DeleteMergedBranch.

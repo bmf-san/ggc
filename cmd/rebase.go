@@ -14,14 +14,14 @@ import (
 
 // Rebaser handles rebase operations.
 type Rebaser struct {
-	gitClient    git.Clienter
+	gitClient    git.RebaseOps
 	outputWriter io.Writer
 	helper       *Helper
 	inputReader  *bufio.Reader
 }
 
 // NewRebaser creates a new Rebaser instance.
-func NewRebaser(client git.Clienter) *Rebaser {
+func NewRebaser(client git.RebaseOps) *Rebaser {
 	return &Rebaser{
 		gitClient:    client,
 		outputWriter: os.Stdout,

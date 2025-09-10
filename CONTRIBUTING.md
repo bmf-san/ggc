@@ -62,6 +62,58 @@ When implementing new features or modifying existing ones, please ensure to:
 - Update tests when adding or modifying features
 - Add test cases for error scenarios
 
+## Internal Design: Segmented Git Interfaces
+
+To reduce mock surface area and improve maintainability, the `git` package defines small, focused interfaces that represent cohesive slices of functionality. For example:
+
+```
+// git/interfaces.go
+type DiffReader interface {
+    Diff() (string, error)
+    DiffStaged() (string, error)
+    DiffHead() (string, error)
+}
+```
+
+Guidelines:
+- Commands in `cmd/` should depend on the smallest interface they need (e.g., `git.DiffReader` for `cmd/diff.go`).
+- The concrete `git.Client` implements the full set of operations and automatically satisfies these smaller interfaces.
+- In tests, prefer defining minimal mocks that satisfy only the required small interface instead of a large, catch‑all client surface.
+
+This approach follows the Interface Segregation Principle and helps avoid updating large mock types when unrelated functionality changes.
+
+### Interface Style Guide
+
+- Prefer narrow, role-based interfaces over a single large one.
+- Use clear suffixes to communicate intent:
+  - `Reader` for read-only queries (e.g., `DiffReader`, `StatusReader`, `BranchReader`).
+  - `Writer` for mutating operations (e.g., `CommitWriter`, `BranchWriter`).
+  - Use simple nouns for single-purpose operations (e.g., `Pusher`, `Puller`).
+- Compose small interfaces for command needs instead of expanding them:
+  - Example composite used by status:
+
+```
+type StatusInfoReader interface {
+    StatusReader
+    BranchUpstreamReader
+}
+```
+
+- Define interfaces in `git/interfaces.go`; implement behavior in `git/*.go` on `git.Client`.
+- Constructors in `cmd/*` should accept the smallest interface required, for example:
+
+```
+// cmd/diff.go
+type Differ struct { gitClient git.DiffReader /* ... */ }
+func NewDiffer(c git.DiffReader) *Differ { /* ... */ }
+
+// cmd/commit.go
+type Committer struct { gitClient git.CommitWriter /* ... */ }
+func NewCommitter(c git.CommitWriter) *Committer { /* ... */ }
+```
+
+- Tests should create minimal mocks that satisfy only the specific interface required by the command being tested.
+
 ## Command Design Guidelines
 
 ### Naming Conventions

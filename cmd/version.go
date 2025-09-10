@@ -27,11 +27,11 @@ type Versioner struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
-	gitClient    git.Clienter
+	gitClient    git.ConfigOps
 }
 
 // NewVersioner creates a new Versioner instance.
-func NewVersioner(client git.Clienter) *Versioner {
+func NewVersioner(client git.ConfigOps) *Versioner {
 	return &Versioner{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

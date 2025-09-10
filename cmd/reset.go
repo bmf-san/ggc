@@ -13,11 +13,11 @@ import (
 type Resetter struct {
 	outputWriter io.Writer
 	helper       *Helper
-	gitClient    git.Clienter
+	gitClient    git.ResetOps
 }
 
 // NewResetter creates a new Resetter instance.
-func NewResetter(client git.Clienter) *Resetter {
+func NewResetter(client git.ResetOps) *Resetter {
 	return &Resetter{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

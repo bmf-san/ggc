@@ -126,7 +126,7 @@ type ParsedAlias struct {
 type Manager struct {
 	config     *Config
 	configPath string
-	gitClient  git.Clienter
+	gitClient  git.ConfigOps
 }
 
 var (
@@ -141,7 +141,7 @@ var (
 )
 
 // NewConfigManager creates a new configuration manager with the provided git client
-func NewConfigManager(gitClient git.Clienter) *Manager {
+func NewConfigManager(gitClient git.ConfigOps) *Manager {
 	return &Manager{
 		config:    getDefaultConfig(gitClient),
 		gitClient: gitClient,
@@ -412,10 +412,9 @@ func (c *Config) GetAllAliases() map[string]*ParsedAlias {
 
 // Note: getGitVersion, getGitCommit, and updateMeta functions removed
 // to eliminate direct git command execution. Meta values are now set
-// manually in getDefaultConfig() to avoid side effects in tests.
 
 // getDefaultConfig returns the default configuration values
-func getDefaultConfig(gitClient git.Clienter) *Config {
+func getDefaultConfig(gitClient git.ConfigOps) *Config {
 	config := &Config{
 		Aliases: make(map[string]interface{}),
 	}
@@ -523,7 +522,6 @@ func (cm *Manager) syncFromCommandName(command string) {
 		"color.ui":           func(v string) { cm.config.UI.Color = v == "true" || v == "auto" },
 		"core.pager":         func(v string) { cm.config.UI.Pager = v != "cat" },
 		"fetch.auto":         func(v string) { cm.config.Behavior.AutoFetch = v == "true" },
-		"push.default":       func(v string) { cm.config.Behavior.ConfirmDestructive = v },
 	}
 	if f, ok := updaters[command]; ok {
 		f(value)
@@ -606,7 +604,7 @@ func (cm *Manager) syncUISettings(config *Config) error {
 	return nil
 }
 
-// syncBehaviorSettings syncs autofetch and push default settings
+// syncBehaviorSettings syncs autofetch settings
 func (cm *Manager) syncBehaviorSettings(config *Config) error {
 	autoFetchValue := "false"
 	if config.Behavior.AutoFetch {
@@ -615,11 +613,6 @@ func (cm *Manager) syncBehaviorSettings(config *Config) error {
 	if err := cm.gitClient.ConfigSetGlobal("fetch.auto", autoFetchValue); err != nil {
 		return fmt.Errorf("failed to set git autofetch: %w", err)
 	}
-
-	if err := cm.gitClient.ConfigSetGlobal("push.default", config.Behavior.ConfirmDestructive); err != nil {
-		return fmt.Errorf("failed to set git push default: %w", err)
-	}
-
 	return nil
 }
 

@@ -18,11 +18,11 @@ type Configurer struct {
 	outputWriter io.Writer
 	helper       *Helper
 	execCommand  func(string, ...string) *exec.Cmd
-	gitClient    git.Clienter
+	gitClient    git.ConfigOps
 }
 
 // NewConfigurer creates a new Configurer instance.
-func NewConfigurer(client git.Clienter) *Configurer {
+func NewConfigurer(client git.ConfigOps) *Configurer {
 	return &Configurer{
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),

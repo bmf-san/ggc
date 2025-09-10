@@ -11,17 +11,27 @@ import (
 
 // Tagger handles tagging operations.
 type Tagger struct {
-	gitClient    git.Clienter
+	gitClient interface {
+		git.TagOps
+		git.ConfigOps
+	}
 	outputWriter io.Writer
 	helper       *Helper
+	// defaultRemote caches the default remote name to avoid
+	// reloading configuration on each tag push.
+	defaultRemote string
 }
 
 // NewTagger creates a new Tagger instance.
-func NewTagger(client git.Clienter) *Tagger {
+func NewTagger(client interface {
+	git.TagOps
+	git.ConfigOps
+}) *Tagger {
 	return &Tagger{
-		gitClient:    client,
-		outputWriter: os.Stdout,
-		helper:       NewHelper(),
+		gitClient:     client,
+		outputWriter:  os.Stdout,
+		helper:        NewHelper(),
+		defaultRemote: "origin",
 	}
 }
 
@@ -108,17 +118,22 @@ func (t *Tagger) deleteTags(args []string) {
 
 // pushTags pushes tags to remote
 func (t *Tagger) pushTags(args []string) {
+	// Use cached default remote; fallback to "origin" if unset
+	remote := strings.TrimSpace(t.defaultRemote)
+	if remote == "" {
+		remote = "origin"
+	}
+
 	if len(args) == 0 {
 		// push all tags
-		if err := t.gitClient.TagPushAll("origin"); err != nil {
+		if err := t.gitClient.TagPushAll(remote); err != nil {
 			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
 			return
 		}
-		_, _ = fmt.Fprintf(t.outputWriter, "All tags pushed to origin\n")
+		_, _ = fmt.Fprintf(t.outputWriter, "All tags pushed to %s\n", remote)
 	} else {
 		// push specific tag
 		tagName := args[0]
-		remote := "origin"
 		if len(args) > 1 {
 			remote = args[1]
 		}

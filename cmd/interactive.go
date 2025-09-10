@@ -94,7 +94,7 @@ func NewANSIColors() *ANSIColors {
 }
 
 // getGitStatus retrieves the current Git repository status
-func getGitStatus(gitClient git.Clienter) *GitStatus {
+func getGitStatus(gitClient git.StatusInfoReader) *GitStatus {
 	status := &GitStatus{}
 
 	// Get current branch name
@@ -119,7 +119,7 @@ func getGitStatus(gitClient git.Clienter) *GitStatus {
 }
 
 // getGitBranch gets the current branch name
-func getGitBranch(gitClient git.Clienter) string {
+func getGitBranch(gitClient git.StatusInfoReader) string {
 	branch, err := gitClient.GetCurrentBranch()
 	if err != nil {
 		return ""
@@ -128,8 +128,8 @@ func getGitBranch(gitClient git.Clienter) string {
 }
 
 // getGitWorkingStatus gets the number of modified and staged files
-func getGitWorkingStatus(gitClient git.Clienter) (modified, staged int) {
-	output, err := gitClient.GetGitStatus()
+func getGitWorkingStatus(gitClient git.StatusInfoReader) (modified, staged int) {
+	output, err := gitClient.StatusShortWithColor()
 	if err != nil {
 		return 0, 0
 	}
@@ -153,7 +153,7 @@ func getGitWorkingStatus(gitClient git.Clienter) (modified, staged int) {
 }
 
 // getGitRemoteStatus gets ahead/behind count compared to remote
-func getGitRemoteStatus(gitClient git.Clienter) (ahead, behind int) {
+func getGitRemoteStatus(gitClient git.StatusInfoReader) (ahead, behind int) {
 	output, err := gitClient.GetAheadBehindCount("HEAD", "@{upstream}")
 	if err != nil {
 		return 0, 0 // No upstream or other error
@@ -186,7 +186,7 @@ type UI struct {
 	handler   *KeyHandler
 	colors    *ANSIColors
 	gitStatus *GitStatus
-	gitClient git.Clienter
+	gitClient git.StatusInfoReader
 	reader    *bufio.Reader
 }
 
@@ -1210,7 +1210,7 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 }
 
 // NewUI creates a new UI with the provided git client
-func NewUI(gitClient git.Clienter) *UI {
+func NewUI(gitClient git.StatusInfoReader) *UI {
 	colors := NewANSIColors()
 
 	renderer := &Renderer{
@@ -1346,7 +1346,7 @@ var commands = []CommandInfo{
 
 // InteractiveUI provides an incremental search interactive UI with custom git client.
 // Returns the selected command as []string (nil if nothing selected)
-func InteractiveUI(gitClient git.Clienter) []string {
+func InteractiveUI(gitClient git.StatusInfoReader) []string {
 	ui := NewUI(gitClient)
 	return ui.Run()
 }

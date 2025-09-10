@@ -39,7 +39,7 @@ type Executer interface {
 
 // Cmd represents the command-line interface.
 type Cmd struct {
-	gitClient    git.Clienter
+	gitClient    git.StatusInfoReader
 	outputWriter io.Writer
 	helper       *Helper
 	brancher     *Brancher
@@ -64,8 +64,33 @@ type Cmd struct {
 	fetcher      *Fetcher
 }
 
+// GitDeps is a composite for wiring commands that depend on git operations.
+// This narrows each command to the smallest required surface while keeping
+// construction ergonomic.
+type GitDeps interface {
+	git.BranchOps
+	git.CommitWriter
+	git.LogReader
+	git.Puller
+	git.Pusher
+	git.ResetOps
+	git.CleanOps
+	git.Stager
+	git.RemoteManager
+	git.RebaseOps
+	git.StashOps
+	git.ConfigOps
+	git.TagOps
+	git.StatusInfoReader
+	git.DiffReader
+	git.RestoreOps
+	git.FetchOps
+	git.LocalBranchLister
+	git.FileLister
+}
+
 // NewCmd creates a new Cmd with the provided git client.
-func NewCmd(client git.Clienter) *Cmd {
+func NewCmd(client GitDeps) *Cmd {
 	return &Cmd{
 		gitClient:    client,
 		outputWriter: os.Stdout,
@@ -90,6 +115,14 @@ func NewCmd(client git.Clienter) *Cmd {
 		differ:       NewDiffer(client),
 		restorer:     NewRestorer(client),
 		fetcher:      NewFetcher(client),
+	}
+}
+
+// SetDefaultRemote sets the default remote used by tag operations.
+// Passes through to Tagger to avoid repeated config loading.
+func (c *Cmd) SetDefaultRemote(remote string) {
+	if c.tagger != nil && strings.TrimSpace(remote) != "" {
+		c.tagger.defaultRemote = remote
 	}
 }
 
@@ -298,9 +331,20 @@ func (c *Cmd) routeExtendedCommand(cmd string, args []string) {
 	c.Help()
 }
 
-// isLegacyLike returns true if the provided args look like legacy-style usage
-// that is no longer supported post v6 (e.g., flags like -i/--prune or
-// top-level hyphenated commands like clean-interactive).
+// isLegacyLike reports whether args resemble the pre-v6, flag-driven CLI surface
+// instead of the unified subcommand style introduced in v6.
+// Definition of "legacy-like":
+//   - Hyphenated top-level commands (e.g., "clean-interactive") that used to exist
+//     as separate entry points.
+//   - Flag-style modifiers (e.g., "-i", "--prune") passed to top-level commands to
+//     toggle modes or behaviors.
+//
+// Why this matters: post-v6 the CLI avoids guessing user intent to keep routing
+// predictable, safe, and testable. When legacy-like usage is detected, we fail fast
+// with a clear error to nudge users toward the unified subcommands (see: "ggc help <command>").
+// Detection is intentionally conservative: we flag a hyphen in the top-level command
+// or any leading "-" arguments up to a literal "--" separator; everything after "--"
+// is treated as data.
 func isLegacyLike(args []string) bool {
 	if len(args) == 0 {
 		return false
