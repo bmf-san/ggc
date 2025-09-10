@@ -19,6 +19,7 @@ type mockBranchGitClient struct {
 	listRemoteBranches     func() ([]string, error)
 	mergedBranches         []string
 	checkoutNewBranchError bool
+	ops                    *mockBranchOperations
 }
 
 func (m *mockBranchGitClient) GetCurrentBranch() (string, error) {
@@ -62,9 +63,48 @@ func (m *mockBranchGitClient) ListMergedBranches() ([]string, error) {
 	}
 	return []string{}, nil
 }
-func (m *mockBranchGitClient) RenameBranch(_, _ string) error      { return nil }
-func (m *mockBranchGitClient) MoveBranch(_, _ string) error        { return nil }
-func (m *mockBranchGitClient) SetUpstreamBranch(_, _ string) error { return nil }
+
+// Track calls for better testing
+type mockBranchOperations struct {
+	renameBranchCalls      []struct{ old, new string }
+	moveBranchCalls        []struct{ branch, commit string }
+	setUpstreamBranchCalls []struct{ branch, upstream string }
+	renameBranchError      error
+	moveBranchError        error
+	setUpstreamError       error
+	revParseVerifyResult   bool
+}
+
+func (m *mockBranchGitClient) RenameBranch(old, new string) error {
+	if m.ops == nil {
+		m.ops = &mockBranchOperations{}
+	}
+	m.ops.renameBranchCalls = append(m.ops.renameBranchCalls, struct{ old, new string }{old, new})
+	return m.ops.renameBranchError
+}
+
+func (m *mockBranchGitClient) MoveBranch(branch, commit string) error {
+	if m.ops == nil {
+		m.ops = &mockBranchOperations{}
+	}
+	m.ops.moveBranchCalls = append(m.ops.moveBranchCalls, struct{ branch, commit string }{branch, commit})
+	return m.ops.moveBranchError
+}
+
+func (m *mockBranchGitClient) SetUpstreamBranch(branch, upstream string) error {
+	if m.ops == nil {
+		m.ops = &mockBranchOperations{}
+	}
+	m.ops.setUpstreamBranchCalls = append(m.ops.setUpstreamBranchCalls, struct{ branch, upstream string }{branch, upstream})
+	return m.ops.setUpstreamError
+}
+
+func (m *mockBranchGitClient) RevParseVerify(ref string) bool {
+	if m.ops != nil {
+		return m.ops.revParseVerifyResult
+	}
+	return true // Default to valid
+}
 func (m *mockBranchGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
 	// Provide simple consistent info
 	bi := &git.BranchInfo{
@@ -83,14 +123,15 @@ func (m *mockBranchGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
 		{Name: "feature", IsCurrentBranch: false, Upstream: "origin/feature", LastCommitSHA: "89abcde", LastCommitMsg: "msg2"},
 	}, nil
 }
-func (m *mockBranchGitClient) SortBranches(_ string) ([]string, error) {
-	return []string{"a", "b"}, nil
+func (m *mockBranchGitClient) SortBranches(by string) ([]string, error) {
+	if by == "date" {
+		return []string{"feature/test", "main"}, nil
+	}
+	return []string{"feature/test", "main"}, nil
 }
 func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
 	return []string{"main", "feature"}, nil
 }
-
-func (m *mockBranchGitClient) RevParseVerify(string) bool { return false }
 
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer

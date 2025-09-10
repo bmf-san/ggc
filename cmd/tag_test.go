@@ -454,6 +454,86 @@ func TestTagger_Create_UsesTagOps(t *testing.T) {
 	}
 }
 
+// Tests for CreateAnnotatedTag function (0% coverage before)
+func TestTagger_CreateAnnotatedTag(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		expectedOut string
+		expectedMsg string
+		shouldError bool
+	}{
+		{
+			name:        "no tag name provided",
+			args:        []string{},
+			expectedOut: "Error: tag name is required",
+			expectedMsg: "",
+			shouldError: false,
+		},
+		{
+			name:        "tag with message",
+			args:        []string{"v1.0.0", "Release", "version", "1.0.0"},
+			expectedOut: "Annotated tag 'v1.0.0' created",
+			expectedMsg: "Release version 1.0.0",
+			shouldError: false,
+		},
+		{
+			name:        "tag without message (editor mode)",
+			args:        []string{"v1.0.0"},
+			expectedOut: "Annotated tag 'v1.0.0' created",
+			expectedMsg: "",
+			shouldError: false,
+		},
+		{
+			name:        "error during tag creation",
+			args:        []string{"invalid-tag"},
+			expectedOut: "Error: failed to create annotated tag",
+			expectedMsg: "",
+			shouldError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mockClient := &mockTagOps{}
+
+			if tt.shouldError {
+				mockClient.errCreateAnn = errors.New("failed to create annotated tag")
+			}
+
+			tagger := &Tagger{
+				gitClient:    mockClient,
+				outputWriter: &buf,
+			}
+
+			tagger.CreateAnnotatedTag(tt.args)
+
+			output := buf.String()
+			if !strings.Contains(output, tt.expectedOut) {
+				t.Errorf("Expected %q in output, got: %s", tt.expectedOut, output)
+			}
+
+			// Verify mock was called appropriately
+			if len(tt.args) > 0 && !tt.shouldError {
+				if !mockClient.createAnnCalled {
+					t.Error("Expected TagCreateAnnotated to be called")
+				}
+				if mockClient.createAnnName != tt.args[0] {
+					t.Errorf("Expected tag name %q, got %q", tt.args[0], mockClient.createAnnName)
+				}
+				if mockClient.createAnnMsg != tt.expectedMsg {
+					t.Errorf("Expected message %q, got %q", tt.expectedMsg, mockClient.createAnnMsg)
+				}
+			} else if tt.shouldError && len(tt.args) > 0 {
+				if !mockClient.createAnnCalled {
+					t.Error("Expected TagCreateAnnotated to be called even when error occurs")
+				}
+			}
+		})
+	}
+}
+
 func TestTagger_Push_All_UsesTagOps(t *testing.T) {
 	m := &mockTagOps{}
 	var buf bytes.Buffer
