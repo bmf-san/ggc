@@ -412,7 +412,6 @@ func (c *Config) GetAllAliases() map[string]*ParsedAlias {
 
 // Note: getGitVersion, getGitCommit, and updateMeta functions removed
 // to eliminate direct git command execution. Meta values are now set
-// manually in getDefaultConfig() to avoid side effects in tests.
 
 // getDefaultConfig returns the default configuration values
 func getDefaultConfig(gitClient git.ConfigOps) *Config {
