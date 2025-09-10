@@ -47,3 +47,13 @@ func (c *Client) GetCommitHash() (string, error) {
 	}
 	return strings.TrimSpace(string(out)), nil
 }
+
+// GetUpstreamBranchName gets the upstream branch name for a given branch.
+func (c *Client) GetUpstreamBranchName(branch string) (string, error) {
+	cmd := c.execCommand("git", "rev-parse", "--abbrev-ref", branch+"@{upstream}")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", NewError("get upstream branch", "git rev-parse --abbrev-ref "+branch+"@{upstream}", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}

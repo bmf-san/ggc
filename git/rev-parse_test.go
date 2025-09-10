@@ -3,6 +3,7 @@ package git
 import (
 	"errors"
 	"os/exec"
+	"reflect"
 	"testing"
 )
 
@@ -179,5 +180,65 @@ func TestClient_GetCommitHash(t *testing.T) {
 				t.Errorf("GetCommitHash() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestClient_GetUpstreamBranchName(t *testing.T) {
+	tests := []struct {
+		name           string
+		branch         string
+		expectedOutput string
+		wantArgs       []string
+	}{
+		{
+			name:           "get upstream for main",
+			branch:         "main",
+			expectedOutput: "origin/main",
+			wantArgs:       []string{"git", "rev-parse", "--abbrev-ref", "main@{upstream}"},
+		},
+		{
+			name:           "get upstream for feature branch",
+			branch:         "feature/test",
+			expectedOutput: "origin/feature/test",
+			wantArgs:       []string{"git", "rev-parse", "--abbrev-ref", "feature/test@{upstream}"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo", "-n", tt.expectedOutput)
+				},
+			}
+
+			result, err := client.GetUpstreamBranchName(tt.branch)
+			if err != nil {
+				t.Errorf("GetUpstreamBranchName() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("GetUpstreamBranchName() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+
+			if result != tt.expectedOutput {
+				t.Errorf("GetUpstreamBranchName() result = %v, want %v", result, tt.expectedOutput)
+			}
+		})
+	}
+}
+
+func TestClient_GetUpstreamBranchName_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.GetUpstreamBranchName("main")
+	if err == nil {
+		t.Error("Expected GetUpstreamBranchName to return an error")
 	}
 }

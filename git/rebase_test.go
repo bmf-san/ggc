@@ -164,3 +164,226 @@ func TestClient_GetUpstreamBranch(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Rebase(t *testing.T) {
+	tests := []struct {
+		name     string
+		upstream string
+		wantArgs []string
+	}{
+		{
+			name:     "rebase onto main",
+			upstream: "main",
+			wantArgs: []string{"git", "rebase", "main"},
+		},
+		{
+			name:     "rebase onto origin/main",
+			upstream: "origin/main",
+			wantArgs: []string{"git", "rebase", "origin/main"},
+		},
+		{
+			name:     "rebase onto feature branch",
+			upstream: "origin/feature/test",
+			wantArgs: []string{"git", "rebase", "origin/feature/test"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+			}
+
+			err := client.Rebase(tt.upstream)
+			if err != nil {
+				t.Errorf("Rebase() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("Rebase() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+		})
+	}
+}
+
+func TestClient_RebaseContinue(t *testing.T) {
+	tests := []struct {
+		name     string
+		wantArgs []string
+	}{
+		{
+			name:     "continue rebase",
+			wantArgs: []string{"git", "rebase", "--continue"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+			}
+
+			err := client.RebaseContinue()
+			if err != nil {
+				t.Errorf("RebaseContinue() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("RebaseContinue() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+		})
+	}
+}
+
+func TestClient_RebaseAbort(t *testing.T) {
+	tests := []struct {
+		name     string
+		wantArgs []string
+	}{
+		{
+			name:     "abort rebase",
+			wantArgs: []string{"git", "rebase", "--abort"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+			}
+
+			err := client.RebaseAbort()
+			if err != nil {
+				t.Errorf("RebaseAbort() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("RebaseAbort() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+		})
+	}
+}
+
+func TestClient_RebaseSkip(t *testing.T) {
+	tests := []struct {
+		name     string
+		wantArgs []string
+	}{
+		{
+			name:     "skip rebase",
+			wantArgs: []string{"git", "rebase", "--skip"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+			}
+
+			err := client.RebaseSkip()
+			if err != nil {
+				t.Errorf("RebaseSkip() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("RebaseSkip() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+		})
+	}
+}
+
+// Error case tests for better coverage
+func TestClient_LogOneline_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	_, err := client.LogOneline("HEAD~3", "HEAD")
+	if err == nil {
+		t.Error("Expected LogOneline to return an error")
+	}
+}
+
+func TestClient_RebaseInteractive_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.RebaseInteractive(3)
+	if err == nil {
+		t.Error("Expected RebaseInteractive to return an error")
+	}
+}
+
+func TestClient_Rebase_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.Rebase("main")
+	if err == nil {
+		t.Error("Expected Rebase to return an error")
+	}
+}
+
+func TestClient_RebaseContinue_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.RebaseContinue()
+	if err == nil {
+		t.Error("Expected RebaseContinue to return an error")
+	}
+}
+
+func TestClient_RebaseAbort_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.RebaseAbort()
+	if err == nil {
+		t.Error("Expected RebaseAbort to return an error")
+	}
+}
+
+func TestClient_RebaseSkip_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.RebaseSkip()
+	if err == nil {
+		t.Error("Expected RebaseSkip to return an error")
+	}
+}

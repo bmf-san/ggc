@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v5/config"
-	"github.com/bmf-san/ggc/v5/git"
+	"github.com/bmf-san/ggc/v5/internal/testutil"
 )
 
 type mockExecuter struct {
@@ -467,7 +467,160 @@ func TestRouter(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &mockExecuter{}
-			r := NewRouter(m, config.NewConfigManager(git.NewClient()))
+			r := NewRouter(m, config.NewConfigManager(testutil.NewMockGitClient()))
+			r.Route(tc.args)
+			tc.validate(t, m)
+		})
+	}
+}
+
+func TestRouter_WithAliases(t *testing.T) {
+	cases := []struct {
+		name     string
+		aliases  map[string]interface{}
+		args     []string
+		validate func(t *testing.T, m *mockExecuter)
+	}{
+		{
+			name: "simple alias",
+			aliases: map[string]interface{}{
+				"st": "status",
+			},
+			args: []string{"st"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called for simple alias")
+				}
+			},
+		},
+		{
+			name: "simple alias with args",
+			aliases: map[string]interface{}{
+				"br": "branch",
+			},
+			args: []string{"br", "new-branch"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called for simple alias")
+				}
+				if len(m.branchArgs) != 1 || m.branchArgs[0] != "new-branch" {
+					t.Errorf("unexpected branch args: got %v", m.branchArgs)
+				}
+			},
+		},
+		{
+			name: "sequence alias",
+			aliases: map[string]interface{}{
+				"sync": []interface{}{"pull current", "push current"},
+			},
+			args: []string{"sync"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.pullCalled {
+					t.Error("Pull should be called for sequence alias")
+				}
+				if !m.pushCalled {
+					t.Error("Push should be called for sequence alias")
+				}
+			},
+		},
+		{
+			name: "sequence alias with args (should be ignored)",
+			aliases: map[string]interface{}{
+				"sync": []interface{}{"pull current", "push current"},
+			},
+			args: []string{"sync", "ignored"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.pullCalled {
+					t.Error("Pull should be called for sequence alias")
+				}
+				if !m.pushCalled {
+					t.Error("Push should be called for sequence alias")
+				}
+			},
+		},
+		{
+			name: "non-alias command",
+			aliases: map[string]interface{}{
+				"st": "status",
+			},
+			args: []string{"commit", "test"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.commitCalled {
+					t.Error("Commit should be called for non-alias command")
+				}
+				if len(m.commitArgs) != 1 || m.commitArgs[0] != "test" {
+					t.Errorf("unexpected commit args: got %v", m.commitArgs)
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a real config manager and manually set aliases
+			mockClient := testutil.NewMockGitClient()
+			configManager := config.NewConfigManager(mockClient)
+			configManager.LoadConfig()
+
+			// Manually set aliases in the config
+			cfg := configManager.GetConfig()
+			cfg.Aliases = tc.aliases
+
+			m := &mockExecuter{}
+			r := NewRouter(m, configManager)
+			r.Route(tc.args)
+			tc.validate(t, m)
+		})
+	}
+}
+
+func TestRouter_ConfigManagerNil(t *testing.T) {
+	m := &mockExecuter{}
+	r := NewRouter(m, nil)
+
+	// Should not panic and should execute normal command
+	r.Route([]string{"status"})
+
+	if !m.statusCalled {
+		t.Error("Status should be called when ConfigManager is nil")
+	}
+}
+
+func TestRouter_AliasErrors(t *testing.T) {
+	cases := []struct {
+		name     string
+		aliases  map[string]interface{}
+		args     []string
+		validate func(t *testing.T, m *mockExecuter)
+	}{
+		{
+			name: "invalid alias format",
+			aliases: map[string]interface{}{
+				"invalid": 123, // Invalid format - should be string or []interface{}
+			},
+			args: []string{"invalid"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				// Should not call any command due to error
+				if m.statusCalled || m.branchCalled || m.commitCalled {
+					t.Error("No command should be called for invalid alias")
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a real config manager and manually set aliases
+			mockClient := testutil.NewMockGitClient()
+			configManager := config.NewConfigManager(mockClient)
+			configManager.LoadConfig()
+
+			// Manually set aliases in the config
+			cfg := configManager.GetConfig()
+			cfg.Aliases = tc.aliases
+
+			m := &mockExecuter{}
+			r := NewRouter(m, configManager)
 			r.Route(tc.args)
 			tc.validate(t, m)
 		})

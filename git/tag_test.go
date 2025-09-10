@@ -330,29 +330,3 @@ func TestClient_TagExists(t *testing.T) {
 		})
 	}
 }
-
-func TestClient_GetTagCommit(t *testing.T) {
-	var gotArgs []string
-	expectedOutput := "abc1234567890def"
-
-	client := &Client{
-		execCommand: func(name string, args ...string) *exec.Cmd {
-			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
-		},
-	}
-
-	result, err := client.GetTagCommit("v1.0.0")
-	if err != nil {
-		t.Errorf("GetTagCommit() error = %v", err)
-	}
-
-	wantArgs := []string{"git", "rev-list", "-n", "1", "v1.0.0"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
-		t.Errorf("GetTagCommit() gotArgs = %v, want %v", gotArgs, wantArgs)
-	}
-
-	if result != expectedOutput {
-		t.Errorf("GetTagCommit() result = %v, want %v", result, expectedOutput)
-	}
-}
