@@ -474,7 +474,6 @@ func TestRouter(t *testing.T) {
 	}
 }
 
-
 func TestRouter_WithAliases(t *testing.T) {
 	cases := []struct {
 		name     string
