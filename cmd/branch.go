@@ -226,7 +226,7 @@ func (b *Brancher) branchDelete() {
 		return
 	}
 	// Exclude current branch from deletion candidates to avoid failing UX
-	if curr, e := b.gitClient.GetCurrentBranch(); e == nil {
+	if curr, err := b.gitClient.GetCurrentBranch(); err == nil {
 		filtered := make([]string, 0, len(branches))
 		for _, br := range branches {
 			if br != curr {

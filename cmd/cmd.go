@@ -118,6 +118,14 @@ func NewCmd(client GitDeps) *Cmd {
 	}
 }
 
+// SetDefaultRemote sets the default remote used by tag operations.
+// Passes through to Tagger to avoid repeated config loading.
+func (c *Cmd) SetDefaultRemote(remote string) {
+	if c.tagger != nil && strings.TrimSpace(remote) != "" {
+		c.tagger.defaultRemote = remote
+	}
+}
+
 // Help displays help information.
 func (c *Cmd) Help() {
 	c.helper.ShowHelp()

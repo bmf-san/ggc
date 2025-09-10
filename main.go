@@ -4,6 +4,7 @@ package main
 import (
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/bmf-san/ggc/v5/cmd"
 	"github.com/bmf-san/ggc/v5/config"
@@ -52,6 +53,10 @@ func main() {
 	cm.LoadConfig()
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd(git.NewClient())
+	// Cache default remote in tagger to avoid repeated config loads.
+	if r := strings.TrimSpace(cm.GetConfig().Integration.Github.DefaultRemote); r != "" {
+		c.SetDefaultRemote(r)
+	}
 	r := router.NewRouter(c, cm)
 	r.Route(os.Args[1:])
 }

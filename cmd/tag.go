@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v5/config"
 	"github.com/bmf-san/ggc/v5/git"
 )
 
@@ -18,6 +17,9 @@ type Tagger struct {
 	}
 	outputWriter io.Writer
 	helper       *Helper
+	// defaultRemote caches the default remote name to avoid
+	// reloading configuration on each tag push.
+	defaultRemote string
 }
 
 // NewTagger creates a new Tagger instance.
@@ -26,9 +28,10 @@ func NewTagger(client interface {
 	git.ConfigOps
 }) *Tagger {
 	return &Tagger{
-		gitClient:    client,
-		outputWriter: os.Stdout,
-		helper:       NewHelper(),
+		gitClient:     client,
+		outputWriter:  os.Stdout,
+		helper:        NewHelper(),
+		defaultRemote: "origin",
 	}
 }
 
@@ -115,14 +118,10 @@ func (t *Tagger) deleteTags(args []string) {
 
 // pushTags pushes tags to remote
 func (t *Tagger) pushTags(args []string) {
-	// Resolve default remote from config; fallback to "origin"
-	remote := "origin"
-	cm := config.NewConfigManager(t.gitClient)
-	if cm != nil {
-		cm.LoadConfig()
-		if r := cm.GetConfig().Integration.Github.DefaultRemote; strings.TrimSpace(r) != "" {
-			remote = r
-		}
+	// Use cached default remote; fallback to "origin" if unset
+	remote := strings.TrimSpace(t.defaultRemote)
+	if remote == "" {
+		remote = "origin"
 	}
 
 	if len(args) == 0 {
