@@ -184,12 +184,12 @@ func TestStatuser_UpstreamStatus(t *testing.T) {
 			testFunc: func(t *testing.T, statuser *Statuser, buf *bytes.Buffer) {
 				statuser.Status([]string{})
 				output := buf.String()
-				
+
 				// Should show branch info
 				if !strings.Contains(output, "On branch main") {
 					t.Errorf("Expected branch info, got: %s", output)
 				}
-				
+
 				// Mock client returns empty for upstream operations, so no upstream info expected
 				// But should not show error
 				if strings.Contains(output, "Error getting current branch:") {
