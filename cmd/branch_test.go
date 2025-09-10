@@ -91,17 +91,6 @@ func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
 }
 
 
-// Tag operations pruned (not needed by BranchOps)
-
-// Log operations pruned (not needed by BranchOps)
-
-// Rebase operations pruned (not needed by BranchOps)
-
-// Stash operations pruned (not needed by BranchOps)
-
-// Reset/Clean operations pruned (not needed by BranchOps)
-
-// Utility methods pruned (not needed by BranchOps)
 
 // Restore Operations methods
 // restore operations pruned (not needed by BranchOps)
