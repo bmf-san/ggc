@@ -295,6 +295,11 @@ func ctrl(r rune) byte {
 	return 0
 }
 
+// hasPrefixFold checks whether s has the given prefix, case-insensitively.
+func hasPrefixFold(s, prefix string) bool {
+	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
+}
+
 // ParseKeyBinding parses a key binding string and returns the corresponding
 // single-byte control code. Supports multiple formats:
 // - "ctrl+w", "CTRL+W", "Ctrl+w" (standard format)
@@ -330,7 +335,7 @@ func ParseKeyBinding(keyStr string) (byte, error) { //nolint:revive // parsing m
 	}
 
 	// Handle "c-<key>" or "C-<key>" format (emacs notation)
-	if (strings.HasPrefix(sLower, "c-") || strings.HasPrefix(sLower, "C-")) && len(s) == 3 {
+	if hasPrefixFold(s, "c-") && len(s) == 3 {
 		c := rune(sLower[2])
 		code := ctrl(c)
 		if code == 0 {
@@ -375,7 +380,7 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 	}
 
 	// Handle "c-<key>" or "C-<key>" format (emacs notation)
-	if (strings.HasPrefix(sLower, "c-") || strings.HasPrefix(s, "C-")) && len(s) == 3 {
+	if hasPrefixFold(s, "c-") && len(s) == 3 {
 		c := rune(sLower[2])
 		if c >= 'a' && c <= 'z' {
 			return NewCtrlKeyStroke(c), nil
@@ -417,7 +422,7 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 	}
 
 	// Handle "M-<key>" format (emacs meta notation)
-	if (strings.HasPrefix(s, "M-") || strings.HasPrefix(sLower, "m-")) && len(s) >= 3 {
+	if hasPrefixFold(s, "m-") && len(s) >= 3 {
 		keyPart := strings.ToLower(s[2:])
 
 		// Handle special keys
@@ -543,10 +548,9 @@ func ResolveKeyBindingMap(cfg *config.Config) (*KeyBindingMap, error) { //nolint
 		}
 	}
 
-	// Detect and warn about conflicts
+	// Detect conflicts and return error instead of printing
 	if conflicts := detectConflictsV2(&keyMap); len(conflicts) > 0 {
-		// Enhanced conflict detection for KeyStrokes
-		fmt.Printf("Warning: Key binding conflicts detected: %v\n", conflicts)
+		return nil, fmt.Errorf("key binding conflicts detected: %v", conflicts)
 	}
 
 	return &keyMap, nil
@@ -597,9 +601,9 @@ func ResolveKeyBindingMapV2(cfg *config.Config, rawConfig map[string]interface{}
 		return ResolveKeyBindingMap(cfg)
 	}
 
-	// Detect and warn about conflicts
+	// Detect conflicts and return error instead of printing
 	if conflicts := detectConflictsV2(&keyMap); len(conflicts) > 0 {
-		fmt.Printf("Warning: Key binding conflicts detected: %v\n", conflicts)
+		return nil, fmt.Errorf("key binding conflicts detected: %v", conflicts)
 	}
 
 	return &keyMap, nil
