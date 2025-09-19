@@ -86,6 +86,46 @@ type Config struct {
 		Pager bool `yaml:"pager"`
 	} `yaml:"ui"`
 
+	Interactive struct {
+		Profile string `yaml:"profile,omitempty"`
+
+		Keybindings struct {
+			DeleteWord      string `yaml:"delete_word"`
+			ClearLine       string `yaml:"clear_line"`
+			DeleteToEnd     string `yaml:"delete_to_end"`
+			MoveToBeginning string `yaml:"move_to_beginning"`
+			MoveToEnd       string `yaml:"move_to_end"`
+			MoveUp          string `yaml:"move_up"`
+			MoveDown        string `yaml:"move_down"`
+		} `yaml:"keybindings"`
+
+		Contexts struct {
+			Input struct {
+				Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+			} `yaml:"input,omitempty"`
+			Results struct {
+				Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+			} `yaml:"results,omitempty"`
+			Search struct {
+				Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+			} `yaml:"search,omitempty"`
+		} `yaml:"contexts,omitempty"`
+
+		Darwin struct {
+			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+		} `yaml:"darwin,omitempty"`
+		Linux struct {
+			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+		} `yaml:"linux,omitempty"`
+		Windows struct {
+			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+		} `yaml:"windows,omitempty"`
+
+		Terminals map[string]struct {
+			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+		} `yaml:"terminals,omitempty"`
+	} `yaml:"interactive"`
+
 	Behavior struct {
 		AutoPush           bool   `yaml:"auto-push"`
 		ConfirmDestructive string `yaml:"confirm-destructive"`
