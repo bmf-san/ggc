@@ -48,17 +48,17 @@ func TestKeyBindingResolution(t *testing.T) {
 			config: func() *config.Config {
 				cfg := &config.Config{}
 				cfg.Interactive.Keybindings.DeleteWord = "ctrl+o"
-				cfg.Interactive.Keybindings.MoveUp = "ctrl+k"
+				cfg.Interactive.Keybindings.MoveUp = "ctrl+l"
 				cfg.Interactive.Keybindings.MoveDown = "ctrl+j"
 				return cfg
 			}(),
 			expected: &KeyBindingMap{
 				DeleteWord:      []KeyStroke{NewCtrlKeyStroke('o')}, // overridden
 				ClearLine:       []KeyStroke{NewCtrlKeyStroke('u')}, // default
-				DeleteToEnd:     []KeyStroke{NewCtrlKeyStroke('k')}, // default (NOTE: conflict with MoveUp!)
+				DeleteToEnd:     []KeyStroke{NewCtrlKeyStroke('k')}, // default
 				MoveToBeginning: []KeyStroke{NewCtrlKeyStroke('a')}, // default
 				MoveToEnd:       []KeyStroke{NewCtrlKeyStroke('e')}, // default
-				MoveUp:          []KeyStroke{NewCtrlKeyStroke('k')}, // overridden (NOTE: conflict with DeleteToEnd!)
+				MoveUp:          []KeyStroke{NewCtrlKeyStroke('l')}, // overridden
 				MoveDown:        []KeyStroke{NewCtrlKeyStroke('j')}, // overridden
 			},
 		},
@@ -93,14 +93,14 @@ func TestKeyBindingConflictDetection(t *testing.T) {
 			expectConflicts: false,
 		},
 		{
-			name: "conflict detected but no error (warns only)",
+			name: "conflict detected returns error",
 			config: func() *config.Config {
 				cfg := &config.Config{}
 				cfg.Interactive.Keybindings.DeleteWord = "ctrl+k"
 				cfg.Interactive.Keybindings.DeleteToEnd = "ctrl+k"
 				return cfg
 			}(),
-			expectError:     false, // warnings only, no errors
+			expectError:     true,
 			expectConflicts: true,
 		},
 	}
@@ -147,8 +147,8 @@ func TestParseKeyBindingExtended(t *testing.T) {
 		{"mixed case", "Ctrl+W", ctrl('w'), false},
 
 		// Additional supported formats
-		{"caret notation", "^W", ctrl('w'), false},  // now implemented!
-		{"emacs notation", "C-w", ctrl('w'), false}, // now implemented!
+		{"caret notation", "^W", ctrl('w'), false},
+		{"emacs notation", "C-w", ctrl('w'), false},
 
 		// Invalid inputs
 		{"empty", "", 0, true},
