@@ -784,6 +784,38 @@ func TestConfig_Validate(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
+
+	t.Run("Invalid interactive keybinding", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Default.Branch = "main"
+		cfg.Default.Editor = "cat"
+		cfg.Behavior.ConfirmDestructive = "never"
+		cfg.Interactive.Keybindings.DeleteWord = "Shift+A"
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "unsupported key binding format") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Invalid interactive profile", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Default.Branch = "main"
+		cfg.Default.Editor = "cat"
+		cfg.Behavior.ConfirmDestructive = "never"
+		cfg.Interactive.Profile = "custom"
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "interactive.profile") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }
 
 func TestConfig_ParseAlias(t *testing.T) {
@@ -1089,6 +1121,119 @@ func TestConfig_GetAllAliases(t *testing.T) {
 		t.Errorf("GetAllAliases() 'acp' alias type = %v, want %v", parsed.Type, SequenceAlias)
 	} else if len(parsed.Commands) != 3 {
 		t.Errorf("GetAllAliases() 'acp' alias commands length = %v, want 3", len(parsed.Commands))
+	}
+}
+
+func TestManagerLoadWithKeybindingConfig(t *testing.T) {
+	mockFS := NewMockFileOps()
+	homeDir := filepath.Join(os.TempDir(), "ggc-home-phase2")
+	t.Setenv("HOME", homeDir)
+	configPath := filepath.Join(homeDir, ".ggcconfig.yaml")
+	mockFS.files[configPath] = []byte(`interactive:
+  profile: vi
+  keybindings:
+    delete_word: "Ctrl+W"
+  contexts:
+    input:
+      keybindings:
+        move_up:
+          - "Ctrl+P"
+          - "Ctrl+N"
+  darwin:
+    keybindings:
+      move_down: "Ctrl+J"
+  terminals:
+    wezterm:
+      keybindings:
+        move_to_end: "Ctrl+L"
+`)
+
+	cm := newTestConfigManager()
+	if err := cm.LoadWithFileOps(mockFS); err != nil {
+		t.Fatalf("LoadWithFileOps returned error: %v", err)
+	}
+
+	if cm.configPath != configPath {
+		t.Fatalf("configPath = %s, want %s", cm.configPath, configPath)
+	}
+
+	cfg := cm.GetConfig()
+	if cfg.Interactive.Profile != "vi" {
+		t.Fatalf("profile = %s, want vi", cfg.Interactive.Profile)
+	}
+
+	moveUp, ok := cfg.Interactive.Contexts.Input.Keybindings["move_up"]
+	if !ok {
+		t.Fatalf("expected move_up context keybinding to be present")
+	}
+	seq, ok := moveUp.([]interface{})
+	if !ok || len(seq) != 2 {
+		t.Fatalf("unexpected move_up bindings: %#v", moveUp)
+	}
+
+	if down := cfg.Interactive.Darwin.Keybindings["move_down"]; down != "Ctrl+J" {
+		t.Fatalf("darwin move_down = %v, want Ctrl+J", down)
+	}
+
+	termCfg, ok := cfg.Interactive.Terminals["wezterm"]
+	if !ok {
+		t.Fatalf("expected wezterm terminal keybindings")
+	}
+	if termCfg.Keybindings["move_to_end"] != "Ctrl+L" {
+		t.Fatalf("terminal override missing, got %#v", termCfg.Keybindings)
+	}
+}
+
+func TestManagerSaveWithKeybindingValidation(t *testing.T) {
+	cm := newTestConfigManager()
+	cm.configPath = filepath.Join(os.TempDir(), "ggc", "config.yaml")
+	cm.config.Interactive.Keybindings.DeleteWord = "Shift+A"
+	mockFS := NewMockFileOps()
+
+	err := cm.SaveWithFileOps(mockFS)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported key binding format") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, exists := mockFS.files[cm.configPath]; exists {
+		t.Fatal("config file should not be written when validation fails")
+	}
+}
+
+func TestManagerSaveWithKeybindingOverrides(t *testing.T) {
+	cm := newTestConfigManager()
+	cm.configPath = filepath.Join(os.TempDir(), "ggc", "config.yaml")
+	cm.config.Interactive.Keybindings.DeleteWord = "Ctrl+W"
+	cm.config.Interactive.Contexts.Input.Keybindings = map[string]interface{}{
+		"move_up": []interface{}{"Ctrl+P", "Ctrl+N"},
+	}
+	cm.config.Interactive.Darwin.Keybindings = map[string]interface{}{
+		"move_down": "Ctrl+J",
+	}
+	cm.config.Interactive.Terminals = map[string]struct {
+		Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+	}{
+		"wezterm": {Keybindings: map[string]interface{}{"move_to_end": "Ctrl+L"}},
+	}
+
+	mockFS := NewMockFileOps()
+	if err := cm.SaveWithFileOps(mockFS); err != nil {
+		t.Fatalf("SaveWithFileOps returned error: %v", err)
+	}
+
+	data, exists := mockFS.files[cm.configPath]
+	if !exists {
+		t.Fatal("expected config file to be written")
+	}
+
+	saved := string(data)
+	if !strings.Contains(saved, "Ctrl+P") || !strings.Contains(saved, "Ctrl+N") {
+		t.Fatalf("saved config missing context overrides: %s", saved)
+	}
+	if !strings.Contains(saved, "wezterm") || !strings.Contains(saved, "Ctrl+L") {
+		t.Fatalf("saved config missing terminal override: %s", saved)
 	}
 }
 

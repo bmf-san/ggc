@@ -388,6 +388,9 @@ func (c *Config) Validate() error {
 	if err := c.validateAliases(); err != nil {
 		return err
 	}
+	if err := c.validateKeybindings(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -984,4 +987,229 @@ func (cm *Manager) LoadConfig() {
 // GetConfig returns the current configuration
 func (cm *Manager) GetConfig() *Config {
 	return cm.config
+}
+
+// validateKeybindings validates the keybinding configuration
+func (c *Config) validateKeybindings() error {
+	// Validate profile selection
+	if err := c.validateProfile(); err != nil {
+		return err
+	}
+
+	// Validate global keybindings
+	bindings := map[string]string{
+		"delete_word":       c.Interactive.Keybindings.DeleteWord,
+		"clear_line":        c.Interactive.Keybindings.ClearLine,
+		"delete_to_end":     c.Interactive.Keybindings.DeleteToEnd,
+		"move_to_beginning": c.Interactive.Keybindings.MoveToBeginning,
+		"move_to_end":       c.Interactive.Keybindings.MoveToEnd,
+		"move_up":           c.Interactive.Keybindings.MoveUp,
+		"move_down":         c.Interactive.Keybindings.MoveDown,
+	}
+
+	for action, keyStr := range bindings {
+		// Empty bindings are allowed (will use defaults)
+		if keyStr == "" {
+			continue
+		}
+		if err := parseKeyBinding(keyStr); err != nil {
+			return &ValidationError{
+				Field:   fmt.Sprintf("interactive.keybindings.%s", action),
+				Value:   keyStr,
+				Message: err.Error(),
+			}
+		}
+	}
+
+	// Validate context-specific keybindings
+	if err := c.validateContextKeybindings(); err != nil {
+		return err
+	}
+
+	// Validate platform-specific keybindings
+	if err := c.validatePlatformKeybindings(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateProfile validates the profile selection
+func (c *Config) validateProfile() error {
+	profile := c.Interactive.Profile
+	if profile == "" {
+		return nil // Empty profile is allowed (defaults to "default")
+	}
+
+	validProfiles := map[string]bool{
+		"default":  true,
+		"emacs":    true,
+		"vi":       true,
+		"readline": true,
+	}
+
+	if !validProfiles[profile] {
+		return &ValidationError{
+			Field:   "interactive.profile",
+			Value:   profile,
+			Message: "must be one of: default, emacs, vi, readline",
+		}
+	}
+	return nil
+}
+
+// validateContextKeybindings validates context-specific keybindings
+func (c *Config) validateContextKeybindings() error {
+	contexts := map[string]map[string]interface{}{
+		"input":   c.Interactive.Contexts.Input.Keybindings,
+		"results": c.Interactive.Contexts.Results.Keybindings,
+		"search":  c.Interactive.Contexts.Search.Keybindings,
+	}
+
+	for contextName, bindings := range contexts {
+		if bindings == nil {
+			continue
+		}
+		for action, value := range bindings {
+			if err := validateKeybindingValue(fmt.Sprintf("interactive.contexts.%s.keybindings.%s", contextName, action), value); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// validatePlatformKeybindings validates platform and terminal specific keybindings
+func (c *Config) validatePlatformKeybindings() error {
+	platforms := map[string]map[string]interface{}{
+		"darwin":  c.Interactive.Darwin.Keybindings,
+		"linux":   c.Interactive.Linux.Keybindings,
+		"windows": c.Interactive.Windows.Keybindings,
+	}
+
+	for platformName, bindings := range platforms {
+		if bindings == nil {
+			continue
+		}
+		for action, value := range bindings {
+			if err := validateKeybindingValue(fmt.Sprintf("interactive.%s.keybindings.%s", platformName, action), value); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Validate terminal-specific keybindings
+	if c.Interactive.Terminals != nil {
+		for termName, termConfig := range c.Interactive.Terminals {
+			if termConfig.Keybindings == nil {
+				continue
+			}
+			for action, value := range termConfig.Keybindings {
+				if err := validateKeybindingValue(fmt.Sprintf("interactive.terminals.%s.keybindings.%s", termName, action), value); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateKeybindingValue validates a keybinding value (string or array of strings)
+func validateKeybindingValue(fieldPath string, value interface{}) error {
+	switch v := value.(type) {
+	case string:
+		if v == "" {
+			return nil // Empty is allowed
+		}
+		if err := parseKeyBinding(v); err != nil {
+			return &ValidationError{
+				Field:   fieldPath,
+				Value:   v,
+				Message: err.Error(),
+			}
+		}
+	case []interface{}:
+		for i, item := range v {
+			itemStr, ok := item.(string)
+			if !ok {
+				return &ValidationError{
+					Field:   fmt.Sprintf("%s[%d]", fieldPath, i),
+					Value:   item,
+					Message: "keybinding array items must be strings",
+				}
+			}
+			if itemStr != "" {
+				if err := parseKeyBinding(itemStr); err != nil {
+					return &ValidationError{
+						Field:   fmt.Sprintf("%s[%d]", fieldPath, i),
+						Value:   itemStr,
+						Message: err.Error(),
+					}
+				}
+			}
+		}
+	default:
+		return &ValidationError{
+			Field:   fieldPath,
+			Value:   value,
+			Message: "keybinding must be a string or array of strings",
+		}
+	}
+	return nil
+}
+
+// parseKeyBinding validates key binding strings. This mirrors cmd.ParseKeyBinding to avoid circular imports.
+func parseKeyBinding(keyStr string) error { //nolint:revive // parsing multiple legacy formats
+	s := strings.TrimSpace(keyStr)
+	if s == "" {
+		return fmt.Errorf("empty key binding")
+	}
+
+	// Normalize to lowercase for comparison
+	sLower := strings.ToLower(s)
+
+	// Handle "ctrl+<key>" format (case-insensitive)
+	if strings.HasPrefix(sLower, "ctrl+") && len(s) == len("ctrl+")+1 {
+		c := rune(sLower[len(sLower)-1])
+		code := ctrlCode(c)
+		if code == 0 {
+			return fmt.Errorf("unsupported ctrl key: %s", keyStr)
+		}
+		return nil
+	}
+
+	// Handle "^<key>" format (caret notation)
+	if strings.HasPrefix(s, "^") && len(s) == 2 {
+		c := rune(strings.ToLower(s)[1])
+		code := ctrlCode(c)
+		if code == 0 {
+			return fmt.Errorf("unsupported caret key: %s", keyStr)
+		}
+		return nil
+	}
+
+	// Handle "c-<key>" or "C-<key>" format (emacs notation)
+	if (strings.HasPrefix(sLower, "c-") || strings.HasPrefix(sLower, "C-")) && len(s) == 3 {
+		c := rune(sLower[2])
+		code := ctrlCode(c)
+		if code == 0 {
+			return fmt.Errorf("unsupported emacs key: %s", keyStr)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
+}
+
+// ctrlCode converts a lowercase letter to its control byte (e.g., 'a' => 1).
+func ctrlCode(r rune) byte {
+	// Only letters a-z are expected here; ensure predictable conversion.
+	if r >= 'a' && r <= 'z' {
+		return byte(r-'a') + 1
+	}
+	if r >= 'A' && r <= 'Z' {
+		return byte(r-'A') + 1
+	}
+	return 0
 }
