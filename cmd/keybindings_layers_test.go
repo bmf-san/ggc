@@ -94,14 +94,14 @@ func TestKeyBindingConflictDetection(t *testing.T) {
 			expectConflicts: false,
 		},
 		{
-			name: "conflict detected returns error",
+			name: "conflict detected emits warning",
 			config: func() *config.Config {
 				cfg := &config.Config{}
 				cfg.Interactive.Keybindings.DeleteWord = "ctrl+k"
 				cfg.Interactive.Keybindings.DeleteToEnd = "ctrl+k"
 				return cfg
 			}(),
-			expectError:     true,
+			expectError:     false,
 			expectConflicts: true,
 		},
 	}

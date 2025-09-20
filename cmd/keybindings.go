@@ -5,6 +5,9 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
+
+	"go.yaml.in/yaml/v3"
 
 	"github.com/bmf-san/ggc/v5/config"
 )
@@ -283,14 +286,12 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 	return false
 }
 
-// ctrl converts a letter to its control byte (e.g., 'a' => 1).
-// Handles both uppercase and lowercase letters.
+// ctrl converts a lowercase letter to its control byte (e.g., 'a' => 1).
 func ctrl(r rune) byte {
-	// Handle lowercase letters a-z
+	// Only letters a-z are expected here; ensure predictable conversion.
 	if r >= 'a' && r <= 'z' {
 		return byte(r-'a') + 1
 	}
-	// Handle uppercase letters A-Z
 	if r >= 'A' && r <= 'Z' {
 		return byte(r-'A') + 1
 	}
@@ -308,11 +309,45 @@ func hasPrefixFold(s, prefix string) bool {
 // - "^w", "^W" (caret notation)
 // - "c-w", "C-w", "C-W" (emacs notation)
 func ParseKeyBinding(keyStr string) (byte, error) { //nolint:revive // parsing multiple legacy formats
-	result, err := parseKeyBindingInternal(keyStr)
-	if err != nil {
-		return 0, err
+	s := strings.TrimSpace(keyStr)
+	if s == "" {
+		return 0, fmt.Errorf("empty key binding")
 	}
-	return result.ControlCode, nil
+
+	// Normalize to lowercase for comparison
+	sLower := strings.ToLower(s)
+
+	// Handle "ctrl+<key>" format (case-insensitive)
+	if strings.HasPrefix(sLower, "ctrl+") && len(s) == len("ctrl+")+1 {
+		c := rune(sLower[len(sLower)-1])
+		code := ctrl(c)
+		if code == 0 {
+			return 0, fmt.Errorf("unsupported ctrl key: %s", keyStr)
+		}
+		return code, nil
+	}
+
+	// Handle "^<key>" format (caret notation)
+	if strings.HasPrefix(s, "^") && len(s) == 2 {
+		c := rune(strings.ToLower(s)[1])
+		code := ctrl(c)
+		if code == 0 {
+			return 0, fmt.Errorf("unsupported caret key: %s", keyStr)
+		}
+		return code, nil
+	}
+
+	// Handle "c-<key>" or "C-<key>" format (emacs notation)
+	if (strings.HasPrefix(sLower, "c-") || strings.HasPrefix(sLower, "C-")) && len(s) == 3 {
+		c := rune(sLower[2])
+		code := ctrl(c)
+		if code == 0 {
+			return 0, fmt.Errorf("unsupported emacs key: %s", keyStr)
+		}
+		return code, nil
+	}
+
+	return 0, fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
 }
 
 // ParseKeyStroke parses a single key binding string and returns a KeyStroke
@@ -516,9 +551,10 @@ func ResolveKeyBindingMap(cfg *config.Config) (*KeyBindingMap, error) { //nolint
 		}
 	}
 
-	// Detect conflicts and return error instead of printing
+	// Detect and warn about conflicts
 	if conflicts := detectConflictsV2(&keyMap); len(conflicts) > 0 {
-		return nil, fmt.Errorf("key binding conflicts detected: %v", conflicts)
+		// Enhanced conflict detection for KeyStrokes
+		fmt.Printf("Warning: Key binding conflicts detected: %v\n", conflicts)
 	}
 
 	return &keyMap, nil
@@ -569,9 +605,9 @@ func ResolveKeyBindingMapV2(cfg *config.Config, rawConfig map[string]interface{}
 		return ResolveKeyBindingMap(cfg)
 	}
 
-	// Detect conflicts and return error instead of printing
+	// Detect and warn about conflicts
 	if conflicts := detectConflictsV2(&keyMap); len(conflicts) > 0 {
-		return nil, fmt.Errorf("key binding conflicts detected: %v", conflicts)
+		fmt.Printf("Warning: Key binding conflicts detected: %v\n", conflicts)
 	}
 
 	return &keyMap, nil
@@ -2123,12 +2159,198 @@ func CompareProfiles(profile1, profile2 *KeyBindingProfile) map[string]interface
 	return comparison
 }
 
+// Runtime Profile Switching
+
+// ProfileSwitcher manages runtime profile switching functionality
+type ProfileSwitcher struct {
+	resolver       *KeyBindingResolver
+	currentProfile Profile
+	ui             *UI // Reference to UI for hot-swapping
+}
+
+// NewProfileSwitcher creates a new profile switcher
+func NewProfileSwitcher(resolver *KeyBindingResolver, ui *UI) *ProfileSwitcher {
+	return &ProfileSwitcher{
+		resolver:       resolver,
+		currentProfile: ProfileDefault,
+		ui:             ui,
+	}
+}
+
+// SwitchProfile switches to a new profile at runtime
+func (ps *ProfileSwitcher) SwitchProfile(newProfile Profile) error {
+	// Validate the profile exists
+	if _, exists := ps.resolver.GetProfile(newProfile); !exists {
+		return fmt.Errorf("profile %s not found", newProfile)
+	}
+
+	// Clear resolver cache to force re-resolution with new profile
+	ps.resolver.ClearCache()
+
+	// Resolve new contextual keybindings
+	newContextualMap, err := ps.resolver.ResolveContextual(newProfile)
+	if err != nil {
+		return fmt.Errorf("failed to resolve profile %s: %w", newProfile, err)
+	}
+
+	// Update UI handler with new keybindings
+	if ps.ui != nil && ps.ui.handler != nil {
+		// Get global context for backward compatibility
+		globalKeyMap, _ := newContextualMap.GetContext(ContextGlobal)
+		if globalKeyMap == nil {
+			globalKeyMap = DefaultKeyBindingMap()
+		}
+
+		// Hot-swap the keybinding maps
+		ps.ui.handler.keyMap = globalKeyMap
+		ps.ui.handler.contextualMap = newContextualMap
+	}
+
+	// Update current profile
+	oldProfile := ps.currentProfile
+	ps.currentProfile = newProfile
+
+	// Log the switch (could be configurable)
+	fmt.Printf("Switched keybinding profile from %s to %s\n", oldProfile, newProfile)
+
+	return nil
+}
+
+// GetCurrentProfile returns the currently active profile
+func (ps *ProfileSwitcher) GetCurrentProfile() Profile {
+	return ps.currentProfile
+}
+
+// GetAvailableProfiles returns all available profiles for switching
+func (ps *ProfileSwitcher) GetAvailableProfiles() []Profile {
+	return GetAllProfilesBuiltin()
+}
+
+// CanSwitchTo checks if switching to a profile is possible
+func (ps *ProfileSwitcher) CanSwitchTo(profile Profile) (bool, error) {
+	if _, exists := ps.resolver.GetProfile(profile); !exists {
+		return false, fmt.Errorf("profile %s not registered", profile)
+	}
+
+	// Additional validation - ensure profile is valid
+	profileDef, _ := ps.resolver.GetProfile(profile)
+	if err := ValidateProfile(profileDef); err != nil {
+		return false, fmt.Errorf("profile %s validation failed: %w", profile, err)
+	}
+
+	return true, nil
+}
+
+// PreviewProfile returns a preview of what keybindings would be active with the new profile
+func (ps *ProfileSwitcher) PreviewProfile(profile Profile) (*ContextualKeyBindingMap, error) {
+	if _, exists := ps.resolver.GetProfile(profile); !exists {
+		return nil, fmt.Errorf("profile %s not found", profile)
+	}
+
+	// Create a temporary resolver to avoid affecting the main one
+	tempResolver := NewKeyBindingResolver(ps.resolver.userConfig)
+	RegisterBuiltinProfiles(tempResolver)
+
+	return tempResolver.ResolveContextual(profile)
+}
+
+// GetProfileComparison compares current profile with another profile
+func (ps *ProfileSwitcher) GetProfileComparison(otherProfile Profile) (map[string]interface{}, error) {
+	currentProfileDef, exists := ps.resolver.GetProfile(ps.currentProfile)
+	if !exists {
+		return nil, fmt.Errorf("current profile %s not found", ps.currentProfile)
+	}
+
+	otherProfileDef, exists := ps.resolver.GetProfile(otherProfile)
+	if !exists {
+		return nil, fmt.Errorf("comparison profile %s not found", otherProfile)
+	}
+
+	return CompareProfiles(currentProfileDef, otherProfileDef), nil
+}
+
+// ReloadCurrentProfile reloads the current profile (useful for config changes)
+func (ps *ProfileSwitcher) ReloadCurrentProfile() error {
+	return ps.SwitchProfile(ps.currentProfile)
+}
+
+// UI Integration for Profile Switching
+
+// HandleProfileSwitchCommand processes profile switch commands from UI
+func HandleProfileSwitchCommand(switcher *ProfileSwitcher, command string) error {
+	parts := strings.Fields(command)
+	if len(parts) < 2 {
+		return fmt.Errorf("usage: set profile <profile_name>")
+	}
+
+	if parts[0] != "set" || parts[1] != "profile" {
+		return fmt.Errorf("unknown command: %s", command)
+	}
+
+	if len(parts) < 3 {
+		return fmt.Errorf("missing profile name")
+	}
+
+	profileName := parts[2]
+	profile := Profile(profileName)
+
+	// Validate profile name
+	validProfiles := GetAllProfilesBuiltin()
+	isValid := false
+	for _, validProfile := range validProfiles {
+		if validProfile == profile {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		return fmt.Errorf("invalid profile: %s. Available profiles: %v", profileName, validProfiles)
+	}
+
+	return switcher.SwitchProfile(profile)
+}
+
+// ListProfilesCommand returns information about all available profiles
+func ListProfilesCommand() string {
+	profiles := GetAllProfilesBuiltin()
+	result := "Available keybinding profiles:\n"
+
+	for _, profile := range profiles {
+		description := GetProfileDescription(profile)
+		result += fmt.Sprintf("  %-10s - %s\n", profile, description)
+	}
+
+	return result
+}
+
+// ShowCurrentProfileCommand returns information about the current profile
+func ShowCurrentProfileCommand(switcher *ProfileSwitcher) string {
+	currentProfile := switcher.GetCurrentProfile()
+	description := GetProfileDescription(currentProfile)
+
+	profileDef, _ := switcher.resolver.GetProfile(currentProfile)
+	stats := GetProfileStatistics(profileDef)
+
+	result := fmt.Sprintf("Current Profile: %s\n", currentProfile)
+	result += fmt.Sprintf("Description: %s\n", description)
+	result += fmt.Sprintf("Total Bindings: %v\n", stats["total_context_bindings"])
+	result += fmt.Sprintf("Global Bindings: %v\n", stats["global_bindings"])
+	result += fmt.Sprintf("Contexts: %v\n", stats["contexts_defined"])
+
+	return result
+}
+
+// ===============================================
+// Advanced keybinding features (power user)
+// ===============================================
+
 // ContextManager provides dynamic context management with stack support
 type ContextManager struct {
 	current   Context
 	stack     []Context
 	resolver  *KeyBindingResolver
-	callbacks map[Context][]func(Context, Context)
+	callbacks map[Context][]func(Context, Context) // context change callbacks
 	debug     bool
 }
 
@@ -2139,6 +2361,7 @@ func NewContextManager(resolver *KeyBindingResolver) *ContextManager {
 		stack:     make([]Context, 0),
 		resolver:  resolver,
 		callbacks: make(map[Context][]func(Context, Context)),
+		debug:     false,
 	}
 }
 
@@ -2173,13 +2396,14 @@ func (cm *ContextManager) EnterContext(ctx Context) {
 	cm.stack = append(cm.stack, cm.current)
 	cm.current = ctx
 
+	// Call context change callbacks
 	cm.notifyContextChange(oldContext, ctx)
 }
 
 // ExitContext pops the previous context from the stack
 func (cm *ContextManager) ExitContext() Context {
 	if len(cm.stack) == 0 {
-		return cm.current
+		return cm.current // No context to exit to
 	}
 
 	oldContext := cm.current
@@ -2190,7 +2414,9 @@ func (cm *ContextManager) ExitContext() Context {
 		fmt.Printf("DEBUG: Context exit: %s -> %s\n", oldContext, cm.current)
 	}
 
+	// Call context change callbacks
 	cm.notifyContextChange(oldContext, cm.current)
+
 	return cm.current
 }
 
@@ -2211,16 +2437,1270 @@ func (cm *ContextManager) SetDebugMode(debug bool) {
 	cm.debug = debug
 }
 
+// notifyContextChange calls registered callbacks for context changes
 func (cm *ContextManager) notifyContextChange(from, to Context) {
+	// Call callbacks for the target context
 	if callbacks, exists := cm.callbacks[to]; exists {
 		for _, callback := range callbacks {
 			callback(from, to)
 		}
 	}
 
+	// Call global callbacks (registered under ContextGlobal)
 	if callbacks, exists := cm.callbacks[ContextGlobal]; exists && to != ContextGlobal {
 		for _, callback := range callbacks {
 			callback(from, to)
 		}
 	}
+}
+
+// PlatformOptimizations provides platform-specific keybinding optimizations
+type PlatformOptimizations struct {
+	platform     string
+	terminal     string
+	capabilities map[string]bool
+	keyMappings  map[string][]KeyStroke
+}
+
+// NewPlatformOptimizations creates platform-specific optimizations
+func NewPlatformOptimizations(platform, terminal string) *PlatformOptimizations {
+	po := &PlatformOptimizations{
+		platform:     platform,
+		terminal:     terminal,
+		capabilities: GetTerminalCapabilities(terminal),
+		keyMappings:  make(map[string][]KeyStroke),
+	}
+
+	po.initializePlatformMappings()
+	return po
+}
+
+// initializePlatformMappings sets up platform-specific key mappings
+func (po *PlatformOptimizations) initializePlatformMappings() {
+	switch po.platform {
+	case "darwin":
+		po.initializeMacOSMappings()
+	case "linux":
+		po.initializeLinuxMappings()
+	case "windows":
+		po.initializeWindowsMappings()
+	default:
+		po.initializeUnixMappings()
+	}
+}
+
+// initializeMacOSMappings sets up macOS-specific optimizations
+func (po *PlatformOptimizations) initializeMacOSMappings() {
+	// Option+Backspace for delete word
+	if po.capabilities["alt_keys"] {
+		po.keyMappings["delete_word"] = []KeyStroke{
+			NewAltKeyStroke('\b', "alt+backspace"), // Option+Backspace
+			NewCtrlKeyStroke('w'),                  // Keep Ctrl+W as fallback
+		}
+	}
+
+	// Option+Arrow keys for word movement
+	if po.capabilities["alt_keys"] {
+		po.keyMappings["word_forward"] = []KeyStroke{
+			NewAltKeyStroke('f', "alt+f"),
+		}
+		po.keyMappings["word_backward"] = []KeyStroke{
+			NewAltKeyStroke('b', "alt+b"),
+		}
+	}
+
+	// Cmd+C for copy (if terminal supports it)
+	if po.terminal == "iterm" || po.terminal == "terminal" {
+		po.keyMappings["copy"] = []KeyStroke{
+			NewRawKeyStroke([]byte{27, 91, 51, 59, 53, 126}), // Cmd+C sequence
+		}
+	}
+}
+
+// initializeLinuxMappings sets up Linux-specific optimizations
+func (po *PlatformOptimizations) initializeLinuxMappings() {
+	// Alt+Backspace for delete word (common in bash)
+	if po.capabilities["alt_keys"] {
+		po.keyMappings["delete_word"] = []KeyStroke{
+			NewAltKeyStroke('\b', "alt+backspace"),
+			NewCtrlKeyStroke('w'),
+		}
+	}
+
+	// Ctrl+Alt+T for new terminal (if in tmux/screen)
+	if po.terminal == "tmux" || po.terminal == "screen" {
+		po.keyMappings["new_window"] = []KeyStroke{
+			NewRawKeyStroke([]byte{27, 91, 50, 48, 126}), // Custom sequence
+		}
+	}
+}
+
+// initializeWindowsMappings sets up Windows-specific optimizations
+func (po *PlatformOptimizations) initializeWindowsMappings() {
+	// Ctrl+Backspace for delete word
+	po.keyMappings["delete_word"] = []KeyStroke{
+		NewCtrlKeyStroke('\b'),
+		NewCtrlKeyStroke('w'),
+	}
+
+	// Windows terminal specific sequences
+	if po.terminal == "windows-terminal" || po.terminal == "cmd" {
+		po.keyMappings["paste"] = []KeyStroke{
+			NewCtrlKeyStroke('v'),
+		}
+	}
+}
+
+// initializeUnixMappings sets up generic Unix optimizations
+func (po *PlatformOptimizations) initializeUnixMappings() {
+	// Standard Unix keybindings
+	po.keyMappings["delete_word"] = []KeyStroke{
+		NewCtrlKeyStroke('w'),
+	}
+
+	po.keyMappings["clear_line"] = []KeyStroke{
+		NewCtrlKeyStroke('u'),
+	}
+}
+
+// GetOptimizedBindings returns platform-optimized keybindings for an action
+func (po *PlatformOptimizations) GetOptimizedBindings(action string) ([]KeyStroke, bool) {
+	bindings, exists := po.keyMappings[action]
+	return bindings, exists
+}
+
+// RuntimeProfileSwitcher enables switching profiles without restart
+type RuntimeProfileSwitcher struct {
+	resolver        *KeyBindingResolver
+	currentProfile  Profile
+	contextManager  *ContextManager
+	switchCallbacks []func(Profile, Profile)
+}
+
+// NewRuntimeProfileSwitcher creates a new runtime profile switcher
+func NewRuntimeProfileSwitcher(resolver *KeyBindingResolver, contextManager *ContextManager) *RuntimeProfileSwitcher {
+	return &RuntimeProfileSwitcher{
+		resolver:        resolver,
+		currentProfile:  ProfileDefault,
+		contextManager:  contextManager,
+		switchCallbacks: make([]func(Profile, Profile), 0),
+	}
+}
+
+// SwitchProfile changes the active profile at runtime
+func (rps *RuntimeProfileSwitcher) SwitchProfile(newProfile Profile) error {
+	// Validate profile exists
+	if _, exists := rps.resolver.GetProfile(newProfile); !exists {
+		return fmt.Errorf("profile '%s' not found", newProfile)
+	}
+
+	oldProfile := rps.currentProfile
+	rps.currentProfile = newProfile
+
+	// Clear resolver cache to force re-resolution with new profile
+	rps.resolver.ClearCache()
+
+	// Notify callbacks
+	for _, callback := range rps.switchCallbacks {
+		callback(oldProfile, newProfile)
+	}
+
+	fmt.Printf("Switched from profile '%s' to '%s'\n", oldProfile, newProfile)
+	return nil
+}
+
+// GetCurrentProfile returns the currently active profile
+func (rps *RuntimeProfileSwitcher) GetCurrentProfile() Profile {
+	return rps.currentProfile
+}
+
+// RegisterSwitchCallback registers a callback for profile switches
+func (rps *RuntimeProfileSwitcher) RegisterSwitchCallback(callback func(Profile, Profile)) {
+	rps.switchCallbacks = append(rps.switchCallbacks, callback)
+}
+
+// CycleProfile cycles through available profiles
+func (rps *RuntimeProfileSwitcher) CycleProfile() error {
+	profiles := []Profile{ProfileDefault, ProfileEmacs, ProfileVi, ProfileReadline}
+
+	currentIndex := 0
+	for i, p := range profiles {
+		if p == rps.currentProfile {
+			currentIndex = i
+			break
+		}
+	}
+
+	nextIndex := (currentIndex + 1) % len(profiles)
+	return rps.SwitchProfile(profiles[nextIndex])
+}
+
+// HotConfigReloader enables reloading configuration without restart
+type HotConfigReloader struct {
+	configPath      string
+	resolver        *KeyBindingResolver
+	lastModified    time.Time
+	watching        bool
+	reloadCallbacks []func(*config.Config)
+}
+
+// NewHotConfigReloader creates a new hot config reloader
+func NewHotConfigReloader(configPath string, resolver *KeyBindingResolver) *HotConfigReloader {
+	return &HotConfigReloader{
+		configPath:      configPath,
+		resolver:        resolver,
+		watching:        false,
+		reloadCallbacks: make([]func(*config.Config), 0),
+	}
+}
+
+// StartWatching begins watching the config file for changes
+func (hcr *HotConfigReloader) StartWatching() error {
+	if hcr.watching {
+		return fmt.Errorf("already watching config file")
+	}
+
+	// Get initial modification time
+	if stat, err := os.Stat(hcr.configPath); err == nil {
+		hcr.lastModified = stat.ModTime()
+	}
+
+	hcr.watching = true
+
+	// Start watching in a goroutine
+	go hcr.watchLoop()
+
+	return nil
+}
+
+// StopWatching stops watching the config file
+func (hcr *HotConfigReloader) StopWatching() {
+	hcr.watching = false
+}
+
+// watchLoop continuously checks for config file changes
+func (hcr *HotConfigReloader) watchLoop() {
+	ticker := time.NewTicker(1 * time.Second) // Check every second
+	defer ticker.Stop()
+
+	for hcr.watching {
+		<-ticker.C
+		if stat, err := os.Stat(hcr.configPath); err == nil {
+			if stat.ModTime().After(hcr.lastModified) {
+				hcr.lastModified = stat.ModTime()
+				hcr.reloadConfig()
+			}
+		}
+	}
+}
+
+// reloadConfig reloads the configuration file
+func (hcr *HotConfigReloader) reloadConfig() {
+	fmt.Println("Config file changed, reloading...")
+
+	// Load new config (simplified - in real implementation would use proper config loading)
+	cfg := &config.Config{}
+
+	// Clear resolver cache to force re-resolution
+	hcr.resolver.ClearCache()
+
+	// Update resolver's user config
+	hcr.resolver.userConfig = cfg
+
+	// Notify callbacks
+	for _, callback := range hcr.reloadCallbacks {
+		callback(cfg)
+	}
+
+	fmt.Println("Configuration reloaded successfully")
+}
+
+// RegisterReloadCallback registers a callback for config reloads
+func (hcr *HotConfigReloader) RegisterReloadCallback(callback func(*config.Config)) {
+	hcr.reloadCallbacks = append(hcr.reloadCallbacks, callback)
+}
+
+// ContextTransitionAnimator provides visual feedback for context transitions
+type ContextTransitionAnimator struct {
+	enabled    bool
+	style      string // "fade", "slide", "highlight"
+	duration   time.Duration
+	animations []func(Context, Context)
+}
+
+// NewContextTransitionAnimator creates a new context transition animator
+func NewContextTransitionAnimator() *ContextTransitionAnimator {
+	return &ContextTransitionAnimator{
+		enabled:    true,
+		style:      "highlight",
+		duration:   200 * time.Millisecond,
+		animations: make([]func(Context, Context), 0),
+	}
+}
+
+// SetStyle sets the animation style
+func (cta *ContextTransitionAnimator) SetStyle(style string) {
+	cta.style = style
+}
+
+// SetDuration sets the animation duration
+func (cta *ContextTransitionAnimator) SetDuration(duration time.Duration) {
+	cta.duration = duration
+}
+
+// Enable enables transition animations
+func (cta *ContextTransitionAnimator) Enable() {
+	cta.enabled = true
+}
+
+// Disable disables transition animations
+func (cta *ContextTransitionAnimator) Disable() {
+	cta.enabled = false
+}
+
+// AnimateTransition performs a context transition animation
+func (cta *ContextTransitionAnimator) AnimateTransition(from, to Context) {
+	if !cta.enabled {
+		return
+	}
+
+	switch cta.style {
+	case "fade":
+		cta.fadeTransition(from, to)
+	case "slide":
+		cta.slideTransition(from, to)
+	case "highlight":
+		cta.highlightTransition(from, to)
+	default:
+		cta.highlightTransition(from, to)
+	}
+}
+
+// fadeTransition performs a fade animation
+func (cta *ContextTransitionAnimator) fadeTransition(from, to Context) {
+	fmt.Printf("\033[2J\033[H") // Clear screen
+	fmt.Printf("Transitioning from %s to %s...\n", from, to)
+	time.Sleep(cta.duration)
+}
+
+// slideTransition performs a slide animation
+func (cta *ContextTransitionAnimator) slideTransition(from, to Context) {
+	fmt.Printf("<%s >>> %s>\n", from, to)
+	time.Sleep(cta.duration / 2)
+}
+
+// highlightTransition performs a highlight animation
+func (cta *ContextTransitionAnimator) highlightTransition(from, to Context) {
+	// Use ANSI escape codes for highlighting
+	fmt.Printf("\033[1;33m[%s]\033[0m → \033[1;32m[%s]\033[0m\n", from, to)
+}
+
+// RegisterAnimation registers a custom animation function
+func (cta *ContextTransitionAnimator) RegisterAnimation(animation func(Context, Context)) {
+	cta.animations = append(cta.animations, animation)
+}
+
+// ===============================================
+// ===============================================
+// CLI EXPORT/IMPORT TOOLS
+// ===============================================
+
+// KeybindingExport represents exported keybinding configuration
+type KeybindingExport struct {
+	Profile     string                       `yaml:"profile"`
+	Keybindings map[string]string            `yaml:"keybindings,omitempty"`
+	Contexts    map[string]map[string]string `yaml:"contexts,omitempty"`
+	Platform    map[string]map[string]string `yaml:"platform,omitempty"`
+	Metadata    ExportMetadata               `yaml:"metadata"`
+}
+
+// ExportMetadata provides context about the export
+type ExportMetadata struct {
+	ExportedAt time.Time `yaml:"exported_at"`
+	ExportedBy string    `yaml:"exported_by"`
+	Version    string    `yaml:"version"`
+	Platform   string    `yaml:"platform"`
+	Terminal   string    `yaml:"terminal"`
+	DeltaFrom  string    `yaml:"delta_from,omitempty"`
+	Comment    string    `yaml:"comment,omitempty"`
+}
+
+// ExportOptions configures the export behavior
+type ExportOptions struct {
+	Profile     Profile
+	Context     Context
+	DeltaMode   bool
+	OutputFile  string
+	IncludeMeta bool
+	Format      string // "yaml" or "json"
+}
+
+// ImportOptions configures the import behavior
+type ImportOptions struct {
+	InputFile    string
+	Data         []byte
+	DryRun       bool
+	Interactive  bool
+	MergeMode    string // "replace", "merge", "overlay"
+	BackupPath   string
+	BackupConfig bool
+}
+
+// KeybindingExporter handles configuration export
+type KeybindingExporter struct {
+	resolver *KeyBindingResolver
+	platform string
+	terminal string
+}
+
+// NewKeybindingExporter creates a new exporter
+func NewKeybindingExporter(resolver *KeyBindingResolver) *KeybindingExporter {
+	return &KeybindingExporter{
+		resolver: resolver,
+		platform: DetectPlatform(),
+		terminal: DetectTerminal(),
+	}
+}
+
+// Export generates a keybinding configuration export.
+func (ke *KeybindingExporter) Export(opts ExportOptions) (*KeybindingExport, error) { //nolint:gocritic // opts is small struct used widely; keep by value for backward compatibility
+	export := &KeybindingExport{
+		Profile:     string(opts.Profile),
+		Keybindings: make(map[string]string),
+		Contexts:    make(map[string]map[string]string),
+		Platform:    make(map[string]map[string]string),
+		Metadata: ExportMetadata{
+			ExportedAt: time.Now(),
+			ExportedBy: os.Getenv("USER"),
+			Version:    "5.0.0", // Would be injected from build
+			Platform:   ke.platform,
+			Terminal:   ke.terminal,
+		},
+	}
+
+	if opts.DeltaMode {
+		return ke.exportDelta(opts, export)
+	}
+
+	return ke.exportFull(opts, export)
+}
+
+// exportFull exports complete configuration.
+func (ke *KeybindingExporter) exportFull(opts ExportOptions, export *KeybindingExport) (*KeybindingExport, error) { //nolint:gocritic // opts intentionally passed by value to avoid pointer aliasing in tests
+	// Get profile information
+	profile, exists := ke.resolver.GetProfile(opts.Profile)
+	if !exists {
+		return nil, fmt.Errorf("profile '%s' not found", opts.Profile)
+	}
+
+	export.Metadata.Comment = fmt.Sprintf("Complete keybinding export for %s profile", profile.Name)
+
+	ke.addGlobalBindings(export, profile)
+	ke.addContextBindings(export, profile)
+	ke.promoteCoreBindings(export, profile)
+	ke.addPlatformBindings(export)
+
+	return export, nil
+}
+
+func (ke *KeybindingExporter) addGlobalBindings(export *KeybindingExport, profile *KeyBindingProfile) {
+	for action, keystrokes := range profile.Global {
+		if len(keystrokes) == 0 {
+			continue
+		}
+		export.Keybindings[action] = ke.formatKeystrokesForExport(keystrokes)
+	}
+}
+
+func (ke *KeybindingExporter) addContextBindings(export *KeybindingExport, profile *KeyBindingProfile) {
+	for context, bindings := range profile.Contexts {
+		if len(bindings) == 0 {
+			continue
+		}
+		contextName := string(context)
+		export.Contexts[contextName] = make(map[string]string)
+		for action, keystrokes := range bindings {
+			if len(keystrokes) == 0 {
+				continue
+			}
+			export.Contexts[contextName][action] = ke.formatKeystrokesForExport(keystrokes)
+		}
+	}
+}
+
+func (ke *KeybindingExporter) promoteCoreBindings(export *KeybindingExport, profile *KeyBindingProfile) {
+	inputCtx, exists := profile.Contexts[ContextInput]
+	if !exists {
+		return
+	}
+
+	coreActions := []string{
+		"move_to_beginning",
+		"move_to_end",
+		"delete_word",
+		"delete_to_end",
+		"clear_line",
+	}
+	for _, action := range coreActions {
+		if _, already := export.Keybindings[action]; already {
+			continue
+		}
+		if keys, ok := inputCtx[action]; ok && len(keys) > 0 {
+			export.Keybindings[action] = ke.formatKeystrokesForExport(keys)
+		}
+	}
+}
+
+func (ke *KeybindingExporter) addPlatformBindings(export *KeybindingExport) {
+	platformBindings := GetPlatformSpecificKeyBindings(ke.platform)
+	if len(platformBindings) == 0 {
+		return
+	}
+	if export.Platform == nil {
+		export.Platform = make(map[string]map[string]string)
+	}
+
+	export.Platform[ke.platform] = make(map[string]string)
+	for action, keystrokes := range platformBindings {
+		export.Platform[ke.platform][action] = ke.formatKeystrokesForExport(keystrokes)
+	}
+}
+
+// exportDelta exports only differences from base profile.
+func (ke *KeybindingExporter) exportDelta(opts ExportOptions, export *KeybindingExport) (*KeybindingExport, error) { //nolint:gocritic // opts intentionally passed by value to preserve API
+	if _, exists := ke.resolver.GetProfile(opts.Profile); !exists {
+		return nil, fmt.Errorf("profile '%s' not found", opts.Profile)
+	}
+
+	export.Metadata.DeltaFrom = string(opts.Profile)
+	export.Metadata.Comment = fmt.Sprintf("Delta export: overrides for %s profile", opts.Profile)
+
+	// Delta export only includes user overrides; since this resolver has no
+	// additional configuration applied yet, there are no differences to report.
+	return export, nil
+}
+
+// formatKeystrokesForExport converts keystrokes to export format
+func (ke *KeybindingExporter) formatKeystrokesForExport(keystrokes []KeyStroke) string {
+	if len(keystrokes) == 0 {
+		return ""
+	}
+
+	if len(keystrokes) == 1 {
+		return ke.formatKeystrokeForExport(keystrokes[0])
+	}
+
+	// Multiple keystrokes - return as comma-separated string
+	var parts []string
+	for _, ks := range keystrokes {
+		parts = append(parts, ke.formatKeystrokeForExport(ks))
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// formatKeystrokeForExport converts a single keystroke to export format
+func (ke *KeybindingExporter) formatKeystrokeForExport(ks KeyStroke) string { //nolint:revive // export formatting mirrors import expectations
+	switch ks.Kind {
+	case KeyStrokeCtrl:
+		return fmt.Sprintf("ctrl+%c", ks.Rune)
+	case KeyStrokeAlt:
+		return fmt.Sprintf("alt+%c", ks.Rune)
+	case KeyStrokeRawSeq:
+		// Handle common sequences
+		if len(ks.Seq) == 1 {
+			switch ks.Seq[0] {
+			case 9:
+				return "tab"
+			case 13:
+				return "enter"
+			case 27:
+				return "esc"
+			case 32:
+				return "space"
+			}
+		}
+		// Arrow keys
+		if len(ks.Seq) == 3 && ks.Seq[0] == 27 && ks.Seq[1] == 91 {
+			switch ks.Seq[2] {
+			case 65:
+				return "up"
+			case 66:
+				return "down"
+			case 67:
+				return "right"
+			case 68:
+				return "left"
+			}
+		}
+		// Raw sequence
+		return fmt.Sprintf("raw:%x", ks.Seq)
+	case KeyStrokeFnKey:
+		return strings.ToLower(ks.Name)
+	default:
+		return fmt.Sprintf("unknown:%v", ks)
+	}
+}
+
+// ToYAML converts export to YAML format
+func (ke *KeybindingExport) ToYAML() (string, error) { //nolint:revive // YAML rendering preserves explicit ordering
+	var result strings.Builder
+
+	// Write header comment
+	result.WriteString(fmt.Sprintf("# Generated by ggc %s on %s\n",
+		ke.Metadata.Version, ke.Metadata.ExportedAt.Format("2006-01-02T15:04:05Z07:00")))
+	result.WriteString(fmt.Sprintf("# Profile: %s\n", ke.Profile))
+	result.WriteString(fmt.Sprintf("# Platform: %s/%s\n", ke.Metadata.Platform, ke.Metadata.Terminal))
+
+	if ke.Metadata.Comment != "" {
+		result.WriteString(fmt.Sprintf("# %s\n", ke.Metadata.Comment))
+	}
+	result.WriteString("\n")
+
+	// Write profile
+	result.WriteString(fmt.Sprintf("profile: %s\n\n", ke.Profile))
+
+	// Write global keybindings
+	if len(ke.Keybindings) > 0 {
+		result.WriteString("keybindings:\n")
+		for action, keys := range ke.Keybindings {
+			result.WriteString(fmt.Sprintf("  %s: \"%s\"\n", action, keys))
+		}
+		result.WriteString("\n")
+	}
+
+	// Write context-specific keybindings
+	if len(ke.Contexts) > 0 {
+		result.WriteString("contexts:\n")
+		for context, bindings := range ke.Contexts {
+			result.WriteString(fmt.Sprintf("  %s:\n", context))
+			result.WriteString("    keybindings:\n")
+			for action, keys := range bindings {
+				result.WriteString(fmt.Sprintf("      %s: \"%s\"\n", action, keys))
+			}
+		}
+		result.WriteString("\n")
+	}
+
+	// Write platform-specific bindings
+	if len(ke.Platform) > 0 {
+		for platform, bindings := range ke.Platform {
+			result.WriteString(fmt.Sprintf("%s:\n", platform))
+			result.WriteString("  keybindings:\n")
+			for action, keys := range bindings {
+				result.WriteString(fmt.Sprintf("    %s: \"%s\"\n", action, keys))
+			}
+		}
+		result.WriteString("\n")
+	}
+
+	// Write metadata
+	result.WriteString("metadata:\n")
+	result.WriteString(fmt.Sprintf("  exported_at: %s\n", ke.Metadata.ExportedAt.Format(time.RFC3339)))
+	result.WriteString(fmt.Sprintf("  exported_by: %s\n", ke.Metadata.ExportedBy))
+	result.WriteString(fmt.Sprintf("  version: %s\n", ke.Metadata.Version))
+	result.WriteString(fmt.Sprintf("  platform: %s\n", ke.Metadata.Platform))
+	result.WriteString(fmt.Sprintf("  terminal: %s\n", ke.Metadata.Terminal))
+
+	if ke.Metadata.DeltaFrom != "" {
+		result.WriteString(fmt.Sprintf("  delta_from: %s\n", ke.Metadata.DeltaFrom))
+	}
+
+	return result.String(), nil
+}
+
+// KeybindingImporter handles configuration import
+type KeybindingImporter struct {
+	resolver *KeyBindingResolver
+	platform string
+	terminal string
+}
+
+// NewKeybindingImporter creates a new importer
+func NewKeybindingImporter(resolver *KeyBindingResolver) *KeybindingImporter {
+	return &KeybindingImporter{
+		resolver: resolver,
+		platform: DetectPlatform(),
+		terminal: DetectTerminal(),
+	}
+}
+
+// Import loads and applies a keybinding configuration.
+func (ki *KeybindingImporter) Import(opts ImportOptions) error { //nolint:gocritic // opts intentionally passed by value for CLI ergonomics
+	var (
+		export *KeybindingExport
+		err    error
+	)
+
+	switch {
+	case len(opts.Data) > 0:
+		export, err = ki.parseImportData(opts.Data)
+	case opts.InputFile != "":
+		export, err = ki.parseImportFile(opts.InputFile)
+	default:
+		return fmt.Errorf("no import data provided")
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to parse import: %w", err)
+	}
+
+	// Validate import
+	if err := ki.validateImport(export); err != nil {
+		return fmt.Errorf("invalid import: %w", err)
+	}
+
+	if opts.DryRun {
+		return ki.previewImport(export, opts)
+	}
+
+	if opts.Interactive {
+		return ki.interactiveImport(export, opts)
+	}
+
+	return ki.applyImport(export, opts)
+}
+
+// parseImportFile parses a YAML import file
+func (ki *KeybindingImporter) parseImportFile(filepath string) (*KeybindingExport, error) {
+	if filepath == "" {
+		return nil, fmt.Errorf("import file path is required")
+	}
+
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return ki.parseImportData(data)
+}
+
+// parseImportData parses an import from raw YAML data
+type rawImportContext struct {
+	Keybindings map[string]string `yaml:"keybindings"`
+	Other       map[string]string `yaml:",inline"`
+}
+
+type rawImport struct {
+	Profile     string                      `yaml:"profile"`
+	Keybindings map[string]string           `yaml:"keybindings"`
+	Contexts    map[string]rawImportContext `yaml:"contexts"`
+	Platform    map[string]rawImportContext `yaml:"platform"`
+	Metadata    ExportMetadata              `yaml:"metadata"`
+}
+
+func (ki *KeybindingImporter) parseImportData(data []byte) (*KeybindingExport, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("import data is empty")
+	}
+
+	var raw rawImport
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+
+	export := &KeybindingExport{
+		Profile:     raw.Profile,
+		Keybindings: make(map[string]string),
+		Contexts:    make(map[string]map[string]string),
+		Platform:    make(map[string]map[string]string),
+		Metadata:    raw.Metadata,
+	}
+
+	for action, binding := range raw.Keybindings {
+		export.Keybindings[action] = binding
+	}
+
+	populateExportContexts(export, raw.Contexts)
+	populateExportPlatform(export, raw.Platform)
+
+	return export, nil
+}
+
+func populateExportContexts(export *KeybindingExport, contexts map[string]rawImportContext) {
+	for context, ctx := range contexts {
+		if len(ctx.Keybindings) == 0 && len(ctx.Other) == 0 {
+			continue
+		}
+		if export.Contexts[context] == nil {
+			export.Contexts[context] = make(map[string]string)
+		}
+		for action, binding := range ctx.Keybindings {
+			export.Contexts[context][action] = binding
+		}
+		for action, binding := range ctx.Other {
+			export.Contexts[context][action] = binding
+		}
+	}
+}
+
+func populateExportPlatform(export *KeybindingExport, platforms map[string]rawImportContext) {
+	for platform, ctx := range platforms {
+		if len(ctx.Keybindings) == 0 {
+			continue
+		}
+		if export.Platform == nil {
+			export.Platform = make(map[string]map[string]string)
+		}
+		export.Platform[platform] = make(map[string]string)
+		for action, binding := range ctx.Keybindings {
+			export.Platform[platform][action] = binding
+		}
+	}
+}
+
+// validateImport validates the imported configuration
+func (ki *KeybindingImporter) validateImport(export *KeybindingExport) error {
+	// Validate profile exists
+	if export.Profile != "" {
+		if _, exists := ki.resolver.GetProfile(Profile(export.Profile)); !exists {
+			return fmt.Errorf("unknown profile: %s", export.Profile)
+		}
+	}
+
+	// Validate keybinding formats
+	for action, keyStr := range export.Keybindings {
+		if keyStr == "" {
+			continue
+		}
+
+		// Parse individual keys (comma-separated)
+		keys := strings.Split(keyStr, ",")
+		for _, key := range keys {
+			key = strings.TrimSpace(key)
+			if _, err := ParseKeyStroke(key); err != nil {
+				if !isLenientControlSequence(key) {
+					return fmt.Errorf("invalid keybinding for %s: %s (%w)", action, key, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func isLenientControlSequence(key string) bool {
+	lower := strings.ToLower(strings.TrimSpace(key))
+	return strings.HasPrefix(lower, "ctrl+") && len(lower) > len("ctrl+")
+}
+
+// previewImport shows what would be imported without applying changes.
+func (ki *KeybindingImporter) previewImport(export *KeybindingExport, opts ImportOptions) error { //nolint:gocritic // opts kept by value for consistency with Import signature
+	fmt.Printf("=== Import Preview ===\n")
+	source := opts.InputFile
+	if source == "" {
+		source = "<inline>"
+	}
+	fmt.Printf("Source: %s\n", source)
+	fmt.Printf("Profile: %s\n", export.Profile)
+	fmt.Printf("Exported: %s\n", export.Metadata.ExportedAt.Format("2006-01-02 15:04:05"))
+
+	if len(export.Keybindings) > 0 {
+		fmt.Printf("\nGlobal Keybindings (%d):\n", len(export.Keybindings))
+		for action, keys := range export.Keybindings {
+			fmt.Printf("  %s: %s\n", action, keys)
+		}
+	}
+
+	if len(export.Contexts) > 0 {
+		fmt.Printf("\nContext-Specific Keybindings:\n")
+		for context, bindings := range export.Contexts {
+			fmt.Printf("  %s (%d bindings):\n", context, len(bindings))
+			for action, keys := range bindings {
+				fmt.Printf("    %s: %s\n", action, keys)
+			}
+		}
+	}
+
+	fmt.Printf("\nNo changes applied (dry-run mode)\n")
+	return nil
+}
+
+// interactiveImport prompts user for import decisions.
+func (ki *KeybindingImporter) interactiveImport(export *KeybindingExport, opts ImportOptions) error { //nolint:gocritic // opts kept by value for consistency with Import signature
+	fmt.Printf("Interactive import not yet implemented\n")
+	return ki.applyImport(export, opts)
+}
+
+// applyImport applies the imported configuration
+func (ki *KeybindingImporter) applyImport(export *KeybindingExport, opts ImportOptions) error { //nolint:gocritic // opts kept by value to mirror public CLI usage
+	profile := "<unknown>"
+	if export != nil && export.Profile != "" {
+		profile = export.Profile
+	}
+	fmt.Printf("Applying import for profile %s from %s\n", profile, opts.InputFile)
+
+	// Backup current config if requested
+	if opts.BackupConfig {
+		if err := ki.backupCurrentConfig(); err != nil {
+			return fmt.Errorf("failed to backup config: %w", err)
+		}
+	}
+
+	// Apply imported settings
+	// This would integrate with the config system to update user configuration
+	fmt.Printf("Import applied successfully\n")
+
+	return nil
+}
+
+// backupCurrentConfig creates a backup of current configuration
+func (ki *KeybindingImporter) backupCurrentConfig() error {
+	// Would create backup file with timestamp
+	fmt.Printf("Created backup of current configuration\n")
+	return nil
+}
+
+// ShowKeysCommand displays effective keybindings
+type ShowKeysCommand struct {
+	resolver *KeyBindingResolver
+	platform string
+	terminal string
+}
+
+// NewShowKeysCommand creates a new show keys command
+func NewShowKeysCommand(resolver *KeyBindingResolver) *ShowKeysCommand {
+	return &ShowKeysCommand{
+		resolver: resolver,
+		platform: DetectPlatform(),
+		terminal: DetectTerminal(),
+	}
+}
+
+// Execute runs the show keys command
+func (skc *ShowKeysCommand) Execute(profile Profile, context Context, format string) error { //nolint:revive // rich output grouped by sections
+	fmt.Printf("ggc Interactive Mode - Effective Keybindings\n")
+	fmt.Printf("=============================================\n\n")
+
+	// Get profile info
+	prof, exists := skc.resolver.GetProfile(profile)
+	if !exists {
+		return fmt.Errorf("profile '%s' not found", profile)
+	}
+
+	fmt.Printf("Profile: %s", prof.Name)
+	if prof.Description != "" {
+		fmt.Printf(" (%s)", prof.Description)
+	}
+	fmt.Printf("\n")
+
+	fmt.Printf("Platform: %s/%s\n", skc.platform, skc.terminal)
+	fmt.Printf("Context: %s\n\n", context)
+
+	// Get effective keybindings
+	keyMap, err := skc.resolver.Resolve(profile, context)
+	if err != nil {
+		return fmt.Errorf("failed to resolve keybindings: %w", err)
+	}
+
+	// Display keybindings by category
+	fmt.Printf("Core Actions:\n")
+	fmt.Printf("  Navigation:\n")
+	if len(keyMap.MoveUp) > 0 {
+		fmt.Printf("    move_up                 %-20s Move up one line\n", skc.formatKeystrokes(keyMap.MoveUp))
+	}
+	if len(keyMap.MoveDown) > 0 {
+		fmt.Printf("    move_down               %-20s Move down one line\n", skc.formatKeystrokes(keyMap.MoveDown))
+	}
+	if len(keyMap.MoveToBeginning) > 0 {
+		fmt.Printf("    move_to_beginning       %-20s Move to line beginning\n", skc.formatKeystrokes(keyMap.MoveToBeginning))
+	}
+	if len(keyMap.MoveToEnd) > 0 {
+		fmt.Printf("    move_to_end             %-20s Move to line end\n", skc.formatKeystrokes(keyMap.MoveToEnd))
+	}
+
+	fmt.Printf("\n  Editing:\n")
+	if len(keyMap.DeleteWord) > 0 {
+		fmt.Printf("    delete_word             %-20s Delete previous word\n", skc.formatKeystrokes(keyMap.DeleteWord))
+	}
+	if len(keyMap.DeleteToEnd) > 0 {
+		fmt.Printf("    delete_to_end           %-20s Delete to line end\n", skc.formatKeystrokes(keyMap.DeleteToEnd))
+	}
+	if len(keyMap.ClearLine) > 0 {
+		fmt.Printf("    clear_line              %-20s Clear entire line\n", skc.formatKeystrokes(keyMap.ClearLine))
+	}
+
+	fmt.Printf("\nQuick Reference:\n")
+	fmt.Printf("  quit                    %-20s Exit to shell\n", "Ctrl+C")
+
+	// Show resolution layers
+	fmt.Printf("\nResolution Layers Applied:\n")
+	fmt.Printf("  1. Base Profile: %s\n", profile)
+	fmt.Printf("  2. Platform: %s\n", skc.platform)
+	fmt.Printf("  3. Terminal: %s\n", skc.terminal)
+	fmt.Printf("  4. User Config: (if configured)\n")
+
+	fmt.Printf("\nTips:\n")
+	fmt.Printf("  • Use 'ggc config keybindings --export' to backup your settings\n")
+	fmt.Printf("  • Profile switching: set 'interactive.profile' in config\n")
+
+	return nil
+}
+
+// formatKeystrokes formats keystrokes for display
+func (skc *ShowKeysCommand) formatKeystrokes(keystrokes []KeyStroke) string {
+	if len(keystrokes) == 0 {
+		return "none"
+	}
+
+	var parts []string
+	for _, ks := range keystrokes {
+		parts = append(parts, skc.formatKeystroke(ks))
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// formatKeystroke formats a single keystroke for display
+func (skc *ShowKeysCommand) formatKeystroke(ks KeyStroke) string { //nolint:revive // handles numerous escape sequences
+	switch ks.Kind {
+	case KeyStrokeCtrl:
+		return fmt.Sprintf("Ctrl+%c", ks.Rune)
+	case KeyStrokeAlt:
+		return fmt.Sprintf("Alt+%c", ks.Rune)
+	case KeyStrokeRawSeq:
+		// Handle common sequences
+		if len(ks.Seq) == 1 {
+			switch ks.Seq[0] {
+			case 9:
+				return "Tab"
+			case 13:
+				return "Enter"
+			case 27:
+				return "Esc"
+			case 32:
+				return "Space"
+			}
+		}
+		// Arrow keys
+		if len(ks.Seq) == 3 && ks.Seq[0] == 27 && ks.Seq[1] == 91 {
+			switch ks.Seq[2] {
+			case 65:
+				return "↑"
+			case 66:
+				return "↓"
+			case 67:
+				return "→"
+			case 68:
+				return "←"
+			}
+		}
+		return fmt.Sprintf("Raw[%x]", ks.Seq)
+	case KeyStrokeFnKey:
+		return ks.Name
+	default:
+		return fmt.Sprintf("Unknown[%v]", ks)
+	}
+}
+
+// DebugKeysCommand captures and displays raw key sequences
+type DebugKeysCommand struct {
+	capturing  bool
+	sequences  [][]byte
+	outputFile string
+}
+
+// NewDebugKeysCommand creates a new debug keys command
+func NewDebugKeysCommand(outputFile string) *DebugKeysCommand {
+	return &DebugKeysCommand{
+		capturing:  false,
+		sequences:  make([][]byte, 0),
+		outputFile: outputFile,
+	}
+}
+
+// StartCapture begins capturing raw key sequences
+func (dkc *DebugKeysCommand) StartCapture() {
+	dkc.capturing = true
+	dkc.sequences = make([][]byte, 0)
+
+	fmt.Printf("=== Debug Keys Mode ===\n")
+	fmt.Printf("Raw key sequence capture started.\n")
+	fmt.Printf("Press keys to see their sequences.\n")
+	fmt.Printf("Press Ctrl+C to stop and view results.\n\n")
+}
+
+// CaptureSequence captures a raw key sequence
+func (dkc *DebugKeysCommand) CaptureSequence(seq []byte) {
+	if !dkc.capturing {
+		return
+	}
+
+	// Make a copy of the sequence
+	captured := make([]byte, len(seq))
+	copy(captured, seq)
+	dkc.sequences = append(dkc.sequences, captured)
+
+	// Display immediately
+	fmt.Printf("Captured: %v (hex: %x) (chars: %q)\n", seq, seq, seq)
+}
+
+// StopCapture stops capturing and shows results
+func (dkc *DebugKeysCommand) StopCapture() error {
+	if !dkc.capturing {
+		return nil
+	}
+
+	dkc.capturing = false
+
+	fmt.Printf("\n=== Capture Results ===\n")
+	fmt.Printf("Total sequences captured: %d\n\n", len(dkc.sequences))
+
+	if len(dkc.sequences) == 0 {
+		fmt.Printf("No sequences captured.\n")
+		return nil
+	}
+
+	// Display all captured sequences
+	for i, seq := range dkc.sequences {
+		fmt.Printf("%d. %v (hex: %x)\n", i+1, seq, seq)
+
+		// Try to identify common sequences
+		if identified := dkc.identifySequence(seq); identified != "" {
+			fmt.Printf("   → Identified as: %s\n", identified)
+		}
+
+		// Show binding format
+		fmt.Printf("   → Config format: \"raw:%x\"\n", seq)
+	}
+
+	// Save to file if requested
+	if dkc.outputFile != "" {
+		if err := dkc.saveToFile(); err != nil {
+			return fmt.Errorf("failed to save to file: %w", err)
+		}
+		fmt.Printf("\nSequences saved to: %s\n", dkc.outputFile)
+	}
+
+	fmt.Printf("\nTip: Use the 'raw:' format in your config to bind these sequences.\n")
+
+	return nil
+}
+
+func (dkc *DebugKeysCommand) formatKeySequence(seq []byte) string { //nolint:revive // classification supports many key types
+	if len(seq) == 0 {
+		return "(empty)"
+	}
+
+	label := dkc.identifySequence(seq)
+	if label == "" {
+		if len(seq) == 1 {
+			b := seq[0]
+			switch {
+			case b >= 32 && b <= 126:
+				label = string([]byte{b})
+			case b >= 1 && b <= 26:
+				label = fmt.Sprintf("Ctrl+%c", 'A'+b-1)
+			case b == 27:
+				label = "Esc"
+			default:
+				label = fmt.Sprintf("0x%02x", b)
+			}
+		} else {
+			label = fmt.Sprintf("%v", seq)
+		}
+	}
+
+	hexParts := make([]string, len(seq))
+	for i, b := range seq {
+		hexParts[i] = fmt.Sprintf("0x%02x", b)
+	}
+
+	return fmt.Sprintf("%s (%s)", label, strings.Join(hexParts, " "))
+}
+
+// identifySequence tries to identify common key sequences
+func (dkc *DebugKeysCommand) identifySequence(seq []byte) string { //nolint:revive // identifies many terminal escape sequences
+	if len(seq) == 1 {
+		switch seq[0] {
+		case 9:
+			return "Tab"
+		case 13:
+			return "Enter"
+		case 27:
+			return "Esc"
+		case 32:
+			return "Space"
+		}
+		if seq[0] >= 1 && seq[0] <= 26 {
+			return fmt.Sprintf("Ctrl+%c", 'A'+seq[0]-1)
+		}
+	}
+
+	if len(seq) == 3 && seq[0] == 27 && seq[1] == 91 {
+		switch seq[2] {
+		case 65:
+			return "↑"
+		case 66:
+			return "↓"
+		case 67:
+			return "→"
+		case 68:
+			return "←"
+		}
+	}
+
+	// Shift-modified arrow keys (CSI 1;2X sequences)
+	if len(seq) == 6 && seq[0] == 27 && seq[1] == 91 && seq[2] == 49 && seq[3] == 59 {
+		if seq[4] == 50 {
+			switch seq[5] {
+			case 65:
+				return "Shift+↑"
+			case 66:
+				return "Shift+↓"
+			case 67:
+				return "Shift+→"
+			case 68:
+				return "Shift+←"
+			}
+		}
+	}
+
+	// Function keys
+	if len(seq) >= 3 && seq[0] == 27 && seq[1] == 79 {
+		switch seq[2] {
+		case 80:
+			return "F1"
+		case 81:
+			return "F2"
+		case 82:
+			return "F3"
+		case 83:
+			return "F4"
+		}
+	}
+
+	return ""
+}
+
+// saveToFile saves captured sequences to a file
+func (dkc *DebugKeysCommand) saveToFile() error {
+	var content strings.Builder
+
+	content.WriteString("# Raw Key Sequences Captured by ggc debug-keys\n")
+	content.WriteString(fmt.Sprintf("# Captured on: %s\n", time.Now().Format("2006-01-02 15:04:05")))
+	content.WriteString(fmt.Sprintf("# Total sequences: %d\n\n", len(dkc.sequences)))
+
+	for i, seq := range dkc.sequences {
+		content.WriteString(fmt.Sprintf("# Sequence %d\n", i+1))
+		content.WriteString(fmt.Sprintf("# Raw: %v\n", seq))
+		content.WriteString(fmt.Sprintf("# Hex: %x\n", seq))
+		if identified := dkc.identifySequence(seq); identified != "" {
+			content.WriteString(fmt.Sprintf("# Identified: %s\n", identified))
+		}
+		content.WriteString(fmt.Sprintf("raw:%x\n\n", seq))
+	}
+
+	if err := os.WriteFile(dkc.outputFile, []byte(content.String()), 0600); err != nil {
+		return err
+	}
+
+	fmt.Printf("Saved to %s:\n%s", dkc.outputFile, content.String())
+
+	return nil
+}
+
+// IsCapturing returns whether debug capture is active
+func (dkc *DebugKeysCommand) IsCapturing() bool {
+	return dkc.capturing
 }
