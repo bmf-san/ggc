@@ -2344,7 +2344,6 @@ func ShowCurrentProfileCommand(switcher *ProfileSwitcher) string {
 // ===============================================
 // Advanced keybinding features (power user)
 // ===============================================
-
 // ContextManager provides dynamic context management with stack support
 type ContextManager struct {
 	current   Context
@@ -2416,7 +2415,6 @@ func (cm *ContextManager) ExitContext() Context {
 
 	// Call context change callbacks
 	cm.notifyContextChange(oldContext, cm.current)
-
 	return cm.current
 }
 
@@ -2436,6 +2434,7 @@ func (cm *ContextManager) RegisterContextCallback(ctx Context, callback func(Con
 func (cm *ContextManager) SetDebugMode(debug bool) {
 	cm.debug = debug
 }
+
 
 // notifyContextChange calls registered callbacks for context changes
 func (cm *ContextManager) notifyContextChange(from, to Context) {
