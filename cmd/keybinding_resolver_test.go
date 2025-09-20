@@ -15,9 +15,7 @@ func TestKeyBindingResolverLayering(t *testing.T) {
 	cfg.Interactive.Darwin.Keybindings = map[string]interface{}{
 		"move_down": "Ctrl+J",
 	}
-	cfg.Interactive.Terminals = map[string]struct {
-		Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-	}{
+	cfg.Interactive.Terminals = map[string]config.KeybindingsConfig{
 		"wezterm": {
 			Keybindings: map[string]interface{}{
 				"move_to_end": "Ctrl+L",
@@ -112,9 +110,7 @@ func TestKeyBindingResolverLayerPrecedence(t *testing.T) {
 	cfg.Interactive.Darwin.Keybindings = map[string]interface{}{
 		"move_up": []interface{}{"Ctrl+S"},
 	}
-	cfg.Interactive.Terminals = map[string]struct {
-		Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-	}{
+	cfg.Interactive.Terminals = map[string]config.KeybindingsConfig{
 		"wezterm": {Keybindings: map[string]interface{}{"move_up": "Ctrl+T"}},
 	}
 

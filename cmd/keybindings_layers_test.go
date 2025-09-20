@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v5/config"
@@ -231,9 +232,7 @@ func TestKeyBindingValidation(t *testing.T) {
 
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > len(substr) && contains(s[1:], substr)) ||
-		(len(s) >= len(substr) && s[:len(substr)] == substr))
+	return strings.Contains(s, substr)
 }
 
 // keyBindingMapsEqual compares two KeyBindingMaps for equality

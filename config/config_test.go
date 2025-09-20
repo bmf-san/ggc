@@ -1212,9 +1212,7 @@ func TestManagerSaveWithKeybindingOverrides(t *testing.T) {
 	cm.config.Interactive.Darwin.Keybindings = map[string]interface{}{
 		"move_down": "Ctrl+J",
 	}
-	cm.config.Interactive.Terminals = map[string]struct {
-		Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-	}{
+	cm.config.Interactive.Terminals = map[string]KeybindingsConfig{
 		"wezterm": {Keybindings: map[string]interface{}{"move_to_end": "Ctrl+L"}},
 	}
 

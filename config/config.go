@@ -66,6 +66,11 @@ func (OSFileOps) Rename(oldpath, newpath string) error { return os.Rename(oldpat
 // Chmod changes file permissions
 func (OSFileOps) Chmod(name string, mode os.FileMode) error { return os.Chmod(name, mode) }
 
+// KeybindingsConfig represents a configuration section with keybindings
+type KeybindingsConfig struct {
+	Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
+}
+
 // Config represents the complete configuration structure
 type Config struct {
 	Meta struct {
@@ -100,30 +105,16 @@ type Config struct {
 		} `yaml:"keybindings"`
 
 		Contexts struct {
-			Input struct {
-				Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-			} `yaml:"input,omitempty"`
-			Results struct {
-				Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-			} `yaml:"results,omitempty"`
-			Search struct {
-				Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-			} `yaml:"search,omitempty"`
+			Input   KeybindingsConfig `yaml:"input,omitempty"`
+			Results KeybindingsConfig `yaml:"results,omitempty"`
+			Search  KeybindingsConfig `yaml:"search,omitempty"`
 		} `yaml:"contexts,omitempty"`
 
-		Darwin struct {
-			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-		} `yaml:"darwin,omitempty"`
-		Linux struct {
-			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-		} `yaml:"linux,omitempty"`
-		Windows struct {
-			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-		} `yaml:"windows,omitempty"`
+		Darwin  KeybindingsConfig `yaml:"darwin,omitempty"`
+		Linux   KeybindingsConfig `yaml:"linux,omitempty"`
+		Windows KeybindingsConfig `yaml:"windows,omitempty"`
 
-		Terminals map[string]struct {
-			Keybindings map[string]interface{} `yaml:"keybindings,omitempty"`
-		} `yaml:"terminals,omitempty"`
+		Terminals map[string]KeybindingsConfig `yaml:"terminals,omitempty"`
 	} `yaml:"interactive"`
 
 	Behavior struct {
@@ -1159,57 +1150,22 @@ func validateKeybindingValue(fieldPath string, value interface{}) error {
 	return nil
 }
 
-// parseKeyBinding validates key binding strings. This mirrors cmd.ParseKeyBinding to avoid circular imports.
+// parseKeyBinding validates key binding strings. Simple validation to avoid circular imports.
 func parseKeyBinding(keyStr string) error { //nolint:revive // parsing multiple legacy formats
 	s := strings.TrimSpace(keyStr)
 	if s == "" {
 		return fmt.Errorf("empty key binding")
 	}
 
-	// Normalize to lowercase for comparison
+	// Basic validation - check for supported formats
 	sLower := strings.ToLower(s)
 
-	// Handle "ctrl+<key>" format (case-insensitive)
-	if strings.HasPrefix(sLower, "ctrl+") && len(s) == len("ctrl+")+1 {
-		c := rune(sLower[len(sLower)-1])
-		code := ctrlCode(c)
-		if code == 0 {
-			return fmt.Errorf("unsupported ctrl key: %s", keyStr)
-		}
-		return nil
-	}
-
-	// Handle "^<key>" format (caret notation)
-	if strings.HasPrefix(s, "^") && len(s) == 2 {
-		c := rune(strings.ToLower(s)[1])
-		code := ctrlCode(c)
-		if code == 0 {
-			return fmt.Errorf("unsupported caret key: %s", keyStr)
-		}
-		return nil
-	}
-
-	// Handle "c-<key>" or "C-<key>" format (emacs notation)
-	if (strings.HasPrefix(sLower, "c-") || strings.HasPrefix(sLower, "C-")) && len(s) == 3 {
-		c := rune(sLower[2])
-		code := ctrlCode(c)
-		if code == 0 {
-			return fmt.Errorf("unsupported emacs key: %s", keyStr)
-		}
+	// Accept ctrl+<key>, ^<key>, or c-<key> formats
+	if (strings.HasPrefix(sLower, "ctrl+") && len(s) >= 6) ||
+		(strings.HasPrefix(s, "^") && len(s) == 2) ||
+		(strings.HasPrefix(sLower, "c-") && len(s) == 3) {
 		return nil
 	}
 
 	return fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
-}
-
-// ctrlCode converts a lowercase letter to its control byte (e.g., 'a' => 1).
-func ctrlCode(r rune) byte {
-	// Only letters a-z are expected here; ensure predictable conversion.
-	if r >= 'a' && r <= 'z' {
-		return byte(r-'a') + 1
-	}
-	if r >= 'A' && r <= 'Z' {
-		return byte(r-'A') + 1
-	}
-	return 0
 }
