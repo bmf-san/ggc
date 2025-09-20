@@ -283,12 +283,14 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 	return false
 }
 
-// ctrl converts a lowercase letter to its control byte (e.g., 'a' => 1).
+// ctrl converts a letter to its control byte (e.g., 'a' => 1).
+// Handles both uppercase and lowercase letters.
 func ctrl(r rune) byte {
-	// Only letters a-z are expected here; ensure predictable conversion.
+	// Handle lowercase letters a-z
 	if r >= 'a' && r <= 'z' {
 		return byte(r-'a') + 1
 	}
+	// Handle uppercase letters A-Z
 	if r >= 'A' && r <= 'Z' {
 		return byte(r-'A') + 1
 	}
@@ -306,45 +308,11 @@ func hasPrefixFold(s, prefix string) bool {
 // - "^w", "^W" (caret notation)
 // - "c-w", "C-w", "C-W" (emacs notation)
 func ParseKeyBinding(keyStr string) (byte, error) { //nolint:revive // parsing multiple legacy formats
-	s := strings.TrimSpace(keyStr)
-	if s == "" {
-		return 0, fmt.Errorf("empty key binding")
+	result, err := parseKeyBindingInternal(keyStr)
+	if err != nil {
+		return 0, err
 	}
-
-	// Normalize to lowercase for comparison
-	sLower := strings.ToLower(s)
-
-	// Handle "ctrl+<key>" format (case-insensitive)
-	if strings.HasPrefix(sLower, "ctrl+") && len(s) == len("ctrl+")+1 {
-		c := rune(sLower[len(sLower)-1])
-		code := ctrl(c)
-		if code == 0 {
-			return 0, fmt.Errorf("unsupported ctrl key: %s", keyStr)
-		}
-		return code, nil
-	}
-
-	// Handle "^<key>" format (caret notation)
-	if strings.HasPrefix(s, "^") && len(s) == 2 {
-		c := rune(strings.ToLower(s)[1])
-		code := ctrl(c)
-		if code == 0 {
-			return 0, fmt.Errorf("unsupported caret key: %s", keyStr)
-		}
-		return code, nil
-	}
-
-	// Handle "c-<key>" or "C-<key>" format (emacs notation)
-	if hasPrefixFold(s, "c-") && len(s) == 3 {
-		c := rune(sLower[2])
-		code := ctrl(c)
-		if code == 0 {
-			return 0, fmt.Errorf("unsupported emacs key: %s", keyStr)
-		}
-		return code, nil
-	}
-
-	return 0, fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
+	return result.ControlCode, nil
 }
 
 // ParseKeyStroke parses a single key binding string and returns a KeyStroke
@@ -359,7 +327,7 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 	sLower := strings.ToLower(s)
 
 	// Handle "ctrl+<key>" format (case-insensitive)
-	if strings.HasPrefix(sLower, "ctrl+") && len(s) > len("ctrl+") {
+	if hasPrefixFold(s, "ctrl+") && len(s) > len("ctrl+") {
 		keyPart := s[len("ctrl+"):]
 		if len(keyPart) == 1 {
 			c := rune(strings.ToLower(keyPart)[0])
