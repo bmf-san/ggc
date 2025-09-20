@@ -2122,3 +2122,105 @@ func CompareProfiles(profile1, profile2 *KeyBindingProfile) map[string]interface
 	comparison["action_comparison"] = actionComparison
 	return comparison
 }
+
+// ContextManager provides dynamic context management with stack support
+type ContextManager struct {
+	current   Context
+	stack     []Context
+	resolver  *KeyBindingResolver
+	callbacks map[Context][]func(Context, Context)
+	debug     bool
+}
+
+// NewContextManager creates a new context manager
+func NewContextManager(resolver *KeyBindingResolver) *ContextManager {
+	return &ContextManager{
+		current:   ContextGlobal,
+		stack:     make([]Context, 0),
+		resolver:  resolver,
+		callbacks: make(map[Context][]func(Context, Context)),
+	}
+}
+
+// GetCurrentContext returns the current context
+func (cm *ContextManager) GetCurrentContext() Context {
+	return cm.current
+}
+
+// SetContext directly updates the current context without modifying the stack
+func (cm *ContextManager) SetContext(ctx Context) {
+	if cm.current == ctx {
+		return
+	}
+
+	oldContext := cm.current
+	cm.current = ctx
+
+	if cm.debug {
+		fmt.Printf("DEBUG: Context set: %s -> %s\n", oldContext, ctx)
+	}
+
+	cm.notifyContextChange(oldContext, ctx)
+}
+
+// EnterContext pushes the current context onto the stack and enters a new context
+func (cm *ContextManager) EnterContext(ctx Context) {
+	if cm.debug {
+		fmt.Printf("DEBUG: Context transition: %s -> %s\n", cm.current, ctx)
+	}
+
+	oldContext := cm.current
+	cm.stack = append(cm.stack, cm.current)
+	cm.current = ctx
+
+	cm.notifyContextChange(oldContext, ctx)
+}
+
+// ExitContext pops the previous context from the stack
+func (cm *ContextManager) ExitContext() Context {
+	if len(cm.stack) == 0 {
+		return cm.current
+	}
+
+	oldContext := cm.current
+	cm.current = cm.stack[len(cm.stack)-1]
+	cm.stack = cm.stack[:len(cm.stack)-1]
+
+	if cm.debug {
+		fmt.Printf("DEBUG: Context exit: %s -> %s\n", oldContext, cm.current)
+	}
+
+	cm.notifyContextChange(oldContext, cm.current)
+	return cm.current
+}
+
+// GetContextStack returns a copy of the current context stack
+func (cm *ContextManager) GetContextStack() []Context {
+	stack := make([]Context, len(cm.stack))
+	copy(stack, cm.stack)
+	return stack
+}
+
+// RegisterContextCallback registers a callback for context changes
+func (cm *ContextManager) RegisterContextCallback(ctx Context, callback func(Context, Context)) {
+	cm.callbacks[ctx] = append(cm.callbacks[ctx], callback)
+}
+
+// SetDebugMode enables or disables debug output for context transitions
+func (cm *ContextManager) SetDebugMode(debug bool) {
+	cm.debug = debug
+}
+
+func (cm *ContextManager) notifyContextChange(from, to Context) {
+	if callbacks, exists := cm.callbacks[to]; exists {
+		for _, callback := range callbacks {
+			callback(from, to)
+		}
+	}
+
+	if callbacks, exists := cm.callbacks[ContextGlobal]; exists && to != ContextGlobal {
+		for _, callback := range callbacks {
+			callback(from, to)
+		}
+	}
+}
