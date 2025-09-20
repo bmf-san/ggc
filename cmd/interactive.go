@@ -1404,7 +1404,6 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 			},
 		}
 	}
-	contextManager.SetContext(state.context)
 
 	ui := &UI{
 		stdin:      os.Stdin,
@@ -1599,11 +1598,11 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	clearScreen(r.writer)
 	// Disable line wrapping during rendering, restore at end
 	_, _ = fmt.Fprint(r.writer, "\x1b[?7l")
-	savedCursor := false
+	var restoreCursor func()
 	defer func() {
 		_, _ = fmt.Fprint(r.writer, "\x1b[?7h")
-		if savedCursor {
-			_, _ = fmt.Fprint(r.writer, "\x1b[u")
+		if restoreCursor != nil {
+			restoreCursor()
 		}
 		showCursor(r.writer)
 	}()
@@ -1614,7 +1613,7 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	// Render each section
 	r.renderHeader(ui)
 	r.renderSearchPrompt(ui, state)
-	savedCursor = r.saveCursorAtSearchPrompt(state)
+	restoreCursor = r.saveCursorAtSearchPrompt(state)
 
 	// Render content based on state
 	switch {
@@ -1684,7 +1683,7 @@ func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
 	r.writeEmptyLine()
 }
 
-func (r *Renderer) saveCursorAtSearchPrompt(state *UIState) bool {
+func (r *Renderer) saveCursorAtSearchPrompt(state *UIState) func() {
 	linesUp := 2
 	if state.input != "" {
 		linesUp++
@@ -1713,7 +1712,9 @@ func (r *Renderer) saveCursorAtSearchPrompt(state *UIState) bool {
 	_, _ = fmt.Fprintf(r.writer, "\x1b[%dG", column)
 	_, _ = fmt.Fprint(r.writer, "\x1b[s")
 	_, _ = fmt.Fprintf(r.writer, "\x1b[%dB", linesUp)
-	return true
+	return func() {
+		_, _ = fmt.Fprint(r.writer, "\x1b[u")
+	}
 }
 
 // formatInputWithCursor formats the input string with cursor position
