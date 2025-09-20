@@ -148,8 +148,8 @@ func TestParseKeyBindingExtended(t *testing.T) {
 		{"mixed case", "Ctrl+W", ctrl('w'), false},
 
 		// Additional supported formats
-		{"caret notation", "^W", ctrl('w'), false},  // now implemented!
-		{"emacs notation", "C-w", ctrl('w'), false}, // now implemented!
+		{"caret notation", "^W", ctrl('w'), false},
+		{"emacs notation", "C-w", ctrl('w'), false},
 
 		// Invalid inputs
 		{"empty", "", 0, true},

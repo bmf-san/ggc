@@ -297,6 +297,16 @@ func ctrl(r rune) byte {
 	return 0
 }
 
+// hasPrefixFold checks whether s has the given prefix, case-insensitively.
+func hasPrefixFold(s, prefix string) bool {
+	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
+}
+
+// hasPrefixFold checks whether s has the given prefix, case-insensitively.
+func hasPrefixFold(s, prefix string) bool {
+	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
+}
+
 // ParseKeyBinding parses a key binding string and returns the corresponding
 // single-byte control code. Supports multiple formats:
 // - "ctrl+w", "CTRL+W", "Ctrl+w" (standard format)
@@ -322,7 +332,7 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 	sLower := strings.ToLower(s)
 
 	// Handle "ctrl+<key>" format (case-insensitive)
-	if strings.HasPrefix(sLower, "ctrl+") && len(s) > len("ctrl+") {
+	if hasPrefixFold(s, "ctrl+") && len(s) > len("ctrl+") {
 		keyPart := s[len("ctrl+"):]
 		if len(keyPart) == 1 {
 			c := rune(strings.ToLower(keyPart)[0])
@@ -343,7 +353,7 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 	}
 
 	// Handle "c-<key>" or "C-<key>" format (emacs notation)
-	if strings.HasPrefix(strings.ToLower(s), "c-") && len(s) == 3 {
+	if hasPrefixFold(s, "c-") && len(s) == 3 {
 		c := rune(sLower[2])
 		if c >= 'a' && c <= 'z' {
 			return NewCtrlKeyStroke(c), nil
@@ -385,7 +395,7 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 	}
 
 	// Handle "M-<key>" format (emacs meta notation)
-	if strings.HasPrefix(strings.ToLower(s), "m-") && len(s) >= 3 {
+	if hasPrefixFold(s, "m-") && len(s) >= 3 {
 		keyPart := strings.ToLower(s[2:])
 
 		// Handle special keys
