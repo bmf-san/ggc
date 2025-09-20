@@ -302,11 +302,6 @@ func hasPrefixFold(s, prefix string) bool {
 	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
 }
 
-// hasPrefixFold checks whether s has the given prefix, case-insensitively.
-func hasPrefixFold(s, prefix string) bool {
-	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
-}
-
 // ParseKeyBinding parses a key binding string and returns the corresponding
 // single-byte control code. Supports multiple formats:
 // - "ctrl+w", "CTRL+W", "Ctrl+w" (standard format)
