@@ -1359,10 +1359,16 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 	}
 
 	// Load config and create resolver
-	configManager := config.NewConfigManager(gitClient.(git.ConfigOps))
-	// Load config - if it fails, we'll use defaults
-	_ = configManager.Load()
-	cfg := configManager.GetConfig()
+	var cfg *config.Config
+	if ops, ok := gitClient.(git.ConfigOps); ok {
+		configManager := config.NewConfigManager(ops)
+		// Load config - if it fails, we'll use defaults from manager
+		_ = configManager.Load()
+		cfg = configManager.GetConfig()
+	} else {
+		// Fallback to empty config (built-in defaults and profiles will be used)
+		cfg = &config.Config{}
+	}
 
 	// Create KeyBinding resolver and register built-in profiles
 	resolver := NewKeyBindingResolver(cfg)
@@ -1376,14 +1382,14 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 		case ProfileEmacs, ProfileVi, ProfileReadline:
 			profile = Profile(cfg.Interactive.Profile)
 		default:
-			fmt.Printf("Warning: Unknown profile '%s', using default\n", cfg.Interactive.Profile)
+			fmt.Fprintf(os.Stderr, "Warning: Unknown profile '%s', using default\n", cfg.Interactive.Profile)
 		}
 	}
 
 	// Resolve contextual keybindings for all contexts
 	contextualMap, err := resolver.ResolveContextual(profile)
 	if err != nil {
-		fmt.Printf("Warning: Failed to resolve keybindings: %v. Using defaults.\n", err)
+		fmt.Fprintf(os.Stderr, "Warning: Failed to resolve keybindings: %v. Using defaults.\n", err)
 		// Fallback to legacy defaults
 		keyMap := DefaultKeyBindingMap()
 		contextualMap = &ContextualKeyBindingMap{
@@ -1685,13 +1691,22 @@ func (r *Renderer) saveCursorAtSearchPrompt(state *UIState) bool {
 	}
 	_, _ = fmt.Fprintf(r.writer, "\x1b[%dA", linesUp)
 	const prefix = "┌─ Search: "
-	prefixCols := utf8.RuneCountInString(prefix)
-	cursorPos := state.cursorPos
-	inputLen := utf8.RuneCountInString(state.input)
-	if cursorPos > inputLen {
-		cursorPos = inputLen
+	// Compute display width (columns) of the prefix using runeDisplayWidth
+	prefixCols := 0
+	for _, pr := range prefix {
+		prefixCols += runeDisplayWidth(pr)
 	}
-	column := prefixCols + cursorPos + 1
+	// Compute display width up to the logical cursor position
+	runes := []rune(state.input)
+	cursorPos := state.cursorPos
+	if cursorPos > len(runes) {
+		cursorPos = len(runes)
+	}
+	cursorWidth := 0
+	for _, rr := range runes[:cursorPos] {
+		cursorWidth += runeDisplayWidth(rr)
+	}
+	column := prefixCols + cursorWidth + 1
 	if column < 1 {
 		column = 1
 	}

@@ -894,7 +894,7 @@ func GetPlatformSpecificKeyBindings(platform string) map[string][]KeyStroke {
 	case "windows":
 		// Windows specific bindings
 		// Windows typically uses Ctrl+Backspace for delete word
-		platformBindings["delete_word"] = []KeyStroke{NewCtrlKeyStroke(8)} // Ctrl+Backspace
+		// NOTE: Ctrl+Backspace is not supported by NewCtrlKeyStroke; omitting until proper encoding is supported.
 
 	case "linux", "bsd", "unix":
 		// Unix-like systems - typically follow readline conventions
