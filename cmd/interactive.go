@@ -15,6 +15,7 @@ import (
 	"golang.org/x/term"
 	"golang.org/x/text/width"
 
+	"github.com/bmf-san/ggc/v5/config"
 	"github.com/bmf-san/ggc/v5/git"
 )
 
@@ -177,25 +178,30 @@ type CommandInfo struct {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin     io.Reader
-	stdout    io.Writer
-	stderr    io.Writer
-	term      terminal
-	renderer  *Renderer
-	state     *UIState
-	handler   *KeyHandler
-	colors    *ANSIColors
-	gitStatus *GitStatus
-	gitClient git.StatusInfoReader
-	reader    *bufio.Reader
+	stdin      io.Reader
+	stdout     io.Writer
+	stderr     io.Writer
+	term       terminal
+	renderer   *Renderer
+	state      *UIState
+	handler    *KeyHandler
+	colors     *ANSIColors
+	gitStatus  *GitStatus
+	gitClient  git.StatusInfoReader
+	reader     *bufio.Reader
+	contextMgr *ContextManager
+	profile    Profile
 }
 
 // UIState holds the current state of the interactive UI
 type UIState struct {
-	selected  int
-	input     string
-	cursorPos int // Cursor position in input string
-	filtered  []CommandInfo
+	selected        int
+	input           string
+	cursorPos       int // Cursor position in input string
+	filtered        []CommandInfo
+	context         Context   // Current UI context (input/results/search/global)
+	contextStack    []Context // Context stack for nested states
+	onContextChange func(Context, Context)
 }
 
 // UpdateFiltered updates the filtered commands based on current input using fuzzy matching
@@ -215,6 +221,70 @@ func (s *UIState) UpdateFiltered() {
 	if s.selected < 0 {
 		s.selected = 0
 	}
+}
+
+// Context Management Methods
+
+// EnterContext pushes the current context onto the stack and switches to the new context
+func (s *UIState) EnterContext(newContext Context) {
+	if s.context == newContext {
+		return
+	}
+	old := s.context
+	s.contextStack = append(s.contextStack, s.context)
+	s.context = newContext
+	s.notifyContextChange(old, newContext)
+}
+
+// ExitContext pops the previous context from the stack
+func (s *UIState) ExitContext() {
+	if len(s.contextStack) > 0 {
+		old := s.context
+		s.context = s.contextStack[len(s.contextStack)-1]
+		s.contextStack = s.contextStack[:len(s.contextStack)-1]
+		s.notifyContextChange(old, s.context)
+	} else if s.context != ContextGlobal {
+		old := s.context
+		s.context = ContextGlobal
+		s.notifyContextChange(old, s.context)
+	}
+}
+
+// GetCurrentContext returns the current UI context
+func (s *UIState) GetCurrentContext() Context {
+	return s.context
+}
+
+// SetContext directly sets the context (use with caution)
+func (s *UIState) SetContext(ctx Context) {
+	if s.context == ctx {
+		return
+	}
+	old := s.context
+	s.context = ctx
+	s.notifyContextChange(old, ctx)
+}
+
+// notifyContextChange triggers the callback when the active context changes
+func (s *UIState) notifyContextChange(oldCtx, newCtx Context) {
+	if s.onContextChange != nil && oldCtx != newCtx {
+		s.onContextChange(oldCtx, newCtx)
+	}
+}
+
+// IsInInputMode returns true if currently in input context
+func (s *UIState) IsInInputMode() bool {
+	return s.context == ContextInput
+}
+
+// IsInResultsMode returns true if currently in results context
+func (s *UIState) IsInResultsMode() bool {
+	return s.context == ContextResults
+}
+
+// IsInSearchMode returns true if currently in search context
+func (s *UIState) IsInSearchMode() bool {
+	return s.context == ContextSearch
 }
 
 // fuzzyMatch performs fuzzy matching between text and pattern
@@ -242,6 +312,11 @@ func fuzzyMatch(text, pattern string) bool {
 
 // MoveUp moves selection up
 func (s *UIState) MoveUp() {
+	// Switch to results context when navigating
+	if s.context != ContextResults && s.context != ContextSearch {
+		s.SetContext(ContextResults)
+	}
+
 	if s.selected > 0 {
 		s.selected--
 	}
@@ -249,6 +324,11 @@ func (s *UIState) MoveUp() {
 
 // MoveDown moves selection down
 func (s *UIState) MoveDown() {
+	// Switch to results context when navigating
+	if s.context != ContextResults && s.context != ContextSearch {
+		s.SetContext(ContextResults)
+	}
+
 	if s.selected < len(s.filtered)-1 {
 		s.selected++
 	}
@@ -256,6 +336,11 @@ func (s *UIState) MoveDown() {
 
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
+	// Switch to input context when user starts typing
+	if s.context != ContextInput {
+		s.SetContext(ContextInput)
+	}
+
 	// Convert current input to runes for proper cursor positioning
 	inputRunes := []rune(s.input)
 	if s.cursorPos <= len(inputRunes) {
@@ -268,6 +353,11 @@ func (s *UIState) AddRune(r rune) {
 		s.input = string(newRunes)
 		s.cursorPos++
 		s.UpdateFiltered()
+
+		// Switch to search context when actively filtering
+		if s.input != "" && s.context != ContextSearch {
+			s.SetContext(ContextSearch)
+		}
 	}
 }
 
@@ -420,6 +510,27 @@ type Renderer struct {
 // KeyHandler manages keyboard input processing
 type KeyHandler struct {
 	ui *UI
+	// keyMap holds current keybinding resolution; defaults are applied lazily
+	// when first used to preserve compatibility with tests constructing
+	// KeyHandler directly.
+	keyMap *KeyBindingMap
+	// contextualMap holds keybindings for all contexts
+	contextualMap *ContextualKeyBindingMap
+}
+
+// GetCurrentKeyMap returns the appropriate keybinding map for the current context
+func (h *KeyHandler) GetCurrentKeyMap() *KeyBindingMap {
+	if h.contextualMap != nil {
+		currentContext := h.ui.state.GetCurrentContext()
+		if contextMap, exists := h.contextualMap.GetContext(currentContext); exists {
+			return contextMap
+		}
+	}
+	// Fallback to legacy keyMap for backward compatibility
+	if h.keyMap != nil {
+		return h.keyMap
+	}
+	return DefaultKeyBindingMap()
 }
 
 // HandleKey processes UTF-8 rune input and returns true if should continue
@@ -440,9 +551,50 @@ func (h *KeyHandler) HandleKey(r rune, isSingleByte bool, oldState *term.State) 
 }
 
 // handleControlChar processes control characters and returns (handled, shouldContinue, result)
+// Enhanced to support KeyStroke matching while maintaining backward compatibility
 //
 //nolint:revive // Control character handling inherently requires many cases
 func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool, []string) {
+	// Get the appropriate keybinding map for current context
+	km := h.GetCurrentKeyMap()
+
+	// Create KeyStroke for this control character
+	if b >= 1 && b <= 26 {
+		// Control character: convert back to letter
+		ctrlStroke := NewCtrlKeyStroke(rune('a' + b - 1))
+
+		// Check each action using new KeyStroke matching
+		if km.MatchesKeyStroke("move_up", ctrlStroke) {
+			h.ui.state.MoveUp()
+			return true, true, nil
+		}
+		if km.MatchesKeyStroke("move_down", ctrlStroke) {
+			h.ui.state.MoveDown()
+			return true, true, nil
+		}
+		if km.MatchesKeyStroke("clear_line", ctrlStroke) {
+			h.ui.state.ClearInput()
+			return true, true, nil
+		}
+		if km.MatchesKeyStroke("delete_word", ctrlStroke) {
+			h.ui.state.DeleteWord()
+			return true, true, nil
+		}
+		if km.MatchesKeyStroke("delete_to_end", ctrlStroke) {
+			h.ui.state.DeleteToEnd()
+			return true, true, nil
+		}
+		if km.MatchesKeyStroke("move_to_beginning", ctrlStroke) {
+			h.ui.state.MoveToBeginning()
+			return true, true, nil
+		}
+		if km.MatchesKeyStroke("move_to_end", ctrlStroke) {
+			h.ui.state.MoveToEnd()
+			return true, true, nil
+		}
+	}
+
+	// Handle special cases that are not Ctrl+letter
 	switch b {
 	case 3: // Ctrl+C
 		h.handleCtrlC(oldState)
@@ -450,27 +602,6 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 	case 13: // Enter
 		shouldContinue, result := h.handleEnter(oldState)
 		return true, shouldContinue, result
-	case 16: // Ctrl+P (up)
-		h.ui.state.MoveUp()
-		return true, true, nil
-	case 14: // Ctrl+N (down)
-		h.ui.state.MoveDown()
-		return true, true, nil
-	case 21: // Ctrl+U (clear line)
-		h.ui.state.ClearInput()
-		return true, true, nil
-	case 23: // Ctrl+W (delete word)
-		h.ui.state.DeleteWord()
-		return true, true, nil
-	case 11: // Ctrl+K (delete to end)
-		h.ui.state.DeleteToEnd()
-		return true, true, nil
-	case 1: // Ctrl+A (beginning of line)
-		h.ui.state.MoveToBeginning()
-		return true, true, nil
-	case 5: // Ctrl+E (end of line)
-		h.ui.state.MoveToEnd()
-		return true, true, nil
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
 		return true, true, nil
@@ -1209,7 +1340,7 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 	return term.Restore(fd, state)
 }
 
-// NewUI creates a new UI with the provided git client
+// NewUI creates a new UI with the provided git client and loads keybindings from config
 func NewUI(gitClient git.StatusInfoReader) *UI {
 	colors := NewANSIColors()
 
@@ -1220,24 +1351,89 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 	renderer.updateSize()
 
 	state := &UIState{
-		selected: 0,
-		input:    "",
-		filtered: []CommandInfo{},
+		selected:     0,
+		input:        "",
+		filtered:     []CommandInfo{},
+		context:      ContextGlobal, // Start in global context
+		contextStack: []Context{},
 	}
+
+	// Load config and create resolver
+	var cfg *config.Config
+	if ops, ok := gitClient.(git.ConfigOps); ok {
+		configManager := config.NewConfigManager(ops)
+		// Load config - if it fails, we'll use defaults from manager
+		_ = configManager.Load()
+		cfg = configManager.GetConfig()
+	} else {
+		// Fallback to empty config (built-in defaults and profiles will be used)
+		cfg = &config.Config{}
+	}
+
+	// Create KeyBinding resolver and register built-in profiles
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	contextManager := NewContextManager(resolver)
+
+	// Determine which profile to use (default to "default" profile)
+	profile := ProfileDefault
+	if cfg.Interactive.Profile != "" {
+		switch Profile(cfg.Interactive.Profile) {
+		case ProfileEmacs, ProfileVi, ProfileReadline:
+			profile = Profile(cfg.Interactive.Profile)
+		default:
+			fmt.Fprintf(os.Stderr, "Warning: Unknown profile '%s', using default\n", cfg.Interactive.Profile)
+		}
+	}
+
+	// Resolve contextual keybindings for all contexts
+	contextualMap, err := resolver.ResolveContextual(profile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to resolve keybindings: %v. Using defaults.\n", err)
+		// Fallback to legacy defaults
+		keyMap := DefaultKeyBindingMap()
+		contextualMap = &ContextualKeyBindingMap{
+			Profile:  ProfileDefault,
+			Platform: DetectPlatform(),
+			Terminal: DetectTerminal(),
+			Contexts: map[Context]*KeyBindingMap{
+				ContextGlobal:  keyMap,
+				ContextInput:   keyMap,
+				ContextResults: keyMap,
+				ContextSearch:  keyMap,
+			},
+		}
+	}
+	contextManager.SetContext(state.context)
 
 	ui := &UI{
-		stdin:     os.Stdin,
-		stdout:    os.Stdout,
-		stderr:    os.Stderr,
-		term:      &defaultTerminal{},
-		renderer:  renderer,
-		state:     state,
-		colors:    colors,
-		gitClient: gitClient,
-		gitStatus: getGitStatus(gitClient),
+		stdin:      os.Stdin,
+		stdout:     os.Stdout,
+		stderr:     os.Stderr,
+		term:       &defaultTerminal{},
+		renderer:   renderer,
+		state:      state,
+		colors:     colors,
+		gitClient:  gitClient,
+		gitStatus:  getGitStatus(gitClient),
+		contextMgr: contextManager,
+		profile:    profile,
+	}
+	state.onContextChange = func(_ Context, newCtx Context) {
+		contextManager.SetContext(newCtx)
 	}
 
-	ui.handler = &KeyHandler{ui: ui}
+	// Get the global context keymap for backward compatibility
+	globalKeyMap, _ := contextualMap.GetContext(ContextGlobal)
+	if globalKeyMap == nil {
+		globalKeyMap = DefaultKeyBindingMap()
+	}
+
+	ui.handler = &KeyHandler{
+		ui:            ui,
+		keyMap:        globalKeyMap,
+		contextualMap: contextualMap,
+	}
 
 	return ui
 }
@@ -1403,8 +1599,12 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	clearScreen(r.writer)
 	// Disable line wrapping during rendering, restore at end
 	_, _ = fmt.Fprint(r.writer, "\x1b[?7l")
+	savedCursor := false
 	defer func() {
 		_, _ = fmt.Fprint(r.writer, "\x1b[?7h")
+		if savedCursor {
+			_, _ = fmt.Fprint(r.writer, "\x1b[u")
+		}
 		showCursor(r.writer)
 	}()
 
@@ -1414,6 +1614,7 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	// Render each section
 	r.renderHeader(ui)
 	r.renderSearchPrompt(ui, state)
+	savedCursor = r.saveCursorAtSearchPrompt(state)
 
 	// Render content based on state
 	switch {
@@ -1423,8 +1624,8 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		r.renderNoMatches(ui, state)
 	default:
 		r.renderCommandList(ui, state)
-		r.renderFooter(ui)
 	}
+
 }
 
 // renderHeader renders the title, git status, and navigation subtitle
@@ -1481,6 +1682,38 @@ func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
 		r.writeColorln(ui, separator)
 	}
 	r.writeEmptyLine()
+}
+
+func (r *Renderer) saveCursorAtSearchPrompt(state *UIState) bool {
+	linesUp := 2
+	if state.input != "" {
+		linesUp++
+	}
+	_, _ = fmt.Fprintf(r.writer, "\x1b[%dA", linesUp)
+	const prefix = "┌─ Search: "
+	// Compute display width (columns) of the prefix using runeDisplayWidth
+	prefixCols := 0
+	for _, pr := range prefix {
+		prefixCols += runeDisplayWidth(pr)
+	}
+	// Compute display width up to the logical cursor position
+	runes := []rune(state.input)
+	cursorPos := state.cursorPos
+	if cursorPos > len(runes) {
+		cursorPos = len(runes)
+	}
+	cursorWidth := 0
+	for _, rr := range runes[:cursorPos] {
+		cursorWidth += runeDisplayWidth(rr)
+	}
+	column := prefixCols + cursorWidth + 1
+	if column < 1 {
+		column = 1
+	}
+	_, _ = fmt.Fprintf(r.writer, "\x1b[%dG", column)
+	_, _ = fmt.Fprint(r.writer, "\x1b[s")
+	_, _ = fmt.Fprintf(r.writer, "\x1b[%dB", linesUp)
+	return true
 }
 
 // formatInputWithCursor formats the input string with cursor position
@@ -1625,29 +1858,6 @@ func (r *Renderer) renderCommandItem(ui *UI, cmd CommandInfo, index, selected, m
 	}
 }
 
-// renderFooter renders the navigation footer
-func (r *Renderer) renderFooter(ui *UI) {
-	r.writeEmptyLine()
-	footer := fmt.Sprintf("%s%sCtrl+n/p%s Navigate  %s←/→%s Move  %sCtrl+←/→%s Word  %sCtrl+a/e%s Line  %sCtrl+u/w/k%s Edit  %sEnter%s Execute  %sCtrl+c%s Exit%s",
-		r.colors.BrightBlack,
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightCyan+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightCyan+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightCyan+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightYellow+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.Reset)
-	r.writeColorln(ui, footer)
-}
-
 // writeColorln writes a colored line to the terminal
 func (r *Renderer) writeColorln(_ *UI, text string) {
 	// Move to line start, clear line, write content, then CRLF
@@ -1723,9 +1933,8 @@ func (r *Renderer) calculateMaxCommandLength(filtered []CommandInfo) int {
 	return maxCmdLen
 }
 
-// Run executes the interactive UI
-func (ui *UI) Run() []string {
-	// Only set raw mode if stdin is a terminal
+// setupTerminal configures terminal raw mode and returns the old state and error status
+func (ui *UI) setupTerminal() (*term.State, bool) {
 	var oldState *term.State
 	if f, ok := ui.stdin.(*os.File); ok {
 		fd := int(f.Fd())
@@ -1733,8 +1942,20 @@ func (ui *UI) Run() []string {
 		oldState, err = ui.term.makeRaw(fd)
 		if err != nil {
 			ui.writeError("Failed to set terminal to raw mode: %v", err)
-			return nil
+			return nil, false
 		}
+	}
+	return oldState, true
+}
+
+// Run executes the interactive UI
+func (ui *UI) Run() []string {
+	oldState, ok := ui.setupTerminal()
+	if !ok {
+		return nil
+	}
+	if f, ok := ui.stdin.(*os.File); ok {
+		fd := int(f.Fd())
 		defer func() {
 			if err := ui.term.restore(fd, oldState); err != nil {
 				ui.writeError("failed to restore terminal state: %v", err)
@@ -1745,10 +1966,7 @@ func (ui *UI) Run() []string {
 	ui.reader = bufio.NewReader(ui.stdin)
 
 	for {
-		// Update filtered commands
 		ui.state.UpdateFiltered()
-
-		// Render the UI
 		ui.renderer.Render(ui, ui.state)
 
 		// Read UTF-8 rune instead of single byte
