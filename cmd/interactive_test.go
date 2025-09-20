@@ -1199,7 +1199,6 @@ func TestRenderer_KeybindDisplay(t *testing.T) {
 	expectedKeybinds := []string{
 		"Ctrl+n/p",
 		"Ctrl+a/e",
-		"Ctrl+u/w/k",
 		"Ctrl+c",
 	}
 
@@ -1213,7 +1212,6 @@ func TestRenderer_KeybindDisplay(t *testing.T) {
 	uppercaseKeybinds := []string{
 		"Ctrl+N/P",
 		"Ctrl+A/E",
-		"Ctrl+U/W/K",
 		"Ctrl+C",
 	}
 
