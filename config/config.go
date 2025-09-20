@@ -1150,7 +1150,10 @@ func validateKeybindingValue(fieldPath string, value interface{}) error {
 	return nil
 }
 
-// parseKeyBinding validates key binding strings. Simple validation to avoid circular imports.
+// parseKeyBinding validates key binding strings.
+// This simple validation is implemented here to avoid a circular import:
+// importing the full keybinding parser from the 'cmd' (interactive UI) package
+// would cause a circular dependency, since that package depends on 'config'.
 func parseKeyBinding(keyStr string) error { //nolint:revive // parsing multiple legacy formats
 	s := strings.TrimSpace(keyStr)
 	if s == "" {
@@ -1167,5 +1170,5 @@ func parseKeyBinding(keyStr string) error { //nolint:revive // parsing multiple 
 		return nil
 	}
 
-	return fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
+	return fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+<key>', '^<key>', 'c-<key>')", keyStr)
 }

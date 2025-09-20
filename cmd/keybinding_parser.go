@@ -21,18 +21,27 @@ func parseKeyBindingInternal(keyStr string) (KeyBindingParseResult, error) {
 	// Normalize to lowercase for comparison
 	sLower := strings.ToLower(s)
 
-	// Try different format parsers
-	if result, err := parseCtrlFormat(s, sLower, keyStr); err == nil {
-		return result, nil
+	// Quick format detection by prefix to avoid unnecessary parsing attempts
+	switch {
+	case strings.HasPrefix(sLower, "ctrl+"):
+		return parseCtrlFormat(s, sLower, keyStr)
+	case strings.HasPrefix(s, "^"):
+		return parseCaretFormat(s, keyStr)
+	case strings.HasPrefix(sLower, "c-"):
+		return parseEmacsFormat(s, sLower, keyStr)
+	default:
+		// Fallback: try all parsers in sequence to maintain compatibility with any edge cases
+		if result, err := parseCtrlFormat(s, sLower, keyStr); err == nil {
+			return result, nil
+		}
+		if result, err := parseCaretFormat(s, keyStr); err == nil {
+			return result, nil
+		}
+		if result, err := parseEmacsFormat(s, sLower, keyStr); err == nil {
+			return result, nil
+		}
+		return KeyBindingParseResult{}, fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
 	}
-	if result, err := parseCaretFormat(s, keyStr); err == nil {
-		return result, nil
-	}
-	if result, err := parseEmacsFormat(s, sLower, keyStr); err == nil {
-		return result, nil
-	}
-
-	return KeyBindingParseResult{}, fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w')", keyStr)
 }
 
 // parseCtrlFormat handles "ctrl+<key>" format (case-insensitive)
