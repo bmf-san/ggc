@@ -41,3 +41,28 @@ func resolveKeyBindingMapForTest(t *testing.T, cfg *config.Config, ctx Context) 
 
 	return cloneKeyBindingMap(keyMap)
 }
+
+func cloneKeyBindingMap(src *KeyBindingMap) *KeyBindingMap {
+	if src == nil {
+		return nil
+	}
+
+	return &KeyBindingMap{
+		DeleteWord:      cloneKeyStrokes(src.DeleteWord),
+		ClearLine:       cloneKeyStrokes(src.ClearLine),
+		DeleteToEnd:     cloneKeyStrokes(src.DeleteToEnd),
+		MoveToBeginning: cloneKeyStrokes(src.MoveToBeginning),
+		MoveToEnd:       cloneKeyStrokes(src.MoveToEnd),
+		MoveUp:          cloneKeyStrokes(src.MoveUp),
+		MoveDown:        cloneKeyStrokes(src.MoveDown),
+	}
+}
+
+func cloneKeyStrokes(src []KeyStroke) []KeyStroke {
+	if len(src) == 0 {
+		return nil
+	}
+	copySlice := make([]KeyStroke, len(src))
+	copy(copySlice, src)
+	return copySlice
+}
