@@ -7,6 +7,10 @@ import (
 	"github.com/bmf-san/ggc/v5/config"
 )
 
+// resolveKeyBindingMapForTest resolves the keybinding map for testing purposes,
+// with platform and terminal overrides disabled. It takes a testing.T and an optional
+// config.Config, and returns a KeyBindingMap for the default or specified profile.
+// This ensures that platform-specific keybinding overrides do not affect test results.
 func resolveKeyBindingMapForTest(t *testing.T, cfg *config.Config) *KeyBindingMap {
 	t.Helper()
 
@@ -42,6 +46,7 @@ func resolveKeyBindingMapForTest(t *testing.T, cfg *config.Config) *KeyBindingMa
 	return cloneKeyBindingMap(keyMap)
 }
 
+// cloneKeyBindingMap creates a deep copy of a KeyBindingMap to prevent test interference.
 func cloneKeyBindingMap(src *KeyBindingMap) *KeyBindingMap {
 	if src == nil {
 		return nil
@@ -58,6 +63,7 @@ func cloneKeyBindingMap(src *KeyBindingMap) *KeyBindingMap {
 	}
 }
 
+// cloneKeyStrokes creates and returns a copy of the provided KeyStroke slice.
 func cloneKeyStrokes(src []KeyStroke) []KeyStroke {
 	if len(src) == 0 {
 		return nil
