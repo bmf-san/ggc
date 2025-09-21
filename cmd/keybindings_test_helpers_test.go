@@ -7,7 +7,7 @@ import (
 	"github.com/bmf-san/ggc/v5/config"
 )
 
-func resolveKeyBindingMapForTest(t *testing.T, cfg *config.Config, ctx Context) *KeyBindingMap {
+func resolveKeyBindingMapForTest(t *testing.T, cfg *config.Config) *KeyBindingMap {
 	t.Helper()
 
 	effectiveCfg := cfg
@@ -34,9 +34,9 @@ func resolveKeyBindingMapForTest(t *testing.T, cfg *config.Config, ctx Context) 
 		t.Fatalf("ResolveContextual(%s) error = %v", profile, err)
 	}
 
-	keyMap, exists := contextualMap.GetContext(ctx)
+	keyMap, exists := contextualMap.GetContext(ContextInput)
 	if !exists || keyMap == nil {
-		t.Fatalf("context %s not resolved", ctx)
+		t.Fatalf("context %s not resolved", ContextInput)
 	}
 
 	return cloneKeyBindingMap(keyMap)
@@ -65,4 +65,35 @@ func cloneKeyStrokes(src []KeyStroke) []KeyStroke {
 	copySlice := make([]KeyStroke, len(src))
 	copy(copySlice, src)
 	return copySlice
+}
+
+func TestResolveKeyBindingMapForTest_DisablesPlatformOverrides(t *testing.T) {
+	cfg := &config.Config{}
+	helperMap := resolveKeyBindingMapForTest(t, cfg)
+
+	if containsAltBackspace(helperMap.DeleteWord) {
+		t.Fatal("helper map should not include platform-specific alt+backspace override")
+	}
+
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	resolver.platform = "darwin"
+
+	directMap, err := resolver.Resolve(ProfileDefault, ContextInput)
+	if err != nil {
+		t.Fatalf("Resolve default profile: %v", err)
+	}
+
+	if !containsAltBackspace(directMap.DeleteWord) {
+		t.Fatal("expected platform overrides to include alt+backspace for delete_word")
+	}
+}
+
+func containsAltBackspace(strokes []KeyStroke) bool {
+	for _, ks := range strokes {
+		if ks.Kind == KeyStrokeAlt && strings.EqualFold(ks.Name, "backspace") {
+			return true
+		}
+	}
+	return false
 }

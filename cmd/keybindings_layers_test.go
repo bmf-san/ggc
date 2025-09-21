@@ -67,7 +67,7 @@ func TestKeyBindingResolution(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := resolveKeyBindingMapForTest(t, tt.config, ContextInput)
+			result := resolveKeyBindingMapForTest(t, tt.config)
 
 			if !keyBindingMapsEqual(result, tt.expected) {
 				t.Errorf("resolved map = %+v, expected %+v", result, tt.expected)
@@ -102,7 +102,7 @@ func TestKeyBindingConflictDetection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keyMap := resolveKeyBindingMapForTest(t, tt.config, ContextInput)
+			keyMap := resolveKeyBindingMapForTest(t, tt.config)
 
 			conflicts := detectConflicts(keyMap)
 			if tt.expectConflicts && len(conflicts) == 0 {

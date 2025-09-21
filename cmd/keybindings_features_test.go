@@ -251,7 +251,7 @@ func TestKeyBindingResolverConfig(t *testing.T) {
 		cfg.Interactive.Keybindings.DeleteWord = "alt+backspace"
 		cfg.Interactive.Keybindings.MoveUp = "^k"
 
-		km := resolveKeyBindingMapForTest(t, cfg, ContextInput)
+		km := resolveKeyBindingMapForTest(t, cfg)
 
 		// Should have Alt+backspace for delete_word
 		expectedDeleteWord := NewAltKeyStroke(0, "backspace")
