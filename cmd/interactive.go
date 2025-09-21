@@ -509,26 +509,23 @@ type Renderer struct {
 
 // KeyHandler manages keyboard input processing
 type KeyHandler struct {
-	ui *UI
-	// keyMap holds current keybinding resolution; defaults are applied lazily
-	// when first used to preserve compatibility with tests constructing
-	// KeyHandler directly.
-	keyMap *KeyBindingMap
-	// contextualMap holds keybindings for all contexts
+	ui            *UI
 	contextualMap *ContextualKeyBindingMap
 }
 
 // GetCurrentKeyMap returns the appropriate keybinding map for the current context
 func (h *KeyHandler) GetCurrentKeyMap() *KeyBindingMap {
-	if h.contextualMap != nil {
+	if h == nil {
+		return DefaultKeyBindingMap()
+	}
+	if h.contextualMap != nil && h.ui != nil && h.ui.state != nil {
 		currentContext := h.ui.state.GetCurrentContext()
-		if contextMap, exists := h.contextualMap.GetContext(currentContext); exists {
+		if contextMap, exists := h.contextualMap.GetContext(currentContext); exists && contextMap != nil {
 			return contextMap
 		}
-	}
-	// Fallback to legacy keyMap for backward compatibility
-	if h.keyMap != nil {
-		return h.keyMap
+		if contextMap, exists := h.contextualMap.GetContext(ContextGlobal); exists && contextMap != nil {
+			return contextMap
+		}
 	}
 	return DefaultKeyBindingMap()
 }
@@ -1422,15 +1419,8 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 		contextManager.SetContext(newCtx)
 	}
 
-	// Get the global context keymap for backward compatibility
-	globalKeyMap, _ := contextualMap.GetContext(ContextGlobal)
-	if globalKeyMap == nil {
-		globalKeyMap = DefaultKeyBindingMap()
-	}
-
 	ui.handler = &KeyHandler{
 		ui:            ui,
-		keyMap:        globalKeyMap,
 		contextualMap: contextualMap,
 	}
 

@@ -494,123 +494,68 @@ func ParseKeyStrokes(config interface{}) ([]KeyStroke, error) { //nolint:revive 
 	}
 }
 
-// ResolveKeyBindingMap creates an effective KeyBindingMap by applying config overrides
-// to default bindings while supporting both single strings and arrays.
-func ResolveKeyBindingMap(cfg *config.Config) (*KeyBindingMap, error) { //nolint:revive // legacy layering logic retained for compatibility
-	if cfg == nil {
-		return DefaultKeyBindingMap(), nil
+// ResolveKeyBindingMap is a compatibility helper that delegates to the v2 resolver
+// while returning a single KeyBindingMap for legacy callers (primarily tests).
+func ResolveKeyBindingMap(cfg *config.Config) (*KeyBindingMap, error) {
+	effectiveCfg := cfg
+	if effectiveCfg == nil {
+		effectiveCfg = &config.Config{}
 	}
 
-	// Start with defaults
-	keyMap := *DefaultKeyBindingMap()
+	resolver := NewKeyBindingResolver(effectiveCfg)
+	RegisterBuiltinProfiles(resolver)
+	// Preserve legacy behavior by disabling platform/terminal-specific overrides.
+	resolver.platform = ""
+	resolver.terminal = ""
 
-	// Apply user config overrides
-	userBindings := cfg.Interactive.Keybindings
-
-	// Handle both string and potential array formats
-	// For now, treat config strings as single KeyStrokes for backward compatibility
-	// TODO: When config schema supports arrays, this will be enhanced
-
-	// Get config values
-	userValues := map[string]string{
-		"delete_word":       userBindings.DeleteWord,
-		"clear_line":        userBindings.ClearLine,
-		"delete_to_end":     userBindings.DeleteToEnd,
-		"move_to_beginning": userBindings.MoveToBeginning,
-		"move_to_end":       userBindings.MoveToEnd,
-		"move_up":           userBindings.MoveUp,
-		"move_down":         userBindings.MoveDown,
-	}
-
-	// Apply non-empty user overrides
-	for action, keyStr := range userValues {
-		if keyStr != "" {
-			// Parse as single KeyStroke (compatible with legacy format)
-			ks, err := ParseKeyStroke(keyStr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid key binding for %s: %w", action, err)
-			}
-
-			// Apply to appropriate field
-			switch action {
-			case "delete_word":
-				keyMap.DeleteWord = []KeyStroke{ks}
-			case "clear_line":
-				keyMap.ClearLine = []KeyStroke{ks}
-			case "delete_to_end":
-				keyMap.DeleteToEnd = []KeyStroke{ks}
-			case "move_to_beginning":
-				keyMap.MoveToBeginning = []KeyStroke{ks}
-			case "move_to_end":
-				keyMap.MoveToEnd = []KeyStroke{ks}
-			case "move_up":
-				keyMap.MoveUp = []KeyStroke{ks}
-			case "move_down":
-				keyMap.MoveDown = []KeyStroke{ks}
-			}
+	profile := ProfileDefault
+	if name := strings.TrimSpace(effectiveCfg.Interactive.Profile); name != "" {
+		candidate := Profile(name)
+		if candidate.IsValid() {
+			profile = candidate
 		}
 	}
 
-	// Detect and warn about conflicts
-	if conflicts := detectConflictsV2(&keyMap); len(conflicts) > 0 {
-		// Enhanced conflict detection for KeyStrokes
-		fmt.Printf("Warning: Key binding conflicts detected: %v\n", conflicts)
+	contextualMap, err := resolver.ResolveContextual(profile)
+	if err != nil {
+		return nil, err
 	}
 
-	return &keyMap, nil
+	if km, exists := contextualMap.GetContext(ContextInput); exists && km != nil {
+		return cloneKeyBindingMap(km), nil
+	}
+	if km, exists := contextualMap.GetContext(ContextGlobal); exists && km != nil {
+		return cloneKeyBindingMap(km), nil
+	}
+
+	return nil, fmt.Errorf("no keybinding map resolved for profile %s", profile)
 }
 
-// ResolveKeyBindingMapV2 is the full resolver that supports array configs
-// This will be used when config schema is updated to support arrays
-func ResolveKeyBindingMapV2(cfg *config.Config, rawConfig map[string]interface{}) (*KeyBindingMap, error) { //nolint:revive // compatibility path for phased schema
-	if cfg == nil && rawConfig == nil {
-		return DefaultKeyBindingMap(), nil
+func cloneKeyBindingMap(src *KeyBindingMap) *KeyBindingMap {
+	if src == nil {
+		return nil
 	}
 
-	// Start with defaults
-	keyMap := *DefaultKeyBindingMap()
-
-	// If we have raw config data (for array support)
-	if rawConfig != nil {
-		if interactive, ok := rawConfig["interactive"].(map[string]interface{}); ok {
-			if keybindings, ok := interactive["keybindings"].(map[string]interface{}); ok {
-
-				// Map of action names to KeyStroke slice pointers
-				actionMap := map[string]*[]KeyStroke{
-					"delete_word":       &keyMap.DeleteWord,
-					"clear_line":        &keyMap.ClearLine,
-					"delete_to_end":     &keyMap.DeleteToEnd,
-					"move_to_beginning": &keyMap.MoveToBeginning,
-					"move_to_end":       &keyMap.MoveToEnd,
-					"move_up":           &keyMap.MoveUp,
-					"move_down":         &keyMap.MoveDown,
-				}
-
-				// Apply user overrides with array support
-				for action, target := range actionMap {
-					if configValue, exists := keybindings[action]; exists {
-						keyStrokes, err := ParseKeyStrokes(configValue)
-						if err != nil {
-							return nil, fmt.Errorf("invalid key binding for %s: %w", action, err)
-						}
-						*target = keyStrokes
-					}
-				}
-			}
-		}
+	clone := &KeyBindingMap{
+		DeleteWord:      cloneKeyStrokes(src.DeleteWord),
+		ClearLine:       cloneKeyStrokes(src.ClearLine),
+		DeleteToEnd:     cloneKeyStrokes(src.DeleteToEnd),
+		MoveToBeginning: cloneKeyStrokes(src.MoveToBeginning),
+		MoveToEnd:       cloneKeyStrokes(src.MoveToEnd),
+		MoveUp:          cloneKeyStrokes(src.MoveUp),
+		MoveDown:        cloneKeyStrokes(src.MoveDown),
 	}
 
-	// Fallback to regular config if rawConfig unavailable
-	if rawConfig == nil {
-		return ResolveKeyBindingMap(cfg)
-	}
+	return clone
+}
 
-	// Detect and warn about conflicts
-	if conflicts := detectConflictsV2(&keyMap); len(conflicts) > 0 {
-		fmt.Printf("Warning: Key binding conflicts detected: %v\n", conflicts)
+func cloneKeyStrokes(src []KeyStroke) []KeyStroke {
+	if len(src) == 0 {
+		return nil
 	}
-
-	return &keyMap, nil
+	copySlice := make([]KeyStroke, len(src))
+	copy(copySlice, src)
+	return copySlice
 }
 
 // ValidateKeyBindings validates a map of key binding strings
@@ -2195,14 +2140,6 @@ func (ps *ProfileSwitcher) SwitchProfile(newProfile Profile) error {
 
 	// Update UI handler with new keybindings
 	if ps.ui != nil && ps.ui.handler != nil {
-		// Get global context for backward compatibility
-		globalKeyMap, _ := newContextualMap.GetContext(ContextGlobal)
-		if globalKeyMap == nil {
-			globalKeyMap = DefaultKeyBindingMap()
-		}
-
-		// Hot-swap the keybinding maps
-		ps.ui.handler.keyMap = globalKeyMap
 		ps.ui.handler.contextualMap = newContextualMap
 	}
 
