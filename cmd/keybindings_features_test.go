@@ -244,17 +244,14 @@ func TestKeyBindingMapExtended(t *testing.T) {
 	})
 }
 
-// TestResolveKeyBindingMap tests resolution with additional features
-func TestResolveKeyBindingMap(t *testing.T) {
+// TestKeyBindingResolverConfig tests resolver behavior with classic config inputs
+func TestKeyBindingResolverConfig(t *testing.T) {
 	t.Run("single string config", func(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.Interactive.Keybindings.DeleteWord = "alt+backspace"
 		cfg.Interactive.Keybindings.MoveUp = "^k"
 
-		km, err := ResolveKeyBindingMap(cfg)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
+		km := resolveKeyBindingMapForTest(t, cfg)
 
 		// Should have Alt+backspace for delete_word
 		expectedDeleteWord := NewAltKeyStroke(0, "backspace")

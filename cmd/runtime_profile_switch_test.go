@@ -47,3 +47,60 @@ func TestRuntimeProfileSwitcherSwitchProfile(t *testing.T) {
 		t.Fatalf("CycleProfile returned error: %v", err)
 	}
 }
+
+func TestProfileSwitcherUpdatesHandler(t *testing.T) {
+	cfg := &config.Config{}
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+
+	resolver.platform = ""
+	resolver.terminal = ""
+
+	defaultContextual, err := resolver.ResolveContextual(ProfileDefault)
+	if err != nil {
+		t.Fatalf("ResolveContextual default profile: %v", err)
+	}
+
+	state := &UIState{context: ContextInput}
+	ui := &UI{state: state}
+	ui.handler = &KeyHandler{ui: ui, contextualMap: defaultContextual}
+
+	defaultInput, exists := defaultContextual.GetContext(ContextInput)
+	if !exists || defaultInput == nil {
+		t.Fatalf("expected default input keymap, exists=%v", exists)
+	}
+	if !defaultInput.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('w')) {
+		t.Fatalf("default profile should use Ctrl+W for delete_word")
+	}
+
+	switcher := NewProfileSwitcher(resolver, ui)
+	if err := switcher.SwitchProfile(ProfileEmacs); err != nil {
+		t.Fatalf("SwitchProfile(ProfileEmacs) error: %v", err)
+	}
+
+	emacsContextual := ui.handler.contextualMap
+	if emacsContextual == nil {
+		t.Fatal("expected handler contextual map to be updated")
+	}
+	if emacsContextual.Profile != ProfileEmacs {
+		t.Fatalf("contextual profile = %s, want %s", emacsContextual.Profile, ProfileEmacs)
+	}
+
+	emacsInput, exists := emacsContextual.GetContext(ContextInput)
+	if !exists || emacsInput == nil {
+		t.Fatalf("expected emacs input keymap, exists=%v", exists)
+	}
+	if emacsInput == defaultInput {
+		t.Error("expected emacs context to replace default keymap reference")
+	}
+	if !emacsInput.MatchesKeyStroke("delete_word", NewAltKeyStroke('d', "")) {
+		t.Logf("emacs delete_word bindings: %#v", emacsInput.DeleteWord)
+		t.Error("emacs profile should use Alt+d for delete_word")
+	}
+
+	currentMap := ui.handler.GetCurrentKeyMap()
+	if !currentMap.MatchesKeyStroke("delete_word", NewAltKeyStroke('d', "")) {
+		t.Logf("current delete_word bindings: %#v", currentMap.DeleteWord)
+		t.Error("handler current map should reflect switched profile bindings")
+	}
+}

@@ -1053,6 +1053,37 @@ func TestKeyHandler_InteractiveInput(t *testing.T) {
 	}
 }
 
+func TestNewUI_WiresContextualResolver(t *testing.T) {
+	const overrideEnv = "GGC_KEYBIND_DELETE_WORD"
+	t.Setenv(overrideEnv, "ctrl+q")
+
+	mockClient := testutil.NewMockGitClient()
+	ui := NewUI(mockClient)
+
+	if ui.handler == nil {
+		t.Fatal("handler should be initialized")
+	}
+
+	contextual := ui.handler.contextualMap
+	if contextual == nil {
+		t.Fatal("expected contextual keybinding map to be set")
+	}
+
+	globalMap, exists := contextual.GetContext(ContextGlobal)
+	if !exists || globalMap == nil {
+		t.Fatalf("expected global context keymap, got exists=%v map=%v", exists, globalMap)
+	}
+
+	if !globalMap.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('q')) {
+		t.Fatal("environment override should be reflected in global keymap")
+	}
+
+	currentMap := ui.handler.GetCurrentKeyMap()
+	if !currentMap.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('q')) {
+		t.Error("handler current map should resolve overrides via contextual map")
+	}
+}
+
 func TestKeyHandler_ProcessCommand_NoPlaceholders(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	colors := NewANSIColors()

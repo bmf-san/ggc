@@ -67,13 +67,10 @@ func TestKeyBindingResolution(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := ResolveKeyBindingMap(tt.config)
-			if err != nil {
-				t.Fatalf("ResolveKeyBindingMap() error = %v", err)
-			}
+			result := resolveKeyBindingMapForTest(t, tt.config)
 
 			if !keyBindingMapsEqual(result, tt.expected) {
-				t.Errorf("ResolveKeyBindingMap() = %+v, expected %+v", result, tt.expected)
+				t.Errorf("resolved map = %+v, expected %+v", result, tt.expected)
 			}
 		})
 	}
@@ -84,13 +81,11 @@ func TestKeyBindingConflictDetection(t *testing.T) {
 	tests := []struct {
 		name            string
 		config          *config.Config
-		expectError     bool
 		expectConflicts bool
 	}{
 		{
 			name:            "no conflicts",
 			config:          &config.Config{},
-			expectError:     false,
 			expectConflicts: false,
 		},
 		{
@@ -101,34 +96,20 @@ func TestKeyBindingConflictDetection(t *testing.T) {
 				cfg.Interactive.Keybindings.DeleteToEnd = "ctrl+k"
 				return cfg
 			}(),
-			expectError:     false,
 			expectConflicts: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keyMap, err := ResolveKeyBindingMap(tt.config)
+			keyMap := resolveKeyBindingMapForTest(t, tt.config)
 
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error, got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got: %v", err)
-				}
+			conflicts := detectConflicts(keyMap)
+			if tt.expectConflicts && len(conflicts) == 0 {
+				t.Errorf("Expected conflicts, but none detected")
 			}
-
-			// Check for conflicts independently
-			if keyMap != nil {
-				conflicts := detectConflicts(keyMap)
-				if tt.expectConflicts && len(conflicts) == 0 {
-					t.Errorf("Expected conflicts, but none detected")
-				}
-				if !tt.expectConflicts && len(conflicts) > 0 {
-					t.Errorf("Expected no conflicts, but detected: %v", conflicts)
-				}
+			if !tt.expectConflicts && len(conflicts) > 0 {
+				t.Errorf("Expected no conflicts, but detected: %v", conflicts)
 			}
 		})
 	}
