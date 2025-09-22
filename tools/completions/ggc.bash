@@ -7,7 +7,7 @@ _ggc()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
 
-    opts="add branch clean version config hook restore diff status commit complete tag fetch log pull push rebase remote reset stash"
+    opts="add branch clean version config hook restore diff status commit tag fetch log pull push rebase remote reset stash"
 
     case ${prev} in
         branch)
@@ -47,11 +47,6 @@ _ggc()
             ;;
         clean)
             subopts="files dirs interactive"
-            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
-            return 0
-            ;;
-        complete)
-            subopts="bash zsh"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

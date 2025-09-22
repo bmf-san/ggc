@@ -31,12 +31,23 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 - Simple commands for common Git operations (add, push, pull, branch, log, etc.)
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
+- Customizable keybindings with profile support (default, emacs, vi, readline)
+- Command aliases for chaining multiple operations
+- Unified, flagless command syntax for intuitive usage
+- Shell completion for Bash, Zsh, and Fish
+- Configurable via YAML configuration file
 - Built with Go standard library and minimal dependencies
 
 ## Supported Environments
-- OS: macOS (Apple Silicon/Intel) - Verified
+
+### Supported Platforms
+- macOS (Apple Silicon/Intel): `darwin_amd64`, `darwin_arm64` - Verified
+- Linux (ARM64/x86_64): `linux_amd64`, `linux_arm64` - Supported
+- Windows (x86_64): `windows_amd64` - Supported
+
+### Requirements
 - Go version: 1.25 or later recommended
-- Requirement: `git` command must be installed
+- `git` command must be installed
 
 ## Installation
 
@@ -45,17 +56,14 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 Pre-compiled binaries are available for multiple platforms and architectures. This is the fastest way to get started with `ggc`.
 
 #### Download from Releases
-Visit the [Releases](https://github.com/bmf-san/ggc/releases/) page to download the latest binary for your platform:
-
-#### Supported Platforms:
-
-- macOS: `darwin_amd64` (Intel), `darwin_arm64` (Apple Silicon)
-- Linux: `linux_amd64`, `linux_arm64`
-- Windows: `windows_amd64`
+1. Visit the [Releases](https://github.com/bmf-san/ggc/releases/) page to download the latest binary for your platform
+2. Make the binary executable: `chmod +x ggc`
+3. Move it to a directory in your PATH: `sudo mv ggc /usr/local/bin/` (or another location in your PATH)
+4. Verify installation: `ggc version`
 
 ### Homebrew
 
-Install via Homebrew (macOS Intel/Apple Silicon, Linux ARM64/x86_64):
+Install via Homebrew:
 
 ```sh
 brew install ggc
@@ -66,7 +74,7 @@ brew install ggc
 ```
 
 - Formula: https://formulae.brew.sh/formula/ggc
-- Platforms: macOS (Apple Silicon/Intel), Linux (ARM64/x86_64)
+- Supported platforms via Homebrew: macOS (Apple Silicon/Intel), Linux (ARM64/x86_64)
 
 ### Quick Install with Script
 
@@ -99,13 +107,22 @@ The script will:
 ### Build with make
 
 ```sh
-git clone <repository URL>
+# Clone the repository by SSH
+git clone git@github.com:bmf-san/ggc.git
+cd ggc
+
+# Build the binary
 make build
+
+# Move the binary to a directory in your PATH
+sudo mv ggc /usr/local/bin/
 ```
 
-Place the `ggc` binary in a directory included in your PATH.
-
 ### Development Setup
+
+#### Prerequisites for development
+- Go 1.25 or later
+- Git
 
 For development, you can use the Makefile to install required tools and dependencies:
 
@@ -140,6 +157,7 @@ The Makefile will automatically install required tools like `golangci-lint` usin
 ### Global install with go install
 
 ```sh
+# Requires Go 1.25+ installed
 go install github.com/bmf-san/ggc/v5@latest
 ```
 
@@ -203,90 +221,102 @@ ggc
 
 | Command | Description |
 |--------|-------------|
-| `add <file>` | Add specific file to the index |
-| `add .` | Add all changes |
+| `help` | Show help message |
+| `add <file>` | Add a specific file to the index |
+| `add .` | Add all changes to index |
 | `add interactive` | Add changes interactively |
 | `add patch` | Add changes interactively (patch mode) |
-| `branch current` | Show current branch |
-| `branch checkout` | Checkout existing branch |
-| `branch checkout remote` | Checkout remote branch |
+| `branch current` | Show current branch name |
+| `branch checkout` | Switch to an existing branch |
+| `branch checkout remote` | Create and checkout a local branch from the remote |
 | `branch create` | Create and checkout new branch |
-| `branch delete` | Delete a branch |
-| `branch delete merged` | Delete merged branches |
+| `branch delete` | Delete local branch |
+| `branch delete merged` | Delete local merged branches |
 | `branch rename <old> <new>` | Rename a branch |
 | `branch move <branch> <commit>` | Move branch to specified commit |
 | `branch set upstream <branch> <upstream>` | Set upstream for a branch |
 | `branch info <branch>` | Show detailed branch information |
 | `branch list verbose` | Show detailed branch listing |
-| `branch sort [date\|name]` | List branches sorted by date or name |
-| `branch contains <commit>` | Show branches containing a commit |
 | `branch list local` | List local branches |
 | `branch list remote` | List remote branches |
+| `branch sort [date\|name]` | List branches sorted by date or name |
+| `branch contains <commit>` | Show branches containing a commit |
+| `push current` | Push current branch from remote repository |
+| `push force` | Force push current branch |
+| `pull current` | Pull current branch from remote repository |
+| `pull rebase` | Pull and rebase |
+| `log simple` | Show simple historical log |
+| `log graph` | Show log with graph |
+| `commit <message>` | Create commit with a message |
+| `commit allow empty` | Create an empty commit |
+| `commit amend` | Amend previous commit (editor) |
+| `commit amend no-edit` | Amend without editing commit message |
+| `fetch prune` | Fetch and clean stale references |
+| `tag list` | List all tags |
+| `tag create <tag>` | Create tag |
+| `tag annotated <tag> <message>` | Create annotated tag |
+| `tag delete <tag>` | Delete tag |
+| `tag push` | Push tags to remote |
+| `tag show <tag>` | Show tag information |
+| `config list` | List all configuration |
+| `config get <key>` | Get a specific config value |
+| `config set <key> <value>` | Set a configuration value |
+| `hook list` | List all hooks |
+| `hook install <hook>` | Install a hook |
+| `hook enable <hook>` | Enable/Turn on a hook |
+| `hook disable <hook>` | Disable/Turn off a hook |
+| `hook uninstall <hook>` | Uninstall an existing hook |
+| `hook edit <hook>` | Edit a hook's contents |
+| `diff` | Show changes (git diff HEAD) |
+| `diff unstaged` | Show unstaged changes |
+| `diff staged` | Show staged changes |
+| `version` | Show current version |
 | `clean files` | Clean untracked files |
 | `clean dirs` | Clean untracked directories |
-| `commit` | Commit staged changes |
-| `commit amend` | Amend previous commit |
-| `commit amend no-edit` | Amend without editing message |
-| `commit allow empty` | Create an empty commit |
-| `diff staged` | Show staged changes |
-| `diff unstaged` | Show unstaged changes |
-| `fetch prune` | Fetch and prune remotes |
-| `log simple` | Show commit logs in simple format |
-| `log graph` | Show commit logs with a graph |
-| `pull current` | Pull current branch |
-| `pull rebase` | Pull with rebase |
-| `push current` | Push current branch |
-| `push force` | Force push current branch |
+| `clean interactive` | Clean files interactively |
+| `stash` | Stash current changes |
+| `stash list` | List all stashes |
+| `stash show` | Show changes in stash |
+| `stash show <stash>` | Show changes in specific stash |
+| `stash apply` | Apply stash without removing it |
+| `stash apply <stash>` | Apply specific stash without removing it |
+| `stash pop` | Apply and remove the latest stash |
+| `stash pop <stash>` | Apply and remove specific stash |
+| `stash drop` | Remove the latest stash |
+| `stash drop <stash>` | Remove specific stash |
+| `stash branch <branch>` | Create branch from stash |
+| `stash branch <branch> <stash>` | Create branch from specific stash |
+| `stash push` | Save changes to new stash |
+| `stash push -m <message>` | Save changes to new stash with message |
+| `stash save <message>` | Save changes to new stash with message |
+| `stash clear` | Remove all stashes |
+| `stash create` | Create stash and return object name |
+| `stash store <object>` | Store stash object |
+| `status` | Show working tree status |
+| `status short` | Show concise status (porcelain format) |
 | `rebase interactive` | Interactive rebase |
 | `rebase <upstream>` | Rebase current branch onto <upstream> |
 | `rebase continue` | Continue an in-progress rebase |
 | `rebase abort` | Abort an in-progress rebase |
 | `rebase skip` | Skip current patch and continue |
-| `remote list` | List remotes |
-| `remote add <name> <url>` | Add a new remote |
-| `remote remove <name>` | Remove a remote |
-| `remote set-url <name> <url>` | Change remote URL |
-| `config list` | List config variables |
-| `config get <key>` | Get value for config key |
-| `config set <key> <value>` | Set config key and value |
-| `hook list` | List all hooks |
-| `hook install <hook>` | Install a hook |
-| `hook enable <hook>` | Enable a hook |
-| `hook disable <hook>` | Disable a hook |
-| `hook uninstall <hook>` | Remove a hook |
-| `hook edit <hook>` | Edit a hook |
-| `restore <file>` | Restore file in working directory from index
-| `restore .` | Restore all files in working directory from index
-| `restore staged <file>` | Unstage file (restore from HEAD to index)
-| `restore staged .` | Unstage all files
-| `restore <commit> <file>` | Restore file from specific commit
-| `tag list` | List all tags |
-| `tag create <v>` | Create a tag |
-| `tag annotated <v> <msg>` | Create annotated tag |
-| `tag delete <v>` | Delete a tag |
-| `tag push` | Push all tags |
-| `tag push <v>` | Push specific tag |
-| `tag show <v>` | Show tag details |
-| `stash` | Stash current changes |
-| `stash list` | List all stashes |
-| `stash show [stash]` | Show changes in stash |
-| `stash apply [stash]` | Apply stash without removing it |
-| `stash pop [stash]` | Apply and remove stash |
-| `stash drop [stash]` | Remove stash |
-| `stash branch <name> [stash]` | Create branch from stash |
-| `stash push [-m message] [files]` | Save changes to new stash |
-| `stash save [message]` | Save changes to new stash with message |
-| `stash clear` | Remove all stashes |
-| `stash create [message]` | Create stash and return object name |
-| `stash store <object> [message]` | Store stash object |
-| `status short` | Show concise status |
-| `version` | Show current ggc version |
+| `remote list` | List all remote repositories |
+| `remote add <n> <url>` | Add remote repository |
+| `remote remove <n>` | Remove remote repository |
+| `remote set-url <n> <url>` | Change remote URL |
+| `restore <file>` | Restore file in working directory from index |
+| `restore .` | Restore all files in working directory from index |
+| `restore staged <file>` | Unstage file (restore from HEAD to index) |
+| `restore staged .` | Unstage all files |
+| `restore <commit> <file>` | Restore file from specific commit |
+| `quit` | Exit interactive mode |
 
-### Unified Syntax and “--” Separator
+### Unified Syntax and "--" Separator
 
 - Unified commands: ggc uses a flagless, space-separated syntax (no `-x`/`--long` options). Use subcommands and words, e.g., `ggc fetch prune`, `ggc commit allow empty`.
 - Passing literals that begin with `-`: use the standard `--` separator to mark the end of options; everything after `--` is treated as data.
   - Example: `ggc commit -- - fix leading dash`
+- When `--` is encountered, all subsequent arguments are treated as data, not as commands or options.
+- This unified syntax makes the CLI behavior predictable, safe, and testable.
 
 ## Command Aliases
 
@@ -309,101 +339,277 @@ aliases:
         - commit tmp
         - push current
 ```
-For example, running `ggc ac` will execute first `ggc add .` then `ggc commit tmp` and terminate.
+
+Aliases support two formats:
+
+1. **Simple alias**: Maps to a single command (e.g., `br: branch`)
+   - Arguments are passed to the aliased command
+   - Example: `ggc br list` will execute `ggc branch list`
+
+2. **Sequence alias**: Maps to multiple commands in sequence (e.g., `ac: [add ., commit tmp]`)
+   - Commands are executed in order
+   - Arguments are ignored for sequence aliases
+   - Example: Running `ggc ac` will execute first `ggc add .` then `ggc commit tmp` and terminate
+
+Any arguments passed to sequence aliases are ignored - this is by design.
+
+## Interactive Mode Keybindings
+
+You can customize keybindings in the interactive mode by adding configuration to your `~/.ggcconfig.yaml` file:
+
+### Basic Configuration
+
+```yaml
+interactive:
+  profile: default  # Base profile to extend (default, emacs, vi, readline)
+  keybindings:      # Global keybindings
+    move_up: "ctrl+p"
+    move_down: "ctrl+n"
+    move_to_beginning: "ctrl+a"
+    move_to_end: "ctrl+e"
+    delete_word: "ctrl+w"
+    clear_line: "ctrl+u"
+    delete_to_end: "ctrl+k"
+```
+
+### Supported Key Format Notations
+
+ggc supports three key binding format notations:
+- `ctrl+key` format: e.g., `ctrl+w`, `ctrl+a`
+- Caret notation: e.g., `^w`, `^a`
+- Emacs notation: e.g., `C-w`, `C-a`
+
+These notations are interchangeable - use whichever style you prefer.
+
+### Advanced Configuration
+
+#### Profiles and Layers
+
+ggc provides four built-in keybinding profiles:
+
+- **default**: Current default behavior (backward compatible)
+- **emacs**: Emacs-style bindings (Ctrl-based, modeless)
+- **vi**: Vi-style bindings (modal concepts adapted for CLI)
+- **readline**: GNU Readline standard bindings
+
+Configuration resolution order: defaults → profile → platform (OS) → terminal ($TERM) → your config.
+
+When conflicts occur, later layers override earlier ones. For example, your custom settings in `~/.ggcconfig.yaml` will override any default profile settings.
+
+#### Default Profile Bindings
+
+Each profile has different default keybindings:
+
+- **default**: Standard terminal navigation (arrow keys for movement)
+- **emacs**: Emacs-style commands (Ctrl+P/N for up/down, Ctrl+A/E for start/end)
+- **vi**: Vi-inspired navigation (H/J/K/L, 0/$ for start/end)
+- **readline**: GNU Readline compatible (similar to Emacs but with some differences)
+
+#### Available Contexts
+
+You can define keybindings for specific UI contexts:
+
+- **global**: Always active (reserved keys like Ctrl+C)
+- **input**: When typing/editing the search query
+- **results**: When navigating through filtered results
+- **search**: When fuzzy search is active (combines input + results)
+
+#### Per-OS Configuration
+
+Configure different key bindings for each operating system:
+
+```yaml
+interactive:
+  # OS-specific overrides
+  darwin:    # macOS
+    keybindings:
+      move_up: "up"
+      move_down: "down"
+
+  linux:     # Linux
+    keybindings:
+      move_up: "up"
+      move_down: "down"
+
+  windows:   # Windows
+    keybindings:
+      move_up: "up"
+      move_down: "down"
+```
+
+#### Context-Specific Configuration
+
+Configure key bindings for different operational contexts:
+
+```yaml
+interactive:
+  contexts:
+    # Input field bindings
+    input:
+      keybindings:
+        delete_word: ["ctrl+w", "alt+backspace"]  # Multiple bindings
+
+    # Results list bindings
+    results:
+      keybindings:
+        move_up: ["up", "ctrl+p"]
+        move_down: ["down", "ctrl+n"]
+```
+
+#### Terminal-Specific Configuration
+
+Target specific terminals via `$TERM` value:
+
+```yaml
+interactive:
+  terminals:
+    xterm-256color:
+      keybindings:
+        delete_to_end: "ctrl+k"
+      contexts:
+        input:
+          keybindings:
+            move_to_beginning: "ctrl+a"
+```
+
+#### Common Keybinding Names
+
+Here are some common keybinding action names you can customize:
+
+- **Navigation**: `move_up`, `move_down`, `move_left`, `move_right`
+- **Editing**: `delete_word`, `clear_line`, `delete_to_end`
+- **Cursor Movement**: `move_to_beginning`, `move_to_end`, `move_word_left`, `move_word_right`
+- **Control**: `execute`, `cancel`, `quit`
+
+#### Special Key Support
+
+- **Alt/Option Keys**: In macOS terminals, configure to send ESC+<letter> for Option keys. In iTerm2, set "Left/Right Option Key" to "Esc+".
+- **Function Keys and Alt/Meta Keys**: Support for these keys is limited in the current implementation.
+- **Multiple Bindings**: You can assign multiple key combinations to the same action using array syntax.
+
+### Managing Configuration
+
+Check your current key binding settings:
+
+```sh
+# Display all settings
+ggc config list
+
+# Check key binding settings
+ggc config get interactive.keybindings
+
+# Check OS-specific settings
+ggc config get interactive.darwin
+```
+
+```sh
+# Check OS-specific keybinding settings
+ggc config get interactive.darwin.keybindings
+
+# Set a specific binding
+ggc config set interactive.keybindings.move_up "ctrl+p"
+```
+
+### tmux Support
+
+If using tmux, add the following to your `.tmux.conf` to improve key input processing:
+
+```
+set -g xterm-keys on
+```
 
 ## Directory Structure
 
 ```
 main.go                  # Entry point
-router/                  # Command routing logic
+main_test.go             # Main package tests
 cmd/                     # Command entry handlers
+config/                  # Configuration management
+docs/                    # Documentation and assets
 git/                     # Git operation wrappers
+internal/                # Internal packages
+  testutil/              # Test utilities
+router/                  # Command routing logic
+test/                    # BATS integration tests
+tools/                   # Development and build tools
+  completions/           # Shell completion scripts
 ```
 
 ## Shell Completion
 
-### Bash
+ggc provides tab completion for commands and subcommands in Bash, Zsh, and Fish shells.
+
+### Using Pre-Built Completion Scripts
+
+ggc comes with pre-built completion scripts for common shells located in the `tools/completions` directory.
+
+### Enabling Completions
+
+#### Bash
 Add the following to your `~/.bash_profile` or `~/.bashrc`:
 ```bash
+# Option 1: Use the pre-installed completion script (if installed via go install)
 if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.bash" ]; then
   . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.bash
 fi
-```
 
-### Zsh
-Add the following to your `~/.zshrc`:
-```zsh
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh
+# Option 2: Use the generated completion script
+if [ -f ~/.ggc-completion.bash ]; then
+  . ~/.ggc-completion.bash
 fi
 ```
 
-### Fish
+#### Zsh
+Add the following to your `~/.zshrc`:
+```zsh
+# Option 1: Use the pre-installed completion script (if installed via go install)
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.zsh
+fi
+
+# Option 2: Use the generated completion script
+if [ -f ~/.ggc-completion.zsh ]; then
+  . ~/.ggc-completion.zsh
+fi
+```
+
+#### Fish
 Add the following to your `~/.config/fish/config.fish`:
 ```fish
+# Option 1: Use the pre-installed completion script (if installed via go install)
 if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.fish
     source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v5@*/tools/completions/ggc.fish
 end
+
+# Option 2: Use the generated completion script
+if test -f ~/.ggc-completion.fish
+    source ~/.ggc-completion.fish
+end
+```
+
+### Using Completions
+
+Once enabled, tab completion will work for all ggc commands and subcommands. For example:
+
+```
+$ ggc b<tab>          # Completes to "branch"
+$ ggc branch <tab>    # Shows branch subcommands (checkout, list, etc.)
+$ ggc checkout <tab>  # Shows available local branches
+```
+
+Commands with multiple levels of subcommands are also supported:
+```
+$ ggc branch delete m<tab>   # Completes matching branch names
+$ ggc commit amend <tab>     # Shows "no-edit" option
 ```
 
 This setup will automatically find the completion script regardless of the installed version.
 
 # References
 
-## Official Git Documentation
 - [Git Documentation](https://git-scm.com/docs) - Complete Git reference documentation
 - [Git Tutorial](https://git-scm.com/docs/gittutorial) - Official Git tutorial for beginners
 - [Git User Manual](https://git-scm.com/docs/user-manual) - Comprehensive Git user guide
-
-## Implemented Git Commands
-Below are the Git commands that ggc wraps, along with links to their official documentation:
-
-### File Operations
-- [`git add`](https://git-scm.com/docs/git-add) - Add file contents to the index
-- [`git clean`](https://git-scm.com/docs/git-clean) - Remove untracked files from the working tree
-- [`git restore`](https://git-scm.com/docs/git-restore) - Restore files in the working tree
-
-### Branch Operations
-- [`git branch`](https://git-scm.com/docs/git-branch) - List, create, or delete branches
-- [`git checkout`](https://git-scm.com/docs/git-checkout) - Switch branches or restore working tree files
-
-### Commit Operations
-- [`git commit`](https://git-scm.com/docs/git-commit) - Record changes to the repository
-- [`git log`](https://git-scm.com/docs/git-log) - Show commit logs
-
-### Remote Operations
-- [`git push`](https://git-scm.com/docs/git-push) - Update remote refs along with associated objects
-- [`git pull`](https://git-scm.com/docs/git-pull) - Fetch from and integrate with another repository or a local branch
-- [`git fetch`](https://git-scm.com/docs/git-fetch) - Download objects and refs from another repository
-- [`git remote`](https://git-scm.com/docs/git-remote) - Manage set of tracked repositories
-
-### Repository State
-- [`git status`](https://git-scm.com/docs/git-status) - Show the working tree status
-- [`git diff`](https://git-scm.com/docs/git-diff) - Show changes between commits, commit and working tree, etc
-- [`git stash`](https://git-scm.com/docs/git-stash) - Stash the changes in a dirty working directory away
-
-### Configuration and Maintenance
-- [`git config`](https://git-scm.com/docs/git-config) - Get and set repository or global options
-- [`git tag`](https://git-scm.com/docs/git-tag) - Create, list, delete or verify a tag object signed with GPG
-- [`git rebase`](https://git-scm.com/docs/git-rebase) - Reapply commits on top of another base tip
-
-## Git Workflow Resources
-- [Git Workflow](https://git-scm.com/docs/gitworkflows) - Official Git workflow documentation
-- [Git Best Practices](https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows) - Branching workflows from Pro Git book
-- [Conventional Commits](https://www.conventionalcommits.org/) - Specification for commit message format
-- [Git Hooks](https://git-scm.com/docs/githooks) - Customizing Git with hooks
-
-## Related Tools and Resources
-- [Pro Git Book](https://git-scm.com/book) - Free online book about Git
-- [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf) - Quick reference for Git commands
-- [GitHub Git Handbook](https://guides.github.com/introduction/git-handbook/) - Introduction to Git and GitHub
-- [Atlassian Git Tutorials](https://www.atlassian.com/git/tutorials) - Comprehensive Git tutorials and guides
-
-## Alternative Git Tools
-- [lazygit](https://github.com/jesseduffield/lazygit) - Simple terminal UI for Git commands
-- [tig](https://jonas.github.io/tig/) - Text-mode interface for Git
-- [gitui](https://github.com/extrawurst/gitui) - Blazing fast terminal-ui for Git
-- [magit](https://magit.vc/) - Git interface for Emacs
 
 # Contributing
 

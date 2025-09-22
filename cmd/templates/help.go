@@ -50,7 +50,6 @@ Main Commands:
   ggc commit amend            Amend to previous commit
   ggc commit amend no-edit    Amend without editing commit message
   ggc commit allow empty      Create empty commit
-  ggc complete <shell>        Generate shell completion script (bash|zsh)
   ggc fetch prune            Fetch and remove stale remote-tracking branches
   ggc diff                    Show changes between commits, commit and working tree
   ggc tag                     Create, list, and delete tags

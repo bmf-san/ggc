@@ -8,7 +8,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean version restore hook diff status commit complete tag fetch log pull push rebase remote reset stash"
+complete -c ggc -f -a "add branch clean version restore hook diff status commit tag fetch log pull push rebase remote reset stash"
 
 # Branch subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "current checkout delete rename move set info list sort contains"
@@ -41,9 +41,6 @@ complete -c ggc -f -n "__fish_seen_subcommand_from log" -a "simple graph"
 
 # Clean subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from clean" -a "files dirs interactive"
-
-# Complete subcommands
-complete -c ggc -f -n "__fish_seen_subcommand_from complete" -a "bash zsh fish"
 
 # Remote subcommands
 complete -c ggc -f -n "__fish_seen_subcommand_from remote" -a "list add remove set-url"
