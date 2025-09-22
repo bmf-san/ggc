@@ -428,9 +428,6 @@ func TestNewCmd(t *testing.T) {
 	if cmd.fetcher == nil {
 		t.Error("fetcher should not be nil")
 	}
-	if cmd.completer == nil {
-		t.Error("completer should not be nil")
-	}
 	if cmd.helper == nil {
 		t.Error("helper should not be nil")
 	}
@@ -512,7 +509,6 @@ func TestCmd_Route(t *testing.T) {
 		tagger:     &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		statuser:   &Statuser{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		versioner:  &Versioner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		completer:  &Completer{gitClient: mockClient},
 		differ:     &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		restorer:   &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		fetcher:    &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
@@ -540,7 +536,6 @@ func TestCmd_Route(t *testing.T) {
 		{"hook", []string{"hook", "list"}},
 		{"tag", []string{"tag", "list"}},
 		{"status", []string{"status"}},
-		{"complete", []string{"complete", "bash"}},
 		{"fetch", []string{"fetch", "--prune"}},
 		{"diff", []string{"diff"}},
 		{"restore", []string{"restore", "."}},
@@ -588,7 +583,6 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		tagger:       &Tagger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		statuser:     &Statuser{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		versioner:    &Versioner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		completer:    &Completer{gitClient: mockClient},
 		differ:       &Differ{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		restorer:     &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		fetcher:      &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},

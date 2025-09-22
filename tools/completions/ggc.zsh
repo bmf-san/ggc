@@ -41,9 +41,6 @@ _ggc() {
                 clean)
                     _ggc_clean
                     ;;
-                complete)
-                    _ggc_complete
-                    ;;
                 remote)
                     _ggc_remote
                     ;;
@@ -82,7 +79,6 @@ _ggc_commands() {
         'diff:Show differences'
         'status:Show repository status'
         'commit:Create commits'
-        'complete:Shell completion'
         'tag:Tag management'
         'fetch:Fetch from remote'
         'log:Show commit history'
@@ -211,15 +207,6 @@ _ggc_clean() {
         'interactive:Interactive clean'
     )
     _describe 'clean subcommands' subcommands
-}
-
-_ggc_complete() {
-    local subcommands
-    subcommands=(
-        'bash:Generate bash completion'
-        'zsh:Generate zsh completion'
-    )
-    _describe 'completion shells' subcommands
 }
 
 _ggc_remote() {

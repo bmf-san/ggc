@@ -257,7 +257,6 @@ func TestNewCmd_Constructor(t *testing.T) {
 		remoter:    &Remoter{outputWriter: &buf, helper: NewHelper()},
 		rebaser:    &Rebaser{outputWriter: &buf, helper: NewHelper()},
 		stasher:    &Stasher{outputWriter: &buf, helper: NewHelper()},
-		completer:  &Completer{gitClient: mockClient},
 		fetcher:    &Fetcher{outputWriter: &buf, helper: NewHelper()},
 		statuser:   &Statuser{outputWriter: &buf, helper: NewHelper()},
 		differ:     &Differ{outputWriter: &buf, helper: NewHelper()},
@@ -277,7 +276,7 @@ func TestNewCmd_Constructor(t *testing.T) {
 		cmd.puller == nil || cmd.pusher == nil || cmd.resetter == nil ||
 		cmd.cleaner == nil || cmd.adder == nil ||
 		cmd.remoter == nil || cmd.rebaser == nil || cmd.stasher == nil ||
-		cmd.completer == nil || cmd.fetcher == nil || cmd.statuser == nil ||
+		cmd.fetcher == nil || cmd.statuser == nil ||
 		cmd.differ == nil || cmd.tagger == nil || cmd.versioner == nil ||
 		cmd.configurer == nil || cmd.hooker == nil || cmd.restorer == nil {
 		t.Error("Expected all command handlers to be initialized")

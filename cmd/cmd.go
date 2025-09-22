@@ -58,7 +58,6 @@ type Cmd struct {
 	tagger       *Tagger
 	statuser     *Statuser
 	versioner    *Versioner
-	completer    *Completer
 	differ       *Differ
 	restorer     *Restorer
 	fetcher      *Fetcher
@@ -111,7 +110,6 @@ func NewCmd(client GitDeps) *Cmd {
 		tagger:       NewTagger(client),
 		statuser:     NewStatuser(client),
 		versioner:    NewVersioner(client),
-		completer:    NewCompleter(client),
 		differ:       NewDiffer(client),
 		restorer:     NewRestorer(client),
 		fetcher:      NewFetcher(client),
@@ -311,17 +309,16 @@ func (c *Cmd) handleCoreCommand(cmd string, args []string) bool {
 // routeExtendedCommand routes to extended command handlers
 func (c *Cmd) routeExtendedCommand(cmd string, args []string) {
 	extendedCommands := map[string]func([]string){
-		"remote":   c.remoter.Remote,
-		"rebase":   c.rebaser.Rebase,
-		"stash":    c.stasher.Stash,
-		"config":   c.configurer.Config,
-		"hook":     c.hooker.Hook,
-		"tag":      c.tagger.Tag,
-		"status":   c.statuser.Status,
-		"complete": c.completer.Complete,
-		"fetch":    c.fetcher.Fetch,
-		"diff":     c.differ.Diff,
-		"restore":  c.restorer.Restore,
+		"remote":  c.remoter.Remote,
+		"rebase":  c.rebaser.Rebase,
+		"stash":   c.stasher.Stash,
+		"config":  c.configurer.Config,
+		"hook":    c.hooker.Hook,
+		"tag":     c.tagger.Tag,
+		"status":  c.statuser.Status,
+		"fetch":   c.fetcher.Fetch,
+		"diff":    c.differ.Diff,
+		"restore": c.restorer.Restore,
 	}
 
 	if handler, exists := extendedCommands[cmd]; exists {
