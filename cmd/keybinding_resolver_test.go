@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/bmf-san/ggc/v5/config"
+	"github.com/bmf-san/ggc/v6/config"
 )
 
 func TestKeyBindingResolverLayering(t *testing.T) {
