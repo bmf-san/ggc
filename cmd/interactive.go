@@ -15,8 +15,8 @@ import (
 	"golang.org/x/term"
 	"golang.org/x/text/width"
 
-	"github.com/bmf-san/ggc/v5/config"
-	"github.com/bmf-san/ggc/v5/git"
+	"github.com/bmf-san/ggc/v6/config"
+	"github.com/bmf-san/ggc/v6/git"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer

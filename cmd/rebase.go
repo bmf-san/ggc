@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmf-san/ggc/v5/git"
+	"github.com/bmf-san/ggc/v6/git"
 )
 
 // Rebaser handles rebase operations.

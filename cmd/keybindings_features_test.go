@@ -9,7 +9,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/bmf-san/ggc/v5/config"
+	"github.com/bmf-san/ggc/v6/config"
 )
 
 // TestKeyStroke tests the KeyStroke struct and its methods
