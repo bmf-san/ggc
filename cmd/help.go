@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v5/cmd/templates"
+	"github.com/bmf-san/ggc/v6/cmd/templates"
 )
 
 // Helper provides help message functionality.

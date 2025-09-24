@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/bmf-san/ggc/v5/git"
+	"github.com/bmf-san/ggc/v6/git"
 )
 
 // Executer is an interface for executing commands.
