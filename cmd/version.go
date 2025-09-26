@@ -80,13 +80,20 @@ func (v *Versioner) updateVersionInfoFromBuild(configManager *config.Manager, lo
 	if !shouldUpdate {
 		return
 	}
+
+	updated := false
 	if newVersion != "" {
 		v.updateConfigValue(configManager, "meta.version", newVersion)
+		updated = true
 	}
 	if newCommit != "" {
 		v.updateConfigValue(configManager, "meta.commit", newCommit)
+		updated = true
 	}
-	*loadedConfig = *configManager.GetConfig()
+
+	if updated {
+		*loadedConfig = *configManager.GetConfig()
+	}
 }
 
 func (v *Versioner) resolveBuildUpdates(loadedConfig *config.Config) (string, string, bool) {
@@ -130,11 +137,7 @@ func (v *Versioner) shouldUpdateVersion(newVersion, currentVersion string) bool 
 		return false
 	}
 
-	if newer := shouldUpdateToNewerVersion(newVersion, currentVersion); newer {
-		return true
-	}
-
-	return false
+	return shouldUpdateToNewerVersion(newVersion, currentVersion)
 }
 
 // shouldUpdateCommit determines if commit should be updated
