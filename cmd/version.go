@@ -76,26 +76,44 @@ func (v *Versioner) ensureCreatedAtSet(configManager *config.Manager, loadedConf
 
 // updateVersionInfoFromBuild updates version info from build info or ldflags
 func (v *Versioner) updateVersionInfoFromBuild(configManager *config.Manager, loadedConfig *config.Config) {
-	if getVersionInfo == nil {
+	newVersion, newCommit, shouldUpdate := v.resolveBuildUpdates(loadedConfig)
+	if !shouldUpdate {
 		return
+	}
+	if newVersion != "" {
+		v.updateConfigValue(configManager, "meta.version", newVersion)
+	}
+	if newCommit != "" {
+		v.updateConfigValue(configManager, "meta.commit", newCommit)
+	}
+	*loadedConfig = *configManager.GetConfig()
+}
+
+func (v *Versioner) resolveBuildUpdates(loadedConfig *config.Config) (string, string, bool) {
+	if getVersionInfo == nil {
+		return "", "", false
 	}
 	newVersion, newCommit := getVersionInfo()
 	if newVersion == "" && newCommit == "" {
-		return
+		return "", "", false
 	}
 	forceUpdate := v.shouldForceUpdateFromBuild(newVersion, newCommit, loadedConfig)
-	shouldUpdateVersion := (newVersion != "" && forceUpdate) || v.shouldUpdateVersion(newVersion, loadedConfig.Meta.Version)
-	shouldUpdateCommit := (newCommit != "" && forceUpdate) || v.shouldUpdateCommit(newCommit, loadedConfig.Meta.Commit)
+	versionUpdate := buildUpdateValue(newVersion, loadedConfig.Meta.Version, forceUpdate, v.shouldUpdateVersion)
+	commitUpdate := buildUpdateValue(newCommit, loadedConfig.Meta.Commit, forceUpdate, v.shouldUpdateCommit)
+	if versionUpdate == "" && commitUpdate == "" {
+		return "", "", false
+	}
+	return versionUpdate, commitUpdate, true
+}
 
-	if shouldUpdateVersion {
-		v.updateConfigValue(configManager, "meta.version", newVersion)
+func buildUpdateValue(newValue, currentValue string, force bool, shouldUpdate func(string, string) bool) string {
+	if newValue == "" {
+		return ""
 	}
-	if shouldUpdateCommit {
-		v.updateConfigValue(configManager, "meta.commit", newCommit)
+	if force || shouldUpdate(newValue, currentValue) {
+		return newValue
 	}
-	if shouldUpdateVersion || shouldUpdateCommit {
-		*loadedConfig = *configManager.GetConfig()
-	}
+	return ""
 }
 
 // shouldUpdateVersion determines if version should be updated
