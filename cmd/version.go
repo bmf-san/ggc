@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bmf-san/ggc/v6/config"
@@ -81,8 +83,9 @@ func (v *Versioner) updateVersionInfoFromBuild(configManager *config.Manager, lo
 	if newVersion == "" && newCommit == "" {
 		return
 	}
-	shouldUpdateVersion := v.shouldUpdateVersion(newVersion, loadedConfig.Meta.Version)
-	shouldUpdateCommit := v.shouldUpdateCommit(newCommit, loadedConfig.Meta.Commit)
+	forceUpdate := v.shouldForceUpdateFromBuild(newVersion, newCommit, loadedConfig)
+	shouldUpdateVersion := (newVersion != "" && forceUpdate) || v.shouldUpdateVersion(newVersion, loadedConfig.Meta.Version)
+	shouldUpdateCommit := (newCommit != "" && forceUpdate) || v.shouldUpdateCommit(newCommit, loadedConfig.Meta.Commit)
 
 	if shouldUpdateVersion {
 		v.updateConfigValue(configManager, "meta.version", newVersion)
@@ -97,12 +100,45 @@ func (v *Versioner) updateVersionInfoFromBuild(configManager *config.Manager, lo
 
 // shouldUpdateVersion determines if version should be updated
 func (v *Versioner) shouldUpdateVersion(newVersion, currentVersion string) bool {
-	return newVersion != "" && (currentVersion == "dev" || currentVersion != newVersion)
+	if newVersion == "" {
+		return false
+	}
+
+	if currentVersion == "dev" || currentVersion == "" {
+		return true
+	}
+
+	if newVersion == currentVersion {
+		return false
+	}
+
+	if newer := shouldUpdateToNewerVersion(newVersion, currentVersion); newer {
+		return true
+	}
+
+	return false
 }
 
 // shouldUpdateCommit determines if commit should be updated
 func (v *Versioner) shouldUpdateCommit(newCommit, currentCommit string) bool {
 	return newCommit != "" && (currentCommit == "unknown" || currentCommit != newCommit)
+}
+
+// shouldForceUpdateFromBuild determines if config should be updated to match build info even without a semantic upgrade
+func (v *Versioner) shouldForceUpdateFromBuild(buildVersion, buildCommit string, loadedConfig *config.Config) bool {
+	if loadedConfig == nil {
+		return false
+	}
+
+	if buildVersion != "" && buildVersion != loadedConfig.Meta.Version {
+		return true
+	}
+
+	if buildCommit != "" && buildCommit != loadedConfig.Meta.Commit {
+		return true
+	}
+
+	return false
 }
 
 // updateConfigValue updates a config value and handles errors
@@ -138,4 +174,80 @@ func (v *Versioner) getCommitString(commit string) string {
 		return "unknown"
 	}
 	return commit
+}
+
+// shouldUpdateToNewerVersion determines if newVersion represents a semantic upgrade over currentVersion
+func shouldUpdateToNewerVersion(newVersion, currentVersion string) bool {
+	if cmp, ok := compareSemanticVersions(newVersion, currentVersion); ok {
+		return cmp > 0
+	}
+
+	return newVersion != currentVersion
+}
+
+// compareSemanticVersions compares two semantic version strings.
+// Returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal. ok is false if either version is not a semantic version.
+func compareSemanticVersions(v1, v2 string) (int, bool) {
+	segments1, ok1 := parseVersionSegments(v1)
+	segments2, ok2 := parseVersionSegments(v2)
+	if !ok1 || !ok2 {
+		return 0, false
+	}
+
+	maxLen := len(segments1)
+	if len(segments2) > maxLen {
+		maxLen = len(segments2)
+	}
+
+	for i := 0; i < maxLen; i++ {
+		s1 := segmentAt(segments1, i)
+		s2 := segmentAt(segments2, i)
+		if s1 > s2 {
+			return 1, true
+		}
+		if s1 < s2 {
+			return -1, true
+		}
+	}
+
+	return 0, true
+}
+
+// parseVersionSegments converts semantic version string into its numeric segments.
+func parseVersionSegments(version string) ([]int, bool) {
+	if version == "" {
+		return nil, false
+	}
+
+	trimmed := strings.TrimSpace(strings.ToLower(version))
+	trimmed = strings.TrimPrefix(trimmed, "v")
+	if idx := strings.IndexAny(trimmed, "-+"); idx != -1 {
+		trimmed = trimmed[:idx]
+	}
+	if trimmed == "" {
+		return nil, false
+	}
+
+	parts := strings.Split(trimmed, ".")
+	segments := make([]int, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			return nil, false
+		}
+		num, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, false
+		}
+		segments = append(segments, num)
+	}
+
+	return segments, true
+}
+
+// segmentAt fetches the segment at index i or returns 0 when out of range
+func segmentAt(segments []int, i int) int {
+	if i >= len(segments) {
+		return 0
+	}
+	return segments[i]
 }
