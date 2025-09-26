@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/bmf-san/ggc/v6/internal/testutil"
@@ -167,15 +168,9 @@ func TestNewConfigManager(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
 	cm := NewConfigManager(mockClient)
 
-	if cm == nil {
-		t.Fatal("Expected config manager to be created")
-	}
-	if cm.config == nil {
-		t.Fatal("Expected config to be initialized")
-	}
-	if cm.configPath != "" {
-		t.Errorf("Expected configPath to be empty initially, got %s", cm.configPath)
-	}
+	require.NotNil(t, cm, "Expected config manager to be created")
+	require.NotNil(t, cm.config, "Expected config to be initialized")
+	require.Empty(t, cm.configPath, "Expected configPath to be empty initially")
 
 	if cm.config.Default.Branch != "main" {
 		t.Errorf("Expected default branch to be 'main', got %s", cm.config.Default.Branch)

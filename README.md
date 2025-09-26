@@ -28,6 +28,7 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 
 - Traditional command-line interface (CLI): Run ggc <command> [args] to execute specific operations directly.
 - Interactive interface: Run ggc with no arguments to launch an incremental search UI for command selection.
+- **Workflow functionality**: Build and execute multi-command workflows in interactive mode (e.g., add → commit → push)
 - Simple commands for common Git operations (add, push, pull, branch, log, etc.)
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
@@ -203,12 +204,25 @@ ggc
 - `Enter`: Execute selected command
 - `Ctrl+c`: Exit interactive mode
 
+**Workflow Operations:**
+- `Tab`: Add selected command to workflow
+- `Ctrl+t`: Toggle workflow detail view
+- `c`: Clear workflow (in workflow view)
+- `Enter`: Execute entire workflow (in workflow view)
+
 **Command Execution:**
 - If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
 - After command execution, results are displayed and you can press Enter to continue
 - After viewing results, you return to the command selection screen for continuous use
 - Type `"quit"` or use `Ctrl+c` to exit interactive mode
 - All UI and prompts are in English
+
+**Workflow Feature:**
+- Build multi-command workflows by adding commands with `Tab`
+- Commands are executed sequentially when you run the workflow
+- Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
+- Workflows persist after execution for reuse
+- Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
 
 **Examples of Fuzzy Search:**
 - `"bd"` → finds `"branch delete"`
@@ -332,12 +346,12 @@ aliases:
     quick:
         - status
         - add .
-        - commit tmp
+        - commit
     st: status
     sync:
         - pull current
         - add .
-        - commit tmp
+        - commit
         - push current
 ```
 
@@ -371,6 +385,10 @@ interactive:
     delete_word: "ctrl+w"
     clear_line: "ctrl+u"
     delete_to_end: "ctrl+k"
+    # Workflow keybindings
+    add_to_workflow: "tab"
+    toggle_workflow_view: "ctrl+t"
+    clear_workflow: "c"
 ```
 
 ### Supported Key Format Notations
@@ -481,6 +499,7 @@ Here are some common keybinding action names you can customize:
 - **Editing**: `delete_word`, `clear_line`, `delete_to_end`
 - **Cursor Movement**: `move_to_beginning`, `move_to_end`, `move_word_left`, `move_word_right`
 - **Control**: `execute`, `cancel`, `quit`
+- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `clear_workflow`
 
 #### Special Key Support
 

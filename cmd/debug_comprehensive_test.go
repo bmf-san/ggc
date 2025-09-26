@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Test NewDebugger constructor
@@ -12,15 +14,9 @@ func TestNewDebugger_Coverage(t *testing.T) {
 	debugger := NewDebugger()
 
 	// Verify all fields are properly initialized
-	if debugger == nil {
-		t.Fatal("NewDebugger returned nil")
-	}
-	if debugger.outputWriter != os.Stdout {
-		t.Error("outputWriter should be set to os.Stdout")
-	}
-	if debugger.helper == nil {
-		t.Error("helper should be initialized")
-	}
+	require.NotNil(t, debugger, "NewDebugger returned nil")
+	require.Equal(t, os.Stdout, debugger.outputWriter, "outputWriter should be set to os.Stdout")
+	require.NotNil(t, debugger.helper, "helper should be initialized")
 }
 
 // Test DebugKeys method edge cases

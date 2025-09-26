@@ -812,3 +812,36 @@ func TestCmd_waitForContinue(t *testing.T) {
 	// but we can verify the function is callable
 	_ = cmd.waitForContinue
 }
+
+// TestCmd_InteractiveWorkflowIntegration tests workflow integration with Cmd
+func TestCmd_InteractiveWorkflowIntegration(t *testing.T) {
+	// Setup
+	mockClient := &mockGitClient{}
+	cmd := NewCmd(mockClient)
+
+	// Test that NewUI creates workflow-enabled UI
+	ui := NewUI(mockClient, cmd)
+
+	if ui.workflow == nil {
+		t.Error("Expected UI to have workflow initialized")
+	}
+
+	if ui.workflowEx == nil {
+		t.Error("Expected UI to have workflow executor initialized")
+	}
+
+	// Test workflow operations
+	id := ui.AddToWorkflow("add", []string{"."}, "add .")
+	if id != 1 {
+		t.Errorf("Expected workflow ID 1, got %d", id)
+	}
+
+	if ui.workflow.IsEmpty() {
+		t.Error("Expected workflow to have steps after adding")
+	}
+
+	ui.ClearWorkflow()
+	if !ui.workflow.IsEmpty() {
+		t.Error("Expected workflow to be empty after clearing")
+	}
+}

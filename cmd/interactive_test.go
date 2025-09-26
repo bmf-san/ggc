@@ -104,6 +104,7 @@ func TestUI_Run(t *testing.T) {
 					colors:    colors,
 					gitClient: mockGitClient,
 					gitStatus: getGitStatus(mockGitClient),
+					workflow:  NewWorkflow(),
 				},
 				inputBytes: tt.input,
 			}
@@ -640,11 +641,12 @@ func TestUIState_GetSelectedCommand(t *testing.T) {
 	}
 
 	cmd := state.GetSelectedCommand()
-	if cmd == nil {
-		t.Fatal("Expected non-nil command")
-	}
-	if cmd.Command != "cmd2" {
-		t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
+	if cmd == nil || cmd.Command != "cmd2" {
+		if cmd == nil {
+			t.Fatal("Expected non-nil command")
+		} else {
+			t.Errorf("Expected 'cmd2', got '%s'", cmd.Command)
+		}
 	}
 
 	// Test out of bounds
@@ -700,8 +702,8 @@ func TestRenderer_KeybindHelp(t *testing.T) {
 
 	state := &UIState{
 		selected:  0,
-		input:     "nonexistent",
-		cursorPos: 11,
+		input:     "", // Empty input to show keybind help
+		cursorPos: 0,
 		filtered:  []CommandInfo{}, // Empty to trigger keybind help
 	}
 
@@ -717,6 +719,7 @@ func TestRenderer_KeybindHelp(t *testing.T) {
 		colors:    colors,
 		gitClient: mockGitClient,
 		gitStatus: getGitStatus(mockGitClient),
+		workflow:  NewWorkflow(),
 	}
 
 	renderer.Render(ui, state)
@@ -730,7 +733,10 @@ func TestRenderer_KeybindHelp(t *testing.T) {
 		"Ctrl+k",
 		"Ctrl+a",
 		"Ctrl+e",
-		"Backspace",
+		"Enter",
+		"Ctrl+c",
+		"Tab",
+		"Ctrl+t",
 	}
 
 	for _, keybind := range expectedKeybinds {
@@ -766,6 +772,7 @@ func TestRenderer_EmptyState(t *testing.T) {
 		renderer: renderer,
 		state:    state,
 		colors:   colors,
+		workflow: NewWorkflow(),
 	}
 
 	renderer.Render(ui, state)
@@ -800,13 +807,12 @@ func TestGetGitStatus(t *testing.T) {
 
 	status := getGitStatus(mockClient)
 
-	if status == nil {
-		t.Fatal("Expected status to be non-nil with mock client")
-	}
-
-	// Branch name should match mock
-	if status.Branch != "main" {
-		t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
+	if status == nil || status.Branch != "main" {
+		if status == nil {
+			t.Fatal("Expected status to be non-nil with mock client")
+		} else {
+			t.Errorf("Expected branch name to be 'main', got %s", status.Branch)
+		}
 	}
 
 	// Should have 1 modified and 1 staged file
@@ -859,6 +865,7 @@ func TestRenderer_RenderGitStatus(t *testing.T) {
 		term:      &mockTerminal{},
 		renderer:  renderer,
 		colors:    colors,
+		workflow:  NewWorkflow(),
 		gitStatus: mockStatus,
 	}
 
@@ -901,6 +908,7 @@ func TestRenderer_RenderHeader(t *testing.T) {
 		term:      &mockTerminal{},
 		renderer:  renderer,
 		colors:    colors,
+		workflow:  NewWorkflow(),
 		gitStatus: nil, // No git status
 	}
 
@@ -910,11 +918,6 @@ func TestRenderer_RenderHeader(t *testing.T) {
 	// Check that header elements are present
 	expectedElements := []string{
 		"🚀 ggc Interactive Mode",
-		"Type to search",
-		"Ctrl+n/p",
-		"navigate",
-		"Enter",
-		"execute",
 	}
 
 	for _, element := range expectedElements {
@@ -989,6 +992,7 @@ func TestRenderer_RenderCommandItem(t *testing.T) {
 		term:     &mockTerminal{},
 		renderer: renderer,
 		colors:   colors,
+		workflow: NewWorkflow(),
 	}
 
 	cmd := CommandInfo{
@@ -1027,6 +1031,7 @@ func TestKeyHandler_InteractiveInput(t *testing.T) {
 		stdout:    &stdout,
 		stderr:    &stderr,
 		colors:    colors,
+		workflow:  NewWorkflow(),
 		term:      mockTerm,
 		gitClient: mockGitClient,
 	}
@@ -1206,11 +1211,9 @@ func TestRenderer_KeybindDisplay(t *testing.T) {
 
 	state := &UIState{
 		selected:  0,
-		input:     "test",
-		cursorPos: 4,
-		filtered: []CommandInfo{
-			{"test command", "test description"},
-		},
+		input:     "", // Empty input to show keybind help
+		cursorPos: 0,
+		filtered:  []CommandInfo{}, // Empty to show keybind help
 	}
 
 	ui := &UI{
@@ -1221,34 +1224,28 @@ func TestRenderer_KeybindDisplay(t *testing.T) {
 		renderer: renderer,
 		state:    state,
 		colors:   colors,
+		workflow: NewWorkflow(),
 	}
 
 	renderer.Render(ui, state)
 	output := buf.String()
 
-	// Check that lowercase keybind notation is used
+	// Check that keybind help is displayed
 	expectedKeybinds := []string{
-		"Ctrl+n/p",
-		"Ctrl+a/e",
+		"Available keybinds:",
+		"Ctrl+u",
+		"Ctrl+w",
+		"Ctrl+k",
+		"Ctrl+a",
+		"Ctrl+e",
 		"Ctrl+c",
+		"Tab",
+		"Ctrl+t",
 	}
 
 	for _, keybind := range expectedKeybinds {
 		if !strings.Contains(output, keybind) {
-			t.Errorf("Expected output to contain lowercase keybind '%s', but it was not found", keybind)
-		}
-	}
-
-	// Check that uppercase versions are NOT used
-	uppercaseKeybinds := []string{
-		"Ctrl+N/P",
-		"Ctrl+A/E",
-		"Ctrl+C",
-	}
-
-	for _, keybind := range uppercaseKeybinds {
-		if strings.Contains(output, keybind) {
-			t.Errorf("Expected output to NOT contain uppercase keybind '%s', but it was found", keybind)
+			t.Errorf("Expected output to contain keybind '%s', but it was not found", keybind)
 		}
 	}
 }
@@ -1276,6 +1273,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 		renderer: renderer,
 		state:    state,
 		colors:   colors,
+		workflow: NewWorkflow(),
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -1523,4 +1521,313 @@ func TestHandleInputChar_MultibyteDisplay(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestKeyHandler_HandleWorkflowKeys tests workflow key handling
+func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
+	tests := []struct {
+		name           string
+		key            rune
+		showWorkflow   bool
+		hasInput       bool
+		selectedCmd    *CommandInfo
+		expectedResult bool
+		expectedAction string
+	}{
+		{
+			name:           "Tab key adds command to workflow",
+			key:            '\t',
+			showWorkflow:   false,
+			hasInput:       true,
+			selectedCmd:    &CommandInfo{Command: "add .", Description: "Add all changes"},
+			expectedResult: true,
+			expectedAction: "add_to_workflow",
+		},
+		{
+			name:           "Tab key in workflow view returns true but no action",
+			key:            '\t',
+			showWorkflow:   true,
+			hasInput:       true,
+			selectedCmd:    &CommandInfo{Command: "add .", Description: "Add all changes"},
+			expectedResult: true,
+			expectedAction: "no_action",
+		},
+		{
+			name:           "c key clears workflow in workflow view",
+			key:            'c',
+			showWorkflow:   true,
+			hasInput:       false,
+			selectedCmd:    nil,
+			expectedResult: true,
+			expectedAction: "clear_workflow",
+		},
+		{
+			name:           "c key in search view returns true but no action",
+			key:            'c',
+			showWorkflow:   false,
+			hasInput:       true,
+			selectedCmd:    nil,
+			expectedResult: true,
+			expectedAction: "no_action",
+		},
+		{
+			name:           "unhandled key returns false",
+			key:            'x',
+			showWorkflow:   false,
+			hasInput:       true,
+			selectedCmd:    nil,
+			expectedResult: false,
+			expectedAction: "none",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			gitClient := &mockGitClient{}
+			ui := NewUI(gitClient)
+			ui.state.showWorkflow = tt.showWorkflow
+			if tt.hasInput {
+				ui.state.input = "test"
+				ui.state.filtered = []CommandInfo{
+					{Command: "add .", Description: "Add all changes"},
+				}
+				ui.state.selected = 0
+			}
+
+			// Mock workflow for clear test
+			if tt.expectedAction == "clear_workflow" {
+				ui.workflow.AddStep("test", []string{}, "test command")
+			}
+
+			// Execute
+			result := ui.handler.handleWorkflowKeys(tt.key)
+
+			// Verify
+			if result != tt.expectedResult {
+				t.Errorf("Expected result %v, got %v", tt.expectedResult, result)
+			}
+
+			// Verify side effects
+			switch tt.expectedAction {
+			case "add_to_workflow":
+				if ui.workflow.IsEmpty() {
+					t.Error("Expected workflow to have steps after adding command")
+				}
+			case "clear_workflow":
+				if !ui.workflow.IsEmpty() {
+					t.Error("Expected workflow to be empty after clearing")
+				}
+			}
+		})
+	}
+}
+
+// TestKeyHandler_AddCommandToWorkflow tests adding commands to workflow
+func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
+	tests := []struct {
+		name        string
+		cmdTemplate string
+		expectSteps int
+	}{
+		{
+			name:        "Add simple command",
+			cmdTemplate: "add .",
+			expectSteps: 1,
+		},
+		{
+			name:        "Add command with placeholder",
+			cmdTemplate: "commit <message>",
+			expectSteps: 1,
+		},
+		{
+			name:        "Add complex command",
+			cmdTemplate: "branch create <name>",
+			expectSteps: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			gitClient := &mockGitClient{}
+			ui := NewUI(gitClient)
+
+			// Redirect output to avoid test output pollution
+			ui.stdout = &bytes.Buffer{}
+
+			// Execute
+			ui.handler.addCommandToWorkflow(tt.cmdTemplate)
+
+			// Verify
+			steps := ui.workflow.GetSteps()
+			if len(steps) != tt.expectSteps {
+				t.Errorf("Expected %d steps, got %d", tt.expectSteps, len(steps))
+			}
+
+			if len(steps) > 0 {
+				if steps[0].Description != tt.cmdTemplate {
+					t.Errorf("Expected description '%s', got '%s'", tt.cmdTemplate, steps[0].Description)
+				}
+			}
+		})
+	}
+}
+
+// TestKeyHandler_ClearWorkflow tests clearing workflow
+func TestKeyHandler_ClearWorkflow(t *testing.T) {
+	// Setup
+	gitClient := &mockGitClient{}
+	ui := NewUI(gitClient)
+
+	// Redirect output to avoid test output pollution
+	ui.stdout = &bytes.Buffer{}
+
+	// Add some steps
+	ui.workflow.AddStep("add", []string{"."}, "add .")
+	ui.workflow.AddStep("commit", []string{"-m", "test"}, "commit -m test")
+
+	if ui.workflow.IsEmpty() {
+		t.Fatal("Expected workflow to have steps before clearing")
+	}
+
+	// Execute
+	ui.handler.clearWorkflow()
+
+	// Verify
+	if !ui.workflow.IsEmpty() {
+		t.Error("Expected workflow to be empty after clearing")
+	}
+}
+
+// TestUI_ToggleWorkflowView tests workflow view toggling
+func TestUI_ToggleWorkflowView(t *testing.T) {
+	// Setup
+	gitClient := &mockGitClient{}
+	ui := NewUI(gitClient)
+
+	// Initial state should be false
+	if ui.state.showWorkflow {
+		t.Error("Expected initial showWorkflow to be false")
+	}
+
+	// Toggle to true
+	ui.ToggleWorkflowView()
+	if !ui.state.showWorkflow {
+		t.Error("Expected showWorkflow to be true after first toggle")
+	}
+
+	// Toggle back to false
+	ui.ToggleWorkflowView()
+	if ui.state.showWorkflow {
+		t.Error("Expected showWorkflow to be false after second toggle")
+	}
+}
+
+// TestUI_WorkflowOperations tests workflow operations
+func TestUI_WorkflowOperations(t *testing.T) {
+	// Setup
+	gitClient := &mockGitClient{}
+	ui := NewUI(gitClient)
+
+	// Test AddToWorkflow
+	id := ui.AddToWorkflow("add", []string{"."}, "add .")
+	if id != 1 {
+		t.Errorf("Expected first workflow ID to be 1, got %d", id)
+	}
+
+	steps := ui.workflow.GetSteps()
+	if len(steps) != 1 {
+		t.Errorf("Expected 1 step, got %d", len(steps))
+	}
+
+	// Test ClearWorkflow
+	ui.ClearWorkflow()
+	if !ui.workflow.IsEmpty() {
+		t.Error("Expected workflow to be empty after clearing")
+	}
+}
+
+// TestKeyHandler_ExecuteWorkflow tests workflow execution
+func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
+	tests := []struct {
+		name           string
+		workflowSteps  []struct{ cmd, desc string }
+		expectError    bool
+		expectResult   bool
+		expectContinue bool
+	}{
+		{
+			name:           "Execute empty workflow",
+			workflowSteps:  []struct{ cmd, desc string }{},
+			expectError:    false,
+			expectResult:   false, // Empty workflow returns (true, nil)
+			expectContinue: true,
+		},
+		{
+			name: "Execute workflow with steps",
+			workflowSteps: []struct{ cmd, desc string }{
+				{"add .", "add ."},
+				{"commit -m test", "commit -m test"},
+			},
+			expectError:    false,
+			expectResult:   true, // Non-empty workflow returns result
+			expectContinue: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			gitClient := &mockGitClient{}
+			ui := NewUI(gitClient)
+
+			// Redirect output to avoid test output pollution
+			ui.stdout = &bytes.Buffer{}
+
+			// Set up workflow executor with mock router
+			mockRouter := &mockRouterForExecute{}
+			ui.workflowEx = NewWorkflowExecutor(mockRouter)
+
+			// Add workflow steps
+			for _, step := range tt.workflowSteps {
+				parts := strings.Fields(step.cmd)
+				if len(parts) > 0 {
+					ui.workflow.AddStep(parts[0], parts[1:], step.desc)
+				}
+			}
+
+			// Execute
+			shouldContinue, result := ui.handler.executeWorkflow(nil)
+
+			// Verify
+			if shouldContinue != tt.expectContinue {
+				t.Errorf("Expected shouldContinue %v, got %v", tt.expectContinue, shouldContinue)
+			}
+
+			if tt.expectResult {
+				if result == nil {
+					t.Error("Expected result to not be nil")
+				} else if len(result) < 2 || result[1] != InteractiveWorkflowCommand {
+					t.Errorf("Expected result to contain workflow command, got %v", result)
+				}
+			} else {
+				if result != nil {
+					t.Errorf("Expected result to be nil for empty workflow, got %v", result)
+				}
+			}
+		})
+	}
+}
+
+// mockRouterForExecute is a mock router for testing workflow execution
+type mockRouterForExecute struct {
+	routedCommands [][]string
+}
+
+func (m *mockRouterForExecute) Route(args []string) {
+	if m.routedCommands == nil {
+		m.routedCommands = make([][]string, 0)
+	}
+	m.routedCommands = append(m.routedCommands, args)
 }

@@ -40,13 +40,13 @@ func TestDiffer_Constructor(t *testing.T) {
 	if differ == nil {
 		t.Fatal("Expected NewDiffer to return a non-nil Differ")
 	}
-	if differ.gitClient == nil {
+	if differ != nil && differ.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if differ.outputWriter == nil {
+	if differ != nil && differ.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if differ.helper == nil {
+	if differ != nil && differ.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }

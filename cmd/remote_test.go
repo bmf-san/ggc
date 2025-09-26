@@ -48,13 +48,13 @@ func TestRemoter_Constructor(t *testing.T) {
 	if remoter == nil {
 		t.Fatal("Expected NewRemoter to return a non-nil Remoter")
 	}
-	if remoter.gitClient == nil {
+	if remoter != nil && remoter.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if remoter.outputWriter == nil {
+	if remoter != nil && remoter.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if remoter.helper == nil {
+	if remoter != nil && remoter.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }

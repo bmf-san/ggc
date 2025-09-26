@@ -50,13 +50,13 @@ func TestRestorer_Constructor(t *testing.T) {
 	if restorer == nil {
 		t.Fatal("Expected NewRestorer to return a non-nil Restorer")
 	}
-	if restorer.gitClient == nil {
+	if restorer != nil && restorer.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if restorer.outputWriter == nil {
+	if restorer != nil && restorer.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if restorer.helper == nil {
+	if restorer != nil && restorer.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }
