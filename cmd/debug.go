@@ -97,7 +97,9 @@ func (d *Debugger) captureRawKeySequences(outputFile string) {
 
 	defer func() {
 		signal.Reset(os.Interrupt, syscall.SIGTERM)
-		_ = term.Restore(int(os.Stdin.Fd()), oldState)
+		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
+			_, _ = fmt.Fprintf(d.outputWriter, "Error restoring terminal: %v\n", err)
+		}
 	}()
 
 	// Start capture
@@ -110,7 +112,9 @@ func (d *Debugger) captureRawKeySequences(outputFile string) {
 		if err := debugCmd.StopCapture(); err != nil {
 			_, _ = fmt.Fprintf(d.outputWriter, "Error stopping capture: %v\n", err)
 		}
-		_ = term.Restore(int(os.Stdin.Fd()), oldState)
+		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
+			_, _ = fmt.Fprintf(d.outputWriter, "Error restoring terminal: %v\n", err)
+		}
 		os.Exit(0)
 	}()
 
