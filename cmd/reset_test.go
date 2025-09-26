@@ -40,13 +40,13 @@ func TestResetter_Constructor(t *testing.T) {
 	if resetter == nil {
 		t.Fatal("Expected NewResetter to return a non-nil Resetter")
 	}
-	if resetter.gitClient == nil {
+	if resetter != nil && resetter.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if resetter.outputWriter == nil {
+	if resetter != nil && resetter.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if resetter.helper == nil {
+	if resetter != nil && resetter.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }

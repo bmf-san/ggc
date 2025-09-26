@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -191,6 +192,8 @@ type UI struct {
 	reader     *bufio.Reader
 	contextMgr *ContextManager
 	profile    Profile
+	workflow   *Workflow
+	workflowEx *WorkflowExecutor
 }
 
 // UIState holds the current state of the interactive UI
@@ -202,6 +205,7 @@ type UIState struct {
 	context         Context   // Current UI context (input/results/search/global)
 	contextStack    []Context // Context stack for nested states
 	onContextChange func(Context, Context)
+	showWorkflow    bool // Whether to show the workflow builder
 }
 
 // UpdateFiltered updates the filtered commands based on current input using fuzzy matching
@@ -527,14 +531,20 @@ func (h *KeyHandler) GetCurrentKeyMap() *KeyBindingMap {
 			return contextMap
 		}
 	}
+
 	return DefaultKeyBindingMap()
 }
 
 // HandleKey processes UTF-8 rune input and returns true if should continue
 // This method handles both single-byte (ASCII/control) and multibyte characters
-func (h *KeyHandler) HandleKey(r rune, isSingleByte bool, oldState *term.State) (bool, []string) {
-	// Handle control characters (single-byte)
-	if isSingleByte {
+func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State) (bool, []string) {
+	// Handle workflow-specific keys first (Tab, etc.)
+	if handled := h.handleWorkflowKeys(r); handled {
+		return true, nil
+	}
+
+	// Handle control characters (ASCII range)
+	if r < 128 && unicode.IsControl(r) { // ASCII control characters
 		if handled, shouldContinue, result := h.handleControlChar(byte(r), oldState); handled {
 			return shouldContinue, result
 		}
@@ -542,9 +552,47 @@ func (h *KeyHandler) HandleKey(r rune, isSingleByte bool, oldState *term.State) 
 
 	// Handle printable characters (both ASCII and multibyte)
 	if unicode.IsPrint(r) {
-		h.ui.state.AddRune(r)
+		// Don't accept text input in workflow view
+		if !h.ui.state.showWorkflow {
+			h.ui.state.AddRune(r)
+		}
 	}
 	return true, nil
+}
+
+// handleWorkflowKeys processes workflow-related key bindings and returns (handled, result)
+func (h *KeyHandler) handleWorkflowKeys(r rune) bool {
+	km := h.GetCurrentKeyMap()
+
+	// Create KeyStroke for this character
+	keyStroke := NewCharKeyStroke(r)
+
+	// Check add to workflow
+	if km.MatchesKeyStroke("add_to_workflow", keyStroke) {
+		// Add current selection to workflow
+		if !h.ui.state.showWorkflow && h.ui.state.HasInput() {
+			selectedCmd := h.ui.state.GetSelectedCommand()
+			if selectedCmd != nil {
+				h.addCommandToWorkflow(selectedCmd.Command)
+				// Clear input after adding to workflow
+				h.ui.state.ClearInput()
+				return true
+			}
+		}
+		return true
+	}
+
+	// Check clear workflow
+	if km.MatchesKeyStroke("clear_workflow", keyStroke) {
+		// Clear workflow
+		if h.ui.state.showWorkflow {
+			h.clearWorkflow()
+			return true
+		}
+		return true
+	}
+
+	return false
 }
 
 // handleControlChar processes control characters and returns (handled, shouldContinue, result)
@@ -562,11 +610,17 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 
 		// Check each action using new KeyStroke matching
 		if km.MatchesKeyStroke("move_up", ctrlStroke) {
-			h.ui.state.MoveUp()
+			// No navigation in workflow view - just normal command navigation
+			if !h.ui.state.showWorkflow {
+				h.ui.state.MoveUp()
+			}
 			return true, true, nil
 		}
 		if km.MatchesKeyStroke("move_down", ctrlStroke) {
-			h.ui.state.MoveDown()
+			// No navigation in workflow view - just normal command navigation
+			if !h.ui.state.showWorkflow {
+				h.ui.state.MoveDown()
+			}
 			return true, true, nil
 		}
 		if km.MatchesKeyStroke("clear_line", ctrlStroke) {
@@ -587,6 +641,12 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 		}
 		if km.MatchesKeyStroke("move_to_end", ctrlStroke) {
 			h.ui.state.MoveToEnd()
+			return true, true, nil
+		}
+
+		// Check for workflow toggle
+		if km.MatchesKeyStroke("toggle_workflow_view", ctrlStroke) && h.ui.state.input == "" {
+			h.ui.ToggleWorkflowView()
 			return true, true, nil
 		}
 	}
@@ -712,6 +772,12 @@ func (h *KeyHandler) handleCtrlC(oldState *term.State) {
 
 // handleEnter handles Enter key press
 func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
+	// Handle workflow mode
+	if h.ui.state.showWorkflow {
+		// Execute workflow
+		return h.executeWorkflow(oldState)
+	}
+
 	if !h.ui.state.HasInput() {
 		return true, nil
 	}
@@ -1338,7 +1404,7 @@ func (t *defaultTerminal) restore(fd int, state *term.State) error {
 }
 
 // NewUI creates a new UI with the provided git client and loads keybindings from config
-func NewUI(gitClient git.StatusInfoReader) *UI {
+func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 	colors := NewANSIColors()
 
 	renderer := &Renderer{
@@ -1414,6 +1480,7 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 		gitStatus:  getGitStatus(gitClient),
 		contextMgr: contextManager,
 		profile:    profile,
+		workflow:   NewWorkflow(),
 	}
 	state.onContextChange = func(_ Context, newCtx Context) {
 		contextManager.SetContext(newCtx)
@@ -1424,7 +1491,40 @@ func NewUI(gitClient git.StatusInfoReader) *UI {
 		contextualMap: contextualMap,
 	}
 
+	// Set up workflow executor if router is provided
+	if len(router) > 0 && router[0] != nil {
+		ui.workflowEx = NewWorkflowExecutor(router[0])
+	}
+
 	return ui
+}
+
+// ToggleWorkflowView toggles between normal command view and workflow view
+func (ui *UI) ToggleWorkflowView() {
+	ui.state.showWorkflow = !ui.state.showWorkflow
+}
+
+// AddToWorkflow adds a command to the workflow
+func (ui *UI) AddToWorkflow(command string, args []string, description string) int {
+	return ui.workflow.AddStep(command, args, description)
+}
+
+// ClearWorkflow removes all steps from the workflow
+func (ui *UI) ClearWorkflow() {
+	ui.workflow.Clear()
+}
+
+// ExecuteWorkflow executes the current workflow
+func (ui *UI) ExecuteWorkflow() error {
+	if ui.workflowEx == nil {
+		return fmt.Errorf("workflow executor not initialized")
+	}
+
+	if ui.workflow.IsEmpty() {
+		return fmt.Errorf("workflow is empty")
+	}
+
+	return ui.workflowEx.Execute(ui.workflow)
 }
 
 // updateSize updates the terminal dimensions
@@ -1526,14 +1626,7 @@ var commands = []CommandInfo{
 	{"restore staged <file>", "Unstage file (restore from HEAD to index)"},
 	{"restore staged .", "Unstage all files"},
 	{"restore <commit> <file>", "Restore file from specific commit"},
-	{"quit", "Exit interactive mode"},
-}
-
-// InteractiveUI provides an incremental search interactive UI with custom git client.
-// Returns the selected command as []string (nil if nothing selected)
-func InteractiveUI(gitClient git.StatusInfoReader) []string {
-	ui := NewUI(gitClient)
-	return ui.Run()
+	{InteractiveQuitCommand, "Exit interactive mode"},
 }
 
 // writeError writes an error message to stderr
@@ -1602,17 +1695,30 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 
 	// Render each section
 	r.renderHeader(ui)
-	r.renderSearchPrompt(ui, state)
-	restoreCursor = r.saveCursorAtSearchPrompt(state)
+
+	// Render workflow status if it has steps and no search input
+	if !ui.workflow.IsEmpty() && !state.showWorkflow && state.input == "" {
+		r.renderWorkflowStatus(ui)
+	}
 
 	// Render content based on state
-	switch {
-	case state.input == "":
-		r.renderEmptyState(ui)
-	case len(state.filtered) == 0:
-		r.renderNoMatches(ui, state)
-	default:
-		r.renderCommandList(ui, state)
+	if state.showWorkflow {
+		r.renderWorkflowView(ui, state)
+	} else {
+		r.renderSearchPrompt(ui, state)
+		restoreCursor = r.saveCursorAtSearchPrompt(state)
+
+		switch {
+		case state.input == "":
+			r.renderEmptyStateWithWorkflow(ui)
+			// Render search keybinds only when no input
+			r.writeEmptyLine()
+			r.renderSearchKeybinds(ui)
+		case len(state.filtered) == 0:
+			r.renderNoMatches(ui, state)
+		default:
+			r.renderCommandList(ui, state)
+		}
 	}
 
 }
@@ -1631,24 +1737,6 @@ func (r *Renderer) renderHeader(ui *UI) {
 		r.renderGitStatus(ui, ui.gitStatus)
 	}
 
-	// Navigation subtitle
-	subtitle := fmt.Sprintf("%sType to search • %sCtrl+n/p%s navigate • %s←/→%s move • %sCtrl+←/→%s word • %sCtrl+a/e%s line • %sEnter%s execute • %sCtrl+c%s quit%s",
-		r.colors.BrightBlack,
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightCyan+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightCyan+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightCyan+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.BrightBlack,
-		r.colors.Reset)
-	r.writeColorln(ui, subtitle)
-	r.writeEmptyLine()
 }
 
 // renderSearchPrompt renders the search input with cursor
@@ -1731,13 +1819,7 @@ func (r *Renderer) formatInputWithCursor(state *UIState) string {
 		r.colors.Reset)
 }
 
-// renderEmptyState renders the empty input state
-func (r *Renderer) renderEmptyState(ui *UI) {
-	r.writeColorln(ui, fmt.Sprintf("%s💭 %sStart typing to search commands...%s",
-		r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
-}
-
-// renderNoMatches renders the no matches found state with keybind help
+// renderNoMatches renders the no matches found state
 func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 	// No matches message
 	r.writeColorln(ui, fmt.Sprintf("%s🔍 %sNo commands found for '%s%s%s'%s",
@@ -1747,20 +1829,47 @@ func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 		state.input,
 		r.colors.Reset+r.colors.BrightWhite,
 		r.colors.Reset))
-	r.writeEmptyLine()
+}
 
-	// Available keybinds
+// renderSearchKeybinds renders keybinds available in search UI
+func (r *Renderer) renderSearchKeybinds(ui *UI) {
+	// Basic search keybinds
 	keybinds := []struct{ key, desc string }{
 		{"←/→", "Move cursor"},
 		{"Ctrl+←/→", "Move by word"},
-		{"Option+←/→", "Move by word (macOS)"},
-		{"Option+Backspace", "Delete word (macOS)"},
 		{"Ctrl+u", "Clear all input"},
 		{"Ctrl+w", "Delete word"},
 		{"Ctrl+k", "Delete to end"},
 		{"Ctrl+a", "Move to beginning"},
 		{"Ctrl+e", "Move to end"},
-		{"Backspace", "Delete character"},
+		{"Enter", "Execute command"},
+		{"Tab", "Add to workflow"},
+		{"Ctrl+t", "Toggle workflow view"},
+		{"Ctrl+c", "Quit"},
+	}
+
+	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
+		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
+
+	for _, kb := range keybinds {
+		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
+			kb.key,
+			r.colors.Reset,
+			r.colors.BrightBlack,
+			kb.desc,
+			r.colors.Reset))
+	}
+}
+
+// renderWorkflowKeybinds renders keybinds available in workflow UI
+func (r *Renderer) renderWorkflowKeybinds(ui *UI) {
+	// Workflow-specific keybinds
+	keybinds := []struct{ key, desc string }{
+		{"Enter", "Execute workflow"},
+		{"c", "Clear workflow"},
+		{"Ctrl+t", "Back to search view"},
+		{"Ctrl+c", "Quit"},
 	}
 
 	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
@@ -1856,6 +1965,88 @@ func (r *Renderer) writeColorln(_ *UI, text string) {
 	_, _ = fmt.Fprint(r.writer, text+"\r\n")
 }
 
+// renderEmptyStateWithWorkflow renders the empty state with workflow info
+func (r *Renderer) renderEmptyStateWithWorkflow(ui *UI) {
+	r.writeColorln(ui, fmt.Sprintf("%s📝 Start typing to search commands...%s",
+		r.colors.BrightBlue,
+		r.colors.Reset))
+}
+
+// renderWorkflowStatus renders workflow information at the top of the UI
+func (r *Renderer) renderWorkflowStatus(ui *UI) {
+	steps := ui.workflow.GetSteps()
+	if len(steps) == 0 {
+		return
+	}
+
+	// Workflow status bar
+	statusText := fmt.Sprintf("%s📋 Workflow Ready (%d steps):%s",
+		r.colors.BrightYellow+r.colors.Bold,
+		len(steps),
+		r.colors.Reset)
+
+	// Show first few steps inline
+	stepTexts := make([]string, 0, min(3, len(steps)))
+	for i, step := range steps[:min(3, len(steps))] {
+		stepText := fmt.Sprintf("%s%d.%s %s%s%s",
+			r.colors.BrightBlue+r.colors.Bold,
+			i+1,
+			r.colors.Reset,
+			r.colors.BrightGreen,
+			step.Description,
+			r.colors.Reset)
+		stepTexts = append(stepTexts, stepText)
+	}
+
+	if len(steps) > 3 {
+		stepTexts = append(stepTexts, fmt.Sprintf("%s...+%d more%s",
+			r.colors.BrightBlack, len(steps)-3, r.colors.Reset))
+	}
+
+	r.writeColorln(ui, statusText+" "+strings.Join(stepTexts, " → "))
+	r.writeColorln(ui, "")
+}
+
+// renderWorkflowView renders the detailed workflow view
+func (r *Renderer) renderWorkflowView(ui *UI, _ *UIState) {
+	steps := ui.workflow.GetSteps()
+
+	// Detailed workflow header
+	r.writeColorln(ui, fmt.Sprintf("%s📋 Workflow Details (%d steps)%s",
+		r.colors.BrightYellow+r.colors.Bold,
+		len(steps),
+		r.colors.Reset))
+	r.writeColorln(ui, "")
+
+	if len(steps) == 0 {
+		r.writeColorln(ui, fmt.Sprintf("%s  No steps in workflow%s",
+			r.colors.BrightBlack,
+			r.colors.Reset))
+		r.writeColorln(ui, "")
+
+		// Render workflow keybinds even for empty workflow
+		r.renderWorkflowKeybinds(ui)
+		return
+	}
+
+	// Render all workflow steps
+	for i, step := range steps {
+		stepLine := fmt.Sprintf("  %s%d.%s %s%s%s",
+			r.colors.BrightBlue+r.colors.Bold,
+			i+1,
+			r.colors.Reset,
+			r.colors.BrightGreen+r.colors.Bold,
+			step.Description,
+			r.colors.Reset)
+		r.writeColorln(ui, stepLine)
+	}
+
+	r.writeColorln(ui, "")
+
+	// Render workflow keybinds
+	r.renderWorkflowKeybinds(ui)
+}
+
 // renderGitStatus renders the Git repository status information
 func (r *Renderer) renderGitStatus(ui *UI, status *GitStatus) {
 	var parts []string
@@ -1915,19 +2106,25 @@ func (r *Renderer) writeEmptyLine() {
 
 // calculateMaxCommandLength calculates the maximum command length for alignment
 func (r *Renderer) calculateMaxCommandLength(filtered []CommandInfo) int {
-	maxCmdLen := 0
-	for _, cmd := range filtered {
-		if len(cmd.Command) > maxCmdLen {
-			maxCmdLen = len(cmd.Command)
-		}
+	if len(filtered) == 0 {
+		return 0
 	}
-	return maxCmdLen
+	maxCmd := slices.MaxFunc(filtered, func(a, b CommandInfo) int {
+		return len(a.Command) - len(b.Command)
+	})
+	return len(maxCmd.Command)
 }
 
 // setupTerminal configures terminal raw mode and returns the old state and error status
 func (ui *UI) setupTerminal() (*term.State, bool) {
 	var oldState *term.State
 	if f, ok := ui.stdin.(*os.File); ok {
+		// Check if it's a real terminal (TTY) - skip for non-TTY or when term is nil
+		if ui.term == nil || !term.IsTerminal(int(f.Fd())) {
+			// Not a real terminal, skip raw mode setup for debugging
+			return nil, true
+		}
+
 		fd := int(f.Fd())
 		var err error
 		oldState, err = ui.term.makeRaw(fd)
@@ -1941,11 +2138,13 @@ func (ui *UI) setupTerminal() (*term.State, bool) {
 
 // Run executes the interactive UI
 func (ui *UI) Run() []string {
-	oldState, ok := ui.setupTerminal()
-	if !ok {
+	oldState, reader, isRawMode := ui.initializeTerminal()
+	if oldState == nil && isRawMode {
 		return nil
 	}
-	if f, ok := ui.stdin.(*os.File); ok {
+
+	// Set up terminal restoration for raw mode
+	if f, ok := ui.stdin.(*os.File); ok && isRawMode {
 		fd := int(f.Fd())
 		defer func() {
 			if err := ui.term.restore(fd, oldState); err != nil {
@@ -1954,27 +2153,74 @@ func (ui *UI) Run() []string {
 		}()
 	}
 
-	ui.reader = bufio.NewReader(ui.stdin)
+	return ui.runMainLoop(reader, isRawMode, oldState)
+}
 
+// initializeTerminal sets up the terminal and returns the old state, reader, and raw mode status
+func (ui *UI) initializeTerminal() (*term.State, *bufio.Reader, bool) {
+	oldState, ok := ui.setupTerminal()
+	if !ok {
+		return nil, nil, false
+	}
+
+	// Check if we're in raw mode (real terminal) or not
+	isRawMode := oldState != nil
+
+	// Set up reader based on mode
+	var reader *bufio.Reader
+	if !isRawMode {
+		reader = bufio.NewReader(ui.stdin)
+	}
+
+	return oldState, reader, isRawMode
+}
+
+// runMainLoop handles the main input loop
+func (ui *UI) runMainLoop(reader *bufio.Reader, isRawMode bool, oldState *term.State) []string {
 	for {
 		ui.state.UpdateFiltered()
 		ui.renderer.Render(ui, ui.state)
 
-		// Read UTF-8 rune instead of single byte
-		r, size, err := ui.reader.ReadRune()
+		r, err := ui.readNextRune(reader, isRawMode)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
 			}
-			continue
+			continue // Skip this iteration for other errors
 		}
 
 		// Handle key input with rune
-		shouldContinue, result := ui.handler.HandleKey(r, size == 1, oldState)
+		isSingleByte := isRawMode // In raw mode, we read single bytes; in buffered mode, we read full runes
+		shouldContinue, result := ui.handler.HandleKey(r, isSingleByte, oldState)
 		if !shouldContinue {
 			return result
 		}
 	}
+}
+
+// readNextRune reads the next rune from input based on the mode
+func (ui *UI) readNextRune(reader *bufio.Reader, isRawMode bool) (rune, error) {
+	if isRawMode {
+		for {
+			// Read single byte directly from stdin in raw mode
+			var buf [1]byte
+			n, readErr := ui.stdin.Read(buf[:])
+
+			if readErr != nil {
+				return 0, readErr
+			}
+
+			if n == 0 {
+				continue // Try again if no bytes read
+			}
+
+			return rune(buf[0]), nil
+		}
+	}
+
+	// Use buffered reader for non-TTY
+	r, _, err := reader.ReadRune()
+	return r, err
 }
 
 // Extract <...> placeholders from a string
@@ -1990,4 +2236,77 @@ func extractPlaceholders(s string) []string {
 		}
 	}
 	return res
+}
+
+// addCommandToWorkflow adds a command to the workflow (preserving placeholders)
+func (h *KeyHandler) addCommandToWorkflow(cmdTemplate string) {
+	// Don't process placeholders here - save the template as-is
+	// Placeholders will be resolved during workflow execution
+
+	// Parse command and arguments from template
+	parts := strings.Fields(cmdTemplate)
+	if len(parts) == 0 {
+		return
+	}
+
+	command := parts[0]
+	args := parts[1:]
+
+	// Add template to workflow (with placeholders intact)
+	id := h.ui.AddToWorkflow(command, args, cmdTemplate)
+
+	// Show success message
+	placeholders := extractPlaceholders(cmdTemplate)
+	if len(placeholders) > 0 {
+		h.ui.write("\n%s🎯 Added to workflow!%s\n",
+			h.ui.colors.BrightGreen+h.ui.colors.Bold, h.ui.colors.Reset)
+		h.ui.write("%s  Step %d: %s%s%s %s(will prompt for: %v)%s\n",
+			h.ui.colors.BrightCyan, id, h.ui.colors.BrightWhite+h.ui.colors.Bold, cmdTemplate, h.ui.colors.Reset,
+			h.ui.colors.BrightYellow, placeholders, h.ui.colors.Reset)
+	} else {
+		h.ui.write("\n%s🎯 Added to workflow!%s\n",
+			h.ui.colors.BrightGreen+h.ui.colors.Bold, h.ui.colors.Reset)
+		h.ui.write("%s  Step %d: %s%s%s\n",
+			h.ui.colors.BrightCyan, id, h.ui.colors.BrightWhite+h.ui.colors.Bold, cmdTemplate, h.ui.colors.Reset)
+	}
+	h.ui.write("%s  Press 'Ctrl+t' to view workflow, or continue adding more commands%s\n\n",
+		h.ui.colors.BrightBlack, h.ui.colors.Reset)
+}
+
+// clearWorkflow clears all steps from workflow
+func (h *KeyHandler) clearWorkflow() {
+	h.ui.ClearWorkflow()
+	h.ui.write("%s🧹 Workflow cleared%s\n", h.ui.colors.BrightYellow, h.ui.colors.Reset)
+}
+
+// executeWorkflow executes the current workflow
+func (h *KeyHandler) executeWorkflow(oldState *term.State) (bool, []string) {
+	if h.ui.workflow.IsEmpty() {
+		h.ui.write("%sWorkflow is empty. Add some steps first!%s\n",
+			h.ui.colors.BrightRed, h.ui.colors.Reset)
+		return true, nil
+	}
+
+	// Restore terminal state before execution
+	if oldState != nil {
+		if f, ok := h.ui.stdin.(*os.File); ok {
+			if err := h.ui.term.restore(int(f.Fd()), oldState); err != nil {
+				h.ui.writeError("failed to restore terminal state: %v", err)
+			}
+		}
+	}
+
+	// Clear screen and execute workflow
+	clearScreen(h.ui.stdout)
+
+	err := h.ui.ExecuteWorkflow()
+	if err != nil {
+		fmt.Printf("\n❌ Workflow execution failed: %v\n", err)
+	} else {
+		fmt.Printf("\n✨ Workflow preserved for reuse. Press 'Ctrl+t' to view or modify.\n")
+	}
+
+	// Keep workflow for reuse - don't clear it
+
+	return false, []string{"ggc", InteractiveWorkflowCommand}
 }
