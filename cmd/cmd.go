@@ -6,9 +6,11 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 
+	commandregistry "github.com/bmf-san/ggc/v6/cmd/command"
 	"github.com/bmf-san/ggc/v6/git"
 )
 
@@ -61,6 +63,7 @@ type Cmd struct {
 	differ       *Differ
 	restorer     *Restorer
 	fetcher      *Fetcher
+	cmdRouter    *commandRouter
 }
 
 // GitDeps is a composite for wiring commands that depend on git operations.
@@ -90,7 +93,7 @@ type GitDeps interface {
 
 // NewCmd creates a new Cmd with the provided git client.
 func NewCmd(client GitDeps) *Cmd {
-	return &Cmd{
+	cmd := &Cmd{
 		gitClient:    client,
 		outputWriter: os.Stdout,
 		helper:       NewHelper(),
@@ -114,6 +117,8 @@ func NewCmd(client GitDeps) *Cmd {
 		restorer:     NewRestorer(client),
 		fetcher:      NewFetcher(client),
 	}
+	cmd.cmdRouter = mustNewCommandRouter(cmd)
+	return cmd
 }
 
 // SetDefaultRemote sets the default remote used by tag operations.
@@ -275,57 +280,105 @@ func (c *Cmd) Route(args []string) {
 
 // routeCommand routes to the appropriate command handler
 func (c *Cmd) routeCommand(cmd string, args []string) {
-	// Handle core commands first
-	if c.handleCoreCommand(cmd, args) {
+	if c.cmdRouter == nil {
+		c.cmdRouter = mustNewCommandRouter(c)
+	}
+
+	if c.cmdRouter.route(cmd, args) {
 		return
 	}
 
-	// Handle extended commands
-	c.routeExtendedCommand(cmd, args)
-}
-
-// handleCoreCommand handles core git commands
-func (c *Cmd) handleCoreCommand(cmd string, args []string) bool {
-	coreCommands := map[string]func([]string){
-		"help":    func([]string) { c.Help() },
-		"add":     c.adder.Add,
-		"branch":  c.Branch,
-		"commit":  c.Commit,
-		"log":     c.Log,
-		"pull":    c.Pull,
-		"push":    c.Push,
-		"reset":   c.Reset,
-		"clean":   c.Clean,
-		"version": c.Version,
-	}
-
-	if handler, exists := coreCommands[cmd]; exists {
-		handler(args)
-		return true
-	}
-	return false
-}
-
-// routeExtendedCommand routes to extended command handlers
-func (c *Cmd) routeExtendedCommand(cmd string, args []string) {
-	extendedCommands := map[string]func([]string){
-		"remote":  c.remoter.Remote,
-		"rebase":  c.rebaser.Rebase,
-		"stash":   c.stasher.Stash,
-		"config":  c.configurer.Config,
-		"hook":    c.hooker.Hook,
-		"tag":     c.tagger.Tag,
-		"status":  c.statuser.Status,
-		"fetch":   c.fetcher.Fetch,
-		"diff":    c.differ.Diff,
-		"restore": c.restorer.Restore,
-	}
-
-	if handler, exists := extendedCommands[cmd]; exists {
-		handler(args)
-		return
-	}
 	c.Help()
+}
+
+type commandRouter struct {
+	handlers map[string]func([]string)
+}
+
+func mustNewCommandRouter(cmd *Cmd) *commandRouter {
+	router, err := newCommandRouter(cmd)
+	if err != nil {
+		panic(err)
+	}
+	return router
+}
+
+func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
+	if err := commandregistry.ValidateAll(); err != nil {
+		return nil, fmt.Errorf("command registry validation failed: %w", err)
+	}
+
+	handlers := map[string]func([]string){
+		"help":    func([]string) { cmd.Help() },
+		"add":     func(args []string) { cmd.Add(args) },
+		"branch":  func(args []string) { cmd.Branch(args) },
+		"commit":  func(args []string) { cmd.Commit(args) },
+		"log":     func(args []string) { cmd.Log(args) },
+		"pull":    func(args []string) { cmd.Pull(args) },
+		"push":    func(args []string) { cmd.Push(args) },
+		"reset":   func(args []string) { cmd.Reset(args) },
+		"clean":   func(args []string) { cmd.Clean(args) },
+		"version": func(args []string) { cmd.Version(args) },
+		"remote":  func(args []string) { cmd.Remote(args) },
+		"rebase":  func(args []string) { cmd.Rebase(args) },
+		"stash":   func(args []string) { cmd.Stash(args) },
+		"config":  func(args []string) { cmd.Config(args) },
+		"hook":    func(args []string) { cmd.Hook(args) },
+		"tag":     func(args []string) { cmd.Tag(args) },
+		"status":  func(args []string) { cmd.Status(args) },
+		"fetch":   func(args []string) { cmd.Fetch(args) },
+		"diff":    func(args []string) { cmd.Diff(args) },
+		"restore": func(args []string) { cmd.Restore(args) },
+		"quit": func([]string) {
+			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
+		},
+	}
+
+	available := make(map[string]struct{}, len(handlers))
+	for key := range handlers {
+		available[key] = struct{}{}
+	}
+
+	missing := missingHandlers(available)
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		return nil, fmt.Errorf("no handler registered for commands: %s", strings.Join(missing, ", "))
+	}
+
+	return &commandRouter{handlers: handlers}, nil
+}
+
+func (r *commandRouter) route(cmd string, args []string) bool {
+	info, ok := commandregistry.Find(cmd)
+	if !ok {
+		return false
+	}
+	identifier := strings.TrimSpace(info.HandlerID)
+	if identifier == "" {
+		return false
+	}
+	handler, ok := r.handlers[identifier]
+	if !ok {
+		return false
+	}
+	handler(args)
+	return true
+}
+
+func missingHandlers(available map[string]struct{}) []string {
+	var missing []string
+	allCommands := commandregistry.All()
+	for i := range allCommands {
+		info := &allCommands[i]
+		id := strings.TrimSpace(info.HandlerID)
+		if id == "" || info.Hidden {
+			continue
+		}
+		if _, ok := available[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+	return missing
 }
 
 // isLegacyLike reports whether args resemble the pre-v6, flag-driven CLI surface

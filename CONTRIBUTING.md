@@ -21,25 +21,27 @@ Thank you for your interest in contributing to this repository! Bug reports, fea
 ## Implementation Guidelines
 When implementing new features or modifying existing ones, please ensure to:
 
-### 1. Update Documentation and UI Files
-**⚠️ CRITICAL: When adding new commands or changing command names/syntax, ALL of the following files MUST be updated:**
+### 1. Update Registry, Documentation, and UI Files
+**When adding new commands or changing command names/syntax, update the centralized registry and any surfaces that depend on it.**
 
-#### Core Documentation:
-- **README.md**: Update command table, usage examples, and descriptions
-- **cmd/templates/help.go**: Update help message templates
+#### Command Registry:
+- **cmd/command/registry.go**: Add or modify `CommandInfo` entries (usage, examples, handler IDs, visibility)
+  - Set `Hidden: true` for experimental/internal commands you do not want exposed via `help` or interactive search.
 
-#### Interactive UI:
-- **cmd/interactive.go**: Update the `commands` array with new command entries
+#### Documentation:
+- Review **README.md** (and any docs in `docs/`) for command references, tables, or examples.
+- Keep screenshots, GIFs, and narrative descriptions in sync with any command surface changes.
 
 #### Shell Completion Scripts:
 - **tools/completions/ggc.bash**: Add/modify command and subcommand completions
 - **tools/completions/ggc.fish**: Add/modify command and subcommand completions
 - **tools/completions/ggc.zsh**: Add/modify command and subcommand completions
 
+To refresh completions, update the command lists/case statements in each script to mirror `cmd/command/registry.go`, then source the script in the target shell (e.g. `source tools/completions/ggc.bash`) to verify tab completion still works.
+
 **📋 Checklist for Command Changes:**
-- [ ] README.md command table updated
-- [ ] cmd/templates/help.go help templates updated
-- [ ] cmd/interactive.go commands array updated
+- [ ] README.md command table updated (if surfaced there)
+- [ ] cmd/command/registry.go entry added/updated (usage, examples, handler)
 - [ ] tools/completions/ggc.bash completions updated
 - [ ] tools/completions/ggc.fish completions updated
 - [ ] tools/completions/ggc.zsh completions updated

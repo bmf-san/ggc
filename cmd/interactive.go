@@ -15,6 +15,7 @@ import (
 	"golang.org/x/term"
 	"golang.org/x/text/width"
 
+	commandregistry "github.com/bmf-san/ggc/v6/cmd/command"
 	"github.com/bmf-san/ggc/v6/config"
 	"github.com/bmf-san/ggc/v6/git"
 )
@@ -174,6 +175,28 @@ func getGitRemoteStatus(gitClient git.StatusInfoReader) (ahead, behind int) {
 type CommandInfo struct {
 	Command     string
 	Description string
+}
+
+func buildInteractiveCommands() []CommandInfo {
+	var list []CommandInfo
+	allCommands := commandregistry.All()
+	for i := range allCommands {
+		cmd := &allCommands[i]
+		if cmd.Hidden {
+			continue
+		}
+		if len(cmd.Subcommands) == 0 {
+			list = append(list, CommandInfo{Command: cmd.Name, Description: cmd.Summary})
+			continue
+		}
+		for _, sub := range cmd.Subcommands {
+			if sub.Hidden {
+				continue
+			}
+			list = append(list, CommandInfo{Command: sub.Name, Description: sub.Summary})
+		}
+	}
+	return list
 }
 
 // UI represents the interface for terminal UI operations
@@ -1438,96 +1461,7 @@ func (r *Renderer) updateSize() {
 	r.width, r.height = 80, 24 // Default fallback
 }
 
-var commands = []CommandInfo{
-	{"help", "Show help message"},
-	{"add <file>", "Add a specific file to the index"},
-	{"add .", "Add all changes to index"},
-	{"add interactive", "Add changes interactively"},
-	{"add patch", "Add changes interactively (patch mode)"},
-	{"branch current", "Show current branch name"},
-	{"branch checkout", "Switch to an existing branch"},
-	{"branch checkout remote", "Create and checkout a local branch from the remote"},
-	{"branch create", "Create and checkout new branch"},
-	{"branch delete", "Delete local branch"},
-	{"branch delete merged", "Delete local merged branch"},
-	{"branch rename <old> <new>", "Rename a branch"},
-	{"branch move <branch> <commit>", "Move branch to specified commit"},
-	{"branch set upstream <branch> <upstream>", "Set upstream for a branch"},
-	{"branch info <branch>", "Show detailed branch information"},
-	{"branch list verbose", "Show detailed branch listing"},
-	{"branch list local", "List local branches"},
-	{"branch list remote", "List remote branches"},
-	{"branch sort [date|name]", "List branches sorted by date or name"},
-	{"branch contains <commit>", "Show branches containing a commit"},
-	{"push current", "Push current branch from remote repository"},
-	{"push force", "Force push current branch"},
-	{"pull current", "Pull current branch from remote repository"},
-	{"pull rebase", "Pull and rebase"},
-	{"log simple", "Show simple historical log"},
-	{"log graph", "Show log with graph"},
-	{"commit <message>", "Create commit with a message"},
-	{"commit allow empty", "Create an empty commit"},
-	{"commit amend", "Amend previous commit (editor)"},
-	{"commit amend no-edit", "Amend without editing commit message"},
-	{"fetch prune", "Fetch and clean stale references"},
-	{"tag list", "List all tags"},
-	{"tag annotated <tag> <message>", "Create annotated tag"},
-	{"tag delete <tag>", "Delete tag"},
-	{"tag show <tag>", "Show tag information"},
-	{"tag push", "Push tags to remote"},
-	{"tag create <tag>", "Create tag"},
-	{"config list", "List all configuration"},
-	{"config get <key>", "Get a specific config value"},
-	{"config set <key> <value>", "Set a configuration value"},
-	{"hook list", "List all hooks"},
-	{"hook install <hook>", "Install a hook"},
-	{"hook enable <hook>", "Enable/Turn on a hook"},
-	{"hook disable <hook>", "Disable/Turn off a hook"},
-	{"hook uninstall <hook>", "Uninstall an existing hook"},
-	{"hook edit <hook>", "Edit a hook's contents"},
-	{"diff", "Show changes (git diff HEAD)"},
-	{"diff unstaged", "Show unstaged changes"},
-	{"diff staged", "Show staged changes"},
-	{"version", "Show current version"},
-	{"clean files", "Clean untracked files"},
-	{"clean dirs", "Clean untracked directories"},
-	{"clean interactive", "Clean files interactively"},
-	{"stash", "Stash current changes"},
-	{"stash list", "List all stashes"},
-	{"stash show", "Show changes in stash"},
-	{"stash show <stash>", "Show changes in specific stash"},
-	{"stash apply", "Apply stash without removing it"},
-	{"stash apply <stash>", "Apply specific stash without removing it"},
-	{"stash pop", "Apply and remove the latest stash"},
-	{"stash pop <stash>", "Apply and remove specific stash"},
-	{"stash drop", "Remove the latest stash"},
-	{"stash drop <stash>", "Remove specific stash"},
-	{"stash branch <branch>", "Create branch from stash"},
-	{"stash branch <branch> <stash>", "Create branch from specific stash"},
-	{"stash push", "Save changes to new stash"},
-	{"stash push -m <message>", "Save changes to new stash with message"},
-	{"stash save <message>", "Save changes to new stash with message"},
-	{"stash clear", "Remove all stashes"},
-	{"stash create", "Create stash and return object name"},
-	{"stash store <object>", "Store stash object"},
-	{"status", "Show working tree status"},
-	{"status short", "Show concise status (porcelain format)"},
-	{"rebase interactive", "Interactive rebase"},
-	{"rebase <upstream>", "Rebase current branch onto <upstream>"},
-	{"rebase continue", "Continue an in-progress rebase"},
-	{"rebase abort", "Abort an in-progress rebase"},
-	{"rebase skip", "Skip current patch and continue"},
-	{"remote list", "List all remote repositories"},
-	{"remote add <name> <url>", "Add remote repository"},
-	{"remote remove <name>", "Remove remote repository"},
-	{"remote set-url <name> <url>", "Change remote URL"},
-	{"restore <file>", "Restore file in working directory from index"},
-	{"restore .", "Restore all files in working directory from index"},
-	{"restore staged <file>", "Unstage file (restore from HEAD to index)"},
-	{"restore staged .", "Unstage all files"},
-	{"restore <commit> <file>", "Restore file from specific commit"},
-	{"quit", "Exit interactive mode"},
-}
+var commands = buildInteractiveCommands()
 
 // InteractiveUI provides an incremental search interactive UI with custom git client.
 // Returns the selected command as []string (nil if nothing selected)
