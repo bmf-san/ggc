@@ -81,36 +81,45 @@ func (d *Debugger) showActiveKeybindings() {
 
 // captureRawKeySequences captures and displays raw key sequences
 func (d *Debugger) captureRawKeySequences(outputFile string) {
-	// Check if we're in a terminal
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		_, _ = fmt.Fprintln(d.outputWriter, "Error: debug-keys raw mode requires a terminal")
 		return
 	}
 
 	debugCmd := NewDebugKeysCommand(outputFile)
-
-	// Set up signal handling for graceful exit
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-	// Save original terminal state
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	oldState, err := d.setupTerminalRawMode()
 	if err != nil {
 		_, _ = fmt.Fprintf(d.outputWriter, "Error setting terminal to raw mode: %v\n", err)
 		return
 	}
 
-	defer func() {
-		signal.Reset(os.Interrupt, syscall.SIGTERM)
-		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
-			_, _ = fmt.Fprintf(d.outputWriter, "Error restoring terminal: %v\n", err)
-		}
-	}()
+	defer d.restoreTerminal(oldState)
 
-	// Start capture
 	debugCmd.StartCapture()
+	d.handleSignals(debugCmd, oldState)
+	d.processInput(debugCmd)
+}
 
-	// Handle graceful shutdown
+// setupTerminalRawMode configures the terminal for raw input
+func (d *Debugger) setupTerminalRawMode() (*term.State, error) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	return term.MakeRaw(int(os.Stdin.Fd()))
+}
+
+// restoreTerminal restores the terminal to its original state
+func (d *Debugger) restoreTerminal(oldState *term.State) {
+	signal.Reset(os.Interrupt, syscall.SIGTERM)
+	if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
+		_, _ = fmt.Fprintf(d.outputWriter, "Error restoring terminal: %v\n", err)
+	}
+}
+
+// handleSignals sets up signal handling for graceful shutdown
+func (d *Debugger) handleSignals(debugCmd *DebugKeysCommand, oldState *term.State) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		<-sigChan
 		_, _ = fmt.Fprintln(d.outputWriter, "\n\nReceived interrupt signal, stopping capture...")
@@ -122,8 +131,10 @@ func (d *Debugger) captureRawKeySequences(outputFile string) {
 		}
 		os.Exit(0)
 	}()
+}
 
-	// Read input continuously
+// processInput reads and processes keyboard input
+func (d *Debugger) processInput(debugCmd *DebugKeysCommand) {
 	buffer := make([]byte, 64)
 	for debugCmd.IsCapturing() {
 		n, err := os.Stdin.Read(buffer)
@@ -134,21 +145,26 @@ func (d *Debugger) captureRawKeySequences(outputFile string) {
 
 		if n > 0 {
 			sequence := buffer[:n]
-
-			// Check for Ctrl+C in the sequence
-			for _, b := range sequence {
-				if b == 3 { // Ctrl+C
-					_, _ = fmt.Fprintln(d.outputWriter, "\nCapture stopped by user")
-					if err := debugCmd.StopCapture(); err != nil {
-						_, _ = fmt.Fprintf(d.outputWriter, "Error stopping capture: %v\n", err)
-					}
-					return
-				}
+			if d.checkForCtrlC(sequence, debugCmd) {
+				return
 			}
-
 			debugCmd.CaptureSequence(sequence)
 		}
 	}
+}
+
+// checkForCtrlC checks if Ctrl+C was pressed and stops capture if so
+func (d *Debugger) checkForCtrlC(sequence []byte, debugCmd *DebugKeysCommand) bool {
+	for _, b := range sequence {
+		if b == 3 { // Ctrl+C
+			_, _ = fmt.Fprintln(d.outputWriter, "\nCapture stopped by user")
+			if err := debugCmd.StopCapture(); err != nil {
+				_, _ = fmt.Fprintf(d.outputWriter, "Error stopping capture: %v\n", err)
+			}
+			return true
+		}
+	}
+	return false
 }
 
 // showDebugKeysHelp displays help for the debug-keys command

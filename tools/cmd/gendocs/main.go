@@ -170,11 +170,3 @@ func generateCommandTable() []string {
 
 	return table
 }
-
-// firstUsage returns the first usage string, or fallback if none exist
-func firstUsage(usage []string, fallback string) string {
-	if len(usage) > 0 && strings.TrimSpace(usage[0]) != "" {
-		return usage[0]
-	}
-	return fallback
-}

@@ -96,7 +96,6 @@ Main Commands:
   {{range .Notes}}  - {{.}}
   {{end}}`
 
-
 	commandHelpTemplate = `{{.Logo}}
 Usage: {{.Usage}}
 
