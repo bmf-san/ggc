@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -54,7 +54,7 @@ func TestClient_Add(t *testing.T) {
 				return
 			}
 
-			if !tt.wantErr && !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !tt.wantErr && !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("Add() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -76,7 +76,7 @@ func TestClient_AddInteractive(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "add", "-p"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("AddInteractive() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }

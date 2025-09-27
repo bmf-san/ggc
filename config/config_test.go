@@ -391,7 +391,7 @@ func TestGetValueByPath(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(value, tc.expected) {
+		if value != tc.expected {
 			t.Errorf("Expected value for path %s to be %v, got %v", tc.path, tc.expected, value)
 		}
 	}
@@ -445,7 +445,7 @@ func TestSetValueByPath(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(actualValue, tc.expected) {
+		if actualValue != tc.expected {
 			t.Errorf("Expected value for path %s to be %v, got %v", tc.path, tc.expected, actualValue)
 		}
 	}

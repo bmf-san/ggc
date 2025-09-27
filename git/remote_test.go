@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -21,7 +21,7 @@ func TestClient_RemoteList(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "remote", "-v"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("RemoteList() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -41,7 +41,7 @@ func TestClient_RemoteAdd(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "remote", "add", "origin", "https://github.com/user/repo.git"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("RemoteAdd() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -61,7 +61,7 @@ func TestClient_RemoteRemove(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "remote", "remove", "origin"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("RemoteRemove() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -81,7 +81,7 @@ func TestClient_RemoteSetURL(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "remote", "set-url", "origin", "https://github.com/user/new-repo.git"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("RemoteSetURL() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }

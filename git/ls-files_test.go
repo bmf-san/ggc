@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -23,7 +23,7 @@ func TestClient_ListFiles(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "ls-files"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("ListFiles() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 

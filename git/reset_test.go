@@ -3,7 +3,7 @@ package git
 import (
 	"errors"
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -24,7 +24,9 @@ func TestClient_ResetHardAndClean(t *testing.T) {
 		{"git", "reset", "--hard", "origin/main"},
 		{"git", "clean", "-fdx"},
 	}
-	if !reflect.DeepEqual(gotArgs, want) {
+	if !slices.EqualFunc(gotArgs, want, func(a, b []string) bool {
+		return slices.Equal(a, b)
+	}) {
 		t.Errorf("got %v, want %v", gotArgs, want)
 	}
 }
