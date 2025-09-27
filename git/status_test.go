@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -23,7 +23,7 @@ func TestClient_Status(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "status"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("Status() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -49,7 +49,7 @@ func TestClient_StatusShort(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "status", "--short"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("StatusShort() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -75,7 +75,7 @@ func TestClient_StatusWithColor(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "-c", "color.status=always", "status"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("StatusWithColor() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -101,7 +101,7 @@ func TestClient_StatusShortWithColor(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "-c", "color.status=always", "status", "--short"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("StatusShortWithColor() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 

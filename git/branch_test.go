@@ -3,7 +3,7 @@ package git
 import (
 	"errors"
 	"os/exec"
-	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -45,7 +45,7 @@ func TestClient_ListLocalBranches(t *testing.T) {
 				t.Errorf("ListLocalBranches() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !slices.Equal(got, tt.want) {
 				t.Errorf("ListLocalBranches() = %v, want %v", got, tt.want)
 			}
 		})
@@ -89,7 +89,7 @@ func TestClient_ListRemoteBranches(t *testing.T) {
 				t.Errorf("ListRemoteBranches() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !slices.Equal(got, tt.want) {
 				t.Errorf("ListRemoteBranches() = %v, want %v", got, tt.want)
 			}
 		})
@@ -228,7 +228,7 @@ func TestClient_SortBranches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SortBranches error: %v", err)
 	}
-	if !reflect.DeepEqual(got, []string{"b1", "b2", "b3"}) {
+	if !slices.Equal(got, []string{"b1", "b2", "b3"}) {
 		t.Errorf("unexpected result: %v", got)
 	}
 }
@@ -244,7 +244,7 @@ func TestClient_BranchesContaining(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BranchesContaining error: %v", err)
 	}
-	if !reflect.DeepEqual(got, []string{"main", "feature", "bugfix"}) {
+	if !slices.Equal(got, []string{"main", "feature", "bugfix"}) {
 		t.Errorf("unexpected branches: %v", got)
 	}
 }
@@ -555,7 +555,7 @@ func TestClient_ListMergedBranches(t *testing.T) {
 				t.Errorf("ListMergedBranches() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !slices.Equal(got, tt.want) {
 				t.Errorf("ListMergedBranches() = %v, want %v", got, tt.want)
 			}
 		})

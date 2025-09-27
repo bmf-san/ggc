@@ -3,7 +3,7 @@ package git
 import (
 	"errors"
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -219,7 +219,7 @@ func TestClient_GetUpstreamBranchName(t *testing.T) {
 				t.Errorf("GetUpstreamBranchName() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("GetUpstreamBranchName() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 

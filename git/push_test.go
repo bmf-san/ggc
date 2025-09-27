@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -38,7 +38,7 @@ func TestClient_Push(t *testing.T) {
 			}
 
 			_ = client.Push(tc.force)
-			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+			if !slices.Equal(gotArgs, tc.wantArgs) {
 				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
 			}
 		})

@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -23,7 +23,7 @@ func TestClient_Diff(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "diff"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("Diff() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -49,7 +49,7 @@ func TestClient_DiffStaged(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "diff", "--staged"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("DiffStaged() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -75,7 +75,7 @@ func TestClient_DiffHead(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "diff", "HEAD"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("DiffHead() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
