@@ -12,6 +12,7 @@ Example: close #123
 - [ ] Code is formatted with `make fmt`
 - [ ] Code passes linter checks via `make lint`
 - [ ] All tests are passing
+- [ ] If commands were added/modified: I have run `make docs` to update README.md
 
 ## Screenshots (if appropriate)
 Add screenshots to help explain your changes.

@@ -513,6 +513,7 @@ func TestCmd_Route(t *testing.T) {
 		restorer:   &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		fetcher:    &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
+	cmd.cmdRouter = mustNewCommandRouter(cmd)
 
 	testCases := []struct {
 		name string
@@ -587,6 +588,7 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		restorer:     &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		fetcher:      &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
+	cmd.cmdRouter = mustNewCommandRouter(cmd)
 
 	// Using "--" should allow a value starting with '-' to pass through
 	// without triggering the legacy-like error.
