@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -44,7 +44,7 @@ func TestClient_TagList(t *testing.T) {
 				t.Errorf("TagList() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("TagList() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -87,7 +87,7 @@ func TestClient_TagCreate(t *testing.T) {
 				t.Errorf("TagCreate() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("TagCreate() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -130,7 +130,7 @@ func TestClient_TagCreateAnnotated(t *testing.T) {
 				t.Errorf("TagCreateAnnotated() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("TagCreateAnnotated() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -179,7 +179,7 @@ func TestClient_TagDelete(t *testing.T) {
 			// Check the last call for the pattern
 			if len(tt.tagNames) > 0 {
 				expectedLastArgs := []string{"git", "tag", "-d", tt.tagNames[len(tt.tagNames)-1]}
-				if !reflect.DeepEqual(lastArgs, expectedLastArgs) {
+				if !slices.Equal(lastArgs, expectedLastArgs) {
 					t.Errorf("TagDelete() lastArgs = %v, want %v", lastArgs, expectedLastArgs)
 				}
 			}
@@ -202,7 +202,7 @@ func TestClient_TagPush(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "push", "origin", "v1.0.0"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("TagPush() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -222,7 +222,7 @@ func TestClient_TagPushAll(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "push", "origin", "--tags"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("TagPushAll() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -242,7 +242,7 @@ func TestClient_TagShow(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "show", "v1.0.0"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("TagShow() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -264,7 +264,7 @@ func TestClient_GetLatestTag(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "describe", "--tags", "--abbrev=0"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("GetLatestTag() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -320,7 +320,7 @@ func TestClient_TagExists(t *testing.T) {
 			result := client.TagExists(tt.tagName)
 
 			wantArgs := []string{"git", "tag", "-l", tt.tagName}
-			if !reflect.DeepEqual(gotArgs, wantArgs) {
+			if !slices.Equal(gotArgs, wantArgs) {
 				t.Errorf("TagExists() gotArgs = %v, want %v", gotArgs, wantArgs)
 			}
 

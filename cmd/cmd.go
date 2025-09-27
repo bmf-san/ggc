@@ -40,6 +40,7 @@ type Executer interface {
 	Clean(args []string)
 	Restore(args []string)
 	Add(args []string)
+	DebugKeys(args []string)
 	Interactive()
 }
 
@@ -67,6 +68,7 @@ type Cmd struct {
 	differ       *Differ
 	restorer     *Restorer
 	fetcher      *Fetcher
+	debugger     *Debugger
 }
 
 // GitDeps is a composite for wiring commands that depend on git operations.
@@ -119,6 +121,7 @@ func NewCmd(client GitDeps) *Cmd {
 		differ:       NewDiffer(client),
 		restorer:     NewRestorer(client),
 		fetcher:      NewFetcher(client),
+		debugger:     NewDebugger(),
 	}
 }
 
@@ -228,6 +231,11 @@ func (c *Cmd) Reset(args []string) {
 // Clean executes the clean command with the given arguments.
 func (c *Cmd) Clean(args []string) {
 	c.cleaner.Clean(args)
+}
+
+// DebugKeys executes the debug-keys command with the given arguments.
+func (c *Cmd) DebugKeys(args []string) {
+	c.debugger.DebugKeys(args)
 }
 
 // Interactive starts the interactive UI mode.

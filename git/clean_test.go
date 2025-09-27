@@ -3,7 +3,7 @@ package git
 import (
 	"errors"
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -18,7 +18,7 @@ func TestClient_CleanFiles(t *testing.T) {
 
 	_ = client.CleanFiles()
 	want := []string{"git", "clean", "-fd"}
-	if !reflect.DeepEqual(gotArgs, want) {
+	if !slices.Equal(gotArgs, want) {
 		t.Errorf("got %v, want %v", gotArgs, want)
 	}
 }
@@ -34,7 +34,7 @@ func TestClient_CleanDirs(t *testing.T) {
 
 	_ = client.CleanDirs()
 	want := []string{"git", "clean", "-fdx"}
-	if !reflect.DeepEqual(gotArgs, want) {
+	if !slices.Equal(gotArgs, want) {
 		t.Errorf("got %v, want %v", gotArgs, want)
 	}
 }
@@ -186,7 +186,7 @@ func TestClient_CleanFilesForce(t *testing.T) {
 
 			if tt.wantArgs == nil && gotArgs != nil {
 				t.Errorf("CleanFilesForce() should not execute command for empty files, but got: %v", gotArgs)
-			} else if tt.wantArgs != nil && !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			} else if tt.wantArgs != nil && !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("CleanFilesForce() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})

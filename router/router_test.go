@@ -47,6 +47,8 @@ type mockExecuter struct {
 	stashArgs         []string
 	fetchCalled       bool
 	fetchArgs         []string
+	debugKeysCalled   bool
+	debugKeysArgs     []string
 	interactiveCalled bool
 }
 
@@ -147,6 +149,11 @@ func (m *mockExecuter) Reset(args []string) {
 func (m *mockExecuter) Clean(args []string) {
 	m.cleanCalled = true
 	m.cleanArgs = args
+}
+
+func (m *mockExecuter) DebugKeys(args []string) {
+	m.debugKeysCalled = true
+	m.debugKeysArgs = args
 }
 
 func (m *mockExecuter) Interactive() {

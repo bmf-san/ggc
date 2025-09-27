@@ -3,7 +3,7 @@ package git
 import (
 	"errors"
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -18,7 +18,7 @@ func TestClient_CommitAllowEmpty(t *testing.T) {
 
 	_ = client.CommitAllowEmpty()
 	want := []string{"git", "commit", "--allow-empty", "-m", "empty commit"}
-	if !reflect.DeepEqual(gotArgs, want) {
+	if !slices.Equal(gotArgs, want) {
 		t.Errorf("got %v, want %v", gotArgs, want)
 	}
 }

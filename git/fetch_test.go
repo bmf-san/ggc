@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -39,7 +39,7 @@ func TestClient_Fetch(t *testing.T) {
 				t.Errorf("Fetch() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("Fetch() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})

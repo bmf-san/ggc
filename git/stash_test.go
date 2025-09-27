@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -21,7 +21,7 @@ func TestClient_Stash(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "stash"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("Stash() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -43,7 +43,7 @@ func TestClient_StashList(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "stash", "list"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("StashList() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 
@@ -85,7 +85,7 @@ func TestClient_StashShow(t *testing.T) {
 				t.Errorf("StashShow() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("StashShow() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -125,7 +125,7 @@ func TestClient_StashApply(t *testing.T) {
 				t.Errorf("StashApply() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("StashApply() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -165,7 +165,7 @@ func TestClient_StashPop(t *testing.T) {
 				t.Errorf("StashPop() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("StashPop() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -205,7 +205,7 @@ func TestClient_StashDrop(t *testing.T) {
 				t.Errorf("StashDrop() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("StashDrop() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -227,7 +227,7 @@ func TestClient_StashClear(t *testing.T) {
 	}
 
 	wantArgs := []string{"git", "stash", "clear"}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("StashClear() gotArgs = %v, want %v", gotArgs, wantArgs)
 	}
 }

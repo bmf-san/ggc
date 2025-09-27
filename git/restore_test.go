@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -69,7 +69,7 @@ func TestClient_Restore(t *testing.T) {
 
 			_ = client.Restore(tc.paths, tc.opts)
 
-			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+			if !slices.Equal(gotArgs, tc.wantArgs) {
 				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
 			}
 		})
@@ -111,7 +111,7 @@ func TestClient_RestoreWorkingDir(t *testing.T) {
 
 			_ = client.RestoreWorkingDir(tc.paths...)
 
-			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+			if !slices.Equal(gotArgs, tc.wantArgs) {
 				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
 			}
 		})
@@ -153,7 +153,7 @@ func TestClient_RestoreStaged(t *testing.T) {
 
 			_ = client.RestoreStaged(tc.paths...)
 
-			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+			if !slices.Equal(gotArgs, tc.wantArgs) {
 				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
 			}
 		})
@@ -205,7 +205,7 @@ func TestClient_RestoreFromCommit(t *testing.T) {
 
 			_ = client.RestoreFromCommit(tc.commit, tc.paths...)
 
-			if !reflect.DeepEqual(gotArgs, tc.wantArgs) {
+			if !slices.Equal(gotArgs, tc.wantArgs) {
 				t.Errorf("got %v, want %v", gotArgs, tc.wantArgs)
 			}
 		})
@@ -224,7 +224,7 @@ func TestClient_RestoreAll(t *testing.T) {
 	_ = client.RestoreAll()
 
 	wantArgs := []string{"git", "restore", "."}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("got %v, want %v", gotArgs, wantArgs)
 	}
 }
@@ -241,7 +241,7 @@ func TestClient_RestoreAllStaged(t *testing.T) {
 	_ = client.RestoreAllStaged()
 
 	wantArgs := []string{"git", "restore", "--staged", "."}
-	if !reflect.DeepEqual(gotArgs, wantArgs) {
+	if !slices.Equal(gotArgs, wantArgs) {
 		t.Errorf("got %v, want %v", gotArgs, wantArgs)
 	}
 }

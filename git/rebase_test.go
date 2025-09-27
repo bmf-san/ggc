@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -45,7 +45,7 @@ func TestClient_LogOneline(t *testing.T) {
 				t.Errorf("LogOneline() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("LogOneline() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 
@@ -94,7 +94,7 @@ func TestClient_RebaseInteractive(t *testing.T) {
 				t.Errorf("RebaseInteractive() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("RebaseInteractive() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -154,7 +154,7 @@ func TestClient_GetUpstreamBranch(t *testing.T) {
 				t.Errorf("GetUpstreamBranch() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("GetUpstreamBranch() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 
@@ -203,7 +203,7 @@ func TestClient_Rebase(t *testing.T) {
 				t.Errorf("Rebase() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("Rebase() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -236,7 +236,7 @@ func TestClient_RebaseContinue(t *testing.T) {
 				t.Errorf("RebaseContinue() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("RebaseContinue() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -269,7 +269,7 @@ func TestClient_RebaseAbort(t *testing.T) {
 				t.Errorf("RebaseAbort() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("RebaseAbort() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
@@ -302,7 +302,7 @@ func TestClient_RebaseSkip(t *testing.T) {
 				t.Errorf("RebaseSkip() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("RebaseSkip() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 		})
