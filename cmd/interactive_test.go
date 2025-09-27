@@ -3,7 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -183,7 +183,7 @@ func TestExtractPlaceholders(t *testing.T) {
 			if len(tt.want) == 0 && len(got) == 0 {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !slices.Equal(got, tt.want) {
 				t.Errorf("extractPlaceholders() = %v, want %v", got, tt.want)
 			}
 		})

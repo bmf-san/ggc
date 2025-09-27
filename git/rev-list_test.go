@@ -2,7 +2,7 @@ package git
 
 import (
 	"os/exec"
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -45,7 +45,7 @@ func TestClient_GetAheadBehindCount(t *testing.T) {
 				t.Errorf("GetAheadBehindCount() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("GetAheadBehindCount() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 
@@ -92,7 +92,7 @@ func TestClient_GetTagCommit(t *testing.T) {
 				t.Errorf("GetTagCommit() error = %v", err)
 			}
 
-			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+			if !slices.Equal(gotArgs, tt.wantArgs) {
 				t.Errorf("GetTagCommit() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
 			}
 
