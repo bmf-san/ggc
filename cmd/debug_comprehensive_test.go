@@ -106,14 +106,19 @@ func TestDebugger_showActiveKeybindings_Details(t *testing.T) {
 
 	// Test specific keybinding entries
 	expectedKeybindings := map[string]string{
-		"↑/k":      "Navigate up",
-		"↓/j":      "Navigate down",
-		"Enter":    "Execute selected command",
-		"q/Ctrl+C": "Quit interactive mode",
-		"r":        "Refresh status",
-		"?":        "Show help",
-		"Space":    "Toggle item selection",
-		"Tab":      "Switch between sections",
+		"Ctrl+P":        "Move selection up",
+		"Ctrl+N":        "Move selection down",
+		"Enter":         "Execute selected command",
+		"Ctrl+C":        "Quit interactive mode",
+		"Ctrl+U":        "Clear input",
+		"Ctrl+W":        "Delete previous word",
+		"Ctrl+K":        "Delete to end of line",
+		"Ctrl+A":        "Move cursor to start",
+		"Ctrl+E":        "Move cursor to end",
+		"Backspace":     "Delete character before cursor",
+		"Alt+Backspace": "Delete previous word (terminal dependent)",
+		"←/→":           "Move cursor",
+		"Ctrl+←/→":      "Move by word (terminal dependent)",
 	}
 
 	for key, desc := range expectedKeybindings {
