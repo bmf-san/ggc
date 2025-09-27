@@ -149,9 +149,7 @@ func generateCommandTable() []string {
 	for i := range commands {
 		cmd := &commands[i]
 		if len(cmd.Subcommands) == 0 {
-			usage := firstUsage(cmd.Usage, "ggc "+cmd.Name)
-			usage = strings.TrimPrefix(usage, "ggc ")
-			table = append(table, fmt.Sprintf("| `%s` | %s |", usage, cmd.Summary))
+			table = append(table, fmt.Sprintf("| `%s` | %s |", cmd.Name, cmd.Summary))
 		} else {
 			// Sort subcommands by name
 			subcommands := make([]command.SubcommandInfo, 0, len(cmd.Subcommands))
@@ -165,9 +163,7 @@ func generateCommandTable() []string {
 			})
 
 			for _, sub := range subcommands {
-				usage := firstUsage(sub.Usage, "ggc "+sub.Name)
-				usage = strings.TrimPrefix(usage, "ggc ")
-				table = append(table, fmt.Sprintf("| `%s` | %s |", usage, sub.Summary))
+				table = append(table, fmt.Sprintf("| `%s` | %s |", sub.Name, sub.Summary))
 			}
 		}
 	}
