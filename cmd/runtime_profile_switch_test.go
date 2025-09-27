@@ -82,7 +82,7 @@ func TestProfileSwitcherUpdatesHandler(t *testing.T) {
 	if emacsContextual == nil {
 		t.Fatal("expected handler contextual map to be updated")
 	}
-	if emacsContextual.Profile != ProfileEmacs {
+	if emacsContextual != nil && emacsContextual.Profile != ProfileEmacs {
 		t.Fatalf("contextual profile = %s, want %s", emacsContextual.Profile, ProfileEmacs)
 	}
 

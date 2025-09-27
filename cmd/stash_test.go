@@ -56,13 +56,13 @@ func TestStasher_Constructor(t *testing.T) {
 	if stasher == nil {
 		t.Fatal("Expected NewStasher to return a non-nil Stasher")
 	}
-	if stasher.gitClient == nil {
+	if stasher != nil && stasher.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if stasher.outputWriter == nil {
+	if stasher != nil && stasher.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if stasher.helper == nil {
+	if stasher != nil && stasher.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }

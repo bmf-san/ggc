@@ -94,13 +94,13 @@ func TestTagger_Constructor(t *testing.T) {
 	if tagger == nil {
 		t.Fatal("Expected NewTagger to return a non-nil Tagger")
 	}
-	if tagger.gitClient == nil {
+	if tagger != nil && tagger.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if tagger.outputWriter == nil {
+	if tagger != nil && tagger.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if tagger.helper == nil {
+	if tagger != nil && tagger.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }
