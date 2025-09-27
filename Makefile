@@ -3,7 +3,7 @@
 APP_NAME=ggc
 OUT?=coverage.out
 
-.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint fmt
+.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint fmt docs
 
 # Install required tools
 install-tools:
@@ -53,3 +53,9 @@ test-cover:
 
 test-and-lint: test lint
 	@echo "All tests and lint checks passed"
+
+# Update README.md command table from registry
+docs:
+	@echo "Updating README.md command table..."
+	@go run tools/cmd/gendocs/main.go
+	@echo "README.md command table updated from registry"

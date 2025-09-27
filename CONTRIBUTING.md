@@ -29,8 +29,9 @@ When implementing new features or modifying existing ones, please ensure to:
   - Set `Hidden: true` for experimental/internal commands you do not want exposed via `help` or interactive search.
 
 #### Documentation:
-- Review **README.md** (and any docs in `docs/`) for command references, tables, or examples.
-- Keep screenshots, GIFs, and narrative descriptions in sync with any command surface changes.
+- **Auto-generated**: Run `make docs` to update the README.md command table from the registry
+- Review **README.md** (and any docs in `docs/`) for command references, tables, or examples
+- Keep screenshots, GIFs, and narrative descriptions in sync with any command surface changes
 
 #### Shell Completion Scripts:
 - **tools/completions/ggc.bash**: Add/modify command and subcommand completions
@@ -40,13 +41,51 @@ When implementing new features or modifying existing ones, please ensure to:
 To refresh completions, update the command lists/case statements in each script to mirror `cmd/command/registry.go`, then source the script in the target shell (e.g. `source tools/completions/ggc.bash`) to verify tab completion still works.
 
 **📋 Checklist for Command Changes:**
-- [ ] README.md command table updated (if surfaced there)
 - [ ] cmd/command/registry.go entry added/updated (usage, examples, handler)
+- [ ] Run `make docs` to update README.md command table
 - [ ] tools/completions/ggc.bash completions updated
 - [ ] tools/completions/ggc.fish completions updated
 - [ ] tools/completions/ggc.zsh completions updated
 - [ ] All tests pass (`make test`)
 - [ ] No lint errors (`make lint`)
+
+## Adding New Commands
+
+ggc uses a centralized command registry system that eliminates the need to update multiple files when adding commands. Here's the streamlined workflow:
+
+### 1. Add to Registry
+Edit `cmd/command/registry.go` and add your command entry:
+
+```go
+{
+    Name:      "mycommand",
+    Category:  command.CategoryUtility,
+    Summary:   "Does something useful",
+    Usage:     []string{"ggc mycommand", "ggc mycommand --help"},
+    Examples:  []string{"ggc mycommand", "ggc mycommand file.txt"},
+    HandlerID: "mycommand",
+    Subcommands: []command.SubcommandInfo{
+        {
+            Name:    "mycommand subaction",
+            Summary: "Performs a sub-action",
+            Usage:   []string{"ggc mycommand subaction"},
+        },
+    },
+},
+```
+
+### 2. Implement Handler
+Add your handler function to the appropriate `cmd/*.go` file and register it in `cmd/cmd.go`:
+
+```go
+// In cmd/cmd.go handlers map
+"mycommand": func(args []string) { cmd.MyCommand(args) },
+```
+
+### 3. Update Documentation
+```bash
+make docs  # Updates README.md command table automatically
+```
 
 ### 2. Follow existing code patterns:
    - Place command implementations in appropriate files under `cmd/`
