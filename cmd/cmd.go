@@ -280,9 +280,6 @@ func (c *Cmd) Route(args []string) {
 
 // routeCommand routes to the appropriate command handler
 func (c *Cmd) routeCommand(cmd string, args []string) {
-	if c.cmdRouter == nil {
-		c.cmdRouter = mustNewCommandRouter(c)
-	}
 
 	if c.cmdRouter.route(cmd, args) {
 		return

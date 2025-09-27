@@ -137,7 +137,7 @@ func generateCommandTable() []string {
 	// Sort commands by category, then by name
 	sort.Slice(commands, func(i, j int) bool {
 		if commands[i].Category != commands[j].Category {
-			return categoryOrder(commands[i].Category) < categoryOrder(commands[j].Category)
+			return command.CategoryOrder(commands[i].Category) < command.CategoryOrder(commands[j].Category)
 		}
 		return commands[i].Name < commands[j].Name
 	})
@@ -181,27 +181,4 @@ func firstUsage(usage []string, fallback string) string {
 		return usage[0]
 	}
 	return fallback
-}
-
-// categoryOrder defines the display order for command categories
-func categoryOrder(cat command.Category) int {
-	order := map[command.Category]int{
-		command.CategoryBasics:  1,
-		command.CategoryBranch:  2,
-		command.CategoryCommit:  3,
-		command.CategoryRemote:  4,
-		command.CategoryStatus:  5,
-		command.CategoryCleanup: 6,
-		command.CategoryDiff:    7,
-		command.CategoryTag:     8,
-		command.CategoryConfig:  9,
-		command.CategoryHook:    10,
-		command.CategoryRebase:  11,
-		command.CategoryStash:   12,
-		command.CategoryUtility: 13,
-	}
-	if o, exists := order[cat]; exists {
-		return o
-	}
-	return 999 // Unknown categories at the end
 }

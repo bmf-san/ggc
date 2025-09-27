@@ -30,8 +30,6 @@ When implementing new features or modifying existing ones, please ensure to:
 
 #### Documentation:
 - **Auto-generated**: Run `make docs` to update the README.md command table from the registry
-- Review **README.md** (and any docs in `docs/`) for command references, tables, or examples
-- Keep screenshots, GIFs, and narrative descriptions in sync with any command surface changes
 
 #### Shell Completion Scripts:
 - **tools/completions/ggc.bash**: Add/modify command and subcommand completions

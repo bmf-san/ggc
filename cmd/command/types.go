@@ -25,13 +25,19 @@ type SubcommandInfo struct {
 func (c *Info) clone() Info {
 	clone := Info{
 		Name:      c.Name,
-		Aliases:   append([]string(nil), c.Aliases...),
 		Category:  c.Category,
 		Summary:   c.Summary,
-		Usage:     append([]string(nil), c.Usage...),
-		Examples:  append([]string(nil), c.Examples...),
 		Hidden:    c.Hidden,
 		HandlerID: c.HandlerID,
+	}
+	if len(c.Aliases) > 0 {
+		clone.Aliases = append([]string(nil), c.Aliases...)
+	}
+	if len(c.Usage) > 0 {
+		clone.Usage = append([]string(nil), c.Usage...)
+	}
+	if len(c.Examples) > 0 {
+		clone.Examples = append([]string(nil), c.Examples...)
 	}
 	if len(c.Subcommands) > 0 {
 		clone.Subcommands = make([]SubcommandInfo, len(c.Subcommands))
@@ -43,11 +49,16 @@ func (c *Info) clone() Info {
 }
 
 func (s *SubcommandInfo) clone() SubcommandInfo {
-	return SubcommandInfo{
-		Name:     s.Name,
-		Summary:  s.Summary,
-		Usage:    append([]string(nil), s.Usage...),
-		Examples: append([]string(nil), s.Examples...),
-		Hidden:   s.Hidden,
+	clone := SubcommandInfo{
+		Name:    s.Name,
+		Summary: s.Summary,
+		Hidden:  s.Hidden,
 	}
+	if len(s.Usage) > 0 {
+		clone.Usage = append([]string(nil), s.Usage...)
+	}
+	if len(s.Examples) > 0 {
+		clone.Examples = append([]string(nil), s.Examples...)
+	}
+	return clone
 }

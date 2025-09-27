@@ -100,21 +100,7 @@ func RenderMainHelp() (string, error) {
 }
 
 func buildMainHelpCategories() []helpCategory {
-	orderedCats := []commandregistry.Category{
-		commandregistry.CategoryBasics,
-		commandregistry.CategoryBranch,
-		commandregistry.CategoryCommit,
-		commandregistry.CategoryRemote,
-		commandregistry.CategoryStatus,
-		commandregistry.CategoryCleanup,
-		commandregistry.CategoryDiff,
-		commandregistry.CategoryTag,
-		commandregistry.CategoryConfig,
-		commandregistry.CategoryHook,
-		commandregistry.CategoryRebase,
-		commandregistry.CategoryStash,
-		commandregistry.CategoryUtility,
-	}
+	orderedCats := commandregistry.OrderedCategories()
 
 	categoryCommands := make(map[commandregistry.Category][]helpCommand)
 
