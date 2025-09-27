@@ -76,6 +76,7 @@ Main Commands:
   ggc restore <commit> <file> Restore file from specific commit
   ggc version                 Show current ggc version
   ggc config                  Manage ggc configuration
+  ggc debug-keys              Debug keybinding issues and capture key sequences
   ggc hook                    Manage Git hooks
   ggc reset                   Reset and clean
   ggc stash                   Stash changes
