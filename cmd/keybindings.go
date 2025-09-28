@@ -187,28 +187,59 @@ func NewRawKeyStroke(seq []byte) KeyStroke {
 	}
 }
 
+// NewTabKeyStroke creates a new Tab KeyStroke
+func NewTabKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{9}) // Tab is ASCII 9
+}
+
+// NewCharKeyStroke creates a new character KeyStroke
+func NewCharKeyStroke(char rune) KeyStroke {
+	return NewRawKeyStroke([]byte{byte(char)})
+}
+
+// NewEnterKeyStroke creates a new Enter KeyStroke
+func NewEnterKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{13}) // Enter is ASCII 13
+}
+
+// NewEscapeKeyStroke creates a new Escape KeyStroke
+func NewEscapeKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{27}) // Escape is ASCII 27
+}
+
+// NewSpaceKeyStroke creates a new Space KeyStroke
+func NewSpaceKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{32}) // Space is ASCII 32
+}
+
 // KeyBindingMap holds resolved key strokes for interactive actions.
 // Supports multiple key strokes per action while maintaining backward compatibility.
 type KeyBindingMap struct {
-	DeleteWord      []KeyStroke // default: [Ctrl+W]
-	ClearLine       []KeyStroke // default: [Ctrl+U]
-	DeleteToEnd     []KeyStroke // default: [Ctrl+K]
-	MoveToBeginning []KeyStroke // default: [Ctrl+A]
-	MoveToEnd       []KeyStroke // default: [Ctrl+E]
-	MoveUp          []KeyStroke // default: [Ctrl+P]
-	MoveDown        []KeyStroke // default: [Ctrl+N]
+	DeleteWord         []KeyStroke // default: [Ctrl+W]
+	ClearLine          []KeyStroke // default: [Ctrl+U]
+	DeleteToEnd        []KeyStroke // default: [Ctrl+K]
+	MoveToBeginning    []KeyStroke // default: [Ctrl+A]
+	MoveToEnd          []KeyStroke // default: [Ctrl+E]
+	MoveUp             []KeyStroke // default: [Ctrl+P]
+	MoveDown           []KeyStroke // default: [Ctrl+N]
+	AddToWorkflow      []KeyStroke // default: [Tab]
+	ToggleWorkflowView []KeyStroke // default: [Ctrl+T]
+	ClearWorkflow      []KeyStroke // default: [c]
 }
 
 // DefaultKeyBindingMap returns the built-in default control bindings.
 func DefaultKeyBindingMap() *KeyBindingMap {
 	return &KeyBindingMap{
-		DeleteWord:      []KeyStroke{NewCtrlKeyStroke('w')},
-		ClearLine:       []KeyStroke{NewCtrlKeyStroke('u')},
-		DeleteToEnd:     []KeyStroke{NewCtrlKeyStroke('k')},
-		MoveToBeginning: []KeyStroke{NewCtrlKeyStroke('a')},
-		MoveToEnd:       []KeyStroke{NewCtrlKeyStroke('e')},
-		MoveUp:          []KeyStroke{NewCtrlKeyStroke('p')},
-		MoveDown:        []KeyStroke{NewCtrlKeyStroke('n')},
+		DeleteWord:         []KeyStroke{NewCtrlKeyStroke('w')},
+		ClearLine:          []KeyStroke{NewCtrlKeyStroke('u')},
+		DeleteToEnd:        []KeyStroke{NewCtrlKeyStroke('k')},
+		MoveToBeginning:    []KeyStroke{NewCtrlKeyStroke('a')},
+		MoveToEnd:          []KeyStroke{NewCtrlKeyStroke('e')},
+		MoveUp:             []KeyStroke{NewCtrlKeyStroke('p')},
+		MoveDown:           []KeyStroke{NewCtrlKeyStroke('n')},
+		AddToWorkflow:      []KeyStroke{NewTabKeyStroke()},
+		ToggleWorkflowView: []KeyStroke{NewCtrlKeyStroke('t')},
+		ClearWorkflow:      []KeyStroke{NewCharKeyStroke('c')},
 	}
 }
 
@@ -250,6 +281,21 @@ func (km *KeyBindingMap) GetMoveDownByte() byte {
 	return km.getFirstControlByte(km.MoveDown, ctrl('n'))
 }
 
+// GetAddToWorkflowByte returns the primary control byte for AddToWorkflow (backward compatibility)
+func (km *KeyBindingMap) GetAddToWorkflowByte() byte {
+	return km.getFirstControlByte(km.AddToWorkflow, 9) // Tab key
+}
+
+// GetToggleWorkflowViewByte returns the primary control byte for ToggleWorkflowView (backward compatibility)
+func (km *KeyBindingMap) GetToggleWorkflowViewByte() byte {
+	return km.getFirstControlByte(km.ToggleWorkflowView, ctrl('t'))
+}
+
+// GetClearWorkflowByte returns the primary control byte for ClearWorkflow (backward compatibility)
+func (km *KeyBindingMap) GetClearWorkflowByte() byte {
+	return km.getFirstControlByte(km.ClearWorkflow, 'c')
+}
+
 // getFirstControlByte finds the first Ctrl KeyStroke and returns its control byte,
 // or returns the fallback if none found
 func (km *KeyBindingMap) getFirstControlByte(keyStrokes []KeyStroke, fallback byte) byte {
@@ -264,13 +310,16 @@ func (km *KeyBindingMap) getFirstControlByte(keyStrokes []KeyStroke, fallback by
 // MatchesKeyStroke checks if any KeyStroke in the given action matches the input
 func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 	actionMap := map[string][]KeyStroke{
-		"delete_word":       km.DeleteWord,
-		"clear_line":        km.ClearLine,
-		"delete_to_end":     km.DeleteToEnd,
-		"move_to_beginning": km.MoveToBeginning,
-		"move_to_end":       km.MoveToEnd,
-		"move_up":           km.MoveUp,
-		"move_down":         km.MoveDown,
+		"delete_word":          km.DeleteWord,
+		"clear_line":           km.ClearLine,
+		"delete_to_end":        km.DeleteToEnd,
+		"move_to_beginning":    km.MoveToBeginning,
+		"move_to_end":          km.MoveToEnd,
+		"move_up":              km.MoveUp,
+		"move_down":            km.MoveDown,
+		"add_to_workflow":      km.AddToWorkflow,
+		"toggle_workflow_view": km.ToggleWorkflowView,
+		"clear_workflow":       km.ClearWorkflow,
 	}
 
 	keyStrokes, exists := actionMap[action]
@@ -536,6 +585,9 @@ func detectConflictsV2(keyMap *KeyBindingMap) []string {
 	addKeyStrokes(keyMap.MoveToEnd, "move_to_end")
 	addKeyStrokes(keyMap.MoveUp, "move_up")
 	addKeyStrokes(keyMap.MoveDown, "move_down")
+	addKeyStrokes(keyMap.AddToWorkflow, "add_to_workflow")
+	addKeyStrokes(keyMap.ToggleWorkflowView, "toggle_workflow_view")
+	addKeyStrokes(keyMap.ClearWorkflow, "clear_workflow")
 
 	// Find conflicts (multiple actions for same keystroke)
 	for keystroke, actions := range keystrokeToActions {
@@ -915,13 +967,16 @@ func (r *KeyBindingResolver) Resolve(profile Profile, context Context) (*KeyBind
 
 	// Create new KeyBindingMap for this context
 	result := &KeyBindingMap{
-		DeleteWord:      []KeyStroke{},
-		ClearLine:       []KeyStroke{},
-		DeleteToEnd:     []KeyStroke{},
-		MoveToBeginning: []KeyStroke{},
-		MoveToEnd:       []KeyStroke{},
-		MoveUp:          []KeyStroke{},
-		MoveDown:        []KeyStroke{},
+		DeleteWord:         []KeyStroke{},
+		ClearLine:          []KeyStroke{},
+		DeleteToEnd:        []KeyStroke{},
+		MoveToBeginning:    []KeyStroke{},
+		MoveToEnd:          []KeyStroke{},
+		MoveUp:             []KeyStroke{},
+		MoveDown:           []KeyStroke{},
+		AddToWorkflow:      []KeyStroke{},
+		ToggleWorkflowView: []KeyStroke{},
+		ClearWorkflow:      []KeyStroke{},
 	}
 
 	// Layer 1: Built-in defaults
@@ -1003,6 +1058,9 @@ func (r *KeyBindingResolver) GetEffectiveKeybindings(profile Profile, context Co
 	result["move_to_end"] = clone(keyMap.MoveToEnd)
 	result["move_up"] = clone(keyMap.MoveUp)
 	result["move_down"] = clone(keyMap.MoveDown)
+	result["add_to_workflow"] = clone(keyMap.AddToWorkflow)
+	result["toggle_workflow_view"] = clone(keyMap.ToggleWorkflowView)
+	result["clear_workflow"] = clone(keyMap.ClearWorkflow)
 
 	return result
 }
@@ -1019,6 +1077,9 @@ func (r *KeyBindingResolver) applyDefaults(keyMap *KeyBindingMap) {
 	keyMap.MoveToEnd = append(keyMap.MoveToEnd, defaults.MoveToEnd...)
 	keyMap.MoveUp = append(keyMap.MoveUp, defaults.MoveUp...)
 	keyMap.MoveDown = append(keyMap.MoveDown, defaults.MoveDown...)
+	keyMap.AddToWorkflow = append(keyMap.AddToWorkflow, defaults.AddToWorkflow...)
+	keyMap.ToggleWorkflowView = append(keyMap.ToggleWorkflowView, defaults.ToggleWorkflowView...)
+	keyMap.ClearWorkflow = append(keyMap.ClearWorkflow, defaults.ClearWorkflow...)
 }
 
 func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBindingProfile, context Context) {
@@ -1036,6 +1097,9 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("move_to_end", &keyMap.MoveToEnd)
 	applyBinding("move_up", &keyMap.MoveUp)
 	applyBinding("move_down", &keyMap.MoveDown)
+	applyBinding("add_to_workflow", &keyMap.AddToWorkflow)
+	applyBinding("toggle_workflow_view", &keyMap.ToggleWorkflowView)
+	applyBinding("clear_workflow", &keyMap.ClearWorkflow)
 }
 
 func (r *KeyBindingResolver) applyPlatformLayer(keyMap *KeyBindingMap) {
@@ -1050,24 +1114,75 @@ func (r *KeyBindingResolver) applyPlatformLayer(keyMap *KeyBindingMap) {
 func (r *KeyBindingResolver) applyTerminalLayer(keyMap *KeyBindingMap) {
 	terminalBindings := GetTerminalSpecificKeyBindings(r.terminal)
 
-	// Apply terminal-specific overrides
+	// Apply terminal-specific overrides with explicit action handling
 	for action, bindings := range terminalBindings {
-		switch action {
-		case "delete_word":
-			keyMap.DeleteWord = bindings
-		case "clear_line":
-			keyMap.ClearLine = bindings
-		case "delete_to_end":
-			keyMap.DeleteToEnd = bindings
-		case "move_to_beginning":
-			keyMap.MoveToBeginning = bindings
-		case "move_to_end":
-			keyMap.MoveToEnd = bindings
-		case "move_up":
-			keyMap.MoveUp = bindings
-		case "move_down":
-			keyMap.MoveDown = bindings
-		}
+		r.applyTerminalBinding(keyMap, action, bindings)
+	}
+}
+
+// applyTerminalBinding applies a single terminal binding to reduce cyclomatic complexity
+func (r *KeyBindingResolver) applyTerminalBinding(keyMap *KeyBindingMap, action string, bindings []KeyStroke) {
+	// Apply editing actions
+	if r.applyEditingAction(keyMap, action, bindings) {
+		return
+	}
+
+	// Apply navigation actions
+	if r.applyNavigationAction(keyMap, action, bindings) {
+		return
+	}
+
+	// Apply workflow actions
+	r.applyWorkflowAction(keyMap, action, bindings)
+}
+
+// applyEditingAction applies editing-related keybinding actions
+func (r *KeyBindingResolver) applyEditingAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) bool {
+	switch action {
+	case "delete_word":
+		keyMap.DeleteWord = bindings
+		return true
+	case "clear_line":
+		keyMap.ClearLine = bindings
+		return true
+	case "delete_to_end":
+		keyMap.DeleteToEnd = bindings
+		return true
+	}
+	return false
+}
+
+// applyNavigationAction applies navigation-related keybinding actions
+func (r *KeyBindingResolver) applyNavigationAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) bool {
+	switch action {
+	case "move_to_beginning":
+		keyMap.MoveToBeginning = bindings
+		return true
+	case "move_to_end":
+		keyMap.MoveToEnd = bindings
+		return true
+	case "move_up":
+		keyMap.MoveUp = bindings
+		return true
+	case "move_down":
+		keyMap.MoveDown = bindings
+		return true
+	}
+	return false
+}
+
+// applyWorkflowAction applies workflow-related keybinding actions
+func (r *KeyBindingResolver) applyWorkflowAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) {
+	switch action {
+	case "add_to_workflow":
+		keyMap.AddToWorkflow = bindings
+	case "toggle_workflow_view":
+		keyMap.ToggleWorkflowView = bindings
+	case "clear_workflow":
+		keyMap.ClearWorkflow = bindings
+	// Explicitly ignore unsupported actions
+	default:
+		// Terminal-specific action not supported in this context
 	}
 }
 
@@ -1076,13 +1191,16 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 	userBindings := r.userConfig.Interactive.Keybindings
 
 	userValues := map[string]string{
-		"delete_word":       userBindings.DeleteWord,
-		"clear_line":        userBindings.ClearLine,
-		"delete_to_end":     userBindings.DeleteToEnd,
-		"move_to_beginning": userBindings.MoveToBeginning,
-		"move_to_end":       userBindings.MoveToEnd,
-		"move_up":           userBindings.MoveUp,
-		"move_down":         userBindings.MoveDown,
+		"delete_word":          userBindings.DeleteWord,
+		"clear_line":           userBindings.ClearLine,
+		"delete_to_end":        userBindings.DeleteToEnd,
+		"move_to_beginning":    userBindings.MoveToBeginning,
+		"move_to_end":          userBindings.MoveToEnd,
+		"move_up":              userBindings.MoveUp,
+		"move_down":            userBindings.MoveDown,
+		"add_to_workflow":      userBindings.AddToWorkflow,
+		"toggle_workflow_view": userBindings.ToggleWorkflowView,
+		"clear_workflow":       userBindings.ClearWorkflow,
 	}
 
 	// Apply non-empty user overrides
@@ -1104,6 +1222,12 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 					keyMap.MoveUp = []KeyStroke{ks}
 				case "move_down":
 					keyMap.MoveDown = []KeyStroke{ks}
+				case "add_to_workflow":
+					keyMap.AddToWorkflow = []KeyStroke{ks}
+				case "toggle_workflow_view":
+					keyMap.ToggleWorkflowView = []KeyStroke{ks}
+				case "clear_workflow":
+					keyMap.ClearWorkflow = []KeyStroke{ks}
 				}
 			}
 		}
@@ -1122,13 +1246,16 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 func (r *KeyBindingResolver) applyEnvironmentOverrides(keyMap *KeyBindingMap) {
 	// Check for environment variable overrides
 	envOverrides := map[string]*[]KeyStroke{
-		"GGC_KEYBIND_DELETE_WORD":       &keyMap.DeleteWord,
-		"GGC_KEYBIND_CLEAR_LINE":        &keyMap.ClearLine,
-		"GGC_KEYBIND_DELETE_TO_END":     &keyMap.DeleteToEnd,
-		"GGC_KEYBIND_MOVE_TO_BEGINNING": &keyMap.MoveToBeginning,
-		"GGC_KEYBIND_MOVE_TO_END":       &keyMap.MoveToEnd,
-		"GGC_KEYBIND_MOVE_UP":           &keyMap.MoveUp,
-		"GGC_KEYBIND_MOVE_DOWN":         &keyMap.MoveDown,
+		"GGC_KEYBIND_DELETE_WORD":          &keyMap.DeleteWord,
+		"GGC_KEYBIND_CLEAR_LINE":           &keyMap.ClearLine,
+		"GGC_KEYBIND_DELETE_TO_END":        &keyMap.DeleteToEnd,
+		"GGC_KEYBIND_MOVE_TO_BEGINNING":    &keyMap.MoveToBeginning,
+		"GGC_KEYBIND_MOVE_TO_END":          &keyMap.MoveToEnd,
+		"GGC_KEYBIND_MOVE_UP":              &keyMap.MoveUp,
+		"GGC_KEYBIND_MOVE_DOWN":            &keyMap.MoveDown,
+		"GGC_KEYBIND_ADD_TO_WORKFLOW":      &keyMap.AddToWorkflow,
+		"GGC_KEYBIND_TOGGLE_WORKFLOW_VIEW": &keyMap.ToggleWorkflowView,
+		"GGC_KEYBIND_CLEAR_WORKFLOW":       &keyMap.ClearWorkflow,
 	}
 
 	for envVar, target := range envOverrides {
@@ -1189,23 +1316,74 @@ func (r *KeyBindingResolver) applyUserBindings(keyMap *KeyBindingMap, bindings m
 	for action, value := range bindings {
 		keystrokes := r.parseUserBindingValue(value)
 		if len(keystrokes) > 0 {
-			switch action {
-			case "delete_word":
-				keyMap.DeleteWord = keystrokes
-			case "clear_line":
-				keyMap.ClearLine = keystrokes
-			case "delete_to_end":
-				keyMap.DeleteToEnd = keystrokes
-			case "move_to_beginning":
-				keyMap.MoveToBeginning = keystrokes
-			case "move_to_end":
-				keyMap.MoveToEnd = keystrokes
-			case "move_up":
-				keyMap.MoveUp = keystrokes
-			case "move_down":
-				keyMap.MoveDown = keystrokes
-			}
+			r.applyUserBinding(keyMap, action, keystrokes)
 		}
+	}
+}
+
+// applyUserBinding applies a single user binding to reduce cyclomatic complexity
+func (r *KeyBindingResolver) applyUserBinding(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) {
+	// Apply editing actions
+	if r.applyUserEditingAction(keyMap, action, keystrokes) {
+		return
+	}
+
+	// Apply navigation actions
+	if r.applyUserNavigationAction(keyMap, action, keystrokes) {
+		return
+	}
+
+	// Apply workflow actions
+	r.applyUserWorkflowAction(keyMap, action, keystrokes)
+}
+
+// applyUserEditingAction applies user editing-related keybinding actions
+func (r *KeyBindingResolver) applyUserEditingAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) bool {
+	switch action {
+	case "delete_word":
+		keyMap.DeleteWord = keystrokes
+		return true
+	case "clear_line":
+		keyMap.ClearLine = keystrokes
+		return true
+	case "delete_to_end":
+		keyMap.DeleteToEnd = keystrokes
+		return true
+	}
+	return false
+}
+
+// applyUserNavigationAction applies user navigation-related keybinding actions
+func (r *KeyBindingResolver) applyUserNavigationAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) bool {
+	switch action {
+	case "move_to_beginning":
+		keyMap.MoveToBeginning = keystrokes
+		return true
+	case "move_to_end":
+		keyMap.MoveToEnd = keystrokes
+		return true
+	case "move_up":
+		keyMap.MoveUp = keystrokes
+		return true
+	case "move_down":
+		keyMap.MoveDown = keystrokes
+		return true
+	}
+	return false
+}
+
+// applyUserWorkflowAction applies user workflow-related keybinding actions
+func (r *KeyBindingResolver) applyUserWorkflowAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) {
+	switch action {
+	case "add_to_workflow":
+		keyMap.AddToWorkflow = keystrokes
+	case "toggle_workflow_view":
+		keyMap.ToggleWorkflowView = keystrokes
+	case "clear_workflow":
+		keyMap.ClearWorkflow = keystrokes
+	// Explicitly ignore unsupported actions
+	default:
+		// User-defined action not supported in this context
 	}
 }
 
@@ -1265,12 +1443,18 @@ func CreateDefaultProfile() *KeyBindingProfile {
 				"move_to_end":       {NewCtrlKeyStroke('e')},
 			},
 			ContextResults: {
-				"move_up":   {NewCtrlKeyStroke('p')},
-				"move_down": {NewCtrlKeyStroke('n')},
+				"move_up":              {NewCtrlKeyStroke('p')},
+				"move_down":            {NewCtrlKeyStroke('n')},
+				"add_to_workflow":      {NewTabKeyStroke()},
+				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
+				"clear_workflow":       {NewCharKeyStroke('c')},
 			},
 			ContextSearch: {
-				"move_up":   {NewCtrlKeyStroke('p')},
-				"move_down": {NewCtrlKeyStroke('n')},
+				"move_up":              {NewCtrlKeyStroke('p')},
+				"move_down":            {NewCtrlKeyStroke('n')},
+				"add_to_workflow":      {NewTabKeyStroke()},
+				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
+				"clear_workflow":       {NewCharKeyStroke('c')},
 			},
 		},
 	}
@@ -1385,6 +1569,11 @@ func CreateEmacsProfile() *KeyBindingProfile {
 				// Execute/select
 				"execute": {NewCtrlKeyStroke('m')}, // C-m (Enter equivalent)
 				"select":  {NewCtrlKeyStroke('m')}, // Alias
+
+				// Workflow operations (adapted for Emacs style)
+				"add_to_workflow":      {NewRawKeyStroke([]byte{9})}, // Tab
+				"toggle_workflow_view": {NewCtrlKeyStroke('t')},      // C-t
+				"clear_workflow":       {NewAltKeyStroke('c', "")},   // M-c clear
 			},
 			ContextSearch: {
 				// Search-specific Emacs bindings
@@ -1407,6 +1596,11 @@ func CreateEmacsProfile() *KeyBindingProfile {
 				// Case sensitivity toggle
 				"isearch_toggle_case_fold": {NewAltKeyStroke('c', "")}, // M-c toggle case sensitivity
 				"isearch_toggle_regexp":    {NewAltKeyStroke('r', "")}, // M-r toggle regexp mode
+
+				// Workflow operations (search context)
+				"add_to_workflow":      {NewRawKeyStroke([]byte{9})}, // Tab
+				"toggle_workflow_view": {NewCtrlKeyStroke('t')},      // C-t
+				"clear_workflow":       {NewAltKeyStroke('x', "")},   // M-x clear (avoiding conflict with M-c)
 			},
 		},
 	}
@@ -1539,6 +1733,11 @@ func CreateViProfile() *KeyBindingProfile {
 				"insert_after":        {NewRawKeyStroke([]byte{'a'})}, // a - insert after cursor
 				"insert_at_end":       {NewRawKeyStroke([]byte{'A'})}, // A - insert at line end
 				"insert_at_beginning": {NewRawKeyStroke([]byte{'I'})}, // I - insert at line beginning
+
+				// Workflow operations (Vi normal mode style)
+				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},   // Tab
+				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})}, // W - workflow view (capital W)
+				"clear_workflow":       {NewRawKeyStroke([]byte{'D'})}, // D - delete/clear workflow
 			},
 			ContextSearch: {
 				// Vi search mode bindings (when in / or ? search)
@@ -1569,6 +1768,11 @@ func CreateViProfile() *KeyBindingProfile {
 				// History (search command history)
 				"search_history_up":   {NewCtrlKeyStroke('p')}, // C-p - previous search
 				"search_history_down": {NewCtrlKeyStroke('n')}, // C-n - next search
+
+				// Workflow operations (Vi search mode)
+				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},   // Tab
+				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})}, // W - workflow view
+				"clear_workflow":       {NewRawKeyStroke([]byte{'D'})}, // D - delete/clear workflow
 			},
 		},
 	}
@@ -1736,6 +1940,11 @@ func CreateReadlineProfile() *KeyBindingProfile {
 				// Mark and selection
 				"set_mark":                {NewCtrlKeyStroke(' ')},                        // C-SPC set-mark
 				"exchange_point_and_mark": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('x')}, // C-x C-x exchange-point-and-mark
+
+				// Workflow operations (Readline style)
+				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},                   // Tab
+				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')}, // C-x C-w workflow
+				"clear_workflow":       {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('c')}, // C-x C-c clear
 			},
 			ContextSearch: {
 				// Search mode using Readline search conventions
@@ -1772,6 +1981,11 @@ func CreateReadlineProfile() *KeyBindingProfile {
 				// Yank into search
 				"yank":          {NewCtrlKeyStroke('y')},    // C-y yank
 				"yank_last_arg": {NewAltKeyStroke('.', "")}, // M-. yank-last-arg
+
+				// Workflow operations (search context)
+				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},                   // Tab
+				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')}, // C-x C-w workflow
+				"clear_workflow":       {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('c')}, // C-x C-c clear
 			},
 		},
 	}

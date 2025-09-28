@@ -50,13 +50,13 @@ func TestStatuser_Constructor(t *testing.T) {
 	if statuser == nil {
 		t.Fatal("Expected NewStatuser to return a non-nil Statuser")
 	}
-	if statuser.gitClient == nil {
+	if statuser != nil && statuser.gitClient == nil {
 		t.Error("Expected gitClient to be set")
 	}
-	if statuser.outputWriter == nil {
+	if statuser != nil && statuser.outputWriter == nil {
 		t.Error("Expected outputWriter to be set")
 	}
-	if statuser.helper == nil {
+	if statuser != nil && statuser.helper == nil {
 		t.Error("Expected helper to be set")
 	}
 }

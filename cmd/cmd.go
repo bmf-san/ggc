@@ -14,6 +14,15 @@ import (
 	"github.com/bmf-san/ggc/v6/git"
 )
 
+// Interactive mode special return values
+// These constants are used to signal special states when returning from interactive mode
+const (
+	// InteractiveQuitCommand signals that the user wants to quit the interactive mode
+	InteractiveQuitCommand = "quit"
+	// InteractiveWorkflowCommand signals that a workflow has been executed and the interactive mode should restart
+	InteractiveWorkflowCommand = "workflow-executed"
+)
+
 // Executer is an interface for executing commands.
 type Executer interface {
 	Help()
@@ -251,15 +260,25 @@ func (c *Cmd) Interactive() {
 		os.Exit(0)
 	}()
 
+	// Create persistent UI instance to preserve state
+	ui := NewUI(c.gitClient, c)
+
 	for {
-		args := InteractiveUI(c.gitClient)
+		args := ui.Run()
 		if args == nil {
 			break
 		}
 
 		// Check for "quit" command
-		if len(args) >= 2 && args[1] == "quit" {
+		if len(args) >= 2 && args[1] == InteractiveQuitCommand {
 			break
+		}
+
+		// Check for workflow execution
+		if len(args) >= 2 && args[1] == InteractiveWorkflowCommand {
+			// Workflow was executed, wait for user to continue
+			c.waitForContinue()
+			continue
 		}
 
 		c.Route(args[1:]) // Skip "ggc" in args
@@ -334,7 +353,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"fetch":   func(args []string) { cmd.Fetch(args) },
 		"diff":    func(args []string) { cmd.Diff(args) },
 		"restore": func(args []string) { cmd.Restore(args) },
-		"quit": func([]string) {
+		InteractiveQuitCommand: func([]string) {
 			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
 		},
 	}

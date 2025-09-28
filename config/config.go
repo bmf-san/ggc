@@ -95,13 +95,16 @@ type Config struct {
 		Profile string `yaml:"profile,omitempty"`
 
 		Keybindings struct {
-			DeleteWord      string `yaml:"delete_word"`
-			ClearLine       string `yaml:"clear_line"`
-			DeleteToEnd     string `yaml:"delete_to_end"`
-			MoveToBeginning string `yaml:"move_to_beginning"`
-			MoveToEnd       string `yaml:"move_to_end"`
-			MoveUp          string `yaml:"move_up"`
-			MoveDown        string `yaml:"move_down"`
+			DeleteWord         string `yaml:"delete_word"`
+			ClearLine          string `yaml:"clear_line"`
+			DeleteToEnd        string `yaml:"delete_to_end"`
+			MoveToBeginning    string `yaml:"move_to_beginning"`
+			MoveToEnd          string `yaml:"move_to_end"`
+			MoveUp             string `yaml:"move_up"`
+			MoveDown           string `yaml:"move_down"`
+			AddToWorkflow      string `yaml:"add_to_workflow"`
+			ToggleWorkflowView string `yaml:"toggle_workflow_view"`
+			ClearWorkflow      string `yaml:"clear_workflow"`
 		} `yaml:"keybindings"`
 
 		Contexts struct {
@@ -989,13 +992,16 @@ func (c *Config) validateKeybindings() error {
 
 	// Validate global keybindings
 	bindings := map[string]string{
-		"delete_word":       c.Interactive.Keybindings.DeleteWord,
-		"clear_line":        c.Interactive.Keybindings.ClearLine,
-		"delete_to_end":     c.Interactive.Keybindings.DeleteToEnd,
-		"move_to_beginning": c.Interactive.Keybindings.MoveToBeginning,
-		"move_to_end":       c.Interactive.Keybindings.MoveToEnd,
-		"move_up":           c.Interactive.Keybindings.MoveUp,
-		"move_down":         c.Interactive.Keybindings.MoveDown,
+		"delete_word":          c.Interactive.Keybindings.DeleteWord,
+		"clear_line":           c.Interactive.Keybindings.ClearLine,
+		"delete_to_end":        c.Interactive.Keybindings.DeleteToEnd,
+		"move_to_beginning":    c.Interactive.Keybindings.MoveToBeginning,
+		"move_to_end":          c.Interactive.Keybindings.MoveToEnd,
+		"move_up":              c.Interactive.Keybindings.MoveUp,
+		"move_down":            c.Interactive.Keybindings.MoveDown,
+		"add_to_workflow":      c.Interactive.Keybindings.AddToWorkflow,
+		"toggle_workflow_view": c.Interactive.Keybindings.ToggleWorkflowView,
+		"clear_workflow":       c.Interactive.Keybindings.ClearWorkflow,
 	}
 
 	for action, keyStr := range bindings {
