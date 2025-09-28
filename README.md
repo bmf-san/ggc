@@ -221,95 +221,96 @@ ggc
 
 | Command | Description |
 |--------|-------------|
-| `help` | Show help message |
+| `add .` | Add all changes to the index |
 | `add <file>` | Add a specific file to the index |
-| `add .` | Add all changes to index |
 | `add interactive` | Add changes interactively |
 | `add patch` | Add changes interactively (patch mode) |
-| `branch current` | Show current branch name |
+| `help` | Show main help message |
+| `help <command>` | Show help for a specific command |
 | `branch checkout` | Switch to an existing branch |
 | `branch checkout remote` | Create and checkout a local branch from the remote |
-| `branch create` | Create and checkout new branch |
+| `branch contains <commit>` | Show branches containing a commit |
+| `branch create` | Create and checkout a new branch |
+| `branch current` | Show current branch name |
 | `branch delete` | Delete local branch |
-| `branch delete merged` | Delete local merged branches |
-| `branch rename <old> <new>` | Rename a branch |
-| `branch move <branch> <commit>` | Move branch to specified commit |
-| `branch set upstream <branch> <upstream>` | Set upstream for a branch |
+| `branch delete merged` | Delete local merged branch |
 | `branch info <branch>` | Show detailed branch information |
-| `branch list verbose` | Show detailed branch listing |
 | `branch list local` | List local branches |
 | `branch list remote` | List remote branches |
-| `branch sort [date\|name]` | List branches sorted by date or name |
-| `branch contains <commit>` | Show branches containing a commit |
-| `push current` | Push current branch from remote repository |
-| `push force` | Force push current branch |
-| `pull current` | Pull current branch from remote repository |
-| `pull rebase` | Pull and rebase |
-| `log simple` | Show simple historical log |
-| `log graph` | Show log with graph |
+| `branch list verbose` | Show detailed branch listing |
+| `branch move <branch> <commit>` | Move branch to specified commit |
+| `branch rename <old> <new>` | Rename a branch |
+| `branch set upstream <branch> <upstream>` | Set upstream for a branch |
+| `branch sort [date|name]` | List branches sorted by date or name |
 | `commit <message>` | Create commit with a message |
 | `commit allow empty` | Create an empty commit |
 | `commit amend` | Amend previous commit (editor) |
 | `commit amend no-edit` | Amend without editing commit message |
+| `log graph` | Show log with graph |
+| `log simple` | Show simple historical log |
+| `fetch` | Fetch from the remote |
 | `fetch prune` | Fetch and clean stale references |
-| `tag list` | List all tags |
-| `tag create <tag>` | Create tag |
+| `pull current` | Pull current branch from remote repository |
+| `pull rebase` | Pull and rebase |
+| `push current` | Push current branch to remote repository |
+| `push force` | Force push current branch |
+| `remote add <name> <url>` | Add remote repository |
+| `remote list` | List all remote repositories |
+| `remote remove <name>` | Remove remote repository |
+| `remote set-url <name> <url>` | Change remote URL |
+| `status` | Show working tree status |
+| `status short` | Show concise status (porcelain format) |
+| `clean dirs` | Clean untracked directories |
+| `clean files` | Clean untracked files |
+| `clean interactive` | Clean files interactively |
+| `restore .` | Restore all files in working directory from index |
+| `restore <commit> <file>` | Restore file from specific commit |
+| `restore <file>` | Restore file in working directory from index |
+| `restore staged .` | Unstage all files |
+| `restore staged <file>` | Unstage file (restore from HEAD to index) |
+| `diff` | Show changes (git diff HEAD) |
+| `diff staged` | Show staged changes |
+| `diff unstaged` | Show unstaged changes |
 | `tag annotated <tag> <message>` | Create annotated tag |
+| `tag create <tag>` | Create tag |
 | `tag delete <tag>` | Delete tag |
+| `tag list` | List all tags |
 | `tag push` | Push tags to remote |
 | `tag show <tag>` | Show tag information |
-| `config list` | List all configuration |
 | `config get <key>` | Get a specific config value |
+| `config list` | List all configuration |
 | `config set <key> <value>` | Set a configuration value |
-| `hook list` | List all hooks |
-| `hook install <hook>` | Install a hook |
-| `hook enable <hook>` | Enable/Turn on a hook |
-| `hook disable <hook>` | Disable/Turn off a hook |
-| `hook uninstall <hook>` | Uninstall an existing hook |
+| `hook disable <hook>` | Disable a hook |
 | `hook edit <hook>` | Edit a hook's contents |
-| `diff` | Show changes (git diff HEAD) |
-| `diff unstaged` | Show unstaged changes |
-| `diff staged` | Show staged changes |
-| `version` | Show current version |
-| `clean files` | Clean untracked files |
-| `clean dirs` | Clean untracked directories |
-| `clean interactive` | Clean files interactively |
+| `hook enable <hook>` | Enable a hook |
+| `hook install <hook>` | Install a hook |
+| `hook list` | List all hooks |
+| `hook uninstall <hook>` | Uninstall an existing hook |
+| `rebase <upstream>` | Rebase current branch onto <upstream> |
+| `rebase abort` | Abort an in-progress rebase |
+| `rebase continue` | Continue an in-progress rebase |
+| `rebase interactive` | Interactive rebase |
+| `rebase skip` | Skip current patch and continue |
 | `stash` | Stash current changes |
-| `stash list` | List all stashes |
-| `stash show` | Show changes in stash |
-| `stash show <stash>` | Show changes in specific stash |
 | `stash apply` | Apply stash without removing it |
 | `stash apply <stash>` | Apply specific stash without removing it |
-| `stash pop` | Apply and remove the latest stash |
-| `stash pop <stash>` | Apply and remove specific stash |
-| `stash drop` | Remove the latest stash |
-| `stash drop <stash>` | Remove specific stash |
 | `stash branch <branch>` | Create branch from stash |
 | `stash branch <branch> <stash>` | Create branch from specific stash |
+| `stash clear` | Remove all stashes |
+| `stash create` | Create stash and return object name |
+| `stash drop` | Remove the latest stash |
+| `stash drop <stash>` | Remove specific stash |
+| `stash list` | List all stashes |
+| `stash pop` | Apply and remove the latest stash |
+| `stash pop <stash>` | Apply and remove specific stash |
 | `stash push` | Save changes to new stash |
 | `stash push -m <message>` | Save changes to new stash with message |
 | `stash save <message>` | Save changes to new stash with message |
-| `stash clear` | Remove all stashes |
-| `stash create` | Create stash and return object name |
+| `stash show` | Show changes in stash |
+| `stash show <stash>` | Show changes in specific stash |
 | `stash store <object>` | Store stash object |
-| `status` | Show working tree status |
-| `status short` | Show concise status (porcelain format) |
-| `rebase interactive` | Interactive rebase |
-| `rebase <upstream>` | Rebase current branch onto <upstream> |
-| `rebase continue` | Continue an in-progress rebase |
-| `rebase abort` | Abort an in-progress rebase |
-| `rebase skip` | Skip current patch and continue |
-| `remote list` | List all remote repositories |
-| `remote add <n> <url>` | Add remote repository |
-| `remote remove <n>` | Remove remote repository |
-| `remote set-url <n> <url>` | Change remote URL |
-| `restore <file>` | Restore file in working directory from index |
-| `restore .` | Restore all files in working directory from index |
-| `restore staged <file>` | Unstage file (restore from HEAD to index) |
-| `restore staged .` | Unstage all files |
-| `restore <commit> <file>` | Restore file from specific commit |
 | `quit` | Exit interactive mode |
-
+| `version` | Display current ggc version |
 ### Unified Syntax and "--" Separator
 
 - Unified commands: ggc uses a flagless, space-separated syntax (no `-x`/`--long` options). Use subcommands and words, e.g., `ggc fetch prune`, `ggc commit allow empty`.
