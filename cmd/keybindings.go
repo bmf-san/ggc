@@ -1114,24 +1114,33 @@ func (r *KeyBindingResolver) applyPlatformLayer(keyMap *KeyBindingMap) {
 func (r *KeyBindingResolver) applyTerminalLayer(keyMap *KeyBindingMap) {
 	terminalBindings := GetTerminalSpecificKeyBindings(r.terminal)
 
-	// Map of action names to their corresponding KeyBindingMap fields
-	actionMap := map[string]*[]KeyStroke{
-		"delete_word":          &keyMap.DeleteWord,
-		"clear_line":           &keyMap.ClearLine,
-		"delete_to_end":        &keyMap.DeleteToEnd,
-		"move_to_beginning":    &keyMap.MoveToBeginning,
-		"move_to_end":          &keyMap.MoveToEnd,
-		"move_up":              &keyMap.MoveUp,
-		"move_down":            &keyMap.MoveDown,
-		"add_to_workflow":      &keyMap.AddToWorkflow,
-		"toggle_workflow_view": &keyMap.ToggleWorkflowView,
-		"clear_workflow":       &keyMap.ClearWorkflow,
-	}
-
-	// Apply terminal-specific overrides
+	// Apply terminal-specific overrides with explicit action handling
 	for action, bindings := range terminalBindings {
-		if field, exists := actionMap[action]; exists {
-			*field = bindings
+		switch action {
+		case "delete_word":
+			keyMap.DeleteWord = bindings
+		case "clear_line":
+			keyMap.ClearLine = bindings
+		case "delete_to_end":
+			keyMap.DeleteToEnd = bindings
+		case "move_to_beginning":
+			keyMap.MoveToBeginning = bindings
+		case "move_to_end":
+			keyMap.MoveToEnd = bindings
+		case "move_up":
+			keyMap.MoveUp = bindings
+		case "move_down":
+			keyMap.MoveDown = bindings
+		case "add_to_workflow":
+			keyMap.AddToWorkflow = bindings
+		case "toggle_workflow_view":
+			keyMap.ToggleWorkflowView = bindings
+		case "clear_workflow":
+			keyMap.ClearWorkflow = bindings
+		// Explicitly ignore unsupported actions
+		default:
+			// Terminal-specific action not supported in this context
+			continue
 		}
 	}
 }
@@ -1263,26 +1272,38 @@ func (r *KeyBindingResolver) applyUserTerminalBindings(keyMap *KeyBindingMap) {
 }
 
 func (r *KeyBindingResolver) applyUserBindings(keyMap *KeyBindingMap, bindings map[string]interface{}) {
-	// Map of action names to their corresponding KeyBindingMap fields
-	actionMap := map[string]*[]KeyStroke{
-		"delete_word":          &keyMap.DeleteWord,
-		"clear_line":           &keyMap.ClearLine,
-		"delete_to_end":        &keyMap.DeleteToEnd,
-		"move_to_beginning":    &keyMap.MoveToBeginning,
-		"move_to_end":          &keyMap.MoveToEnd,
-		"move_up":              &keyMap.MoveUp,
-		"move_down":            &keyMap.MoveDown,
-		"add_to_workflow":      &keyMap.AddToWorkflow,
-		"toggle_workflow_view": &keyMap.ToggleWorkflowView,
-		"clear_workflow":       &keyMap.ClearWorkflow,
-	}
-
 	for action, value := range bindings {
 		keystrokes := r.parseUserBindingValue(value)
-		if len(keystrokes) > 0 {
-			if field, exists := actionMap[action]; exists {
-				*field = keystrokes
-			}
+		if len(keystrokes) == 0 {
+			continue
+		}
+
+		// Apply user bindings with explicit action handling
+		switch action {
+		case "delete_word":
+			keyMap.DeleteWord = keystrokes
+		case "clear_line":
+			keyMap.ClearLine = keystrokes
+		case "delete_to_end":
+			keyMap.DeleteToEnd = keystrokes
+		case "move_to_beginning":
+			keyMap.MoveToBeginning = keystrokes
+		case "move_to_end":
+			keyMap.MoveToEnd = keystrokes
+		case "move_up":
+			keyMap.MoveUp = keystrokes
+		case "move_down":
+			keyMap.MoveDown = keystrokes
+		case "add_to_workflow":
+			keyMap.AddToWorkflow = keystrokes
+		case "toggle_workflow_view":
+			keyMap.ToggleWorkflowView = keystrokes
+		case "clear_workflow":
+			keyMap.ClearWorkflow = keystrokes
+		// Explicitly ignore unsupported actions
+		default:
+			// User-defined action not supported in this context
+			continue
 		}
 	}
 }
