@@ -530,6 +530,11 @@ type Renderer struct {
 	colors *ANSIColors
 }
 
+type keybindHelpEntry struct {
+	key  string
+	desc string
+}
+
 // KeyHandler manages keyboard input processing
 type KeyHandler struct {
 	ui            *UI
@@ -1671,6 +1676,50 @@ func (r *Renderer) renderEmptyState(ui *UI) {
 		r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
 }
 
+func (r *Renderer) buildSearchKeybindEntries(ui *UI) []keybindHelpEntry {
+	entries := []keybindHelpEntry{
+		{key: "←/→", desc: "Move cursor"},
+		{key: "Ctrl+←/→", desc: "Move by word"},
+		{key: "Option+←/→", desc: "Move by word (macOS)"},
+	}
+	// Future: extend this helper for additional contexts such as workflow views.
+
+	var km *KeyBindingMap
+	if ui != nil && ui.handler != nil {
+		km = ui.handler.GetCurrentKeyMap()
+	}
+	if km == nil {
+		km = DefaultKeyBindingMap()
+	}
+
+	defaultMap := DefaultKeyBindingMap()
+
+	appendDynamic := func(primary []KeyStroke, fallback []KeyStroke, desc string) {
+		keys := primary
+		if len(keys) == 0 {
+			keys = fallback
+		}
+		if len(keys) == 0 {
+			return
+		}
+		formatted := FormatKeyStrokesForDisplay(keys)
+		if formatted == "" || formatted == "none" {
+			return
+		}
+		entries = append(entries, keybindHelpEntry{key: formatted, desc: desc})
+	}
+
+	appendDynamic(km.ClearLine, defaultMap.ClearLine, "Clear all input")
+	appendDynamic(km.DeleteWord, defaultMap.DeleteWord, "Delete word")
+	appendDynamic(km.DeleteToEnd, defaultMap.DeleteToEnd, "Delete to end")
+	appendDynamic(km.MoveToBeginning, defaultMap.MoveToBeginning, "Move to beginning")
+	appendDynamic(km.MoveToEnd, defaultMap.MoveToEnd, "Move to end")
+
+	entries = append(entries, keybindHelpEntry{key: "Backspace", desc: "Delete character"})
+
+	return entries
+}
+
 // renderNoMatches renders the no matches found state with keybind help
 func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 	// No matches message
@@ -1683,24 +1732,12 @@ func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 		r.colors.Reset))
 	r.writeEmptyLine()
 
-	// Available keybinds
-	keybinds := []struct{ key, desc string }{
-		{"←/→", "Move cursor"},
-		{"Ctrl+←/→", "Move by word"},
-		{"Option+←/→", "Move by word (macOS)"},
-		{"Option+Backspace", "Delete word (macOS)"},
-		{"Ctrl+u", "Clear all input"},
-		{"Ctrl+w", "Delete word"},
-		{"Ctrl+k", "Delete to end"},
-		{"Ctrl+a", "Move to beginning"},
-		{"Ctrl+e", "Move to end"},
-		{"Backspace", "Delete character"},
-	}
+	entries := r.buildSearchKeybindEntries(ui)
 
 	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
 		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
 
-	for _, kb := range keybinds {
+	for _, kb := range entries {
 		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
 			r.colors.BrightGreen+r.colors.Bold,
 			kb.key,
