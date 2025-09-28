@@ -3545,10 +3545,7 @@ func FormatKeyStrokeForDisplay(ks KeyStroke) string { //nolint:revive // handles
 		return fmt.Sprintf("Ctrl+%c", ks.Rune)
 	case KeyStrokeAlt:
 		if ks.Name != "" {
-			label := ks.Name
-			if label != "" {
-				label = strings.ToUpper(label[:1]) + label[1:]
-			}
+			label := strings.ToUpper(ks.Name[:1]) + ks.Name[1:]
 			return fmt.Sprintf("Alt+%s", label)
 		}
 		if ks.Rune != 0 {
