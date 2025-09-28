@@ -2,7 +2,9 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 )
@@ -177,13 +179,17 @@ func interactiveInputForWorkflow(placeholders []string) map[string]string {
 
 		fmt.Printf("? %s: ", ph)
 
-		// Simple input reading (not raw mode since we're in workflow execution)
-		var value string
-		_, err := fmt.Scanln(&value)
-		if err != nil {
-			fmt.Printf("Input error: %v\n", err)
+		// Read complete line including spaces using bufio.Scanner
+		scanner := bufio.NewScanner(os.Stdin)
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				fmt.Printf("Input error: %v\n", err)
+			} else {
+				fmt.Printf("Input canceled\n")
+			}
 			return nil
 		}
+		value := strings.TrimSpace(scanner.Text())
 
 		if value == "" {
 			fmt.Printf("Operation canceled\n")
