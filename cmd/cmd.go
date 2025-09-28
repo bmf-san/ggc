@@ -15,8 +15,11 @@ import (
 )
 
 // Interactive mode special return values
+// These constants are used to signal special states when returning from interactive mode
 const (
-	InteractiveQuitCommand     = "quit"
+	// InteractiveQuitCommand signals that the user wants to quit the interactive mode
+	InteractiveQuitCommand = "quit"
+	// InteractiveWorkflowCommand signals that a workflow has been executed and the interactive mode should restart
 	InteractiveWorkflowCommand = "workflow-executed"
 )
 
@@ -350,7 +353,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"fetch":   func(args []string) { cmd.Fetch(args) },
 		"diff":    func(args []string) { cmd.Diff(args) },
 		"restore": func(args []string) { cmd.Restore(args) },
-		"quit": func([]string) {
+		InteractiveQuitCommand: func([]string) {
 			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
 		},
 	}
