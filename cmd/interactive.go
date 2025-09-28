@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -2050,10 +2049,14 @@ func (r *Renderer) calculateMaxCommandLength(filtered []CommandInfo) int {
 	if len(filtered) == 0 {
 		return 0
 	}
-	maxCmd := slices.MaxFunc(filtered, func(a, b CommandInfo) int {
-		return len(a.Command) - len(b.Command)
-	})
-	return len(maxCmd.Command)
+
+	maxLen := 0
+	for _, cmd := range filtered {
+		if len(cmd.Command) > maxLen {
+			maxLen = len(cmd.Command)
+		}
+	}
+	return maxLen
 }
 
 // setupTerminal configures terminal raw mode and returns the old state and error status
@@ -2248,6 +2251,5 @@ func (h *KeyHandler) executeWorkflow(oldState *term.State) (bool, []string) {
 	}
 
 	// Keep workflow for reuse - don't clear it
-
 	return false, []string{"ggc", InteractiveWorkflowCommand}
 }
