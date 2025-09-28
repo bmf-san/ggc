@@ -1116,32 +1116,73 @@ func (r *KeyBindingResolver) applyTerminalLayer(keyMap *KeyBindingMap) {
 
 	// Apply terminal-specific overrides with explicit action handling
 	for action, bindings := range terminalBindings {
-		switch action {
-		case "delete_word":
-			keyMap.DeleteWord = bindings
-		case "clear_line":
-			keyMap.ClearLine = bindings
-		case "delete_to_end":
-			keyMap.DeleteToEnd = bindings
-		case "move_to_beginning":
-			keyMap.MoveToBeginning = bindings
-		case "move_to_end":
-			keyMap.MoveToEnd = bindings
-		case "move_up":
-			keyMap.MoveUp = bindings
-		case "move_down":
-			keyMap.MoveDown = bindings
-		case "add_to_workflow":
-			keyMap.AddToWorkflow = bindings
-		case "toggle_workflow_view":
-			keyMap.ToggleWorkflowView = bindings
-		case "clear_workflow":
-			keyMap.ClearWorkflow = bindings
-		// Explicitly ignore unsupported actions
-		default:
-			// Terminal-specific action not supported in this context
-			continue
-		}
+		r.applyTerminalBinding(keyMap, action, bindings)
+	}
+}
+
+// applyTerminalBinding applies a single terminal binding to reduce cyclomatic complexity
+func (r *KeyBindingResolver) applyTerminalBinding(keyMap *KeyBindingMap, action string, bindings []KeyStroke) {
+	// Apply editing actions
+	if r.applyEditingAction(keyMap, action, bindings) {
+		return
+	}
+
+	// Apply navigation actions
+	if r.applyNavigationAction(keyMap, action, bindings) {
+		return
+	}
+
+	// Apply workflow actions
+	r.applyWorkflowAction(keyMap, action, bindings)
+}
+
+// applyEditingAction applies editing-related keybinding actions
+func (r *KeyBindingResolver) applyEditingAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) bool {
+	switch action {
+	case "delete_word":
+		keyMap.DeleteWord = bindings
+		return true
+	case "clear_line":
+		keyMap.ClearLine = bindings
+		return true
+	case "delete_to_end":
+		keyMap.DeleteToEnd = bindings
+		return true
+	}
+	return false
+}
+
+// applyNavigationAction applies navigation-related keybinding actions
+func (r *KeyBindingResolver) applyNavigationAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) bool {
+	switch action {
+	case "move_to_beginning":
+		keyMap.MoveToBeginning = bindings
+		return true
+	case "move_to_end":
+		keyMap.MoveToEnd = bindings
+		return true
+	case "move_up":
+		keyMap.MoveUp = bindings
+		return true
+	case "move_down":
+		keyMap.MoveDown = bindings
+		return true
+	}
+	return false
+}
+
+// applyWorkflowAction applies workflow-related keybinding actions
+func (r *KeyBindingResolver) applyWorkflowAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) {
+	switch action {
+	case "add_to_workflow":
+		keyMap.AddToWorkflow = bindings
+	case "toggle_workflow_view":
+		keyMap.ToggleWorkflowView = bindings
+	case "clear_workflow":
+		keyMap.ClearWorkflow = bindings
+	// Explicitly ignore unsupported actions
+	default:
+		// Terminal-specific action not supported in this context
 	}
 }
 
@@ -1274,37 +1315,75 @@ func (r *KeyBindingResolver) applyUserTerminalBindings(keyMap *KeyBindingMap) {
 func (r *KeyBindingResolver) applyUserBindings(keyMap *KeyBindingMap, bindings map[string]interface{}) {
 	for action, value := range bindings {
 		keystrokes := r.parseUserBindingValue(value)
-		if len(keystrokes) == 0 {
-			continue
+		if len(keystrokes) > 0 {
+			r.applyUserBinding(keyMap, action, keystrokes)
 		}
+	}
+}
 
-		// Apply user bindings with explicit action handling
-		switch action {
-		case "delete_word":
-			keyMap.DeleteWord = keystrokes
-		case "clear_line":
-			keyMap.ClearLine = keystrokes
-		case "delete_to_end":
-			keyMap.DeleteToEnd = keystrokes
-		case "move_to_beginning":
-			keyMap.MoveToBeginning = keystrokes
-		case "move_to_end":
-			keyMap.MoveToEnd = keystrokes
-		case "move_up":
-			keyMap.MoveUp = keystrokes
-		case "move_down":
-			keyMap.MoveDown = keystrokes
-		case "add_to_workflow":
-			keyMap.AddToWorkflow = keystrokes
-		case "toggle_workflow_view":
-			keyMap.ToggleWorkflowView = keystrokes
-		case "clear_workflow":
-			keyMap.ClearWorkflow = keystrokes
-		// Explicitly ignore unsupported actions
-		default:
-			// User-defined action not supported in this context
-			continue
-		}
+// applyUserBinding applies a single user binding to reduce cyclomatic complexity
+func (r *KeyBindingResolver) applyUserBinding(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) {
+	// Apply editing actions
+	if r.applyUserEditingAction(keyMap, action, keystrokes) {
+		return
+	}
+
+	// Apply navigation actions
+	if r.applyUserNavigationAction(keyMap, action, keystrokes) {
+		return
+	}
+
+	// Apply workflow actions
+	r.applyUserWorkflowAction(keyMap, action, keystrokes)
+}
+
+// applyUserEditingAction applies user editing-related keybinding actions
+func (r *KeyBindingResolver) applyUserEditingAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) bool {
+	switch action {
+	case "delete_word":
+		keyMap.DeleteWord = keystrokes
+		return true
+	case "clear_line":
+		keyMap.ClearLine = keystrokes
+		return true
+	case "delete_to_end":
+		keyMap.DeleteToEnd = keystrokes
+		return true
+	}
+	return false
+}
+
+// applyUserNavigationAction applies user navigation-related keybinding actions
+func (r *KeyBindingResolver) applyUserNavigationAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) bool {
+	switch action {
+	case "move_to_beginning":
+		keyMap.MoveToBeginning = keystrokes
+		return true
+	case "move_to_end":
+		keyMap.MoveToEnd = keystrokes
+		return true
+	case "move_up":
+		keyMap.MoveUp = keystrokes
+		return true
+	case "move_down":
+		keyMap.MoveDown = keystrokes
+		return true
+	}
+	return false
+}
+
+// applyUserWorkflowAction applies user workflow-related keybinding actions
+func (r *KeyBindingResolver) applyUserWorkflowAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) {
+	switch action {
+	case "add_to_workflow":
+		keyMap.AddToWorkflow = keystrokes
+	case "toggle_workflow_view":
+		keyMap.ToggleWorkflowView = keystrokes
+	case "clear_workflow":
+		keyMap.ClearWorkflow = keystrokes
+	// Explicitly ignore unsupported actions
+	default:
+		// User-defined action not supported in this context
 	}
 }
 

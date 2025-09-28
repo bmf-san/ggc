@@ -4,15 +4,34 @@ import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewDebugger(t *testing.T) {
 	debugger := NewDebugger()
-	require.NotNil(t, debugger, "NewDebugger() returned nil")
-	require.NotNil(t, debugger.outputWriter, "outputWriter should not be nil")
-	require.NotNil(t, debugger.helper, "helper should not be nil")
+
+	t.Run("debugger_creation", func(t *testing.T) {
+		if debugger == nil {
+			t.Fatal("NewDebugger() returned nil")
+		}
+	})
+
+	t.Run("output_writer_initialization", func(t *testing.T) {
+		if debugger == nil {
+			t.Skip("Skipping due to nil debugger")
+		}
+		if debugger.outputWriter == nil {
+			t.Fatal("outputWriter should not be nil")
+		}
+	})
+
+	t.Run("helper_initialization", func(t *testing.T) {
+		if debugger == nil {
+			t.Skip("Skipping due to nil debugger")
+		}
+		if debugger.helper == nil {
+			t.Fatal("helper should not be nil")
+		}
+	})
 }
 
 func TestDebugger_DebugKeys_NoArgs(t *testing.T) {
