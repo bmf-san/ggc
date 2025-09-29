@@ -283,7 +283,11 @@ func (h *Helper) ShowDeleteMergedBranchHelp() {
 
 // ShowDiffHelp displays help for the git diff command.
 func (h *Helper) ShowDiffHelp() {
-	h.renderCommandFromRegistry("diff", []string{"ggc diff [options]"}, "Show changes between commits, commit and working tree, etc")
+	h.renderCommandFromRegistry(
+		"diff",
+		[]string{"ggc diff [staged|unstaged|head] [options] [<commit> [<commit>]] [--] [<path>...]"},
+		"Show changes between commits, the index, and the working tree",
+	)
 }
 
 // ShowFetchHelp shows help message for fetch command.

@@ -85,6 +85,9 @@ func (m *mockAddGitClient) CommitAllowEmpty() error               { return nil }
 func (m *mockAddGitClient) Diff() (string, error)       { return "", nil }
 func (m *mockAddGitClient) DiffStaged() (string, error) { return "", nil }
 func (m *mockAddGitClient) DiffHead() (string, error)   { return "", nil }
+func (m *mockAddGitClient) DiffWith(_ []string) (string, error) {
+	return "", nil
+}
 
 // Branch Operations methods
 func (m *mockAddGitClient) ListLocalBranches() ([]string, error) { return []string{"main"}, nil }

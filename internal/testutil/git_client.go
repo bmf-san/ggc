@@ -49,6 +49,9 @@ func (m *testMockGitClient) CommitAllowEmpty() error               { return nil 
 func (m *testMockGitClient) Diff() (string, error)       { return "", nil }
 func (m *testMockGitClient) DiffStaged() (string, error) { return "", nil }
 func (m *testMockGitClient) DiffHead() (string, error)   { return "", nil }
+func (m *testMockGitClient) DiffWith(_ []string) (string, error) {
+	return "", nil
+}
 
 // Branch Operations
 func (m *testMockGitClient) ListLocalBranches() ([]string, error) { return []string{"main"}, nil }
