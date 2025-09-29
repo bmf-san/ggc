@@ -3484,27 +3484,27 @@ func (skc *ShowKeysCommand) Execute(profile Profile, context Context, format str
 	fmt.Printf("Core Actions:\n")
 	fmt.Printf("  Navigation:\n")
 	if len(keyMap.MoveUp) > 0 {
-		fmt.Printf("    move_up                 %-20s Move up one line\n", skc.formatKeystrokes(keyMap.MoveUp))
+		fmt.Printf("    move_up                 %-20s Move up one line\n", FormatKeyStrokesForDisplay(keyMap.MoveUp))
 	}
 	if len(keyMap.MoveDown) > 0 {
-		fmt.Printf("    move_down               %-20s Move down one line\n", skc.formatKeystrokes(keyMap.MoveDown))
+		fmt.Printf("    move_down               %-20s Move down one line\n", FormatKeyStrokesForDisplay(keyMap.MoveDown))
 	}
 	if len(keyMap.MoveToBeginning) > 0 {
-		fmt.Printf("    move_to_beginning       %-20s Move to line beginning\n", skc.formatKeystrokes(keyMap.MoveToBeginning))
+		fmt.Printf("    move_to_beginning       %-20s Move to line beginning\n", FormatKeyStrokesForDisplay(keyMap.MoveToBeginning))
 	}
 	if len(keyMap.MoveToEnd) > 0 {
-		fmt.Printf("    move_to_end             %-20s Move to line end\n", skc.formatKeystrokes(keyMap.MoveToEnd))
+		fmt.Printf("    move_to_end             %-20s Move to line end\n", FormatKeyStrokesForDisplay(keyMap.MoveToEnd))
 	}
 
 	fmt.Printf("\n  Editing:\n")
 	if len(keyMap.DeleteWord) > 0 {
-		fmt.Printf("    delete_word             %-20s Delete previous word\n", skc.formatKeystrokes(keyMap.DeleteWord))
+		fmt.Printf("    delete_word             %-20s Delete previous word\n", FormatKeyStrokesForDisplay(keyMap.DeleteWord))
 	}
 	if len(keyMap.DeleteToEnd) > 0 {
-		fmt.Printf("    delete_to_end           %-20s Delete to line end\n", skc.formatKeystrokes(keyMap.DeleteToEnd))
+		fmt.Printf("    delete_to_end           %-20s Delete to line end\n", FormatKeyStrokesForDisplay(keyMap.DeleteToEnd))
 	}
 	if len(keyMap.ClearLine) > 0 {
-		fmt.Printf("    clear_line              %-20s Clear entire line\n", skc.formatKeystrokes(keyMap.ClearLine))
+		fmt.Printf("    clear_line              %-20s Clear entire line\n", FormatKeyStrokesForDisplay(keyMap.ClearLine))
 	}
 
 	fmt.Printf("\nQuick Reference:\n")
@@ -3524,27 +3524,34 @@ func (skc *ShowKeysCommand) Execute(profile Profile, context Context, format str
 	return nil
 }
 
-// formatKeystrokes formats keystrokes for display
-func (skc *ShowKeysCommand) formatKeystrokes(keystrokes []KeyStroke) string {
+// FormatKeyStrokesForDisplay returns a comma-separated list of keystrokes suitable for user-facing output.
+func FormatKeyStrokesForDisplay(keystrokes []KeyStroke) string {
 	if len(keystrokes) == 0 {
 		return "none"
 	}
 
 	var parts []string
 	for _, ks := range keystrokes {
-		parts = append(parts, skc.formatKeystroke(ks))
+		parts = append(parts, FormatKeyStrokeForDisplay(ks))
 	}
 
 	return strings.Join(parts, ", ")
 }
 
-// formatKeystroke formats a single keystroke for display
-func (skc *ShowKeysCommand) formatKeystroke(ks KeyStroke) string { //nolint:revive // handles numerous escape sequences
+// FormatKeyStrokeForDisplay converts a single keystroke into a readable label.
+func FormatKeyStrokeForDisplay(ks KeyStroke) string { //nolint:revive // handles numerous escape sequences
 	switch ks.Kind {
 	case KeyStrokeCtrl:
 		return fmt.Sprintf("Ctrl+%c", ks.Rune)
 	case KeyStrokeAlt:
-		return fmt.Sprintf("Alt+%c", ks.Rune)
+		if ks.Name != "" {
+			label := strings.ToUpper(ks.Name[:1]) + ks.Name[1:]
+			return fmt.Sprintf("Alt+%s", label)
+		}
+		if ks.Rune != 0 {
+			return fmt.Sprintf("Alt+%c", ks.Rune)
+		}
+		return "Alt+?"
 	case KeyStrokeRawSeq:
 		// Handle common sequences
 		if len(ks.Seq) == 1 {
