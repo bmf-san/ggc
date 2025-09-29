@@ -123,3 +123,30 @@ func TestClient_DiffHead_Error(t *testing.T) {
 		t.Error("Expected DiffHead to return an error")
 	}
 }
+
+func TestClient_DiffWith(t *testing.T) {
+	var gotArgs []string
+	expectedOutput := "custom diff"
+	args := []string{"--staged", "HEAD~1", "--", "cmd/diff.go"}
+
+	client := &Client{
+		execCommand: func(name string, a ...string) *exec.Cmd {
+			gotArgs = append([]string{name}, a...)
+			return exec.Command("echo", "-n", expectedOutput)
+		},
+	}
+
+	result, err := client.DiffWith(args)
+	if err != nil {
+		t.Fatalf("DiffWith() error = %v", err)
+	}
+
+	wantArgs := append([]string{"git", "diff"}, args...)
+	if !slices.Equal(gotArgs, wantArgs) {
+		t.Errorf("DiffWith() gotArgs = %v, want %v", gotArgs, wantArgs)
+	}
+
+	if result != expectedOutput {
+		t.Errorf("DiffWith() result = %q, want %q", result, expectedOutput)
+	}
+}

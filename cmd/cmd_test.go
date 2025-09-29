@@ -120,6 +120,9 @@ func (m *mockGitClient) CommitAmendWithMessage(_ string) error { return nil }
 func (m *mockGitClient) Diff() (string, error)       { return "", nil }
 func (m *mockGitClient) DiffStaged() (string, error) { return "", nil }
 func (m *mockGitClient) DiffHead() (string, error)   { return "", nil }
+func (m *mockGitClient) DiffWith(_ []string) (string, error) {
+	return "", nil
+}
 
 // Branch Operations methods
 func (m *mockGitClient) CheckoutNewBranch(_ string) error { return nil }

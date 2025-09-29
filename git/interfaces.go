@@ -12,6 +12,7 @@ type DiffReader interface {
 	Diff() (string, error)
 	DiffStaged() (string, error)
 	DiffHead() (string, error)
+	DiffWith(args []string) (string, error)
 }
 
 // StatusReader provides read-only status output with color support.

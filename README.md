@@ -283,6 +283,7 @@ ggc
 | `restore staged .` | Unstage all files |
 | `restore staged <file>` | Unstage file (restore from HEAD to index) |
 | `diff` | Show changes (git diff HEAD) |
+| `diff head` | Alias for default diff against HEAD |
 | `diff staged` | Show staged changes |
 | `diff unstaged` | Show unstaged changes |
 | `tag annotated <tag> <message>` | Create annotated tag |
