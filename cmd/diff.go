@@ -206,14 +206,9 @@ func mapMode(mode string) diffMode {
 }
 
 func (s *diffParseState) validateModes() error {
-	if (s.opts.mode == diffModeStaged || s.opts.mode == diffModeUnstaged) && len(s.opts.commits) > 0 {
-		return newDiffUsageError(fmt.Sprintf("%s mode does not accept commit arguments", s.opts.mode.String()))
+	if (s.opts.mode == diffModeStaged || s.opts.mode == diffModeUnstaged || s.opts.mode == diffModeHead) && len(s.opts.commits) > 0 {
+		return newDiffUsageError(fmt.Sprintf("%s mode does not accept commit arguments (but allows path arguments)", s.opts.mode.String()))
 	}
-
-	if s.opts.mode == diffModeHead && len(s.opts.commits) > 0 {
-		return newDiffUsageError("head mode cannot be combined with commit arguments")
-	}
-
 	return nil
 }
 
