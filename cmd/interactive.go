@@ -533,6 +533,11 @@ type Renderer struct {
 	colors *ANSIColors
 }
 
+type keybindHelpEntry struct {
+	key  string
+	desc string
+}
+
 // KeyHandler manages keyboard input processing
 type KeyHandler struct {
 	ui            *UI
@@ -1650,8 +1655,11 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 
 		switch {
 		case state.input == "":
-			r.renderEmptyStateWithWorkflow(ui)
-			// Render search keybinds only when no input
+			if ui.workflow.IsEmpty() {
+				r.renderEmptyState(ui)
+			} else {
+				r.renderEmptyStateWithWorkflow(ui)
+			}
 			r.writeEmptyLine()
 			r.renderSearchKeybinds(ui)
 		case len(state.filtered) == 0:
@@ -1759,7 +1767,82 @@ func (r *Renderer) formatInputWithCursor(state *UIState) string {
 		r.colors.Reset)
 }
 
-// renderNoMatches renders the no matches found state
+// renderEmptyState renders the empty input state
+func (r *Renderer) renderEmptyState(ui *UI) {
+	r.writeColorln(ui, fmt.Sprintf("%s💭 %sStart typing to search commands...%s",
+		r.colors.BrightBlue, r.colors.BrightBlack, r.colors.Reset))
+}
+
+func (r *Renderer) buildSearchKeybindEntries(ui *UI) []keybindHelpEntry {
+	entries := []keybindHelpEntry{
+		{key: "←/→", desc: "Move cursor"},
+		{key: "Ctrl+←/→", desc: "Move by word"},
+		{key: "Option+←/→", desc: "Move by word (macOS)"},
+	}
+	// Future: extend this helper for additional contexts such as workflow views.
+
+	var km *KeyBindingMap
+	if ui != nil && ui.handler != nil {
+		km = ui.handler.GetCurrentKeyMap()
+	}
+	if km == nil {
+		km = DefaultKeyBindingMap()
+	}
+
+	defaultMap := DefaultKeyBindingMap()
+
+	appendDynamic := func(primary []KeyStroke, fallback []KeyStroke, desc string) {
+		keys := primary
+		if len(keys) == 0 {
+			keys = fallback
+		}
+		if len(keys) == 0 {
+			return
+		}
+		formatted := FormatKeyStrokesForDisplay(keys)
+		if formatted == "" || formatted == "none" {
+			return
+		}
+		entries = append(entries, keybindHelpEntry{key: formatted, desc: desc})
+	}
+
+	appendDynamic(km.ClearLine, defaultMap.ClearLine, "Clear all input")
+	appendDynamic(km.DeleteWord, defaultMap.DeleteWord, "Delete word")
+	appendDynamic(km.DeleteToEnd, defaultMap.DeleteToEnd, "Delete to end")
+	appendDynamic(km.MoveToBeginning, defaultMap.MoveToBeginning, "Move to beginning")
+	appendDynamic(km.MoveToEnd, defaultMap.MoveToEnd, "Move to end")
+
+	entries = append(entries, keybindHelpEntry{key: "Backspace", desc: "Delete character"})
+	entries = append(entries, keybindHelpEntry{key: "Enter", desc: "Execute selected command"})
+
+	appendDynamic(km.AddToWorkflow, defaultMap.AddToWorkflow, "Add to workflow")
+	appendDynamic(km.ToggleWorkflowView, defaultMap.ToggleWorkflowView, "Toggle workflow view")
+
+	entries = append(entries, keybindHelpEntry{key: "Ctrl+c", desc: "Quit"})
+
+	return entries
+}
+
+func (r *Renderer) renderKeybindEntries(ui *UI, entries []keybindHelpEntry) {
+	if len(entries) == 0 {
+		return
+	}
+
+	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
+		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
+
+	for _, entry := range entries {
+		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
+			entry.key,
+			r.colors.Reset,
+			r.colors.BrightBlack,
+			entry.desc,
+			r.colors.Reset))
+	}
+}
+
+// renderNoMatches renders the no matches found state with keybind help
 func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 	// No matches message
 	r.writeColorln(ui, fmt.Sprintf("%s🔍 %sNo commands found for '%s%s%s'%s",
@@ -1769,37 +1852,14 @@ func (r *Renderer) renderNoMatches(ui *UI, state *UIState) {
 		state.input,
 		r.colors.Reset+r.colors.BrightWhite,
 		r.colors.Reset))
+
+	r.writeEmptyLine()
+	r.renderKeybindEntries(ui, r.buildSearchKeybindEntries(ui))
 }
 
 // renderSearchKeybinds renders keybinds available in search UI
 func (r *Renderer) renderSearchKeybinds(ui *UI) {
-	// Basic search keybinds
-	keybinds := []struct{ key, desc string }{
-		{"←/→", "Move cursor"},
-		{"Ctrl+←/→", "Move by word"},
-		{"Ctrl+u", "Clear all input"},
-		{"Ctrl+w", "Delete word"},
-		{"Ctrl+k", "Delete to end"},
-		{"Ctrl+a", "Move to beginning"},
-		{"Ctrl+e", "Move to end"},
-		{"Enter", "Execute command"},
-		{"Tab", "Add to workflow"},
-		{"Ctrl+t", "Toggle workflow view"},
-		{"Ctrl+c", "Quit"},
-	}
-
-	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sAvailable keybinds:%s",
-		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
-
-	for _, kb := range keybinds {
-		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
-			r.colors.BrightGreen+r.colors.Bold,
-			kb.key,
-			r.colors.Reset,
-			r.colors.BrightBlack,
-			kb.desc,
-			r.colors.Reset))
-	}
+	r.renderKeybindEntries(ui, r.buildSearchKeybindEntries(ui))
 }
 
 // renderWorkflowKeybinds renders keybinds available in workflow UI
