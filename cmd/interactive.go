@@ -1812,6 +1812,12 @@ func (r *Renderer) buildSearchKeybindEntries(ui *UI) []keybindHelpEntry {
 	appendDynamic(km.MoveToEnd, defaultMap.MoveToEnd, "Move to end")
 
 	entries = append(entries, keybindHelpEntry{key: "Backspace", desc: "Delete character"})
+	entries = append(entries, keybindHelpEntry{key: "Enter", desc: "Execute selected command"})
+
+	appendDynamic(km.AddToWorkflow, defaultMap.AddToWorkflow, "Add to workflow")
+	appendDynamic(km.ToggleWorkflowView, defaultMap.ToggleWorkflowView, "Toggle workflow view")
+
+	entries = append(entries, keybindHelpEntry{key: "Ctrl+c", desc: "Quit"})
 
 	return entries
 }
