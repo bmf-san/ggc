@@ -32,18 +32,12 @@ When implementing new features or modifying existing ones, please ensure to:
 - **Auto-generated**: Run `make docs` to update the README.md command table from the registry
 
 #### Shell Completion Scripts:
-- **tools/completions/ggc.bash**: Add/modify command and subcommand completions
-- **tools/completions/ggc.fish**: Add/modify command and subcommand completions
-- **tools/completions/ggc.zsh**: Add/modify command and subcommand completions
-
-To refresh completions, update the command lists/case statements in each script to mirror `cmd/command/registry.go`, then source the script in the target shell (e.g. `source tools/completions/ggc.bash`) to verify tab completion still works.
+- **Auto-generated**: Run `make docs` (or `make completions`) to regenerate the Bash/Zsh/Fish completion scripts from the registry.
+- **Do not edit** files under `tools/completions/` manually—changes will be overwritten by the generator.
 
 **📋 Checklist for Command Changes:**
 - [ ] cmd/command/registry.go entry added/updated (usage, examples, handler)
-- [ ] Run `make docs` to update README.md command table
-- [ ] tools/completions/ggc.bash completions updated
-- [ ] tools/completions/ggc.fish completions updated
-- [ ] tools/completions/ggc.zsh completions updated
+- [ ] Run `make docs` to update README.md and regenerate shell completions
 - [ ] All tests pass (`make test`)
 - [ ] No lint errors (`make lint`)
 

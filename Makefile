@@ -54,8 +54,17 @@ test-cover:
 test-and-lint: test lint
 	@echo "All tests and lint checks passed"
 
-# Update README.md command table from registry
+# Update documentation and shell completions from registry
+.PHONY: docs completions
+
 docs:
 	@echo "Updating README.md command table..."
 	@go run tools/cmd/gendocs/main.go
 	@echo "README.md command table updated from registry"
+	@$(MAKE) completions
+	@echo "Documentation and completions refreshed"
+
+completions:
+	@echo "Generating shell completions from registry..."
+	@go run ./tools/cmd/gencompletions
+	@echo "Shell completions updated from registry"

@@ -560,6 +560,10 @@ tools/                   # Development and build tools
 
 ggc provides tab completion for commands and subcommands in Bash, Zsh, and Fish shells.
 
+### Generating Completion Scripts
+
+Run `make docs` (or `make completions`) to regenerate the README command table and the shell completion scripts in `tools/completions/` from the centralized command registry. This keeps documentation and completions aligned with the current command surface.
+
 ### Using Pre-Built Completion Scripts
 
 ggc comes with pre-built completion scripts for common shells located in the `tools/completions` directory.
