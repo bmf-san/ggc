@@ -1041,7 +1041,6 @@ func TestKeyHandler_InteractiveInput(t *testing.T) {
 
 	handler := &KeyHandler{ui: ui}
 	ui.handler = handler
-	ui.handler = handler
 
 	placeholders := []string{"message"}
 	result, canceled := handler.interactiveInput(placeholders)

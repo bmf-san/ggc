@@ -179,7 +179,8 @@ func interactiveInputForWorkflow(ui *UI, placeholders []string) (map[string]stri
 	if ui != nil && ui.handler != nil {
 		return interactiveInputForWorkflowUI(ui, placeholders)
 	}
-	return interactiveInputForWorkflowScanner(placeholders)
+	scanner := bufio.NewScanner(os.Stdin)
+	return interactiveInputForWorkflowScanner(scanner, placeholders)
 }
 
 func interactiveInputForWorkflowUI(ui *UI, placeholders []string) (map[string]string, bool) {
@@ -215,9 +216,8 @@ func interactiveInputForWorkflowUI(ui *UI, placeholders []string) (map[string]st
 	return inputs, false
 }
 
-func interactiveInputForWorkflowScanner(placeholders []string) (map[string]string, bool) {
+func interactiveInputForWorkflowScanner(scanner *bufio.Scanner, placeholders []string) (map[string]string, bool) {
 	inputs := make(map[string]string)
-	scanner := bufio.NewScanner(os.Stdin)
 	for i, ph := range placeholders {
 		if len(placeholders) > 1 {
 			fmt.Printf("\n[%d/%d] ", i+1, len(placeholders))
