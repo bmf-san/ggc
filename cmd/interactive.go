@@ -1779,6 +1779,7 @@ func (r *Renderer) buildSearchKeybindEntries(ui *UI) []keybindHelpEntry {
 		{key: "Ctrl+←/→", desc: "Move by word"},
 		{key: "Option+←/→", desc: "Move by word (macOS)"},
 	}
+	// Future: extend this helper for additional contexts such as workflow views.
 
 	var km *KeyBindingMap
 	if ui != nil && ui.handler != nil {
