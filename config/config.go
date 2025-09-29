@@ -105,6 +105,7 @@ type Config struct {
 			AddToWorkflow      string `yaml:"add_to_workflow"`
 			ToggleWorkflowView string `yaml:"toggle_workflow_view"`
 			ClearWorkflow      string `yaml:"clear_workflow"`
+			SoftCancel         string `yaml:"soft_cancel"`
 		} `yaml:"keybindings"`
 
 		Contexts struct {
@@ -1002,6 +1003,7 @@ func (c *Config) validateKeybindings() error {
 		"add_to_workflow":      c.Interactive.Keybindings.AddToWorkflow,
 		"toggle_workflow_view": c.Interactive.Keybindings.ToggleWorkflowView,
 		"clear_workflow":       c.Interactive.Keybindings.ClearWorkflow,
+		"soft_cancel":          c.Interactive.Keybindings.SoftCancel,
 	}
 
 	for action, keyStr := range bindings {

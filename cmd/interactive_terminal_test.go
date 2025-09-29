@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"golang.org/x/term"
+
+	"github.com/bmf-san/ggc/v6/internal/termio"
 )
 
 func TestUISetupTerminalNonFile(t *testing.T) {
@@ -73,15 +75,15 @@ func TestUISetupTerminalMakeRawFailure(t *testing.T) {
 }
 
 func TestDefaultTerminalMakeRawInvalidFD(t *testing.T) {
-	dt := &defaultTerminal{}
-	if _, err := dt.makeRaw(-1); err == nil {
+	dt := termio.DefaultTerminal{}
+	if _, err := dt.MakeRaw(-1); err == nil {
 		t.Fatalf("expected error for invalid file descriptor")
 	}
 }
 
 func TestDefaultTerminalRestoreInvalidFD(t *testing.T) {
-	dt := &defaultTerminal{}
-	if err := dt.restore(-1, &term.State{}); err == nil {
+	dt := termio.DefaultTerminal{}
+	if err := dt.Restore(-1, &term.State{}); err == nil {
 		t.Fatalf("expected error for invalid file descriptor")
 	}
 }

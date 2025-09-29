@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -107,12 +108,17 @@ type CommandRouter interface {
 // WorkflowExecutor executes workflow steps sequentially using existing Route mechanism
 type WorkflowExecutor struct {
 	router CommandRouter
+	ui     *UI
 }
 
+// ErrWorkflowCanceled indicates the workflow was aborted by the user via soft cancel.
+var ErrWorkflowCanceled = errors.New("workflow canceled")
+
 // NewWorkflowExecutor creates a new workflow executor
-func NewWorkflowExecutor(router CommandRouter) *WorkflowExecutor {
+func NewWorkflowExecutor(router CommandRouter, ui *UI) *WorkflowExecutor {
 	return &WorkflowExecutor{
 		router: router,
+		ui:     ui,
 	}
 }
 
@@ -134,8 +140,10 @@ func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 		placeholders := extractPlaceholders(finalCmd)
 
 		if len(placeholders) > 0 {
-			// Interactive input for placeholders
-			inputs := interactiveInputForWorkflow(placeholders)
+			inputs, canceled := interactiveInputForWorkflow(we.ui, placeholders)
+			if canceled {
+				return ErrWorkflowCanceled
+			}
 
 			// Placeholder replacement
 			for ph, val := range inputs {
@@ -167,9 +175,49 @@ func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 }
 
 // interactiveInputForWorkflow provides interactive input for placeholders during workflow execution
-func interactiveInputForWorkflow(placeholders []string) map[string]string {
-	inputs := make(map[string]string)
+func interactiveInputForWorkflow(ui *UI, placeholders []string) (map[string]string, bool) {
+	if ui != nil && ui.handler != nil {
+		return interactiveInputForWorkflowUI(ui, placeholders)
+	}
+	return interactiveInputForWorkflowScanner(placeholders)
+}
 
+func interactiveInputForWorkflowUI(ui *UI, placeholders []string) (map[string]string, bool) {
+	inputs := make(map[string]string)
+	for i, ph := range placeholders {
+		ui.write("\n")
+		if len(placeholders) > 1 {
+			ui.write("%s[%d/%d]%s ",
+				ui.colors.BrightBlue+ui.colors.Bold,
+				i+1, len(placeholders),
+				ui.colors.Reset)
+		}
+		ui.write("%s? %s%s%s: ",
+			ui.colors.BrightGreen,
+			ui.colors.BrightWhite+ui.colors.Bold,
+			ph,
+			ui.colors.Reset)
+
+		value, canceled := ui.readPlaceholderInput()
+		if canceled {
+			return nil, true
+		}
+
+		inputs[ph] = value
+		ui.write("%s✓ %s%s: %s%s%s\n",
+			ui.colors.BrightGreen,
+			ui.colors.BrightBlue,
+			ph,
+			ui.colors.BrightYellow+ui.colors.Bold,
+			value,
+			ui.colors.Reset)
+	}
+	return inputs, false
+}
+
+func interactiveInputForWorkflowScanner(placeholders []string) (map[string]string, bool) {
+	inputs := make(map[string]string)
+	scanner := bufio.NewScanner(os.Stdin)
 	for i, ph := range placeholders {
 		if len(placeholders) > 1 {
 			fmt.Printf("\n[%d/%d] ", i+1, len(placeholders))
@@ -179,26 +227,27 @@ func interactiveInputForWorkflow(placeholders []string) map[string]string {
 
 		fmt.Printf("? %s: ", ph)
 
-		// Read complete line including spaces using bufio.Scanner
-		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
 			if err := scanner.Err(); err != nil {
 				fmt.Printf("Input error: %v\n", err)
-			} else {
-				fmt.Printf("Input canceled\n")
 			}
-			return nil
+			return nil, true
 		}
 		value := strings.TrimSpace(scanner.Text())
 
 		if value == "" {
 			fmt.Printf("Operation canceled\n")
-			return nil
+			return nil, true
 		}
 
 		inputs[ph] = value
 		fmt.Printf("✓ %s: %s\n", ph, value)
 	}
 
-	return inputs
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("Scanner error: %v\n", err)
+		return nil, true
+	}
+
+	return inputs, false
 }

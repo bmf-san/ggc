@@ -390,6 +390,7 @@ interactive:
     add_to_workflow: "tab"
     toggle_workflow_view: "ctrl+t"
     clear_workflow: "c"
+    soft_cancel: "ctrl+g"
 ```
 
 ### Supported Key Format Notations
@@ -429,10 +430,12 @@ Each profile has different default keybindings:
 
 You can define keybindings for specific UI contexts:
 
-- **global**: Always active (reserved keys like Ctrl+C)
+- **global**: Always active (reserved keys like Ctrl+C and soft cancel via Ctrl+G/Esc)
 - **input**: When typing/editing the search query
 - **results**: When navigating through filtered results
 - **search**: When fuzzy search is active (combines input + results)
+
+Soft cancel lets you abandon the current interactive operation and return to the search screen without leaving interactive mode. Press `Ctrl+G` (or `Esc` when no escape sequence follows) to trigger a soft cancel; `Ctrl+C` continues to provide a hard exit.
 
 #### Per-OS Configuration
 

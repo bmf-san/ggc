@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -96,7 +100,7 @@ func (m *mockWorkflowRouter) Route(args []string) {
 
 func TestWorkflowExecutor_Execute(t *testing.T) {
 	mock := &mockWorkflowRouter{}
-	executor := NewWorkflowExecutor(mock)
+	executor := NewWorkflowExecutor(mock, nil)
 	workflow := NewWorkflow()
 
 	// Test empty workflow
@@ -140,11 +144,81 @@ func TestWorkflowExecutor_Execute(t *testing.T) {
 	}
 }
 
+func TestWorkflowExecutor_ExecuteCanceled(t *testing.T) {
+	colors := NewANSIColors()
+	ui := &UI{
+		stdin:    strings.NewReader("\n"),
+		stdout:   &bytes.Buffer{},
+		stderr:   &bytes.Buffer{},
+		colors:   colors,
+		workflow: NewWorkflow(),
+		term:     &mockTerminal{shouldFailRaw: true},
+	}
+
+	handler := &KeyHandler{ui: ui}
+	ui.handler = handler
+
+	workflow := NewWorkflow()
+	workflow.AddStep("commit", nil, "commit <message>")
+
+	executor := NewWorkflowExecutor(&mockWorkflowRouter{}, ui)
+	err := executor.Execute(workflow)
+	if !errors.Is(err, ErrWorkflowCanceled) {
+		t.Fatalf("expected workflow cancellation error, got %v", err)
+	}
+}
+
+func TestInteractiveInputForWorkflowScanner(t *testing.T) {
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	_, _ = w.WriteString("message\n")
+	_ = w.Close()
+	os.Stdin = r
+
+	inputs, canceled := interactiveInputForWorkflow(nil, []string{"message"})
+	if canceled {
+		t.Fatal("expected scanner fallback to succeed")
+	}
+	if got := inputs["message"]; got != "message" {
+		t.Fatalf("expected message 'message', got %q", got)
+	}
+
+	_ = r.Close()
+}
+
+func TestInteractiveInputForWorkflowScannerCanceled(t *testing.T) {
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	_, _ = w.WriteString("\n")
+	_ = w.Close()
+	os.Stdin = r
+
+	inputs, canceled := interactiveInputForWorkflow(nil, []string{"message"})
+	if !canceled {
+		t.Fatal("expected cancellation when placeholder input is empty")
+	}
+	if inputs != nil {
+		t.Fatal("expected nil inputs on cancellation")
+	}
+
+	_ = r.Close()
+}
+
 // TestWorkflowExecutor_ExecuteEmptyWorkflow tests executing an empty workflow
 func TestWorkflowExecutor_ExecuteEmptyWorkflow(t *testing.T) {
 	// Setup
 	mockRouter := &mockRouterNew{}
-	executor := NewWorkflowExecutor(mockRouter)
+	executor := NewWorkflowExecutor(mockRouter, nil)
 	workflow := NewWorkflow()
 
 	// Execute
