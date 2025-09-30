@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 func TestRebaser_RebaseInteractive_SelectValid(t *testing.T) {
@@ -16,8 +17,7 @@ func TestRebaser_RebaseInteractive_SelectValid(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-
-		inputReader: bufio.NewReader(strings.NewReader("2\n")),
+		prompter:     prompt.New(strings.NewReader("2\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -46,8 +46,7 @@ func TestRebaser_RebaseInteractive_BranchError(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -66,7 +65,7 @@ func TestRebaser_RebaseInteractive_Cancel(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("\n")),
+		prompter:     prompt.New(strings.NewReader("\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -85,7 +84,7 @@ func TestRebaser_RebaseInteractive_InvalidNumber(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("abc\n")),
+		prompter:     prompt.New(strings.NewReader("abc\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -108,7 +107,7 @@ func TestRebaser_RebaseInteractive_NoHistory(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -132,7 +131,7 @@ func TestRebaser_RebaseInteractive_LogError(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -156,7 +155,7 @@ func TestRebaser_RebaseInteractive_RebaseError(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -204,7 +203,7 @@ func TestRebaser_Rebase(t *testing.T) {
 				gitClient:    mockClient,
 				outputWriter: &buf,
 				helper:       NewHelper(),
-				inputReader:  bufio.NewReader(strings.NewReader(tc.mockInput)),
+				prompter:     prompt.New(strings.NewReader(tc.mockInput), &buf),
 			}
 			r.helper.outputWriter = &buf
 
@@ -225,7 +224,7 @@ func TestRebaser_Rebase_Subcommands(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("")),
+		prompter:     prompt.New(strings.NewReader(""), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -273,7 +272,7 @@ func TestRebaser_Rebase_BasicOnto(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("")),
+		prompter:     prompt.New(strings.NewReader(""), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -298,7 +297,7 @@ func TestRebaser_Rebase_InteractiveCancel(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("\n")),
+		prompter:     prompt.New(strings.NewReader("\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 
@@ -317,7 +316,7 @@ func TestRebaser_Rebase_Error(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("y\n")),
+		prompter:     prompt.New(strings.NewReader("y\n"), &buf),
 	}
 	r.helper.outputWriter = &buf
 

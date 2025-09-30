@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // mockGitClient is a mock of git.Client.
@@ -474,7 +474,7 @@ func TestCmd_Branch(t *testing.T) {
 		outputWriter: &buf,
 		helper:       helper,
 		// help path does not access gitClient; pass nil to minimize dependencies
-		brancher: &Brancher{gitClient: nil, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: &buf, helper: helper},
+		brancher: &Brancher{gitClient: nil, prompter: prompt.New(strings.NewReader(""), &buf), outputWriter: &buf, helper: helper},
 	}
 
 	cmd.Branch([]string{})
@@ -497,7 +497,7 @@ func TestCmd_Route(t *testing.T) {
 		helper:       helper,
 		// Initialize all components with mock clients to avoid side effects
 		adder:      &Adder{gitClient: mockClient, outputWriter: io.Discard},
-		brancher:   &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: io.Discard, helper: helper},
+		brancher:   &Brancher{gitClient: mockClient, prompter: prompt.New(strings.NewReader(""), io.Discard), outputWriter: io.Discard, helper: helper},
 		committer:  &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		logger:     &Logger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		puller:     &Puller{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
@@ -505,7 +505,7 @@ func TestCmd_Route(t *testing.T) {
 		resetter:   &Resetter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		cleaner:    &Cleaner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		remoter:    &Remoter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		rebaser:    &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
+		rebaser:    &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, prompter: prompt.New(strings.NewReader(""), io.Discard)},
 		stasher:    &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		configurer: &Configurer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		hooker:     &Hooker{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
@@ -572,7 +572,7 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		outputWriter: &buf, // capture legacy-like error output if any
 		helper:       helper,
 		adder:        &Adder{gitClient: mockClient, outputWriter: io.Discard},
-		brancher:     &Brancher{gitClient: mockClient, inputReader: bufio.NewReader(strings.NewReader("")), outputWriter: io.Discard, helper: helper},
+		brancher:     &Brancher{gitClient: mockClient, prompter: prompt.New(strings.NewReader(""), io.Discard), outputWriter: io.Discard, helper: helper},
 		committer:    &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		logger:       &Logger{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		puller:       &Puller{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
@@ -580,7 +580,7 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		resetter:     &Resetter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		cleaner:      &Cleaner{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		remoter:      &Remoter{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
-		rebaser:      &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, inputReader: bufio.NewReader(strings.NewReader(""))},
+		rebaser:      &Rebaser{gitClient: mockClient, outputWriter: io.Discard, helper: helper, prompter: prompt.New(strings.NewReader(""), io.Discard)},
 		stasher:      &Stasher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		configurer:   &Configurer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		hooker:       &Hooker{gitClient: mockClient, outputWriter: io.Discard, helper: helper},

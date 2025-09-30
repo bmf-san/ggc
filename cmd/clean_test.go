@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // mockGitClient for clean_test
@@ -191,9 +192,8 @@ func TestCleaner_CleanInteractive_WithFiles(t *testing.T) {
 	cleaner := &Cleaner{
 		gitClient:    &mockCleanGitClient{cleanDryRunResult: "Would remove file1.txt\nWould remove file2.txt\n"},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(inputBuf),
-		helper:      NewHelper(),
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
 	}
 	cleaner.helper.outputWriter = &buf
 
@@ -228,9 +228,8 @@ func TestCleaner_CleanInteractive_Cancel(t *testing.T) {
 	cleaner := &Cleaner{
 		gitClient:    &mockCleanGitClient{cleanDryRunResult: "Would remove file1.txt\nWould remove file2.txt\n"},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(inputBuf),
-		helper:      NewHelper(),
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
 	}
 	cleaner.helper.outputWriter = &buf
 
@@ -243,13 +242,12 @@ func TestCleaner_CleanInteractive_Cancel(t *testing.T) {
 
 func TestCleaner_CleanInteractive_InvalidNumber(t *testing.T) {
 	var buf bytes.Buffer
-	inputBuf := strings.NewReader("invalid\nnone\nall\n")
+	inputBuf := strings.NewReader("invalid\nnone\n")
 	cleaner := &Cleaner{
 		gitClient:    &mockCleanGitClient{cleanDryRunResult: "Would remove file1.txt\nWould remove file2.txt\n"},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(inputBuf),
-		helper:      NewHelper(),
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
 	}
 	cleaner.helper.outputWriter = &buf
 
@@ -262,13 +260,12 @@ func TestCleaner_CleanInteractive_InvalidNumber(t *testing.T) {
 
 func TestCleaner_CleanInteractive_EmptySelection(t *testing.T) {
 	var buf bytes.Buffer
-	inputBuf := strings.NewReader("\nall\n")
+	inputBuf := strings.NewReader("\n")
 	cleaner := &Cleaner{
 		gitClient:    &mockCleanGitClient{cleanDryRunResult: "Would remove file1.txt\nWould remove file2.txt\n"},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(inputBuf),
-		helper:      NewHelper(),
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
 	}
 	cleaner.helper.outputWriter = &buf
 
@@ -285,9 +282,8 @@ func TestCleaner_CleanInteractive_FileRejection(t *testing.T) {
 	cleaner := &Cleaner{
 		gitClient:    &mockCleanGitClient{cleanDryRunResult: "Would remove file1.txt\nWould remove file2.txt\n"},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(inputBuf),
-		helper:      NewHelper(),
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
 	}
 	cleaner.helper.outputWriter = &buf
 
@@ -305,13 +301,12 @@ func TestCleaner_CleanInteractive_FileRejection(t *testing.T) {
 func TestCleaner_CleanInteractive_NothingSelected(t *testing.T) {
 	var buf bytes.Buffer
 	// Simulate entering an out-of-range number, which results in no actual selection
-	inputBuf := strings.NewReader("10\nall\n")
+	inputBuf := strings.NewReader("10\nall\ny\n")
 	cleaner := &Cleaner{
 		gitClient:    &mockCleanGitClient{cleanDryRunResult: "Would remove file1.txt\nWould remove file2.txt\n"},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(inputBuf),
-		helper:      NewHelper(),
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
 	}
 	cleaner.helper.outputWriter = &buf
 
