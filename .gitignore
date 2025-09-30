@@ -38,3 +38,4 @@ ggc
 dist/
 .DS_Store
 gendocs
+gencompletions
