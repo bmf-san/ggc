@@ -7,6 +7,13 @@ import (
 	"github.com/bmf-san/ggc/v6/cmd/command"
 )
 
+const (
+	cmdBranch   = "branch"
+	cmdAdd      = "add"
+	cmdRebase   = "rebase"
+	subCheckout = "checkout"
+)
+
 type TemplateData struct {
 	Commands                  []*CommandData
 	TopLevel                  []string
@@ -58,7 +65,7 @@ func needsHandler(cmd *CommandData) bool {
 		return true
 	}
 	switch cmd.Name {
-	case "branch", "add", "rebase":
+	case cmdBranch, cmdAdd, cmdRebase:
 		return true
 	}
 	return false
@@ -110,8 +117,8 @@ func buildTemplateData(cmds []command.Info) *TemplateData {
 		return data.Commands[i].Name < data.Commands[j].Name
 	})
 
-	if branchCmd, ok := data.CommandMap["branch"]; ok {
-		if checkout := branchCmd.Subcommand("checkout"); checkout != nil {
+	if branchCmd, ok := data.CommandMap[cmdBranch]; ok {
+		if checkout := branchCmd.Subcommand(subCheckout); checkout != nil {
 			if len(checkout.Keywords) > 0 {
 				data.BranchCheckoutKeywordList = strings.Join(checkout.Keywords, " ")
 			}
@@ -269,7 +276,7 @@ func sanitizeKeyword(token string) string {
 }
 
 func shouldSkipKeyword(commandName, subcommandName string) bool {
-	if commandName == "branch" && subcommandName == "checkout" {
+	if commandName == cmdBranch && subcommandName == subCheckout {
 		return true
 	}
 	return false
@@ -279,7 +286,7 @@ func shouldIncludeInCase(commandName string, hasSubcommands bool) bool {
 	if !hasSubcommands {
 		return false
 	}
-	if commandName == "add" {
+	if commandName == cmdAdd {
 		return false
 	}
 	return true
