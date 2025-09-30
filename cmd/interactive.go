@@ -567,7 +567,9 @@ func (h *KeyHandler) GetCurrentKeyMap() *KeyBindingMap {
 
 // HandleKey processes UTF-8 rune input and returns true if should continue
 // This method handles both single-byte (ASCII/control) and multibyte characters
-func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State) (bool, []string) {
+func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State, reader *bufio.Reader) (bool, []string) {
+	// Set the reader for consistent access during escape sequence handling
+	h.ui.reader = reader
 	// Handle workflow-specific keys first (Tab, etc.)
 	if handled := h.handleWorkflowKeys(r); handled {
 		return true, nil
@@ -575,7 +577,7 @@ func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State) (bool, []st
 
 	// Handle control characters (ASCII range)
 	if r < 128 && unicode.IsControl(r) { // ASCII control characters
-		if handled, shouldContinue, result := h.handleControlChar(byte(r), oldState); handled {
+		if handled, shouldContinue, result := h.handleControlChar(byte(r), oldState, reader); handled {
 			return shouldContinue, result
 		}
 	}
@@ -629,7 +631,7 @@ func (h *KeyHandler) handleWorkflowKeys(r rune) bool {
 // Enhanced to support KeyStroke matching while maintaining backward compatibility
 //
 //nolint:revive // Control character handling inherently requires many cases
-func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool, []string) {
+func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	// Get the appropriate keybinding map for current context
 	km := h.GetCurrentKeyMap()
 
@@ -701,7 +703,7 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 			h.handleSoftCancel(oldState)
 			return true, true, nil
 		}
-		h.handleEscapeSequence()
+		h.handleEscapeSequence(reader)
 		return true, true, nil
 	default:
 		return false, true, nil
@@ -714,22 +716,34 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 // - Ctrl+Arrow: ESC [ 1;5 C/D or ESC [ 5 C/D
 // - Alt/Option+Arrow: ESC [ 1;3 C/D, ESC [ 1;9 C/D (varies by terminal)
 // - macOS Option word nav: ESC b / ESC f
-func (h *KeyHandler) handleEscapeSequence() {
-	if h.ui == nil || h.ui.reader == nil {
+func (h *KeyHandler) handleEscapeSequence(reader *bufio.Reader) {
+	if h.ui == nil {
 		return
 	}
 
-	r := h.ui.reader
-	b, err := r.ReadByte()
+	// Read next byte after ESC
+	var b byte
+	var err error
+
+	if reader != nil {
+		// Use provided buffered reader (non-raw mode)
+		b, err = reader.ReadByte()
+	} else {
+		// Raw mode: read directly from stdin
+		var buf [1]byte
+		_, err = h.ui.stdin.Read(buf[:])
+		b = buf[0]
+	}
+
 	if err != nil {
 		return
 	}
 
 	switch b {
 	case '[':
-		h.handleCSISequence(r)
+		h.handleCSISequence(reader)
 	case 'O':
-		h.handleApplicationCursorMode(r)
+		h.handleApplicationCursorMode(reader)
 	case 'b':
 		h.ui.state.MoveWordLeft()
 	case 'f':
@@ -774,10 +788,22 @@ func (h *KeyHandler) shouldHandleEscapeAsSoftCancel() bool {
 }
 
 // handleCSISequence handles CSI (Control Sequence Introducer) sequences
-func (h *KeyHandler) handleCSISequence(r *bufio.Reader) {
+func (h *KeyHandler) handleCSISequence(reader *bufio.Reader) {
 	var params []byte
 	for {
-		nb, err := r.ReadByte()
+		var nb byte
+		var err error
+
+		if reader != nil {
+			// Use provided buffered reader (non-raw mode)
+			nb, err = reader.ReadByte()
+		} else {
+			// Raw mode: read directly from stdin
+			var buf [1]byte
+			_, err = h.ui.stdin.Read(buf[:])
+			nb = buf[0]
+		}
+
 		if err != nil {
 			return
 		}
@@ -815,8 +841,20 @@ func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
 }
 
 // handleApplicationCursorMode handles application cursor mode sequences
-func (h *KeyHandler) handleApplicationCursorMode(r *bufio.Reader) {
-	nb, err := r.ReadByte()
+func (h *KeyHandler) handleApplicationCursorMode(reader *bufio.Reader) {
+	var nb byte
+	var err error
+
+	if reader != nil {
+		// Use provided buffered reader (non-raw mode)
+		nb, err = reader.ReadByte()
+	} else {
+		// Raw mode: read directly from stdin
+		var buf [1]byte
+		_, err = h.ui.stdin.Read(buf[:])
+		nb = buf[0]
+	}
+
 	if err != nil {
 		return
 	}
@@ -2299,7 +2337,7 @@ func (ui *UI) runMainLoop(reader *bufio.Reader, isRawMode bool, oldState *term.S
 
 		// Handle key input with rune
 		isSingleByte := isRawMode // In raw mode, we read single bytes; in buffered mode, we read full runes
-		shouldContinue, result := ui.handler.HandleKey(r, isSingleByte, oldState)
+		shouldContinue, result := ui.handler.HandleKey(r, isSingleByte, oldState, reader)
 		if !shouldContinue {
 			return result
 		}

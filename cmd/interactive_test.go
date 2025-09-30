@@ -1238,6 +1238,117 @@ func TestShouldHandleEscapeAsSoftCancel(t *testing.T) {
 	restorePending()
 }
 
+// TestHandleKey_EscapeWithReaderParameter tests that ESC key (byte 27) correctly
+// handles both soft cancel and escape sequences with the reader parameter.
+// This test ensures the merge conflict resolution between soft cancel logic
+// and reader parameter addition remains stable.
+func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
+	t.Run("soft cancel when no pending input", func(t *testing.T) {
+		ui := &UI{
+			stdin:  os.Stdin,
+			stdout: &bytes.Buffer{},
+			colors: NewANSIColors(),
+			state: &UIState{
+				context:  ContextGlobal,
+				input:    "test",
+				filtered: []CommandInfo{},
+			},
+			workflow: NewWorkflow(),
+		}
+
+		handler := &KeyHandler{ui: ui}
+		ui.handler = handler
+
+		// Mock no pending input to trigger soft cancel
+		restoreZero := termio.SetPendingInputFunc(func(uintptr) (int, error) { return 0, nil })
+		defer restoreZero()
+
+		// ESC with no pending input should trigger soft cancel
+		shouldContinue, result := handler.HandleKey(27, true, nil, nil)
+		if !shouldContinue {
+			t.Error("Expected to continue after ESC soft cancel")
+		}
+		if result != nil {
+			t.Error("Expected nil result for ESC soft cancel")
+		}
+	})
+
+	t.Run("escape sequence when input pending", func(t *testing.T) {
+		ui := &UI{
+			stdin:  os.Stdin,
+			stdout: &bytes.Buffer{},
+			colors: NewANSIColors(),
+			state: &UIState{
+				context:   ContextGlobal,
+				input:     "test",
+				cursorPos: 4,
+				filtered:  []CommandInfo{},
+			},
+			workflow: NewWorkflow(),
+		}
+
+		handler := &KeyHandler{ui: ui}
+		ui.handler = handler
+
+		// Mock pending input to prevent soft cancel and trigger escape sequence
+		restorePending := termio.SetPendingInputFunc(func(uintptr) (int, error) { return 1, nil })
+		defer restorePending()
+
+		// Create a reader with escape sequence for left arrow: ESC [ D
+		reader := bufio.NewReader(strings.NewReader("[D"))
+
+		// ESC with pending input should handle escape sequence
+		shouldContinue, result := handler.HandleKey(27, true, nil, reader)
+		if !shouldContinue {
+			t.Error("Expected to continue after ESC sequence")
+		}
+		if result != nil {
+			t.Error("Expected nil result for ESC sequence")
+		}
+
+		// Cursor should have moved left from position 4 to 3
+		if ui.state.cursorPos != 3 {
+			t.Errorf("Expected cursor position 3 after left arrow, got %d", ui.state.cursorPos)
+		}
+	})
+
+	t.Run("escape sequence with buffered reader", func(t *testing.T) {
+		ui := &UI{
+			stdin:  os.Stdin,
+			stdout: &bytes.Buffer{},
+			colors: NewANSIColors(),
+			state: &UIState{
+				context:   ContextGlobal,
+				input:     "test",
+				cursorPos: 0,
+				filtered:  []CommandInfo{},
+			},
+			workflow: NewWorkflow(),
+		}
+
+		handler := &KeyHandler{ui: ui}
+		ui.handler = handler
+
+		// Create buffered reader with right arrow sequence: ESC [ C
+		reader := bufio.NewReader(strings.NewReader("[C"))
+		_, _ = reader.Peek(1) // Buffer some data
+
+		// With buffered reader, should handle escape sequence instead of soft cancel
+		shouldContinue, result := handler.HandleKey(27, true, nil, reader)
+		if !shouldContinue {
+			t.Error("Expected to continue after ESC sequence with buffered reader")
+		}
+		if result != nil {
+			t.Error("Expected nil result for ESC sequence")
+		}
+
+		// Cursor should have moved right from position 0 to 1
+		if ui.state.cursorPos != 1 {
+			t.Errorf("Expected cursor position 1 after right arrow, got %d", ui.state.cursorPos)
+		}
+	})
+}
+
 func TestRealTimeEditorShouldSoftCancelOnEscape(t *testing.T) {
 	colors := NewANSIColors()
 	ui := &UI{stdout: &bytes.Buffer{}, colors: colors}
@@ -1404,7 +1515,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	handler := &KeyHandler{ui: ui}
 
 	// Test printable character
-	shouldContinue, result := handler.HandleKey('a', true, nil)
+	shouldContinue, result := handler.HandleKey('a', true, nil, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after printable character")
 	}
@@ -1416,7 +1527,7 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	}
 
 	// Test backspace
-	shouldContinue, _ = handler.HandleKey(127, true, nil)
+	shouldContinue, _ = handler.HandleKey(127, true, nil, nil)
 	if !shouldContinue {
 		t.Error("Expected to continue after backspace")
 	}
