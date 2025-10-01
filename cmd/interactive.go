@@ -879,6 +879,31 @@ func (h *KeyHandler) handleCtrlC(oldState *term.State) {
 	os.Exit(0)
 }
 
+// restoreTerminalState restores the terminal from raw mode to cooked mode
+func (h *KeyHandler) restoreTerminalState(oldState *term.State) {
+	if oldState == nil {
+		return
+	}
+	if f, ok := h.ui.stdin.(*os.File); ok {
+		if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
+			h.ui.writeError("failed to restore terminal state: %v", err)
+		}
+	}
+}
+
+// reenterRawMode re-enters raw mode after being restored
+func (h *KeyHandler) reenterRawMode(oldState *term.State) {
+	if oldState == nil {
+		return
+	}
+	if f, ok := h.ui.stdin.(*os.File); ok {
+		fd := int(f.Fd())
+		if _, err := h.ui.term.MakeRaw(fd); err != nil {
+			h.ui.writeError("failed to set terminal to raw mode: %v", err)
+		}
+	}
+}
+
 // handleEnter handles Enter key press
 func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	// Handle workflow mode
@@ -897,13 +922,7 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	}
 
 	// Restore terminal state BEFORE showing Execute message
-	if oldState != nil {
-		if f, ok := h.ui.stdin.(*os.File); ok {
-			if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
-				h.ui.writeError("failed to restore terminal state: %v", err)
-			}
-		}
-	}
+	h.restoreTerminalState(oldState)
 
 	// Clear screen and show execution message
 	clearScreen(h.ui.stdout)
@@ -919,6 +938,8 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	// Handle placeholders
 	args, canceled := h.processCommand(selectedCmd.Command)
 	if canceled {
+		// Re-enter raw mode before returning to main loop
+		h.reenterRawMode(oldState)
 		return true, nil
 	}
 	return false, args
