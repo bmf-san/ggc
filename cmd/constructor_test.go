@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // Note: These tests are temporarily simplified to avoid actual git command execution
@@ -18,12 +19,12 @@ func TestNewBrancher(t *testing.T) {
 	var buf bytes.Buffer
 	brancher := &Brancher{
 		gitClient:    mockClient,
-		inputReader:  bufio.NewReader(strings.NewReader("")),
+		prompter:     prompt.New(strings.NewReader(""), &buf),
 		outputWriter: &buf,
 		helper:       NewHelper(),
 	}
 	// Basic field checks
-	if brancher.gitClient == nil || brancher.inputReader == nil ||
+	if brancher.gitClient == nil || brancher.prompter == nil ||
 		brancher.outputWriter == nil || brancher.helper == nil {
 		t.Error("Expected all fields to be initialized")
 	}
@@ -118,10 +119,10 @@ func TestNewRebaser(t *testing.T) {
 	rebaser := &Rebaser{
 		outputWriter: io.Discard,
 		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(strings.NewReader("")),
+		prompter:     prompt.New(strings.NewReader(""), io.Discard),
 	}
 	// Basic field checks
-	if rebaser.outputWriter == nil || rebaser.helper == nil || rebaser.inputReader == nil {
+	if rebaser.outputWriter == nil || rebaser.helper == nil || rebaser.prompter == nil {
 		t.Error("Expected all fields to be initialized")
 	}
 }

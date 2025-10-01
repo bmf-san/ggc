@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
 
@@ -18,6 +19,7 @@ import (
 	commandregistry "github.com/bmf-san/ggc/v6/cmd/command"
 	"github.com/bmf-san/ggc/v6/config"
 	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v6/internal/termio"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer
@@ -201,21 +203,22 @@ func buildInteractiveCommands() []CommandInfo {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin      io.Reader
-	stdout     io.Writer
-	stderr     io.Writer
-	term       terminal
-	renderer   *Renderer
-	state      *UIState
-	handler    *KeyHandler
-	colors     *ANSIColors
-	gitStatus  *GitStatus
-	gitClient  git.StatusInfoReader
-	reader     *bufio.Reader
-	contextMgr *ContextManager
-	profile    Profile
-	workflow   *Workflow
-	workflowEx *WorkflowExecutor
+	stdin           io.Reader
+	stdout          io.Writer
+	stderr          io.Writer
+	term            termio.Terminal
+	renderer        *Renderer
+	state           *UIState
+	handler         *KeyHandler
+	colors          *ANSIColors
+	gitStatus       *GitStatus
+	gitClient       git.StatusInfoReader
+	reader          *bufio.Reader
+	contextMgr      *ContextManager
+	profile         Profile
+	workflow        *Workflow
+	workflowEx      *WorkflowExecutor
+	softCancelFlash atomic.Bool
 }
 
 // UIState holds the current state of the interactive UI
@@ -564,7 +567,9 @@ func (h *KeyHandler) GetCurrentKeyMap() *KeyBindingMap {
 
 // HandleKey processes UTF-8 rune input and returns true if should continue
 // This method handles both single-byte (ASCII/control) and multibyte characters
-func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State) (bool, []string) {
+func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State, reader *bufio.Reader) (bool, []string) {
+	// Set the reader for consistent access during escape sequence handling
+	h.ui.reader = reader
 	// Handle workflow-specific keys first (Tab, etc.)
 	if handled := h.handleWorkflowKeys(r); handled {
 		return true, nil
@@ -572,7 +577,7 @@ func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State) (bool, []st
 
 	// Handle control characters (ASCII range)
 	if r < 128 && unicode.IsControl(r) { // ASCII control characters
-		if handled, shouldContinue, result := h.handleControlChar(byte(r), oldState); handled {
+		if handled, shouldContinue, result := h.handleControlChar(byte(r), oldState, reader); handled {
 			return shouldContinue, result
 		}
 	}
@@ -626,7 +631,7 @@ func (h *KeyHandler) handleWorkflowKeys(r rune) bool {
 // Enhanced to support KeyStroke matching while maintaining backward compatibility
 //
 //nolint:revive // Control character handling inherently requires many cases
-func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool, []string) {
+func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	// Get the appropriate keybinding map for current context
 	km := h.GetCurrentKeyMap()
 
@@ -676,6 +681,10 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 			h.ui.ToggleWorkflowView()
 			return true, true, nil
 		}
+		if km.MatchesKeyStroke("soft_cancel", ctrlStroke) {
+			h.handleSoftCancel(oldState)
+			return true, true, nil
+		}
 	}
 
 	// Handle special cases that are not Ctrl+letter
@@ -690,7 +699,11 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 		h.ui.state.RemoveChar()
 		return true, true, nil
 	case 27: // ESC: arrow keys and Option/Alt modifiers
-		h.handleEscapeSequence()
+		if h.shouldHandleEscapeAsSoftCancel() {
+			h.handleSoftCancel(oldState)
+			return true, true, nil
+		}
+		h.handleEscapeSequence(reader)
 		return true, true, nil
 	default:
 		return false, true, nil
@@ -703,22 +716,34 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State) (bool, bool
 // - Ctrl+Arrow: ESC [ 1;5 C/D or ESC [ 5 C/D
 // - Alt/Option+Arrow: ESC [ 1;3 C/D, ESC [ 1;9 C/D (varies by terminal)
 // - macOS Option word nav: ESC b / ESC f
-func (h *KeyHandler) handleEscapeSequence() {
-	if h.ui == nil || h.ui.reader == nil {
+func (h *KeyHandler) handleEscapeSequence(reader *bufio.Reader) {
+	if h.ui == nil {
 		return
 	}
 
-	r := h.ui.reader
-	b, err := r.ReadByte()
+	// Read next byte after ESC
+	var b byte
+	var err error
+
+	if reader != nil {
+		// Use provided buffered reader (non-raw mode)
+		b, err = reader.ReadByte()
+	} else {
+		// Raw mode: read directly from stdin
+		var buf [1]byte
+		_, err = h.ui.stdin.Read(buf[:])
+		b = buf[0]
+	}
+
 	if err != nil {
 		return
 	}
 
 	switch b {
 	case '[':
-		h.handleCSISequence(r)
+		h.handleCSISequence(reader)
 	case 'O':
-		h.handleApplicationCursorMode(r)
+		h.handleApplicationCursorMode(reader)
 	case 'b':
 		h.ui.state.MoveWordLeft()
 	case 'f':
@@ -729,11 +754,56 @@ func (h *KeyHandler) handleEscapeSequence() {
 	}
 }
 
+func (h *KeyHandler) handleSoftCancel(_ *term.State) {
+	if h == nil || h.ui == nil {
+		return
+	}
+
+	if h.ui.resetToSearchMode() {
+		h.ui.notifySoftCancel()
+	}
+}
+
+func (h *KeyHandler) shouldHandleEscapeAsSoftCancel() bool {
+	km := h.GetCurrentKeyMap()
+	if km == nil || !km.MatchesKeyStroke("soft_cancel", NewEscapeKeyStroke()) {
+		return false
+	}
+
+	if h.ui == nil {
+		return false
+	}
+
+	if h.ui.reader != nil && h.ui.reader.Buffered() > 0 {
+		return false
+	}
+
+	if file, ok := h.ui.stdin.(*os.File); ok {
+		if pending, err := termio.PendingInput(file.Fd()); err == nil {
+			return pending == 0
+		}
+	}
+
+	return false
+}
+
 // handleCSISequence handles CSI (Control Sequence Introducer) sequences
-func (h *KeyHandler) handleCSISequence(r *bufio.Reader) {
+func (h *KeyHandler) handleCSISequence(reader *bufio.Reader) {
 	var params []byte
 	for {
-		nb, err := r.ReadByte()
+		var nb byte
+		var err error
+
+		if reader != nil {
+			// Use provided buffered reader (non-raw mode)
+			nb, err = reader.ReadByte()
+		} else {
+			// Raw mode: read directly from stdin
+			var buf [1]byte
+			_, err = h.ui.stdin.Read(buf[:])
+			nb = buf[0]
+		}
+
 		if err != nil {
 			return
 		}
@@ -771,8 +841,20 @@ func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
 }
 
 // handleApplicationCursorMode handles application cursor mode sequences
-func (h *KeyHandler) handleApplicationCursorMode(r *bufio.Reader) {
-	nb, err := r.ReadByte()
+func (h *KeyHandler) handleApplicationCursorMode(reader *bufio.Reader) {
+	var nb byte
+	var err error
+
+	if reader != nil {
+		// Use provided buffered reader (non-raw mode)
+		nb, err = reader.ReadByte()
+	} else {
+		// Raw mode: read directly from stdin
+		var buf [1]byte
+		_, err = h.ui.stdin.Read(buf[:])
+		nb = buf[0]
+	}
+
 	if err != nil {
 		return
 	}
@@ -788,13 +870,38 @@ func (h *KeyHandler) handleApplicationCursorMode(r *bufio.Reader) {
 func (h *KeyHandler) handleCtrlC(oldState *term.State) {
 	if oldState != nil {
 		if f, ok := h.ui.stdin.(*os.File); ok {
-			if err := h.ui.term.restore(int(f.Fd()), oldState); err != nil {
+			if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
 				h.ui.writeError("failed to restore terminal state: %v", err)
 			}
 		}
 	}
 	h.ui.writeln("\nExiting...")
 	os.Exit(0)
+}
+
+// restoreTerminalState restores the terminal from raw mode to cooked mode
+func (h *KeyHandler) restoreTerminalState(oldState *term.State) {
+	if oldState == nil {
+		return
+	}
+	if f, ok := h.ui.stdin.(*os.File); ok {
+		if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
+			h.ui.writeError("failed to restore terminal state: %v", err)
+		}
+	}
+}
+
+// reenterRawMode re-enters raw mode after being restored
+func (h *KeyHandler) reenterRawMode(oldState *term.State) {
+	if oldState == nil {
+		return
+	}
+	if f, ok := h.ui.stdin.(*os.File); ok {
+		fd := int(f.Fd())
+		if _, err := h.ui.term.MakeRaw(fd); err != nil {
+			h.ui.writeError("failed to set terminal to raw mode: %v", err)
+		}
+	}
 }
 
 // handleEnter handles Enter key press
@@ -815,13 +922,7 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	}
 
 	// Restore terminal state BEFORE showing Execute message
-	if oldState != nil {
-		if f, ok := h.ui.stdin.(*os.File); ok {
-			if err := h.ui.term.restore(int(f.Fd()), oldState); err != nil {
-				h.ui.writeError("failed to restore terminal state: %v", err)
-			}
-		}
-	}
+	h.restoreTerminalState(oldState)
 
 	// Clear screen and show execution message
 	clearScreen(h.ui.stdout)
@@ -835,22 +936,32 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	h.ui.writeColor(executeMsg)
 
 	// Handle placeholders
-	return false, h.processCommand(selectedCmd.Command)
+	args, canceled := h.processCommand(selectedCmd.Command)
+	if canceled {
+		// Re-enter raw mode before returning to main loop
+		h.reenterRawMode(oldState)
+		return true, nil
+	}
+	return false, args
 }
 
 // processCommand processes the command with placeholder replacement
-func (h *KeyHandler) processCommand(cmdTemplate string) []string {
+func (h *KeyHandler) processCommand(cmdTemplate string) ([]string, bool) {
 	placeholders := extractPlaceholders(cmdTemplate)
 
 	if len(placeholders) == 0 {
 		// No placeholders - execute immediately
 		args := []string{"ggc"}
 		args = append(args, strings.Fields(cmdTemplate)...)
-		return args
+		return args, false
 	}
 
 	// Interactive input for placeholders
-	inputs := h.interactiveInput(placeholders)
+	inputs, canceled := h.interactiveInput(placeholders)
+	if canceled {
+		h.handleSoftCancel(nil)
+		return nil, true
+	}
 
 	// Placeholder replacement
 	finalCmd := cmdTemplate
@@ -860,11 +971,11 @@ func (h *KeyHandler) processCommand(cmdTemplate string) []string {
 
 	args := []string{"ggc"}
 	args = append(args, strings.Fields(finalCmd)...)
-	return args
+	return args, false
 }
 
 // interactiveInput provides real-time interactive input for placeholders
-func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
+func (h *KeyHandler) interactiveInput(placeholders []string) (map[string]string, bool) {
 	inputs := make(map[string]string)
 
 	for i, ph := range placeholders {
@@ -885,13 +996,9 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 			h.ui.colors.Reset)
 
 		// Get input with real-time feedback
-		value := h.getRealTimeInput(ph)
-		if value == "" {
-			// User canceled input
-			h.ui.write("\n%sOperation canceled%s\n",
-				h.ui.colors.BrightRed,
-				h.ui.colors.Reset)
-			os.Exit(1)
+		value, canceled := h.ui.readPlaceholderInput()
+		if canceled {
+			return nil, true
 		}
 		inputs[ph] = value
 
@@ -905,23 +1012,23 @@ func (h *KeyHandler) interactiveInput(placeholders []string) map[string]string {
 			h.ui.colors.Reset)
 	}
 
-	return inputs
+	return inputs, false
 }
 
 // getRealTimeInput gets user input with real-time display using raw terminal mode
-func (h *KeyHandler) getRealTimeInput(_ string) string {
+func (h *KeyHandler) getRealTimeInput() (string, bool) {
 	fd := int(os.Stdin.Fd())
-	oldState, err := h.ui.term.makeRaw(fd)
+	oldState, err := h.ui.term.MakeRaw(fd)
 	if err != nil {
 		return h.getLineInput()
 	}
-	defer func() { _ = h.ui.term.restore(fd, oldState) }()
+	defer func() { _ = h.ui.term.Restore(fd, oldState) }()
 
 	return h.processRealTimeInput()
 }
 
 // processRealTimeInput handles the main input processing loop
-func (h *KeyHandler) processRealTimeInput() string {
+func (h *KeyHandler) processRealTimeInput() (string, bool) {
 	reader := bufio.NewReader(os.Stdin)
 	inputRunes := make([]rune, 0, initialInputCapacity)
 	cursor := 0
@@ -943,13 +1050,13 @@ func (h *KeyHandler) processRealTimeInput() string {
 
 		result := editor.handleInput(r, reader)
 		if result.done {
-			return result.text
+			return result.text, false
 		}
 		if result.canceled {
-			return ""
+			return "", true
 		}
 	}
-	return string(inputRunes)
+	return string(inputRunes), false
 }
 
 // inputResult represents the result of handling input
@@ -973,10 +1080,15 @@ func (e *realTimeEditor) handleInput(r rune, reader *bufio.Reader) inputResult {
 		return e.handleEnter()
 	case 3: // Ctrl+C
 		return e.handleCtrlC()
+	case 7: // Ctrl+G
+		return e.handleSoftCancel()
 	case 127, '\b': // Backspace
 		e.handleBackspace()
 		return inputResult{}
 	case 27: // ESC sequences
+		if e.shouldSoftCancelOnEscape(reader) {
+			return e.handleSoftCancel()
+		}
 		e.handleEscape(reader)
 		return inputResult{}
 	default:
@@ -1000,6 +1112,11 @@ func (e *realTimeEditor) handleEnter() inputResult {
 // handleCtrlC processes Ctrl+C
 func (e *realTimeEditor) handleCtrlC() inputResult {
 	e.ui.write("\r\n%sOperation canceled%s\r\n", e.ui.colors.BrightRed, e.ui.colors.Reset)
+	return inputResult{canceled: true}
+}
+
+func (e *realTimeEditor) handleSoftCancel() inputResult {
+	e.ui.write("\r\n")
 	return inputResult{canceled: true}
 }
 
@@ -1098,6 +1215,20 @@ func (e *realTimeEditor) handleEscape(reader *bufio.Reader) {
 		// Option+Backspace: delete previous word
 		e.deleteWordLeft()
 	}
+}
+
+func (e *realTimeEditor) shouldSoftCancelOnEscape(reader *bufio.Reader) bool {
+	if reader != nil && reader.Buffered() > 0 {
+		return false
+	}
+
+	if os.Stdin != nil {
+		if pending, err := termio.PendingInput(os.Stdin.Fd()); err == nil {
+			return pending == 0
+		}
+	}
+
+	return false
 }
 
 // handleCSIEscape processes CSI escape sequences for real-time input
@@ -1397,37 +1528,21 @@ func (h *KeyHandler) handleInputChar(input *strings.Builder, char rune) (done bo
 }
 
 // getLineInput provides fallback line-based input when raw mode is not available
-func (h *KeyHandler) getLineInput() string {
+func (h *KeyHandler) getLineInput() (string, bool) {
 	reader := bufio.NewReader(h.ui.stdin)
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			return ""
+			return "", true
 		}
 		line = strings.TrimSpace(line)
 		if line != "" {
-			return line
+			return line, false
 		}
 		h.ui.write("%s(required)%s ",
 			h.ui.colors.BrightRed,
 			h.ui.colors.Reset)
 	}
-}
-
-// terminal represents terminal operations
-type terminal interface {
-	makeRaw(fd int) (*term.State, error)
-	restore(fd int, state *term.State) error
-}
-
-type defaultTerminal struct{}
-
-func (t *defaultTerminal) makeRaw(fd int) (*term.State, error) {
-	return term.MakeRaw(fd)
-}
-
-func (t *defaultTerminal) restore(fd int, state *term.State) error {
-	return term.Restore(fd, state)
 }
 
 // NewUI creates a new UI with the provided git client and loads keybindings from config
@@ -1499,7 +1614,7 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 		stdin:      os.Stdin,
 		stdout:     os.Stdout,
 		stderr:     os.Stderr,
-		term:       &defaultTerminal{},
+		term:       termio.DefaultTerminal{},
 		renderer:   renderer,
 		state:      state,
 		colors:     colors,
@@ -1520,7 +1635,7 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 
 	// Set up workflow executor if router is provided
 	if len(router) > 0 && router[0] != nil {
-		ui.workflowEx = NewWorkflowExecutor(router[0])
+		ui.workflowEx = NewWorkflowExecutor(router[0], ui)
 	}
 
 	return ui
@@ -1534,6 +1649,28 @@ func (ui *UI) ToggleWorkflowView() {
 // AddToWorkflow adds a command to the workflow
 func (ui *UI) AddToWorkflow(command string, args []string, description string) int {
 	return ui.workflow.AddStep(command, args, description)
+}
+
+func (ui *UI) resetToSearchMode() bool {
+	if ui == nil || ui.state == nil {
+		return false
+	}
+
+	state := ui.state
+	active := state.HasInput() || state.showWorkflow || len(state.contextStack) > 0 || state.GetCurrentContext() != ContextGlobal
+	state.ClearInput()
+	state.selected = 0
+	state.contextStack = nil
+	state.SetContext(ContextGlobal)
+	state.showWorkflow = false
+	return active
+}
+
+func (ui *UI) readPlaceholderInput() (string, bool) {
+	if ui == nil || ui.handler == nil {
+		return "", true
+	}
+	return ui.handler.getRealTimeInput()
 }
 
 // ClearWorkflow removes all steps from the workflow
@@ -1596,6 +1733,14 @@ func (ui *UI) writeln(format string, a ...interface{}) {
 	_, _ = fmt.Fprintf(ui.stdout, format+"\r\n", a...)
 }
 
+func (ui *UI) notifySoftCancel() {
+	ui.softCancelFlash.Store(true)
+}
+
+func (ui *UI) consumeSoftCancelFlash() bool {
+	return ui.softCancelFlash.Swap(false)
+}
+
 // clearScreen clears the entire screen and hides cursor
 func clearScreen(w io.Writer) {
 	// Clear screen, move cursor to home, hide cursor
@@ -1640,6 +1785,7 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 
 	// Render each section
 	r.renderHeader(ui)
+	r.renderSoftCancelFlash(ui)
 
 	// Render workflow status if it has steps and no search input
 	if !ui.workflow.IsEmpty() && !state.showWorkflow && state.input == "" {
@@ -1669,6 +1815,15 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 		}
 	}
 
+}
+
+func (r *Renderer) renderSoftCancelFlash(ui *UI) {
+	if !ui.consumeSoftCancelFlash() {
+		return
+	}
+	alert := fmt.Sprintf("%s⚠️  Operation canceled%s", r.colors.BrightRed+r.colors.Bold, r.colors.Reset)
+	r.writeColorln(ui, alert)
+	r.writeColorln(ui, "")
 }
 
 // renderHeader renders the title, git status, and navigation subtitle
@@ -2131,7 +2286,7 @@ func (ui *UI) setupTerminal() (*term.State, bool) {
 
 		fd := int(f.Fd())
 		var err error
-		oldState, err = ui.term.makeRaw(fd)
+		oldState, err = ui.term.MakeRaw(fd)
 		if err != nil {
 			ui.writeError("Failed to set terminal to raw mode: %v", err)
 			return nil, false
@@ -2151,7 +2306,7 @@ func (ui *UI) Run() []string {
 	if f, ok := ui.stdin.(*os.File); ok && isRawMode {
 		fd := int(f.Fd())
 		defer func() {
-			if err := ui.term.restore(fd, oldState); err != nil {
+			if err := ui.term.Restore(fd, oldState); err != nil {
 				ui.writeError("failed to restore terminal state: %v", err)
 			}
 		}()
@@ -2181,6 +2336,14 @@ func (ui *UI) initializeTerminal() (*term.State, *bufio.Reader, bool) {
 
 // runMainLoop handles the main input loop
 func (ui *UI) runMainLoop(reader *bufio.Reader, isRawMode bool, oldState *term.State) []string {
+	if isRawMode {
+		if ui.reader == nil {
+			ui.reader = bufio.NewReader(ui.stdin)
+		}
+	} else {
+		ui.reader = reader
+	}
+
 	for {
 		ui.state.UpdateFiltered()
 		ui.renderer.Render(ui, ui.state)
@@ -2195,7 +2358,7 @@ func (ui *UI) runMainLoop(reader *bufio.Reader, isRawMode bool, oldState *term.S
 
 		// Handle key input with rune
 		isSingleByte := isRawMode // In raw mode, we read single bytes; in buffered mode, we read full runes
-		shouldContinue, result := ui.handler.HandleKey(r, isSingleByte, oldState)
+		shouldContinue, result := ui.handler.HandleKey(r, isSingleByte, oldState, reader)
 		if !shouldContinue {
 			return result
 		}
@@ -2294,7 +2457,7 @@ func (h *KeyHandler) executeWorkflow(oldState *term.State) (bool, []string) {
 	// Restore terminal state before execution
 	if oldState != nil {
 		if f, ok := h.ui.stdin.(*os.File); ok {
-			if err := h.ui.term.restore(int(f.Fd()), oldState); err != nil {
+			if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
 				h.ui.writeError("failed to restore terminal state: %v", err)
 			}
 		}
@@ -2304,6 +2467,10 @@ func (h *KeyHandler) executeWorkflow(oldState *term.State) (bool, []string) {
 	clearScreen(h.ui.stdout)
 
 	err := h.ui.ExecuteWorkflow()
+	if errors.Is(err, ErrWorkflowCanceled) {
+		h.handleSoftCancel(oldState)
+		return true, nil
+	}
 	if err != nil {
 		fmt.Printf("\n❌ Workflow execution failed: %v\n", err)
 	} else {

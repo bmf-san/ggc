@@ -225,6 +225,7 @@ type KeyBindingMap struct {
 	AddToWorkflow      []KeyStroke // default: [Tab]
 	ToggleWorkflowView []KeyStroke // default: [Ctrl+T]
 	ClearWorkflow      []KeyStroke // default: [c]
+	SoftCancel         []KeyStroke // default: [Ctrl+G, Esc]
 }
 
 // DefaultKeyBindingMap returns the built-in default control bindings.
@@ -240,6 +241,7 @@ func DefaultKeyBindingMap() *KeyBindingMap {
 		AddToWorkflow:      []KeyStroke{NewTabKeyStroke()},
 		ToggleWorkflowView: []KeyStroke{NewCtrlKeyStroke('t')},
 		ClearWorkflow:      []KeyStroke{NewCharKeyStroke('c')},
+		SoftCancel:         []KeyStroke{NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 	}
 }
 
@@ -320,6 +322,7 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 		"add_to_workflow":      km.AddToWorkflow,
 		"toggle_workflow_view": km.ToggleWorkflowView,
 		"clear_workflow":       km.ClearWorkflow,
+		"soft_cancel":          km.SoftCancel,
 	}
 
 	keyStrokes, exists := actionMap[action]
@@ -1080,6 +1083,7 @@ func (r *KeyBindingResolver) applyDefaults(keyMap *KeyBindingMap) {
 	keyMap.AddToWorkflow = append(keyMap.AddToWorkflow, defaults.AddToWorkflow...)
 	keyMap.ToggleWorkflowView = append(keyMap.ToggleWorkflowView, defaults.ToggleWorkflowView...)
 	keyMap.ClearWorkflow = append(keyMap.ClearWorkflow, defaults.ClearWorkflow...)
+	keyMap.SoftCancel = append(keyMap.SoftCancel, defaults.SoftCancel...)
 }
 
 func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBindingProfile, context Context) {
@@ -1100,6 +1104,7 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("add_to_workflow", &keyMap.AddToWorkflow)
 	applyBinding("toggle_workflow_view", &keyMap.ToggleWorkflowView)
 	applyBinding("clear_workflow", &keyMap.ClearWorkflow)
+	applyBinding("soft_cancel", &keyMap.SoftCancel)
 }
 
 func (r *KeyBindingResolver) applyPlatformLayer(keyMap *KeyBindingMap) {
@@ -1180,6 +1185,8 @@ func (r *KeyBindingResolver) applyWorkflowAction(keyMap *KeyBindingMap, action s
 		keyMap.ToggleWorkflowView = bindings
 	case "clear_workflow":
 		keyMap.ClearWorkflow = bindings
+	case "soft_cancel":
+		keyMap.SoftCancel = bindings
 	// Explicitly ignore unsupported actions
 	default:
 		// Terminal-specific action not supported in this context
@@ -1201,6 +1208,7 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 		"add_to_workflow":      userBindings.AddToWorkflow,
 		"toggle_workflow_view": userBindings.ToggleWorkflowView,
 		"clear_workflow":       userBindings.ClearWorkflow,
+		"soft_cancel":          userBindings.SoftCancel,
 	}
 
 	// Apply non-empty user overrides
@@ -1228,6 +1236,8 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 					keyMap.ToggleWorkflowView = []KeyStroke{ks}
 				case "clear_workflow":
 					keyMap.ClearWorkflow = []KeyStroke{ks}
+				case "soft_cancel":
+					keyMap.SoftCancel = []KeyStroke{ks}
 				}
 			}
 		}
@@ -1256,6 +1266,7 @@ func (r *KeyBindingResolver) applyEnvironmentOverrides(keyMap *KeyBindingMap) {
 		"GGC_KEYBIND_ADD_TO_WORKFLOW":      &keyMap.AddToWorkflow,
 		"GGC_KEYBIND_TOGGLE_WORKFLOW_VIEW": &keyMap.ToggleWorkflowView,
 		"GGC_KEYBIND_CLEAR_WORKFLOW":       &keyMap.ClearWorkflow,
+		"GGC_KEYBIND_SOFT_CANCEL":          &keyMap.SoftCancel,
 	}
 
 	for envVar, target := range envOverrides {
@@ -1381,6 +1392,8 @@ func (r *KeyBindingResolver) applyUserWorkflowAction(keyMap *KeyBindingMap, acti
 		keyMap.ToggleWorkflowView = keystrokes
 	case "clear_workflow":
 		keyMap.ClearWorkflow = keystrokes
+	case "soft_cancel":
+		keyMap.SoftCancel = keystrokes
 	// Explicitly ignore unsupported actions
 	default:
 		// User-defined action not supported in this context
@@ -1434,7 +1447,9 @@ func CreateDefaultProfile() *KeyBindingProfile {
 		Description: "Default keybindings compatible with legacy behavior",
 		Global:      make(map[string][]KeyStroke),
 		Contexts: map[Context]map[string][]KeyStroke{
-			ContextGlobal: {},
+			ContextGlobal: {
+				"soft_cancel": {NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
+			},
 			ContextInput: {
 				"delete_word":       {NewCtrlKeyStroke('w')},
 				"clear_line":        {NewCtrlKeyStroke('u')},
@@ -1480,6 +1495,7 @@ func CreateEmacsProfile() *KeyBindingProfile {
 				"help":               {NewCtrlKeyStroke('h')},
 				"universal_argument": {NewCtrlKeyStroke('u')},
 				"suspend":            {NewCtrlKeyStroke('z')},
+				"soft_cancel":        {NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 			},
 			ContextInput: {
 				// Character-level movement
@@ -1625,6 +1641,7 @@ func CreateViProfile() *KeyBindingProfile {
 				"command_mode":  {NewRawKeyStroke([]byte{27})},
 				"force_quit":    {NewRawKeyStroke([]byte{'Z', 'Q'})},
 				"save_and_quit": {NewRawKeyStroke([]byte{'Z', 'Z'})},
+				"soft_cancel":   {NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 			},
 			ContextInput: {
 				// Vi INSERT MODE bindings (when editing input)
@@ -1794,6 +1811,7 @@ func CreateReadlineProfile() *KeyBindingProfile {
 			ContextGlobal: {
 				"abort":        {NewCtrlKeyStroke('g')},
 				"clear_screen": {NewCtrlKeyStroke('l')},
+				"soft_cancel":  {NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 			},
 			ContextInput: {
 				// Character Movement (GNU Readline standard)

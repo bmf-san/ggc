@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -10,26 +9,28 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // Cleaner provides functionality for the clean command.
 type Cleaner struct {
 	gitClient    git.CleanOps
 	outputWriter io.Writer
-	inputReader  *bufio.Reader
+	prompter     prompt.Interface
 	helper       *Helper
 }
 
 // NewCleaner creates a new Cleaner.
 func NewCleaner(client git.CleanOps) *Cleaner {
-	c := &Cleaner{
+	output := os.Stdout
+	helper := NewHelper()
+	helper.outputWriter = output
+	return &Cleaner{
 		gitClient:    client,
-		outputWriter: os.Stdout,
-		inputReader:  bufio.NewReader(os.Stdin),
-		helper:       NewHelper(),
+		outputWriter: output,
+		prompter:     prompt.New(os.Stdin, output),
+		helper:       helper,
 	}
-	c.helper.outputWriter = c.outputWriter
-	return c
 }
 
 // Clean executes the clean command with the given arguments.
@@ -91,7 +92,10 @@ func (c *Cleaner) getCleanableFiles() ([]string, error) {
 func (c *Cleaner) runInteractiveCleanLoop(files []string) {
 	for {
 		c.displayFileSelection(files)
-		input, _ := c.inputReader.ReadString('\n')
+		input, ok := c.readLine("")
+		if !ok {
+			return
+		}
 		input = strings.TrimSpace(input)
 
 		if input == "" {
@@ -105,6 +109,21 @@ func (c *Cleaner) runInteractiveCleanLoop(files []string) {
 			return
 		}
 	}
+}
+
+func (c *Cleaner) readLine(promptText string) (string, bool) {
+	if c.prompter == nil {
+		return "", false
+	}
+	line, canceled, err := c.prompter.Input(promptText)
+	if canceled {
+		return "", false
+	}
+	if err != nil {
+		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		return "", false
+	}
+	return line, true
 }
 
 // displayFileSelection shows the file selection interface
@@ -161,18 +180,23 @@ func (c *Cleaner) parseFileIndices(input string, files []string) ([]string, bool
 // confirmAndDelete confirms deletion and executes it
 func (c *Cleaner) confirmAndDelete(selectedFiles []string) bool {
 	_, _ = fmt.Fprintf(c.outputWriter, "\033[1;32mSelected files: %v\033[0m\n", selectedFiles)
-	_, _ = fmt.Fprint(c.outputWriter, "Delete these files? (y/n): ")
-
-	ans, _ := c.inputReader.ReadString('\n')
-	ans = strings.TrimSpace(ans)
-
-	if ans == "y" || ans == "Y" {
-		if err := c.gitClient.CleanFilesForce(selectedFiles); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+	for {
+		confirm, canceled, err := c.prompter.Confirm("Delete these files? (y/n): ")
+		if canceled {
 			return true
 		}
-		_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
-		return true
+		if err != nil {
+			_, _ = fmt.Fprintln(c.outputWriter, "\033[1;31mInvalid choice.\033[0m")
+			continue
+		}
+		if confirm {
+			if err := c.gitClient.CleanFilesForce(selectedFiles); err != nil {
+				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+				return true
+			}
+			_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
+			return true
+		}
+		return false
 	}
-	return false // Continue loop
 }

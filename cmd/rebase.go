@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // Rebaser handles rebase operations.
@@ -17,16 +17,19 @@ type Rebaser struct {
 	gitClient    git.RebaseOps
 	outputWriter io.Writer
 	helper       *Helper
-	inputReader  *bufio.Reader
+	prompter     prompt.Interface
 }
 
 // NewRebaser creates a new Rebaser instance.
 func NewRebaser(client git.RebaseOps) *Rebaser {
+	output := os.Stdout
+	helper := NewHelper()
+	helper.outputWriter = output
 	return &Rebaser{
 		gitClient:    client,
-		outputWriter: os.Stdout,
-		helper:       NewHelper(),
-		inputReader:  bufio.NewReader(os.Stdin),
+		outputWriter: output,
+		helper:       helper,
+		prompter:     prompt.New(os.Stdin, output),
 	}
 }
 
@@ -156,9 +159,8 @@ func (r *Rebaser) printCommitChoices(currentBranch string, lines []string) {
 }
 
 func (r *Rebaser) promptRebaseCount(max int) (int, bool) {
-	_, _ = fmt.Fprint(r.outputWriter, "> ")
-	input, err := r.inputReader.ReadString('\n')
-	if err != nil || strings.TrimSpace(input) == "" {
+	input, ok := r.readLine("> ")
+	if !ok || strings.TrimSpace(input) == "" {
 		_, _ = fmt.Fprintf(r.outputWriter, "Error: operation canceled\n")
 		return 0, false
 	}
@@ -168,4 +170,19 @@ func (r *Rebaser) promptRebaseCount(max int) (int, bool) {
 		return 0, false
 	}
 	return num, true
+}
+
+func (r *Rebaser) readLine(promptText string) (string, bool) {
+	if r.prompter == nil {
+		return "", false
+	}
+	line, canceled, err := r.prompter.Input(promptText)
+	if canceled {
+		return "", false
+	}
+	if err != nil {
+		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		return "", false
+	}
+	return line, true
 }

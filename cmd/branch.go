@@ -2,7 +2,7 @@
 package cmd
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,23 +11,27 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // Brancher provides functionality for the branch command.
 type Brancher struct {
 	gitClient    git.BranchOps
-	inputReader  *bufio.Reader
+	prompter     prompt.Interface
 	outputWriter io.Writer
 	helper       *Helper
 }
 
 // NewBrancher creates a new Brancher.
 func NewBrancher(client git.BranchOps) *Brancher {
+	output := os.Stdout
+	helper := NewHelper()
+	helper.outputWriter = output
 	return &Brancher{
 		gitClient:    client,
-		inputReader:  bufio.NewReader(os.Stdin),
-		outputWriter: os.Stdout,
-		helper:       NewHelper(),
+		prompter:     prompt.New(os.Stdin, output),
+		outputWriter: output,
+		helper:       helper,
 	}
 }
 
@@ -127,19 +131,11 @@ func (b *Brancher) branchCheckout() {
 		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
 		return
 	}
-	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
-	for i, br := range branches {
-		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
-	}
-	_, _ = fmt.Fprint(b.outputWriter, "Enter the number to checkout: ")
-	input, _ := b.inputReader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	idx, err := strconv.Atoi(input)
-	if err != nil || idx < 1 || idx > len(branches) {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number to checkout: ")
+	if !ok {
 		return
 	}
-	branch := branches[idx-1]
+	branch := branches[idx]
 	if err := b.gitClient.CheckoutBranch(branch); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
@@ -171,20 +167,23 @@ func (b *Brancher) branchCheckoutRemote() {
 }
 
 // promptSelectIndex prints a list with title and asks for selection, returns 0-based index
-func (b *Brancher) promptSelectIndex(title string, items []string, prompt string) (int, bool) {
-	_, _ = fmt.Fprintln(b.outputWriter, title)
-	for i, it := range items {
-		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, it)
-	}
-	_, _ = fmt.Fprint(b.outputWriter, prompt)
-	input, _ := b.inputReader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	idx, err := strconv.Atoi(input)
-	if err != nil || idx < 1 || idx > len(items) {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+func (b *Brancher) promptSelectIndex(title string, items []string, promptText string) (int, bool) {
+	if b.prompter == nil {
 		return 0, false
 	}
-	return idx - 1, true
+	idx, canceled, err := b.prompter.Select(title, items, promptText)
+	if canceled {
+		return 0, false
+	}
+	if err != nil {
+		if errors.Is(err, prompt.ErrInvalidSelection) {
+			_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+		} else {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		}
+		return 0, false
+	}
+	return idx, true
 }
 
 // deriveLocalFromRemote converts "origin/foo" -> "foo"
@@ -200,9 +199,26 @@ func deriveLocalFromRemote(remoteBranch string) (string, bool) {
 	return local, true
 }
 
+func (b *Brancher) readLine(promptText string) (string, bool) {
+	if b.prompter == nil {
+		return "", false
+	}
+	line, canceled, err := b.prompter.Input(promptText)
+	if canceled {
+		return "", false
+	}
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return "", false
+	}
+	return line, true
+}
+
 func (b *Brancher) branchCreate() {
-	_, _ = fmt.Fprint(b.outputWriter, "Enter new branch name: ")
-	input, _ := b.inputReader.ReadString('\n')
+	input, ok := b.readLine("Enter new branch name: ")
+	if !ok {
+		return
+	}
 	branchName := strings.TrimSpace(input)
 	if branchName == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
@@ -247,7 +263,10 @@ func (b *Brancher) branchDelete() {
 func (b *Brancher) runBranchDeleteLoop(branches []string) {
 	for {
 		b.displayBranchSelection(branches)
-		input, _ := b.inputReader.ReadString('\n')
+		input, ok := b.readLine("")
+		if !ok {
+			return
+		}
 		input = strings.TrimSpace(input)
 
 		if input == "" {
@@ -360,7 +379,10 @@ func (b *Brancher) getMergedBranchesForDeletion() ([]string, error) {
 func (b *Brancher) runMergedBranchDeleteLoop(branches []string) {
 	for {
 		b.displayMergedBranchSelection(branches)
-		input, _ := b.inputReader.ReadString('\n')
+		input, ok := b.readLine("")
+		if !ok {
+			return
+		}
 		input = strings.TrimSpace(input)
 
 		if input == "" {
@@ -461,21 +483,15 @@ func (b *Brancher) branchRename() {
 		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
 		return
 	}
-	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
-	for i, br := range branches {
-		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
-	}
-	_, _ = fmt.Fprint(b.outputWriter, "Enter the number of the branch to rename: ")
-	input, _ := b.inputReader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	idx, err := strconv.Atoi(input)
-	if err != nil || idx < 1 || idx > len(branches) {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number of the branch to rename: ")
+	if !ok {
 		return
 	}
-	oldName := branches[idx-1]
-	_, _ = fmt.Fprint(b.outputWriter, "Enter new branch name: ")
-	newInput, _ := b.inputReader.ReadString('\n')
+	oldName := branches[idx]
+	newInput, ok := b.readLine("Enter new branch name: ")
+	if !ok {
+		return
+	}
 	newName := strings.TrimSpace(newInput)
 	if newName == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
@@ -501,22 +517,16 @@ func (b *Brancher) branchMove() {
 		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
 		return
 	}
-	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
-	for i, br := range branches {
-		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
-	}
-	_, _ = fmt.Fprint(b.outputWriter, "Enter the number of the branch to move: ")
-	input, _ := b.inputReader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	idx, err := strconv.Atoi(input)
-	if err != nil || idx < 1 || idx > len(branches) {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number of the branch to move: ")
+	if !ok {
 		return
 	}
-	branch := branches[idx-1]
-	_, _ = fmt.Fprint(b.outputWriter, "Enter commit or ref to move to: ")
-	commit, _ := b.inputReader.ReadString('\n')
-	commit = strings.TrimSpace(commit)
+	branch := branches[idx]
+	commitInput, ok := b.readLine("Enter commit or ref to move to: ")
+	if !ok {
+		return
+	}
+	commit := strings.TrimSpace(commitInput)
 	if commit == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
 		return
@@ -559,19 +569,11 @@ func (b *Brancher) branchSetUpstream() {
 
 // selectLocalBranch prompts user to select a local branch
 func (b *Brancher) selectLocalBranch(branches []string) string {
-	_, _ = fmt.Fprintln(b.outputWriter, "Local branches:")
-	for i, br := range branches {
-		_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, br)
-	}
-	_, _ = fmt.Fprint(b.outputWriter, "Enter the number of the branch to set upstream: ")
-	input, _ := b.inputReader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	idx, err := strconv.Atoi(input)
-	if err != nil || idx < 1 || idx > len(branches) {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number of the branch to set upstream: ")
+	if !ok {
 		return ""
 	}
-	return branches[idx-1]
+	return branches[idx]
 }
 
 // selectUpstreamBranch prompts user to select an upstream branch
@@ -583,8 +585,10 @@ func (b *Brancher) selectUpstreamBranch() string {
 			_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, rb)
 		}
 	}
-	_, _ = fmt.Fprint(b.outputWriter, "Enter upstream (name or number): ")
-	upIn, _ := b.inputReader.ReadString('\n')
+	upIn, ok := b.readLine("Enter upstream (name or number): ")
+	if !ok {
+		return ""
+	}
 	upIn = strings.TrimSpace(upIn)
 	if upIn == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
@@ -692,16 +696,12 @@ func (b *Brancher) branchListRemote() {
 }
 
 func (b *Brancher) branchSort() {
-	_, _ = fmt.Fprintln(b.outputWriter, "Sort by:")
-	_, _ = fmt.Fprintln(b.outputWriter, "[1] name")
-	_, _ = fmt.Fprintln(b.outputWriter, "[2] date")
-	_, _ = fmt.Fprint(b.outputWriter, "Enter number: ")
-	input, _ := b.inputReader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	by := "name"
-	if input == "2" {
-		by = "date"
+	opts := []string{"name", "date"}
+	idx, ok := b.promptSelectIndex("Sort by:", opts, "Enter number: ")
+	if !ok {
+		return
 	}
+	by := opts[idx]
 	names, err := b.gitClient.SortBranches(by)
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -713,8 +713,10 @@ func (b *Brancher) branchSort() {
 }
 
 func (b *Brancher) branchContains() {
-	_, _ = fmt.Fprint(b.outputWriter, "Enter commit or ref: ")
-	input, _ := b.inputReader.ReadString('\n')
+	input, ok := b.readLine("Enter commit or ref: ")
+	if !ok {
+		return
+	}
 	commit := strings.TrimSpace(input)
 	if commit == "" {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")

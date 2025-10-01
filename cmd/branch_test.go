@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v6/internal/prompt"
 )
 
 // mockBranchGitClient is a mock implementation focused on branch operations for tests
@@ -181,8 +181,7 @@ func TestBrancher_Branch_Checkout(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	brancher.Branch([]string{"checkout"})
 
@@ -199,8 +198,7 @@ func TestBrancher_Branch_CheckoutRemote(t *testing.T) {
 		gitClient:    &mockBranchGitClient{},
 		outputWriter: &buf,
 		helper:       NewHelper(),
-
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	brancher.helper.outputWriter = &buf
 
@@ -218,8 +216,7 @@ func TestBrancher_Branch_Delete(t *testing.T) {
 		gitClient:    &mockBranchGitClient{},
 		outputWriter: &buf,
 		helper:       NewHelper(),
-
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	brancher.helper.outputWriter = &buf
 
@@ -241,8 +238,7 @@ func TestBrancher_Branch_DeleteMerged(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf,
 		helper:       NewHelper(),
-
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 	brancher.helper.outputWriter = &buf
 
@@ -319,8 +315,7 @@ func TestBrancher_branchDelete_Success(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("1 2\n")),
+		prompter:     prompt.New(strings.NewReader("1 2\n"), &buf),
 	}
 
 	brancher.branchDelete()
@@ -344,8 +339,7 @@ func TestBrancher_branchDelete_All(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("all\n")),
+		prompter:     prompt.New(strings.NewReader("all\n"), &buf),
 	}
 
 	brancher.branchDelete()
@@ -366,8 +360,7 @@ func TestBrancher_branchDelete_Cancel(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("\n")),
+		prompter:     prompt.New(strings.NewReader("\n"), &buf),
 	}
 
 	brancher.branchDelete()
@@ -427,8 +420,7 @@ func TestBrancher_branchDeleteMerged_Success(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("1 2\n")),
+		prompter:     prompt.New(strings.NewReader("1 2\n"), &buf),
 	}
 
 	brancher.branchDeleteMerged()
@@ -448,8 +440,7 @@ func TestBrancher_branchDeleteMerged_All(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("all\n")),
+		prompter:     prompt.New(strings.NewReader("all\n"), &buf),
 	}
 
 	brancher.branchDeleteMerged()
@@ -469,8 +460,7 @@ func TestBrancher_branchDeleteMerged_Cancel(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("\n")),
+		prompter:     prompt.New(strings.NewReader("\n"), &buf),
 	}
 
 	brancher.branchDeleteMerged()
@@ -522,8 +512,7 @@ func TestBrancher_branchCheckoutRemote_Success(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    &mockBranchGitClient{},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("2\n")),
+		prompter:     prompt.New(strings.NewReader("2\n"), &buf),
 	}
 
 	brancher.branchCheckoutRemote()
@@ -542,8 +531,7 @@ func TestBrancher_branchCheckoutRemote_InvalidNumber(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    &mockBranchGitClient{},
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("invalid\n")),
+		prompter:     prompt.New(strings.NewReader("invalid\n"), &buf),
 	}
 
 	brancher.branchCheckoutRemote()
@@ -564,8 +552,7 @@ func TestBrancher_branchCheckoutRemote_InvalidBranchName(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-
-		inputReader: bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 
 	brancher.branchCheckoutRemote()
@@ -586,7 +573,7 @@ func TestBrancher_branchCheckoutRemote_EmptyLocalFromRemote(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    mockClient,
 		outputWriter: &buf,
-		inputReader:  bufio.NewReader(strings.NewReader("1\n")),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
 	}
 
 	brancher.branchCheckoutRemote()
@@ -634,7 +621,7 @@ func TestBrancher_Branch_Create(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    &mockBranchGitClient{checkoutNewBranchError: tt.cmdError},
 				outputWriter: &buf,
-				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
 			brancher.Branch([]string{"create"})
@@ -652,7 +639,7 @@ func TestBrancher_branchCreate_ExistingBranch(t *testing.T) {
 	brancher := &Brancher{
 		gitClient:    &mockBranchGitClient{},
 		outputWriter: &buf,
-		inputReader:  bufio.NewReader(strings.NewReader("main\n")),
+		prompter:     prompt.New(strings.NewReader("main\n"), &buf),
 	}
 
 	brancher.Branch([]string{"create"})
@@ -716,8 +703,7 @@ func TestBrancher_Branch_BoundaryInputValues(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    mockClient,
 				outputWriter: &buf,
-
-				inputReader: bufio.NewReader(strings.NewReader(tt.input)),
+				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
 			brancher.branchCheckout()
@@ -817,7 +803,7 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    &mockBranchGitClient{},
 				outputWriter: &buf,
-				inputReader:  bufio.NewReader(strings.NewReader(tt.branchName + "\n")),
+				prompter:     prompt.New(strings.NewReader(tt.branchName+"\n"), &buf),
 			}
 
 			brancher.branchCreate()
@@ -895,7 +881,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    &mockBranchGitClient{},
 				outputWriter: &buf,
-				inputReader:  bufio.NewReader(strings.NewReader(tt.input)),
+				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
 			brancher.branchCreate()
@@ -956,8 +942,7 @@ func TestBrancher_Branch_BoundaryListOperations(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    mockClient,
 				outputWriter: &buf,
-
-				inputReader: bufio.NewReader(strings.NewReader(tt.input)),
+				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
 			brancher.branchCheckout()
@@ -1026,8 +1011,7 @@ func TestBrancher_Branch_BoundaryDeleteOperations(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    mockClient,
 				outputWriter: &buf,
-
-				inputReader: bufio.NewReader(strings.NewReader(tt.input)),
+				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
 			brancher.branchDelete()
@@ -1078,8 +1062,7 @@ func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
 			brancher := &Brancher{
 				gitClient:    mockClient,
 				outputWriter: &buf,
-
-				inputReader: bufio.NewReader(strings.NewReader(tt.input)),
+				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
 			brancher.branchDelete()
