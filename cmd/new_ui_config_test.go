@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/internal/testutil"
+	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
 
 func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {

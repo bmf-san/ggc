@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {

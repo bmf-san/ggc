@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	commandregistry "github.com/bmf-san/ggc/v6/cmd/command"
-	"github.com/bmf-san/ggc/v6/git"
+	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // Interactive mode special return values

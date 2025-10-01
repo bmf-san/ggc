@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bmf-san/ggc/v6/cmd/command"
+	"github.com/bmf-san/ggc/v7/cmd/command"
 )
 
 func main() {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // Logger provides functionality for the log command.

@@ -1,4 +1,4 @@
-module github.com/bmf-san/ggc/v6
+module github.com/bmf-san/ggc/v7
 
 go 1.25.0
 
@@ -8,4 +8,4 @@ require (
 	golang.org/x/text v0.29.0
 )
 
-require golang.org/x/sys v0.36.0 // indirect
+require golang.org/x/sys v0.36.0

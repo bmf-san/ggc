@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/cmd"
-	"github.com/bmf-san/ggc/v6/config"
-	"github.com/bmf-san/ggc/v6/internal/testutil"
-	"github.com/bmf-san/ggc/v6/router"
+	"github.com/bmf-san/ggc/v7/cmd"
+	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v7/router"
 )
 
 func TestGetVersionInfo(t *testing.T) {

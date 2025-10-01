@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 type mockResetOps struct {

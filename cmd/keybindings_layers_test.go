@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/config"
+	"github.com/bmf-san/ggc/v7/config"
 )
 
 // TestKeyBindingResolution tests the layering and resolution logic

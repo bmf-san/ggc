@@ -16,10 +16,10 @@ import (
 	"golang.org/x/term"
 	"golang.org/x/text/width"
 
-	commandregistry "github.com/bmf-san/ggc/v6/cmd/command"
-	"github.com/bmf-san/ggc/v6/config"
-	"github.com/bmf-san/ggc/v6/git"
-	"github.com/bmf-san/ggc/v6/internal/termio"
+	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/internal/termio"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer
