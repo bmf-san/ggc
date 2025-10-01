@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // Statuser handles status operations.

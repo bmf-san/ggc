@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // Remoter provides functionality for the remote command.

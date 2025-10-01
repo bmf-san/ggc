@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // Adder provides functionality for the add command.

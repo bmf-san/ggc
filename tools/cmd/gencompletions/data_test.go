@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/cmd/command"
+	"github.com/bmf-san/ggc/v7/cmd/command"
 )
 
 func TestBuildTemplateData(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // Fetcher handles git fetch operations.

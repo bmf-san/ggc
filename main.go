@@ -6,10 +6,10 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/bmf-san/ggc/v6/cmd"
-	"github.com/bmf-san/ggc/v6/config"
-	"github.com/bmf-san/ggc/v6/git"
-	"github.com/bmf-san/ggc/v6/router"
+	"github.com/bmf-san/ggc/v7/cmd"
+	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/router"
 )
 
 var (

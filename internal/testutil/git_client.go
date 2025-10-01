@@ -5,7 +5,7 @@
 package testutil
 
 import (
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // NewMockGitClient creates a new mock git client for testing

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/internal/prompt"
+	"github.com/bmf-san/ggc/v7/internal/prompt"
 )
 
 func TestRebaser_RebaseInteractive_SelectValid(t *testing.T) {

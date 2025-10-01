@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/bmf-san/ggc/v6/internal/termio"
-	"github.com/bmf-san/ggc/v6/internal/testutil"
+	"github.com/bmf-san/ggc/v7/internal/termio"
+	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
 
 // mockTerminal mocks terminal operations

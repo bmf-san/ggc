@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v6/config"
-	"github.com/bmf-san/ggc/v6/internal/testutil"
+	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
 
 func TestVersioner_Version(t *testing.T) {

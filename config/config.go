@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/bmf-san/ggc/v6/git"
+	"github.com/bmf-san/ggc/v7/git"
 )
 
 // TempFile interface for temporary file operations

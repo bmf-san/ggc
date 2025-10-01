@@ -159,7 +159,7 @@ The Makefile will automatically install required tools like `golangci-lint` usin
 
 ```sh
 # Requires Go 1.25+ installed
-go install github.com/bmf-san/ggc/v6@latest
+go install github.com/bmf-san/ggc/v7@latest
 ```
 
 - The `ggc` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
@@ -577,8 +577,8 @@ ggc comes with pre-built completion scripts for common shells located in the `to
 Add the following to your `~/.bash_profile` or `~/.bashrc`:
 ```bash
 # Option 1: Use the pre-installed completion script (if installed via go install)
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v6@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v6@*/tools/completions/ggc.bash
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v7@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v7@*/tools/completions/ggc.bash
 fi
 
 # Option 2: Use the generated completion script
@@ -591,8 +591,8 @@ fi
 Add the following to your `~/.zshrc`:
 ```zsh
 # Option 1: Use the pre-installed completion script (if installed via go install)
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v6@*/tools/completions/ggc.zsh" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v6@*/tools/completions/ggc.zsh
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v7@*/tools/completions/ggc.zsh" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v7@*/tools/completions/ggc.zsh
 fi
 
 # Option 2: Use the generated completion script
@@ -605,8 +605,8 @@ fi
 Add the following to your `~/.config/fish/config.fish`:
 ```fish
 # Option 1: Use the pre-installed completion script (if installed via go install)
-if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v6@*/tools/completions/ggc.fish
-    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v6@*/tools/completions/ggc.fish
+if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v7@*/tools/completions/ggc.fish
+    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v7@*/tools/completions/ggc.fish
 end
 
 # Option 2: Use the generated completion script
