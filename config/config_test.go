@@ -1086,6 +1086,77 @@ func TestConfig_validateAliases(t *testing.T) {
 			wantError: true,
 			errorMsg:  "sequence commands must be strings",
 		},
+		{
+			name: "sequence alias with semicolon injection blocked at config load",
+			aliases: map[string]interface{}{
+				"malicious": []interface{}{"status; echo pwned"},
+			},
+			wantError: true,
+			errorMsg:  "unsafe shell metacharacters",
+		},
+		{
+			name: "sequence alias with pipe injection blocked at config load",
+			aliases: map[string]interface{}{
+				"malicious": []interface{}{"status | cat"},
+			},
+			wantError: true,
+			errorMsg:  "unsafe shell metacharacters",
+		},
+		{
+			name: "sequence alias with ampersand injection blocked at config load",
+			aliases: map[string]interface{}{
+				"malicious": []interface{}{"status && echo pwned"},
+			},
+			wantError: true,
+			errorMsg:  "unsafe shell metacharacters",
+		},
+		{
+			name: "sequence alias with command substitution blocked at config load",
+			aliases: map[string]interface{}{
+				"malicious": []interface{}{"status $(whoami)"},
+			},
+			wantError: true,
+			errorMsg:  "unsafe shell metacharacters",
+		},
+		{
+			name: "sequence alias with backtick injection blocked at config load",
+			aliases: map[string]interface{}{
+				"malicious": []interface{}{"`whoami`"},
+			},
+			wantError: true,
+			errorMsg:  "unsafe shell metacharacters",
+		},
+		{
+			name: "sequence alias with redirection blocked at config load",
+			aliases: map[string]interface{}{
+				"malicious": []interface{}{"status > /tmp/out"},
+			},
+			wantError: true,
+			errorMsg:  "unsafe shell metacharacters",
+		},
+		{
+			name: "sequence alias with invalid command blocked at config load",
+			aliases: map[string]interface{}{
+				"bad": []interface{}{"notacommand"},
+			},
+			wantError: true,
+			errorMsg:  "not a valid ggc command",
+		},
+		{
+			name: "sequence alias with mixed valid and invalid blocked at config load",
+			aliases: map[string]interface{}{
+				"bad": []interface{}{"status", "invalidcmd", "branch"},
+			},
+			wantError: true,
+			errorMsg:  "not a valid ggc command",
+		},
+		{
+			name: "sequence alias with valid commands and args passes validation",
+			aliases: map[string]interface{}{
+				"good": []interface{}{"branch current", "status short", "diff staged"},
+			},
+			wantError: false,
+		},
 	}
 
 	for _, tt := range tests {

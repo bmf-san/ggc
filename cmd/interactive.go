@@ -823,6 +823,57 @@ func isWordMotionParam(params string) bool {
 // processCSIFinalByte processes the final byte of a CSI sequence
 func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
 	isWord := isWordMotionParam(params)
+
+	// Build the full escape sequence for keybinding matching
+	seq := h.buildCSISequence(final, params)
+	keyStroke := NewRawKeyStroke(seq)
+	km := h.GetCurrentKeyMap()
+
+	// Try keybinding-based handling first
+	if h.tryArrowKeybinding(km, keyStroke) {
+		return
+	}
+
+	// Fallback to default cursor movement and word navigation
+	h.handleDefaultArrowMovement(final, isWord)
+}
+
+// buildCSISequence builds a CSI escape sequence
+func (h *KeyHandler) buildCSISequence(final byte, params string) []byte {
+	if params == "" {
+		return []byte{27, '[', final}
+	}
+	seq := append([]byte{27, '['}, []byte(params)...)
+	return append(seq, final)
+}
+
+// tryArrowKeybinding attempts to handle arrow keys via keybindings
+func (h *KeyHandler) tryArrowKeybinding(km *KeyBindingMap, keyStroke KeyStroke) bool {
+	if km.MatchesKeyStroke("move_up", keyStroke) {
+		if !h.ui.state.showWorkflow {
+			h.ui.state.MoveUp()
+		}
+		return true
+	}
+	if km.MatchesKeyStroke("move_down", keyStroke) {
+		if !h.ui.state.showWorkflow {
+			h.ui.state.MoveDown()
+		}
+		return true
+	}
+	if km.MatchesKeyStroke("move_left", keyStroke) {
+		h.ui.state.MoveLeft()
+		return true
+	}
+	if km.MatchesKeyStroke("move_right", keyStroke) {
+		h.ui.state.MoveRight()
+		return true
+	}
+	return false
+}
+
+// handleDefaultArrowMovement handles default arrow key behavior
+func (h *KeyHandler) handleDefaultArrowMovement(final byte, isWord bool) {
 	switch final {
 	case 'C': // Right
 		if isWord {
@@ -841,28 +892,51 @@ func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
 
 // handleApplicationCursorMode handles application cursor mode sequences
 func (h *KeyHandler) handleApplicationCursorMode(reader *bufio.Reader) {
-	var nb byte
-	var err error
-
-	if reader != nil {
-		// Use provided buffered reader (non-raw mode)
-		nb, err = reader.ReadByte()
-	} else {
-		// Raw mode: read directly from stdin
-		var buf [1]byte
-		_, err = h.ui.stdin.Read(buf[:])
-		nb = buf[0]
-	}
-
+	nb, err := h.readNextByte(reader)
 	if err != nil {
 		return
 	}
+
+	// Build the full escape sequence: ESC O <final>
+	seq := []byte{27, 'O', nb}
+	keyStroke := NewRawKeyStroke(seq)
+	km := h.GetCurrentKeyMap()
+
+	// Try keybinding-based handling first
+	if h.tryArrowKeybinding(km, keyStroke) {
+		return
+	}
+
+	// Fallback to default arrow key behavior
+	h.handleDefaultAppCursorMovement(nb)
+}
+
+// handleDefaultAppCursorMovement handles default application cursor mode arrow keys
+func (h *KeyHandler) handleDefaultAppCursorMovement(nb byte) {
 	switch nb {
+	case 'A':
+		if !h.ui.state.showWorkflow {
+			h.ui.state.MoveUp()
+		}
+	case 'B':
+		if !h.ui.state.showWorkflow {
+			h.ui.state.MoveDown()
+		}
 	case 'C':
 		h.ui.state.MoveRight()
 	case 'D':
 		h.ui.state.MoveLeft()
 	}
+}
+
+// readNextByte reads the next byte from either a buffered reader or stdin
+func (h *KeyHandler) readNextByte(reader *bufio.Reader) (byte, error) {
+	if reader != nil {
+		return reader.ReadByte()
+	}
+	var buf [1]byte
+	_, err := h.ui.stdin.Read(buf[:])
+	return buf[0], err
 }
 
 // handleCtrlC handles Ctrl+C key press

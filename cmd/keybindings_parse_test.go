@@ -144,3 +144,78 @@ func TestParseKeyStrokeErrorMessages(t *testing.T) {
 		t.Fatalf("unexpected error message: %v", err)
 	}
 }
+
+func TestParseKeyStrokeArrowKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		wantKind KeyStrokeKind
+		wantSeq  []byte
+	}{
+		{name: "up", input: "up", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'A'}},
+		{name: "down", input: "down", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'B'}},
+		{name: "left", input: "left", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'D'}},
+		{name: "right", input: "right", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'C'}},
+		{name: "arrow-up", input: "arrow-up", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'A'}},
+		{name: "arrowup", input: "arrowup", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'A'}},
+		{name: "UP uppercase", input: "UP", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'A'}},
+		{name: "Down mixed case", input: "Down", wantKind: KeyStrokeRawSeq, wantSeq: []byte{27, '[', 'B'}},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ks, err := ParseKeyStroke(tt.input)
+			if err != nil {
+				t.Fatalf("ParseKeyStroke(%q) returned error: %v", tt.input, err)
+			}
+			if ks.Kind != tt.wantKind {
+				t.Fatalf("ParseKeyStroke(%q) kind = %v, want %v", tt.input, ks.Kind, tt.wantKind)
+			}
+			if len(ks.Seq) != len(tt.wantSeq) {
+				t.Fatalf("ParseKeyStroke(%q) seq length = %d, want %d", tt.input, len(ks.Seq), len(tt.wantSeq))
+			}
+			for i, b := range tt.wantSeq {
+				if ks.Seq[i] != b {
+					t.Fatalf("ParseKeyStroke(%q) seq[%d] = %d, want %d", tt.input, i, ks.Seq[i], b)
+				}
+			}
+		})
+	}
+}
+
+func TestArrowKeyStrokeConstructors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		fn       func() KeyStroke
+		wantSeq  []byte
+		wantKind KeyStrokeKind
+	}{
+		{name: "NewUpArrowKeyStroke", fn: NewUpArrowKeyStroke, wantSeq: []byte{27, '[', 'A'}, wantKind: KeyStrokeRawSeq},
+		{name: "NewDownArrowKeyStroke", fn: NewDownArrowKeyStroke, wantSeq: []byte{27, '[', 'B'}, wantKind: KeyStrokeRawSeq},
+		{name: "NewLeftArrowKeyStroke", fn: NewLeftArrowKeyStroke, wantSeq: []byte{27, '[', 'D'}, wantKind: KeyStrokeRawSeq},
+		{name: "NewRightArrowKeyStroke", fn: NewRightArrowKeyStroke, wantSeq: []byte{27, '[', 'C'}, wantKind: KeyStrokeRawSeq},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ks := tt.fn()
+			if ks.Kind != tt.wantKind {
+				t.Fatalf("%s() kind = %v, want %v", tt.name, ks.Kind, tt.wantKind)
+			}
+			if len(ks.Seq) != len(tt.wantSeq) {
+				t.Fatalf("%s() seq length = %d, want %d", tt.name, len(ks.Seq), len(tt.wantSeq))
+			}
+			for i, b := range tt.wantSeq {
+				if ks.Seq[i] != b {
+					t.Fatalf("%s() seq[%d] = %d, want %d", tt.name, i, ks.Seq[i], b)
+				}
+			}
+		})
+	}
+}

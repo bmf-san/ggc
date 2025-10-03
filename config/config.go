@@ -14,6 +14,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/internal/security"
 )
 
 // TempFile interface for temporary file operations
@@ -102,6 +103,8 @@ type Config struct {
 			MoveToEnd          string `yaml:"move_to_end"`
 			MoveUp             string `yaml:"move_up"`
 			MoveDown           string `yaml:"move_down"`
+			MoveLeft           string `yaml:"move_left"`
+			MoveRight          string `yaml:"move_right"`
 			AddToWorkflow      string `yaml:"add_to_workflow"`
 			ToggleWorkflowView string `yaml:"toggle_workflow_view"`
 			ClearWorkflow      string `yaml:"clear_workflow"`
@@ -354,6 +357,7 @@ func validateAliasSequence(name string, seq []interface{}) error {
 	if len(seq) == 0 {
 		return &ValidationError{"aliases." + name, seq, "alias sequence cannot be empty"}
 	}
+
 	for i, cmd := range seq {
 		cmdStr, ok := cmd.(string)
 		if !ok {
@@ -361,6 +365,15 @@ func validateAliasSequence(name string, seq []interface{}) error {
 		}
 		if strings.TrimSpace(cmdStr) == "" {
 			return &ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmdStr, Message: "command in sequence cannot be empty"}
+		}
+
+		// Validate command security
+		if err := security.ValidateCommand(cmdStr); err != nil {
+			return &ValidationError{
+				Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
+				Value:   cmdStr,
+				Message: err.Error(),
+			}
 		}
 	}
 	return nil
@@ -1001,6 +1014,8 @@ func (c *Config) validateKeybindings() error {
 		"move_to_end":          c.Interactive.Keybindings.MoveToEnd,
 		"move_up":              c.Interactive.Keybindings.MoveUp,
 		"move_down":            c.Interactive.Keybindings.MoveDown,
+		"move_left":            c.Interactive.Keybindings.MoveLeft,
+		"move_right":           c.Interactive.Keybindings.MoveRight,
 		"add_to_workflow":      c.Interactive.Keybindings.AddToWorkflow,
 		"toggle_workflow_view": c.Interactive.Keybindings.ToggleWorkflowView,
 		"clear_workflow":       c.Interactive.Keybindings.ClearWorkflow,
