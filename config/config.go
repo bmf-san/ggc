@@ -726,8 +726,8 @@ func (cm *Manager) replaceConfigFile(tmpName string) error {
 }
 
 func (cm *Manager) replaceConfigFileWithOps(tmpName string, fileOps FileOps) error {
-	// On Windows, os.Rename requires the target not exist, so remove it first
-	// On Unix, os.Rename is atomic and replaces the target
+	// On Windows versions prior to 10 1903, os.Rename requires the target not exist, so remove it first.
+	// Modern Windows (10 1903+) and Unix support atomic replacement with os.Rename, but we remove the target for compatibility.
 	if runtime.GOOS == "windows" {
 		_ = fileOps.Remove(cm.configPath)
 	}
