@@ -621,7 +621,6 @@ func (h *KeyHandler) handleWorkflowKeys(r rune) bool {
 			h.clearWorkflow()
 			return true
 		}
-		return true
 	}
 
 	return false

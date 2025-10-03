@@ -1798,12 +1798,12 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 			expectedAction: "clear_workflow",
 		},
 		{
-			name:           "c key in search view returns true but no action",
+			name:           "c key in search view returns false because it is unhandled",
 			key:            'c',
 			showWorkflow:   false,
 			hasInput:       true,
 			selectedCmd:    nil,
-			expectedResult: true,
+			expectedResult: false,
 			expectedAction: "no_action",
 		},
 		{
