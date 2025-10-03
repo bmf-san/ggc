@@ -212,6 +212,30 @@ func NewSpaceKeyStroke() KeyStroke {
 	return NewRawKeyStroke([]byte{32}) // Space is ASCII 32
 }
 
+// NewUpArrowKeyStroke creates a new Up Arrow KeyStroke (CSI A)
+// Can be used to rebind up arrow for list navigation
+func NewUpArrowKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{27, '[', 'A'}) // ESC [ A
+}
+
+// NewDownArrowKeyStroke creates a new Down Arrow KeyStroke (CSI B)
+// Can be used to rebind down arrow for list navigation
+func NewDownArrowKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{27, '[', 'B'}) // ESC [ B
+}
+
+// NewLeftArrowKeyStroke creates a new Left Arrow KeyStroke (CSI D)
+// Can be used to rebind left arrow for cursor movement
+func NewLeftArrowKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{27, '[', 'D'}) // ESC [ D
+}
+
+// NewRightArrowKeyStroke creates a new Right Arrow KeyStroke (CSI C)
+// Can be used to rebind right arrow for cursor movement
+func NewRightArrowKeyStroke() KeyStroke {
+	return NewRawKeyStroke([]byte{27, '[', 'C'}) // ESC [ C
+}
+
 // KeyBindingMap holds resolved key strokes for interactive actions.
 // Supports multiple key strokes per action while maintaining backward compatibility.
 type KeyBindingMap struct {
@@ -220,8 +244,10 @@ type KeyBindingMap struct {
 	DeleteToEnd        []KeyStroke // default: [Ctrl+K]
 	MoveToBeginning    []KeyStroke // default: [Ctrl+A]
 	MoveToEnd          []KeyStroke // default: [Ctrl+E]
-	MoveUp             []KeyStroke // default: [Ctrl+P]
-	MoveDown           []KeyStroke // default: [Ctrl+N]
+	MoveUp             []KeyStroke // default: [Ctrl+P], can add: [up arrow]
+	MoveDown           []KeyStroke // default: [Ctrl+N], can add: [down arrow]
+	MoveLeft           []KeyStroke // default: [], can add: [left arrow] for cursor movement
+	MoveRight          []KeyStroke // default: [], can add: [right arrow] for cursor movement
 	AddToWorkflow      []KeyStroke // default: [Tab]
 	ToggleWorkflowView []KeyStroke // default: [Ctrl+T]
 	ClearWorkflow      []KeyStroke // default: [c]
@@ -238,6 +264,8 @@ func DefaultKeyBindingMap() *KeyBindingMap {
 		MoveToEnd:          []KeyStroke{NewCtrlKeyStroke('e')},
 		MoveUp:             []KeyStroke{NewCtrlKeyStroke('p')},
 		MoveDown:           []KeyStroke{NewCtrlKeyStroke('n')},
+		MoveLeft:           []KeyStroke{}, // Empty by default, users can add left arrow
+		MoveRight:          []KeyStroke{}, // Empty by default, users can add right arrow
 		AddToWorkflow:      []KeyStroke{NewTabKeyStroke()},
 		ToggleWorkflowView: []KeyStroke{NewCtrlKeyStroke('t')},
 		ClearWorkflow:      []KeyStroke{NewCharKeyStroke('c')},
@@ -319,6 +347,8 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 		"move_to_end":          km.MoveToEnd,
 		"move_up":              km.MoveUp,
 		"move_down":            km.MoveDown,
+		"move_left":            km.MoveLeft,
+		"move_right":           km.MoveRight,
 		"add_to_workflow":      km.AddToWorkflow,
 		"toggle_workflow_view": km.ToggleWorkflowView,
 		"clear_workflow":       km.ClearWorkflow,
@@ -498,7 +528,19 @@ func ParseKeyStroke(keyStr string) (KeyStroke, error) { //nolint:revive // parsi
 		return KeyStroke{}, fmt.Errorf("unsupported meta key: %s", keyStr)
 	}
 
-	return KeyStroke{}, fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w', 'alt+backspace', 'M-backspace')", keyStr)
+	// Handle arrow keys - all four directions are now rebindable
+	switch sLower {
+	case "up", "arrow-up", "arrowup":
+		return NewUpArrowKeyStroke(), nil
+	case "down", "arrow-down", "arrowdown":
+		return NewDownArrowKeyStroke(), nil
+	case "left", "arrow-left", "arrowleft":
+		return NewLeftArrowKeyStroke(), nil
+	case "right", "arrow-right", "arrowright":
+		return NewRightArrowKeyStroke(), nil
+	}
+
+	return KeyStroke{}, fmt.Errorf("unsupported key binding format: %s (supported: 'ctrl+w', '^w', 'C-w', 'alt+backspace', 'M-backspace', 'up', 'down', 'left', 'right')", keyStr)
 }
 
 // ParseKeyStrokes parses key binding configuration and returns []KeyStroke
@@ -588,6 +630,8 @@ func detectConflictsV2(keyMap *KeyBindingMap) []string {
 	addKeyStrokes(keyMap.MoveToEnd, "move_to_end")
 	addKeyStrokes(keyMap.MoveUp, "move_up")
 	addKeyStrokes(keyMap.MoveDown, "move_down")
+	addKeyStrokes(keyMap.MoveLeft, "move_left")
+	addKeyStrokes(keyMap.MoveRight, "move_right")
 	addKeyStrokes(keyMap.AddToWorkflow, "add_to_workflow")
 	addKeyStrokes(keyMap.ToggleWorkflowView, "toggle_workflow_view")
 	addKeyStrokes(keyMap.ClearWorkflow, "clear_workflow")
@@ -1061,6 +1105,8 @@ func (r *KeyBindingResolver) GetEffectiveKeybindings(profile Profile, context Co
 	result["move_to_end"] = clone(keyMap.MoveToEnd)
 	result["move_up"] = clone(keyMap.MoveUp)
 	result["move_down"] = clone(keyMap.MoveDown)
+	result["move_left"] = clone(keyMap.MoveLeft)
+	result["move_right"] = clone(keyMap.MoveRight)
 	result["add_to_workflow"] = clone(keyMap.AddToWorkflow)
 	result["toggle_workflow_view"] = clone(keyMap.ToggleWorkflowView)
 	result["clear_workflow"] = clone(keyMap.ClearWorkflow)
@@ -1101,6 +1147,8 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("move_to_end", &keyMap.MoveToEnd)
 	applyBinding("move_up", &keyMap.MoveUp)
 	applyBinding("move_down", &keyMap.MoveDown)
+	applyBinding("move_left", &keyMap.MoveLeft)
+	applyBinding("move_right", &keyMap.MoveRight)
 	applyBinding("add_to_workflow", &keyMap.AddToWorkflow)
 	applyBinding("toggle_workflow_view", &keyMap.ToggleWorkflowView)
 	applyBinding("clear_workflow", &keyMap.ClearWorkflow)
@@ -1172,6 +1220,12 @@ func (r *KeyBindingResolver) applyNavigationAction(keyMap *KeyBindingMap, action
 	case "move_down":
 		keyMap.MoveDown = bindings
 		return true
+	case "move_left":
+		keyMap.MoveLeft = bindings
+		return true
+	case "move_right":
+		keyMap.MoveRight = bindings
+		return true
 	}
 	return false
 }
@@ -1205,6 +1259,8 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 		"move_to_end":          userBindings.MoveToEnd,
 		"move_up":              userBindings.MoveUp,
 		"move_down":            userBindings.MoveDown,
+		"move_left":            userBindings.MoveLeft,
+		"move_right":           userBindings.MoveRight,
 		"add_to_workflow":      userBindings.AddToWorkflow,
 		"toggle_workflow_view": userBindings.ToggleWorkflowView,
 		"clear_workflow":       userBindings.ClearWorkflow,
@@ -1230,6 +1286,10 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 					keyMap.MoveUp = []KeyStroke{ks}
 				case "move_down":
 					keyMap.MoveDown = []KeyStroke{ks}
+				case "move_left":
+					keyMap.MoveLeft = []KeyStroke{ks}
+				case "move_right":
+					keyMap.MoveRight = []KeyStroke{ks}
 				case "add_to_workflow":
 					keyMap.AddToWorkflow = []KeyStroke{ks}
 				case "toggle_workflow_view":
@@ -1378,6 +1438,12 @@ func (r *KeyBindingResolver) applyUserNavigationAction(keyMap *KeyBindingMap, ac
 		return true
 	case "move_down":
 		keyMap.MoveDown = keystrokes
+		return true
+	case "move_left":
+		keyMap.MoveLeft = keystrokes
+		return true
+	case "move_right":
+		keyMap.MoveRight = keystrokes
 		return true
 	}
 	return false
