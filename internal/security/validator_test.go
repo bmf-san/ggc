@@ -1,6 +1,7 @@
 package security
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -48,7 +49,7 @@ func TestValidator_ValidateCommand(t *testing.T) {
 					t.Errorf("ValidateCommand(%q) expected error, got nil", tc.cmd)
 					return
 				}
-				if tc.errorMsg != "" && !contains(err.Error(), tc.errorMsg) {
+				if tc.errorMsg != "" && !strings.Contains(err.Error(), tc.errorMsg) {
 					t.Errorf("ValidateCommand(%q) error = %v, want to contain %q", tc.cmd, err.Error(), tc.errorMsg)
 				}
 			} else if err != nil {
@@ -131,15 +132,3 @@ func TestValidator_LazyInit(t *testing.T) {
 	}
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || (len(s) > 0 && len(substr) > 0 && containsHelper(s, substr)))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
