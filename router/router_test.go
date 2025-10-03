@@ -633,3 +633,110 @@ func TestRouter_AliasErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestRouter_AliasSequenceExecution(t *testing.T) {
+	cases := []struct {
+		name     string
+		aliases  map[string]interface{}
+		args     []string
+		validate func(t *testing.T, m *mockExecuter)
+	}{
+		{
+			name: "sequence alias with valid commands executes all",
+			aliases: map[string]interface{}{
+				"valid-seq": []interface{}{"status", "branch current", "log simple"},
+			},
+			args: []string{"valid-seq"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called for valid sequence")
+				}
+				if !m.branchCalled {
+					t.Error("Branch should be called for valid sequence")
+				}
+				if !m.logCalled {
+					t.Error("Log should be called for valid sequence")
+				}
+			},
+		},
+		{
+			name: "sequence alias with valid command and arguments",
+			aliases: map[string]interface{}{
+				"valid-args": []interface{}{"branch current", "diff staged", "status short"},
+			},
+			args: []string{"valid-args"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called")
+				}
+				if len(m.branchArgs) != 1 || m.branchArgs[0] != "current" {
+					t.Errorf("Branch args incorrect: got %v, want [current]", m.branchArgs)
+				}
+				if !m.diffCalled {
+					t.Error("Diff should be called")
+				}
+				if len(m.diffArgs) != 1 || m.diffArgs[0] != "staged" {
+					t.Errorf("Diff args incorrect: got %v, want [staged]", m.diffArgs)
+				}
+				if !m.statusCalled {
+					t.Error("Status should be called")
+				}
+				if len(m.statusArgs) != 1 || m.statusArgs[0] != "short" {
+					t.Errorf("Status args incorrect: got %v, want [short]", m.statusArgs)
+				}
+			},
+		},
+		{
+			name: "simple alias delegates to executeCommand",
+			aliases: map[string]interface{}{
+				"st": "status",
+			},
+			args: []string{"st"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called for simple alias")
+				}
+			},
+		},
+		{
+			name: "sequence alias with multiple valid commands",
+			aliases: map[string]interface{}{
+				"multi-cmd": []interface{}{"status", "branch", "diff", "log", "tag"},
+			},
+			args: []string{"multi-cmd"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called")
+				}
+				if !m.branchCalled {
+					t.Error("Branch should be called")
+				}
+				if !m.diffCalled {
+					t.Error("Diff should be called")
+				}
+				if !m.logCalled {
+					t.Error("Log should be called")
+				}
+				if !m.tagCalled {
+					t.Error("Tag should be called")
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := testutil.NewMockGitClient()
+			configManager := config.NewConfigManager(mockClient)
+			configManager.LoadConfig()
+
+			cfg := configManager.GetConfig()
+			cfg.Aliases = tc.aliases
+
+			m := &mockExecuter{}
+			r := NewRouter(m, configManager)
+			r.Route(tc.args)
+			tc.validate(t, m)
+		})
+	}
+}

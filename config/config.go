@@ -14,6 +14,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/internal/security"
 )
 
 // TempFile interface for temporary file operations
@@ -354,6 +355,7 @@ func validateAliasSequence(name string, seq []interface{}) error {
 	if len(seq) == 0 {
 		return &ValidationError{"aliases." + name, seq, "alias sequence cannot be empty"}
 	}
+
 	for i, cmd := range seq {
 		cmdStr, ok := cmd.(string)
 		if !ok {
@@ -361,6 +363,15 @@ func validateAliasSequence(name string, seq []interface{}) error {
 		}
 		if strings.TrimSpace(cmdStr) == "" {
 			return &ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmdStr, Message: "command in sequence cannot be empty"}
+		}
+
+		// Validate command security
+		if err := security.ValidateCommand(cmdStr); err != nil {
+			return &ValidationError{
+				Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
+				Value:   cmdStr,
+				Message: err.Error(),
+			}
 		}
 	}
 	return nil

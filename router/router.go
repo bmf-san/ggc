@@ -18,7 +18,10 @@ type Router struct {
 
 // NewRouter creates a new Router with a config manager.
 func NewRouter(e cmd.Executer, cm *config.Manager) *Router {
-	return &Router{Executer: e, ConfigManager: cm}
+	return &Router{
+		Executer:      e,
+		ConfigManager: cm,
+	}
 }
 
 // Route routes the command to the appropriate handler
