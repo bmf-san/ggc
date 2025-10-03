@@ -131,4 +131,3 @@ func TestValidator_LazyInit(t *testing.T) {
 		t.Error("v2 should validate branch")
 	}
 }
-
