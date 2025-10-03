@@ -739,15 +739,16 @@ func (cm *Manager) replaceConfigFile(tmpName string) error {
 }
 
 func (cm *Manager) replaceConfigFileWithOps(tmpName string, fileOps FileOps) error {
+	// On Windows versions prior to 10 1903, os.Rename requires the target not exist, so remove it first.
+	// Modern Windows (10 1903+) and Unix support atomic replacement with os.Rename, but we remove the target for compatibility.
 	if runtime.GOOS == "windows" {
 		_ = fileOps.Remove(cm.configPath)
 	}
+
+	// Perform atomic rename - this is the only file system operation that matters
 	if err := fileOps.Rename(tmpName, cm.configPath); err != nil {
-		_ = fileOps.Remove(cm.configPath)
-		if err2 := fileOps.Rename(tmpName, cm.configPath); err2 != nil {
-			_ = fileOps.Remove(tmpName)
-			return fmt.Errorf("failed to replace config file: %w", err2)
-		}
+		_ = fileOps.Remove(tmpName)
+		return fmt.Errorf("failed to replace config file: %w", err)
 	}
 	return nil
 }
