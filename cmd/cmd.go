@@ -12,15 +12,16 @@ import (
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
 	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/internal/interactive"
 )
 
 // Interactive mode special return values
 // These constants are used to signal special states when returning from interactive mode
 const (
 	// InteractiveQuitCommand signals that the user wants to quit the interactive mode
-	InteractiveQuitCommand = "quit"
+	InteractiveQuitCommand = interactive.InteractiveQuitCommand
 	// InteractiveWorkflowCommand signals that a workflow has been executed and the interactive mode should restart
-	InteractiveWorkflowCommand = "workflow-executed"
+	InteractiveWorkflowCommand = interactive.InteractiveWorkflowCommand
 )
 
 // Executer is an interface for executing commands.
@@ -260,7 +261,7 @@ func (c *Cmd) Interactive() {
 	}()
 
 	// Create persistent UI instance to preserve state
-	ui := NewUI(c.gitClient, c)
+	ui := interactive.NewUI(c.gitClient, c)
 
 	for {
 		args := ui.Run()

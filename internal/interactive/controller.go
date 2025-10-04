@@ -1,5 +1,4 @@
-// Package cmd provides command implementations for the ggc CLI tool.
-package cmd
+package interactive
 
 import (
 	"bufio"
@@ -1724,6 +1723,14 @@ func (ui *UI) AddToWorkflow(command string, args []string, description string) i
 	return ui.workflow.AddStep(command, args, description)
 }
 
+// ApplyContextualKeybindings updates the active keybinding map, satisfying keybindings.ContextualMapApplier.
+func (ui *UI) ApplyContextualKeybindings(contextual *ContextualKeyBindingMap) {
+	if ui == nil || ui.handler == nil || contextual == nil {
+		return
+	}
+	ui.handler.contextualMap = contextual
+}
+
 func (ui *UI) resetToSearchMode() bool {
 	if ui == nil || ui.state == nil {
 		return false
@@ -1777,9 +1784,9 @@ func (r *Renderer) updateSize() {
 
 var commands = buildInteractiveCommands()
 
-// InteractiveUI provides an incremental search interactive UI with custom git client.
+// Run provides an incremental search interactive UI with custom git client.
 // Returns the selected command as []string (nil if nothing selected)
-func InteractiveUI(gitClient git.StatusInfoReader) []string {
+func Run(gitClient git.StatusInfoReader) []string {
 	ui := NewUI(gitClient)
 	return ui.Run()
 }

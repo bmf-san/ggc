@@ -1,4 +1,4 @@
-package cmd
+package keybindings
 
 import (
 	"fmt"
@@ -998,6 +998,17 @@ func (r *KeyBindingResolver) GetProfile(profile Profile) (*KeyBindingProfile, bo
 // ClearCache clears the resolution cache (useful for config reloads)
 func (r *KeyBindingResolver) ClearCache() {
 	r.cache = make(map[string]*ContextualKeyBindingMap)
+}
+
+// ForceEnvironment overrides detected platform and terminal (primarily for tests).
+func (r *KeyBindingResolver) ForceEnvironment(platform, terminal string) {
+	if strings.TrimSpace(platform) != "" {
+		r.platform = platform
+	}
+	if strings.TrimSpace(terminal) != "" {
+		r.terminal = terminal
+	}
+	r.ClearCache()
 }
 
 // Resolve performs layered keybinding resolution for a specific profile and context
@@ -2340,48 +2351,47 @@ func CompareProfiles(profile1, profile2 *KeyBindingProfile) map[string]interface
 
 // Runtime Profile Switching
 
+// ContextualMapApplier applies resolved keybindings to interested consumers.
+type ContextualMapApplier interface {
+	ApplyContextualKeybindings(*ContextualKeyBindingMap)
+}
+
 // ProfileSwitcher manages runtime profile switching functionality
 type ProfileSwitcher struct {
 	resolver       *KeyBindingResolver
 	currentProfile Profile
-	ui             *UI // Reference to UI for hot-swapping
+	applier        ContextualMapApplier
 }
 
 // NewProfileSwitcher creates a new profile switcher
-func NewProfileSwitcher(resolver *KeyBindingResolver, ui *UI) *ProfileSwitcher {
+func NewProfileSwitcher(resolver *KeyBindingResolver, applier ContextualMapApplier) *ProfileSwitcher {
 	return &ProfileSwitcher{
 		resolver:       resolver,
 		currentProfile: ProfileDefault,
-		ui:             ui,
+		applier:        applier,
 	}
 }
 
 // SwitchProfile switches to a new profile at runtime
 func (ps *ProfileSwitcher) SwitchProfile(newProfile Profile) error {
-	// Validate the profile exists
 	if _, exists := ps.resolver.GetProfile(newProfile); !exists {
 		return fmt.Errorf("profile %s not found", newProfile)
 	}
 
-	// Clear resolver cache to force re-resolution with new profile
 	ps.resolver.ClearCache()
 
-	// Resolve new contextual keybindings
 	newContextualMap, err := ps.resolver.ResolveContextual(newProfile)
 	if err != nil {
 		return fmt.Errorf("failed to resolve profile %s: %w", newProfile, err)
 	}
 
-	// Update UI handler with new keybindings
-	if ps.ui != nil && ps.ui.handler != nil {
-		ps.ui.handler.contextualMap = newContextualMap
+	if ps.applier != nil {
+		ps.applier.ApplyContextualKeybindings(newContextualMap)
 	}
 
-	// Update current profile
 	oldProfile := ps.currentProfile
 	ps.currentProfile = newProfile
 
-	// Log the switch (could be configurable)
 	fmt.Printf("Switched keybinding profile from %s to %s\n", oldProfile, newProfile)
 
 	return nil
@@ -2403,7 +2413,6 @@ func (ps *ProfileSwitcher) CanSwitchTo(profile Profile) (bool, error) {
 		return false, fmt.Errorf("profile %s not registered", profile)
 	}
 
-	// Additional validation - ensure profile is valid
 	profileDef, _ := ps.resolver.GetProfile(profile)
 	if err := ValidateProfile(profileDef); err != nil {
 		return false, fmt.Errorf("profile %s validation failed: %w", profile, err)
@@ -2418,7 +2427,6 @@ func (ps *ProfileSwitcher) PreviewProfile(profile Profile) (*ContextualKeyBindin
 		return nil, fmt.Errorf("profile %s not found", profile)
 	}
 
-	// Create a temporary resolver to avoid affecting the main one
 	tempResolver := NewKeyBindingResolver(ps.resolver.userConfig)
 	RegisterBuiltinProfiles(tempResolver)
 
@@ -2445,299 +2453,117 @@ func (ps *ProfileSwitcher) ReloadCurrentProfile() error {
 	return ps.SwitchProfile(ps.currentProfile)
 }
 
-// UI Integration for Profile Switching
+type profileSwitchHandler func(*ProfileSwitcher, []string) error
 
-// HandleProfileSwitchCommand processes profile switch commands from UI
+var profileSwitchCommandHandlers = map[string]profileSwitchHandler{
+	"list":    handleProfileListCommand,
+	"switch":  handleProfileSwitchCommand,
+	"preview": handleProfilePreviewCommand,
+	"compare": handleProfileCompareCommand,
+	"reload":  handleProfileReloadCommand,
+}
+
+// HandleProfileSwitchCommand processes profile switching commands
 func HandleProfileSwitchCommand(switcher *ProfileSwitcher, command string) error {
-	parts := strings.Fields(command)
-	if len(parts) < 2 {
-		return fmt.Errorf("usage: set profile <profile_name>")
+	parts := strings.Fields(strings.TrimSpace(command))
+	if len(parts) == 0 {
+		return fmt.Errorf("no command provided")
 	}
 
-	if parts[0] != "set" || parts[1] != "profile" {
-		return fmt.Errorf("unknown command: %s", command)
+	subcommand := parts[0]
+	args := parts[1:]
+
+	handler, ok := profileSwitchCommandHandlers[subcommand]
+	if !ok {
+		return fmt.Errorf("unknown subcommand: %s", subcommand)
 	}
 
-	if len(parts) < 3 {
-		return fmt.Errorf("missing profile name")
-	}
+	return handler(switcher, args)
+}
 
-	profileName := parts[2]
-	profile := Profile(profileName)
-
-	// Validate profile name
-	validProfiles := GetAllProfilesBuiltin()
-	isValid := false
-	for _, validProfile := range validProfiles {
-		if validProfile == profile {
-			isValid = true
-			break
+func handleProfileListCommand(switcher *ProfileSwitcher, _ []string) error {
+	profiles := switcher.GetAvailableProfiles()
+	fmt.Println("Available profiles:")
+	for _, profile := range profiles {
+		currentMarker := ""
+		if profile == switcher.GetCurrentProfile() {
+			currentMarker = " (current)"
 		}
+		fmt.Printf("  - %s%s\n", profile, currentMarker)
 	}
 
-	if !isValid {
-		return fmt.Errorf("invalid profile: %s. Available profiles: %v", profileName, validProfiles)
+	return nil
+}
+
+func handleProfileSwitchCommand(switcher *ProfileSwitcher, args []string) error {
+	profile, err := requireProfileArg(args, "switch <profile>")
+	if err != nil {
+		return err
 	}
 
 	return switcher.SwitchProfile(profile)
 }
 
-// ListProfilesCommand returns information about all available profiles
-func ListProfilesCommand() string {
-	profiles := GetAllProfilesBuiltin()
-	result := "Available keybinding profiles:\n"
-
-	for _, profile := range profiles {
-		description := GetProfileDescription(profile)
-		result += fmt.Sprintf("  %-10s - %s\n", profile, description)
+func handleProfilePreviewCommand(switcher *ProfileSwitcher, args []string) error {
+	profile, err := requireProfileArg(args, "preview <profile>")
+	if err != nil {
+		return err
 	}
 
-	return result
+	preview, err := switcher.PreviewProfile(profile)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Preview for profile %s:\n", profile)
+	for ctx, mapBinding := range preview.Contexts {
+		fmt.Printf("  Context: %s\n", ctx)
+		fmt.Printf("    move_up                 %-20s Move up one line\n", FormatKeyStrokesForDisplay(mapBinding.MoveUp))
+		fmt.Printf("    move_down               %-20s Move down one line\n", FormatKeyStrokesForDisplay(mapBinding.MoveDown))
+		fmt.Printf("    move_to_beginning       %-20s Move to line beginning\n", FormatKeyStrokesForDisplay(mapBinding.MoveToBeginning))
+		fmt.Printf("    move_to_end             %-20s Move to line end\n", FormatKeyStrokesForDisplay(mapBinding.MoveToEnd))
+		fmt.Printf("    delete_word             %-20s Delete previous word\n", FormatKeyStrokesForDisplay(mapBinding.DeleteWord))
+		fmt.Printf("    delete_to_end           %-20s Delete to line end\n", FormatKeyStrokesForDisplay(mapBinding.DeleteToEnd))
+		fmt.Printf("    clear_line              %-20s Clear entire line\n", FormatKeyStrokesForDisplay(mapBinding.ClearLine))
+	}
+
+	return nil
 }
 
-// ShowCurrentProfileCommand returns information about the current profile
+func handleProfileCompareCommand(switcher *ProfileSwitcher, args []string) error {
+	profile, err := requireProfileArg(args, "compare <profile>")
+	if err != nil {
+		return err
+	}
+
+	comparison, err := switcher.GetProfileComparison(profile)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Comparison between current profile (%s) and %s:\n", switcher.GetCurrentProfile(), profile)
+	for category, value := range comparison {
+		fmt.Printf("  %s: %v\n", category, value)
+	}
+
+	return nil
+}
+
+func handleProfileReloadCommand(switcher *ProfileSwitcher, _ []string) error {
+	return switcher.ReloadCurrentProfile()
+}
+
+func requireProfileArg(args []string, usage string) (Profile, error) {
+	if len(args) < 1 {
+		return "", fmt.Errorf("usage: %s", usage)
+	}
+
+	return Profile(args[0]), nil
+}
+
+// ShowCurrentProfileCommand returns a string representing the current profile status
 func ShowCurrentProfileCommand(switcher *ProfileSwitcher) string {
-	currentProfile := switcher.GetCurrentProfile()
-	description := GetProfileDescription(currentProfile)
-
-	profileDef, _ := switcher.resolver.GetProfile(currentProfile)
-	stats := GetProfileStatistics(profileDef)
-
-	result := fmt.Sprintf("Current Profile: %s\n", currentProfile)
-	result += fmt.Sprintf("Description: %s\n", description)
-	result += fmt.Sprintf("Total Bindings: %v\n", stats["total_context_bindings"])
-	result += fmt.Sprintf("Global Bindings: %v\n", stats["global_bindings"])
-	result += fmt.Sprintf("Contexts: %v\n", stats["contexts_defined"])
-
-	return result
-}
-
-// ===============================================
-// Advanced keybinding features (power user)
-// ===============================================
-
-// ContextManager provides dynamic context management with stack support
-type ContextManager struct {
-	current   Context
-	stack     []Context
-	resolver  *KeyBindingResolver
-	callbacks map[Context][]func(Context, Context) // context change callbacks
-	debug     bool
-}
-
-// NewContextManager creates a new context manager
-func NewContextManager(resolver *KeyBindingResolver) *ContextManager {
-	return &ContextManager{
-		current:   ContextGlobal,
-		stack:     make([]Context, 0),
-		resolver:  resolver,
-		callbacks: make(map[Context][]func(Context, Context)),
-		debug:     false,
-	}
-}
-
-// GetCurrentContext returns the current context
-func (cm *ContextManager) GetCurrentContext() Context {
-	return cm.current
-}
-
-// SetContext directly updates the current context without modifying the stack
-func (cm *ContextManager) SetContext(ctx Context) {
-	if cm.current == ctx {
-		return
-	}
-
-	oldContext := cm.current
-	cm.current = ctx
-
-	if cm.debug {
-		fmt.Printf("DEBUG: Context set: %s -> %s\n", oldContext, ctx)
-	}
-
-	cm.notifyContextChange(oldContext, ctx)
-}
-
-// EnterContext pushes the current context onto the stack and enters a new context
-func (cm *ContextManager) EnterContext(ctx Context) {
-	if cm.debug {
-		fmt.Printf("DEBUG: Context transition: %s -> %s\n", cm.current, ctx)
-	}
-
-	oldContext := cm.current
-	cm.stack = append(cm.stack, cm.current)
-	cm.current = ctx
-
-	// Call context change callbacks
-	cm.notifyContextChange(oldContext, ctx)
-}
-
-// ExitContext pops the previous context from the stack
-func (cm *ContextManager) ExitContext() Context {
-	if len(cm.stack) == 0 {
-		return cm.current // No context to exit to
-	}
-
-	oldContext := cm.current
-	cm.current = cm.stack[len(cm.stack)-1]
-	cm.stack = cm.stack[:len(cm.stack)-1]
-
-	if cm.debug {
-		fmt.Printf("DEBUG: Context exit: %s -> %s\n", oldContext, cm.current)
-	}
-
-	// Call context change callbacks
-	cm.notifyContextChange(oldContext, cm.current)
-
-	return cm.current
-}
-
-// GetContextStack returns a copy of the current context stack
-func (cm *ContextManager) GetContextStack() []Context {
-	stack := make([]Context, len(cm.stack))
-	copy(stack, cm.stack)
-	return stack
-}
-
-// RegisterContextCallback registers a callback for context changes
-func (cm *ContextManager) RegisterContextCallback(ctx Context, callback func(Context, Context)) {
-	cm.callbacks[ctx] = append(cm.callbacks[ctx], callback)
-}
-
-// SetDebugMode enables or disables debug output for context transitions
-func (cm *ContextManager) SetDebugMode(debug bool) {
-	cm.debug = debug
-}
-
-// notifyContextChange calls registered callbacks for context changes
-func (cm *ContextManager) notifyContextChange(from, to Context) {
-	// Call callbacks for the target context
-	if callbacks, exists := cm.callbacks[to]; exists {
-		for _, callback := range callbacks {
-			callback(from, to)
-		}
-	}
-
-	// Call global callbacks (registered under ContextGlobal)
-	if callbacks, exists := cm.callbacks[ContextGlobal]; exists && to != ContextGlobal {
-		for _, callback := range callbacks {
-			callback(from, to)
-		}
-	}
-}
-
-// PlatformOptimizations provides platform-specific keybinding optimizations
-type PlatformOptimizations struct {
-	platform     string
-	terminal     string
-	capabilities map[string]bool
-	keyMappings  map[string][]KeyStroke
-}
-
-// NewPlatformOptimizations creates platform-specific optimizations
-func NewPlatformOptimizations(platform, terminal string) *PlatformOptimizations {
-	po := &PlatformOptimizations{
-		platform:     platform,
-		terminal:     terminal,
-		capabilities: GetTerminalCapabilities(terminal),
-		keyMappings:  make(map[string][]KeyStroke),
-	}
-
-	po.initializePlatformMappings()
-	return po
-}
-
-// initializePlatformMappings sets up platform-specific key mappings
-func (po *PlatformOptimizations) initializePlatformMappings() {
-	switch po.platform {
-	case "darwin":
-		po.initializeMacOSMappings()
-	case "linux":
-		po.initializeLinuxMappings()
-	case "windows":
-		po.initializeWindowsMappings()
-	default:
-		po.initializeUnixMappings()
-	}
-}
-
-// initializeMacOSMappings sets up macOS-specific optimizations
-func (po *PlatformOptimizations) initializeMacOSMappings() {
-	// Option+Backspace for delete word
-	if po.capabilities["alt_keys"] {
-		po.keyMappings["delete_word"] = []KeyStroke{
-			NewAltKeyStroke('\b', "alt+backspace"), // Option+Backspace
-			NewCtrlKeyStroke('w'),                  // Keep Ctrl+W as fallback
-		}
-	}
-
-	// Option+Arrow keys for word movement
-	if po.capabilities["alt_keys"] {
-		po.keyMappings["word_forward"] = []KeyStroke{
-			NewAltKeyStroke('f', "alt+f"),
-		}
-		po.keyMappings["word_backward"] = []KeyStroke{
-			NewAltKeyStroke('b', "alt+b"),
-		}
-	}
-
-	// Cmd+C for copy (if terminal supports it)
-	if po.terminal == "iterm" || po.terminal == "terminal" {
-		po.keyMappings["copy"] = []KeyStroke{
-			NewRawKeyStroke([]byte{27, 91, 51, 59, 53, 126}), // Cmd+C sequence
-		}
-	}
-}
-
-// initializeLinuxMappings sets up Linux-specific optimizations
-func (po *PlatformOptimizations) initializeLinuxMappings() {
-	// Alt+Backspace for delete word (common in bash)
-	if po.capabilities["alt_keys"] {
-		po.keyMappings["delete_word"] = []KeyStroke{
-			NewAltKeyStroke('\b', "alt+backspace"),
-			NewCtrlKeyStroke('w'),
-		}
-	}
-
-	// Ctrl+Alt+T for new terminal (if in tmux/screen)
-	if po.terminal == "tmux" || po.terminal == "screen" {
-		po.keyMappings["new_window"] = []KeyStroke{
-			NewRawKeyStroke([]byte{27, 91, 50, 48, 126}), // Custom sequence
-		}
-	}
-}
-
-// initializeWindowsMappings sets up Windows-specific optimizations
-func (po *PlatformOptimizations) initializeWindowsMappings() {
-	// Ctrl+Backspace for delete word
-	po.keyMappings["delete_word"] = []KeyStroke{
-		NewCtrlKeyStroke('\b'),
-		NewCtrlKeyStroke('w'),
-	}
-
-	// Windows terminal specific sequences
-	if po.terminal == "windows-terminal" || po.terminal == "cmd" {
-		po.keyMappings["paste"] = []KeyStroke{
-			NewCtrlKeyStroke('v'),
-		}
-	}
-}
-
-// initializeUnixMappings sets up generic Unix optimizations
-func (po *PlatformOptimizations) initializeUnixMappings() {
-	// Standard Unix keybindings
-	po.keyMappings["delete_word"] = []KeyStroke{
-		NewCtrlKeyStroke('w'),
-	}
-
-	po.keyMappings["clear_line"] = []KeyStroke{
-		NewCtrlKeyStroke('u'),
-	}
-}
-
-// GetOptimizedBindings returns platform-optimized keybindings for an action
-func (po *PlatformOptimizations) GetOptimizedBindings(action string) ([]KeyStroke, bool) {
-	bindings, exists := po.keyMappings[action]
-	return bindings, exists
+	return fmt.Sprintf("Current profile: %s", switcher.GetCurrentProfile())
 }
 
 // RuntimeProfileSwitcher enables switching profiles without restart
@@ -2804,6 +2630,158 @@ func (rps *RuntimeProfileSwitcher) CycleProfile() error {
 
 	nextIndex := (currentIndex + 1) % len(profiles)
 	return rps.SwitchProfile(profiles[nextIndex])
+}
+
+// ContextManager manages active contexts and notifies callbacks on transitions.
+type ContextManager struct {
+	resolver  *KeyBindingResolver
+	current   Context
+	stack     []Context
+	callbacks map[Context][]func(Context, Context)
+}
+
+// NewContextManager creates a new ContextManager.
+func NewContextManager(resolver *KeyBindingResolver) *ContextManager {
+	return &ContextManager{
+		resolver:  resolver,
+		current:   ContextGlobal,
+		stack:     make([]Context, 0, 4),
+		callbacks: make(map[Context][]func(Context, Context)),
+	}
+}
+
+// RegisterContextCallback registers a callback invoked when the target context becomes active.
+func (cm *ContextManager) RegisterContextCallback(ctx Context, callback func(Context, Context)) {
+	if callback == nil {
+		return
+	}
+	cm.callbacks[ctx] = append(cm.callbacks[ctx], callback)
+}
+
+// GetCurrentContext returns the currently active context.
+func (cm *ContextManager) GetCurrentContext() Context {
+	return cm.current
+}
+
+// GetContextStack returns a copy of the context stack.
+func (cm *ContextManager) GetContextStack() []Context {
+	dup := make([]Context, len(cm.stack))
+	copy(dup, cm.stack)
+	return dup
+}
+
+// EnterContext pushes the current context on the stack and switches to the new context.
+func (cm *ContextManager) EnterContext(ctx Context) {
+	if ctx == cm.current {
+		return
+	}
+
+	old := cm.current
+	cm.stack = append(cm.stack, cm.current)
+	cm.current = ctx
+	cm.invokeCallbacks(old, ctx)
+}
+
+// ExitContext pops the last context from the stack and activates it.
+func (cm *ContextManager) ExitContext() Context {
+	if len(cm.stack) == 0 {
+		return cm.current
+	}
+
+	old := cm.current
+	idx := len(cm.stack) - 1
+	cm.current = cm.stack[idx]
+	cm.stack = cm.stack[:idx]
+	cm.invokeCallbacks(old, cm.current)
+	return cm.current
+}
+
+// SetContext forcefully changes the current context without modifying the stack.
+func (cm *ContextManager) SetContext(ctx Context) {
+	if ctx == cm.current {
+		return
+	}
+
+	old := cm.current
+	cm.current = ctx
+	cm.invokeCallbacks(old, ctx)
+}
+
+// ForceEnvironment overrides resolver platform/terminal (primarily for tests).
+func (cm *ContextManager) ForceEnvironment(platform, terminal string) {
+	if cm == nil || cm.resolver == nil {
+		return
+	}
+	cm.resolver.ForceEnvironment(platform, terminal)
+}
+
+func (cm *ContextManager) invokeCallbacks(from, to Context) {
+	if from == to {
+		return
+	}
+
+	if callbacks, exists := cm.callbacks[to]; exists {
+		for _, cb := range callbacks {
+			cb(from, to)
+		}
+	}
+
+	if to != ContextGlobal {
+		if callbacks, exists := cm.callbacks[ContextGlobal]; exists {
+			for _, cb := range callbacks {
+				cb(from, to)
+			}
+		}
+	}
+}
+
+// PlatformOptimizations provides platform-specific keybinding recommendations.
+type PlatformOptimizations struct {
+	platform string
+	terminal string
+	keyMap   map[string][]KeyStroke
+}
+
+// NewPlatformOptimizations builds platform-aware keybinding suggestions.
+func NewPlatformOptimizations(platform, terminal string) *PlatformOptimizations {
+	po := &PlatformOptimizations{
+		platform: platform,
+		terminal: terminal,
+		keyMap:   make(map[string][]KeyStroke),
+	}
+
+	po.initialize()
+	return po
+}
+
+func (po *PlatformOptimizations) initialize() {
+	switch po.platform {
+	case "darwin":
+		po.keyMap["delete_word"] = []KeyStroke{
+			NewAltKeyStroke('', "alt+backspace"),
+			NewCtrlKeyStroke('w'),
+		}
+	case "linux":
+		po.keyMap["delete_word"] = []KeyStroke{NewCtrlKeyStroke('w')}
+		po.keyMap["clear_line"] = []KeyStroke{NewCtrlKeyStroke('u')}
+	case "windows":
+		po.keyMap["paste"] = []KeyStroke{NewCtrlKeyStroke('v')}
+		po.keyMap["clear_line"] = []KeyStroke{NewCtrlKeyStroke('u')}
+	default:
+		po.keyMap["delete_word"] = []KeyStroke{NewCtrlKeyStroke('w')}
+		po.keyMap["clear_line"] = []KeyStroke{NewCtrlKeyStroke('u')}
+	}
+
+	if po.platform == "darwin" {
+		po.keyMap["word_forward"] = []KeyStroke{NewAltKeyStroke('f', "alt+f")}
+		po.keyMap["word_backward"] = []KeyStroke{NewAltKeyStroke('b', "alt+b")}
+	}
+}
+
+// GetOptimizedBindings returns platform-aware bindings for the given action.
+func (po *PlatformOptimizations) GetOptimizedBindings(action string) ([]KeyStroke, bool) {
+	bindings, ok := po.keyMap[action]
+	return bindings, ok
 }
 
 // HotConfigReloader enables reloading configuration without restart
