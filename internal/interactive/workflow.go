@@ -1,5 +1,4 @@
-// Package cmd provides workflow functionality for sequential command execution.
-package cmd
+package interactive
 
 import (
 	"bufio"

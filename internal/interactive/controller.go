@@ -1,5 +1,4 @@
-// Package cmd provides command implementations for the ggc CLI tool.
-package cmd
+package interactive
 
 import (
 	"bufio"
@@ -1722,6 +1721,14 @@ func (ui *UI) ToggleWorkflowView() {
 // AddToWorkflow adds a command to the workflow
 func (ui *UI) AddToWorkflow(command string, args []string, description string) int {
 	return ui.workflow.AddStep(command, args, description)
+}
+
+// ApplyContextualKeybindings updates the active keybinding map, satisfying keybindings.ContextualMapApplier.
+func (ui *UI) ApplyContextualKeybindings(contextual *ContextualKeyBindingMap) {
+	if ui == nil || ui.handler == nil || contextual == nil {
+		return
+	}
+	ui.handler.contextualMap = contextual
 }
 
 func (ui *UI) resetToSearchMode() bool {
