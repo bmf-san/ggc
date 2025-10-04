@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/git"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
 	"github.com/bmf-san/ggc/v7/internal/prompt"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // mockGitClient is a mock of git.Client.
