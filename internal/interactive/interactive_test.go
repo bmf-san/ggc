@@ -1,4 +1,4 @@
-package cmd
+package interactive
 
 import (
 	"bufio"
@@ -1820,7 +1820,7 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			gitClient := &mockGitClient{}
+			gitClient := testutil.NewMockGitClient()
 			ui := NewUI(gitClient)
 			ui.state.showWorkflow = tt.showWorkflow
 			if tt.hasInput {
@@ -1886,7 +1886,7 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			gitClient := &mockGitClient{}
+			gitClient := testutil.NewMockGitClient()
 			ui := NewUI(gitClient)
 
 			// Redirect output to avoid test output pollution
@@ -1913,7 +1913,7 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 // TestKeyHandler_ClearWorkflow tests clearing workflow
 func TestKeyHandler_ClearWorkflow(t *testing.T) {
 	// Setup
-	gitClient := &mockGitClient{}
+	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 
 	// Redirect output to avoid test output pollution
@@ -1939,7 +1939,7 @@ func TestKeyHandler_ClearWorkflow(t *testing.T) {
 // TestUI_ToggleWorkflowView tests workflow view toggling
 func TestUI_ToggleWorkflowView(t *testing.T) {
 	// Setup
-	gitClient := &mockGitClient{}
+	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 
 	// Initial state should be false
@@ -1963,7 +1963,7 @@ func TestUI_ToggleWorkflowView(t *testing.T) {
 // TestUI_WorkflowOperations tests workflow operations
 func TestUI_WorkflowOperations(t *testing.T) {
 	// Setup
-	gitClient := &mockGitClient{}
+	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 
 	// Test AddToWorkflow
@@ -2015,7 +2015,7 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			gitClient := &mockGitClient{}
+			gitClient := testutil.NewMockGitClient()
 			ui := NewUI(gitClient)
 
 			// Redirect output to avoid test output pollution

@@ -1,10 +1,10 @@
-package cmd
+package keybindings
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/pkg/config"
 )
 
 // TestKeyBindingResolution tests the layering and resolution logic

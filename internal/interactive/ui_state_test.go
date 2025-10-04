@@ -1,4 +1,4 @@
-package cmd
+package interactive
 
 import (
 	"strings"

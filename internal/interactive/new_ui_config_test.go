@@ -1,4 +1,4 @@
-package cmd
+package interactive
 
 import (
 	"os"
@@ -14,9 +14,10 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 
 	configContent := `interactive:
   profile: emacs
-  darwin:
-    keybindings:
-      move_down: "Ctrl+J"
+  contexts:
+    results:
+      keybindings:
+        move_down: "Ctrl+J"
 `
 	configPath := filepath.Join(tempHome, ".ggcconfig.yaml")
 	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
@@ -30,15 +31,17 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 		t.Fatalf("profile = %v, want %v", ui.profile, ProfileEmacs)
 	}
 
-	ui.contextMgr.resolver.platform = "darwin"
-	ui.contextMgr.resolver.ClearCache()
-
-	keyMap, err := ui.contextMgr.resolver.Resolve(ProfileEmacs, ContextResults)
-	if err != nil {
-		t.Fatalf("Resolve returned error: %v", err)
+	contextual := ui.handler.contextualMap
+	if contextual == nil {
+		t.Fatal("expected contextual keybinding map to be initialized")
 	}
 
-	if len(keyMap.MoveDown) == 0 || keyMap.MoveDown[0].Rune != 'j' {
-		t.Fatalf("darwin override not applied: %#v", keyMap.MoveDown)
+	resultsMap, exists := contextual.GetContext(ContextResults)
+	if !exists || resultsMap == nil {
+		t.Fatal("expected results context map")
+	}
+
+	if len(resultsMap.MoveDown) == 0 || resultsMap.MoveDown[0].Rune != 'j' || !resultsMap.MoveDown[0].Ctrl {
+		t.Fatalf("config override not applied: %#v", resultsMap.MoveDown)
 	}
 }
