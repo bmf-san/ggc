@@ -16,9 +16,10 @@ import (
 	"golang.org/x/text/width"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
-	"github.com/bmf-san/ggc/v7/config"
-	"github.com/bmf-san/ggc/v7/git"
 	"github.com/bmf-san/ggc/v7/internal/termio"
+	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/pkg/git"
+	uiutil "github.com/bmf-san/ggc/v7/pkg/ui"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer
@@ -36,64 +37,12 @@ type GitStatus struct {
 	HasChanges bool
 }
 
-// ANSIColors defines color codes for terminal output
-type ANSIColors struct {
-	// Basic colors (0-7)
-	Black   string
-	Red     string
-	Green   string
-	Yellow  string
-	Blue    string
-	Magenta string
-	Cyan    string
-	White   string
+// ANSIColors is an alias to the shared UI palette definition.
+type ANSIColors = uiutil.ANSIColors
 
-	// Bright colors (8-15)
-	BrightBlack   string // Gray
-	BrightRed     string
-	BrightGreen   string
-	BrightYellow  string
-	BrightBlue    string
-	BrightMagenta string
-	BrightCyan    string
-	BrightWhite   string
-
-	// Text attributes
-	Bold      string
-	Underline string
-	Reverse   string
-	Reset     string
-}
-
-// NewANSIColors creates a new ANSIColors instance
+// NewANSIColors exposes the shared ANSI color palette helper.
 func NewANSIColors() *ANSIColors {
-	return &ANSIColors{
-		// Basic colors
-		Black:   "\033[30m",
-		Red:     "\033[31m",
-		Green:   "\033[32m",
-		Yellow:  "\033[33m",
-		Blue:    "\033[34m",
-		Magenta: "\033[35m",
-		Cyan:    "\033[36m",
-		White:   "\033[37m",
-
-		// Bright colors
-		BrightBlack:   "\033[90m",
-		BrightRed:     "\033[91m",
-		BrightGreen:   "\033[92m",
-		BrightYellow:  "\033[93m",
-		BrightBlue:    "\033[94m",
-		BrightMagenta: "\033[95m",
-		BrightCyan:    "\033[96m",
-		BrightWhite:   "\033[97m",
-
-		// Text attributes
-		Bold:      "\033[1m",
-		Underline: "\033[4m",
-		Reverse:   "\033[7m",
-		Reset:     "\033[0m",
-	}
+	return uiutil.NewANSIColors()
 }
 
 // getGitStatus retrieves the current Git repository status
@@ -1773,13 +1722,8 @@ func (ui *UI) ExecuteWorkflow() error {
 
 // updateSize updates the terminal dimensions
 func (r *Renderer) updateSize() {
-	if f, ok := r.writer.(*os.File); ok {
-		if w, h, err := term.GetSize(int(f.Fd())); err == nil && w > 0 && h > 0 {
-			r.width, r.height = w, h
-			return
-		}
-	}
-	r.width, r.height = 80, 24 // Default fallback
+	w, h := uiutil.Dimensions(r.writer, 80, 24)
+	r.width, r.height = w, h
 }
 
 var commands = buildInteractiveCommands()
@@ -1823,37 +1767,28 @@ func (ui *UI) consumeSoftCancelFlash() bool {
 
 // clearScreen clears the entire screen and hides cursor
 func clearScreen(w io.Writer) {
-	// Clear screen, move cursor to home, hide cursor
-	_, _ = fmt.Fprint(w, "\x1b[2J\x1b[H\x1b[?25l")
+	uiutil.ClearScreen(w)
+	uiutil.HideCursor(w)
 }
 
 // showCursor shows the terminal cursor
 func showCursor(w io.Writer) {
-	_, _ = fmt.Fprint(w, "\x1b[?25h")
+	uiutil.ShowCursor(w)
 }
 
 // ellipsis truncates string and adds ellipsis if it exceeds maxLen (ASCII only)
 func ellipsis(s string, maxLen int) string {
-	if maxLen <= 0 {
-		return ""
-	}
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 1 {
-		return "…"
-	}
-	return s[:maxLen-1] + "…"
+	return uiutil.Ellipsis(s, maxLen)
 }
 
 // Render displays the command list with proper terminal handling
 func (r *Renderer) Render(ui *UI, state *UIState) {
 	clearScreen(r.writer)
 	// Disable line wrapping during rendering, restore at end
-	_, _ = fmt.Fprint(r.writer, "\x1b[?7l")
+	uiutil.DisableWrap(r.writer)
 	var restoreCursor func()
 	defer func() {
-		_, _ = fmt.Fprint(r.writer, "\x1b[?7h")
+		uiutil.EnableWrap(r.writer)
 		if restoreCursor != nil {
 			restoreCursor()
 		}

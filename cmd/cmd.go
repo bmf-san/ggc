@@ -11,8 +11,8 @@ import (
 	"syscall"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
-	"github.com/bmf-san/ggc/v7/git"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // Interactive mode special return values

@@ -3,7 +3,7 @@ package keybindings
 import (
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/pkg/config"
 )
 
 func TestKeyBindingResolverLayering(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/config"
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // Hooker handles git hook operations.
