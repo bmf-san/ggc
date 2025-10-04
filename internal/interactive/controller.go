@@ -1784,9 +1784,9 @@ func (r *Renderer) updateSize() {
 
 var commands = buildInteractiveCommands()
 
-// InteractiveUI provides an incremental search interactive UI with custom git client.
+// Run provides an incremental search interactive UI with custom git client.
 // Returns the selected command as []string (nil if nothing selected)
-func InteractiveUI(gitClient git.StatusInfoReader) []string {
+func Run(gitClient git.StatusInfoReader) []string {
 	ui := NewUI(gitClient)
 	return ui.Run()
 }
