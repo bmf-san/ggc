@@ -248,15 +248,14 @@ func (c *Cmd) DebugKeys(args []string) {
 
 // Interactive starts the interactive UI mode.
 func (c *Cmd) Interactive() {
-	// Reset existing signal handlers
-	signal.Reset(os.Interrupt, syscall.SIGTERM)
-
-	// Set up global Ctrl+C handling
+	// Set up global Ctrl+C handling without introducing a reset window
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sigChan)
 	go func() {
 		<-sigChan
 		fmt.Println("\nExiting...")
+		signal.Stop(sigChan)
 		os.Exit(0)
 	}()
 
