@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -157,7 +156,7 @@ func (b *Brancher) branchCheckoutRemote() {
 	}
 	remoteBranch := branches[idx]
 	localBranch, valid := deriveLocalFromRemote(remoteBranch)
-	if !valid || validateBranchName(localBranch) != nil {
+	if !valid || git.ValidateBranchName(localBranch) != nil {
 		_, _ = fmt.Fprintln(b.outputWriter, "Invalid remote branch name.")
 		return
 	}
@@ -224,7 +223,7 @@ func (b *Brancher) branchCreate() {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
 		return
 	}
-	if err := validateBranchName(branchName); err != nil {
+	if err := git.ValidateBranchName(branchName); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
 		return
 	}
@@ -456,23 +455,6 @@ func (b *Brancher) parseMergedBranchIndices(input string, branches []string) ([]
 	return selectedBranches, true
 }
 
-// validateBranchName performs basic validation aligned with git ref rules for branch names.
-// It rejects empty names, control characters, disallowed characters/sequences, invalid prefixes/suffixes,
-// double slashes, overly long names, and non-ASCII for safety across platforms.
-func validateBranchName(name string) error {
-	n := strings.TrimSpace(name)
-	if n == "" {
-		return fmt.Errorf("branch name cannot be empty")
-	}
-	// Delegate validation to git to match exact refname rules.
-	// Equivalent to: git check-ref-format --branch <name>
-	cmd := exec.Command("git", "check-ref-format", "--branch", n)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("invalid per git check-ref-format: %w", err)
-	}
-	return nil
-}
-
 func (b *Brancher) branchRename() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
@@ -497,7 +479,7 @@ func (b *Brancher) branchRename() {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
 		return
 	}
-	if err := validateBranchName(newName); err != nil {
+	if err := git.ValidateBranchName(newName); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
 		return
 	}
