@@ -2,11 +2,18 @@
 package git
 
 import (
+	"fmt"
 	"os"
+	"strings"
+	"unicode/utf8"
 )
 
 // Commit commits with the given message.
 func (c *Client) Commit(message string) error {
+	if err := validateCommitMessage(message); err != nil {
+		return err
+	}
+
 	cmd := c.execCommand("git", "commit", "-m", message)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -41,11 +48,29 @@ func (c *Client) CommitAmendNoEdit() error {
 
 // CommitAmendWithMessage amends the last commit with a new message.
 func (c *Client) CommitAmendWithMessage(message string) error {
+	if err := validateCommitMessage(message); err != nil {
+		return err
+	}
+
 	cmd := c.execCommand("git", "commit", "--amend", "-m", message)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewError("commit amend with message", "git commit --amend -m "+message, err)
+	}
+	return nil
+}
+
+func validateCommitMessage(message string) error {
+	trimmed := strings.TrimSpace(message)
+	if trimmed == "" {
+		return fmt.Errorf("commit message cannot be empty or whitespace")
+	}
+	if !utf8.ValidString(message) {
+		return fmt.Errorf("commit message must be valid UTF-8")
+	}
+	if strings.ContainsRune(message, '\u0000') {
+		return fmt.Errorf("commit message cannot contain null characters")
 	}
 	return nil
 }

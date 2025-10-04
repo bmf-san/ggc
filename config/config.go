@@ -176,6 +176,7 @@ var (
 	gitlabTokenRe = regexp.MustCompile(`^(glpat-)?[A-Za-z0-9_-]{20,100}$`)
 	// Allow slashes; additional structural checks are applied separately
 	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
+	configPathSegmentRe  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 )
 
 // NewConfigManager creates a new configuration manager with the provided git client
@@ -761,18 +762,43 @@ func (cm *Manager) hardenPermissionsWithOps(path string, fileOps FileOps) {
 
 // Get retrieves a configuration value by key path (e.g., "ui.color", "default.branch")
 func (cm *Manager) Get(key string) (any, error) {
-	return cm.getValueByPath(cm.config, key)
+	sanitized, err := sanitizeConfigPath(key)
+	if err != nil {
+		return nil, err
+	}
+	return cm.getValueByPath(cm.config, sanitized)
 }
 
 // Set sets a configuration value by key path
 func (cm *Manager) Set(key string, value any) error {
-	if err := cm.setValueByPath(cm.config, key, value); err != nil {
+	sanitized, err := sanitizeConfigPath(key)
+	if err != nil {
+		return err
+	}
+	if err := cm.setValueByPath(cm.config, sanitized, value); err != nil {
 		return err
 	}
 	if err := cm.config.Validate(); err != nil {
 		return err
 	}
 	return cm.Save()
+}
+
+func sanitizeConfigPath(path string) (string, error) {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return "", fmt.Errorf("config path cannot be empty")
+	}
+	parts := strings.Split(trimmed, ".")
+	for idx, part := range parts {
+		if part == "" {
+			return "", fmt.Errorf("config path segment %d is empty", idx+1)
+		}
+		if !configPathSegmentRe.MatchString(part) {
+			return "", fmt.Errorf("config path segment %q contains invalid characters", part)
+		}
+	}
+	return trimmed, nil
 }
 
 // List returns all configuration keys and values
