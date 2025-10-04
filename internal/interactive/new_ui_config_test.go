@@ -41,7 +41,7 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 		t.Fatal("expected results context map")
 	}
 
-	if len(resultsMap.MoveDown) == 0 || resultsMap.MoveDown[0].Rune != 'j' {
+	if len(resultsMap.MoveDown) == 0 || resultsMap.MoveDown[0].Rune != 'j' || !resultsMap.MoveDown[0].Ctrl {
 		t.Fatalf("config override not applied: %#v", resultsMap.MoveDown)
 	}
 }
