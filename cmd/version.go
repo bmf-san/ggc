@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmf-san/ggc/v7/config"
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // VersionGetter is a function type for getting version info

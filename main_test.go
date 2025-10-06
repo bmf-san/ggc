@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v7/cmd"
-	"github.com/bmf-san/ggc/v7/config"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v7/pkg/config"
 	"github.com/bmf-san/ggc/v7/router"
 )
 

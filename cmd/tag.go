@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // Tagger handles tagging operations.

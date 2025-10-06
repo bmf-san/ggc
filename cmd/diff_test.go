@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // mockDiffClient implements git.DiffReader with argument capture.
