@@ -50,7 +50,7 @@ func (b *Brancher) handleBranchCommand(cmd string, args []string) {
 	branchCommands := map[string]func([]string){
 		"current":  func([]string) { b.handleCurrentBranch() },
 		"checkout": b.handleCheckoutCommand,
-		"create":   func([]string) { b.branchCreate() },
+		"create":   b.branchCreate,
 		"delete":   b.handleDeleteCommand,
 		"rename":   func([]string) { b.branchRename() },
 		"move":     func([]string) { b.branchMove() },
@@ -214,14 +214,23 @@ func (b *Brancher) readLine(promptText string) (string, bool) {
 	return line, true
 }
 
-func (b *Brancher) branchCreate() {
-	input, ok := b.readLine("Enter new branch name: ")
-	if !ok {
-		return
+func (b *Brancher) branchCreate(args []string) {
+	var branchName string
+	if len(args) > 0 {
+		branchName = strings.TrimSpace(args[0])
+	} else {
+		input, ok := b.readLine("Enter new branch name: ")
+		if !ok {
+			return
+		}
+		branchName = strings.TrimSpace(input)
+		if branchName == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+			return
+		}
 	}
-	branchName := strings.TrimSpace(input)
 	if branchName == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+		_, _ = fmt.Fprintln(b.outputWriter, "Error: invalid branch name: branch name cannot be empty")
 		return
 	}
 	if err := validateBranchName(branchName); err != nil {

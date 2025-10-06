@@ -19,6 +19,7 @@ type mockBranchGitClient struct {
 	listRemoteBranches     func() ([]string, error)
 	mergedBranches         []string
 	checkoutNewBranchError bool
+	createdBranches        []string
 	ops                    *mockBranchOperations
 }
 
@@ -43,6 +44,7 @@ func (m *mockBranchGitClient) ListRemoteBranches() ([]string, error) {
 
 // Branch Operations methods
 func (m *mockBranchGitClient) CheckoutNewBranch(branchName string) error {
+	m.createdBranches = append(m.createdBranches, branchName)
 	if m.checkoutNewBranchError {
 		return errors.New("exit status 1")
 	}
@@ -651,6 +653,40 @@ func TestBrancher_branchCreate_ExistingBranch(t *testing.T) {
 	}
 }
 
+func TestBrancher_branchCreate_WithArgument(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+	}
+
+	brancher.Branch([]string{"create", "feature/new"})
+
+	if len(mockClient.createdBranches) != 1 || mockClient.createdBranches[0] != "feature/new" {
+		t.Fatalf("expected branch creation with name %q, got %#v", "feature/new", mockClient.createdBranches)
+	}
+	if output := buf.String(); output != "" {
+		t.Fatalf("expected no output, got %q", output)
+	}
+}
+
+func TestBrancher_branchCreate_WithEmptyArgument(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+
+	brancher.Branch([]string{"create", "   "})
+
+	output := buf.String()
+	expected := "Error: invalid branch name: branch name cannot be empty\n"
+	if output != expected {
+		t.Errorf("unexpected output for empty argument:\ngot:  %q\nwant: %q", output, expected)
+	}
+}
+
 // Consolidated boundary tests for branch checkout input to avoid repetitive single-case tests.
 // Covers various numeric/non-numeric forms and validates expected outputs for each.
 func TestBrancher_Branch_BoundaryInputValues(t *testing.T) {
@@ -806,7 +842,7 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.branchName+"\n"), &buf),
 			}
 
-			brancher.branchCreate()
+			brancher.branchCreate(nil)
 
 			output := buf.String()
 			if tt.expectedPass {
@@ -884,7 +920,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
-			brancher.branchCreate()
+			brancher.branchCreate(nil)
 
 			output := buf.String()
 			if tt.expected != "" {
