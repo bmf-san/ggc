@@ -482,6 +482,12 @@ func TestGet(t *testing.T) {
 	if value != "main" {
 		t.Errorf("Expected 'main', got %s", value)
 	}
+
+	if _, err := cm.Get("invalid..path"); err == nil {
+		t.Error("Expected error for config path with empty segment, got nil")
+	} else if !strings.Contains(err.Error(), "segment") {
+		t.Errorf("unexpected error for invalid path: %v", err)
+	}
 }
 
 // TestSet tests the Set method
@@ -510,6 +516,14 @@ func TestSet(t *testing.T) {
 	err = cm.Set("invalid.nonexistent.path", "value")
 	if err == nil {
 		t.Error("Expected error when setting invalid path, but got nil")
+	}
+
+	// Test validation: empty path segment
+	err = cm.Set("interactive..profile", "default")
+	if err == nil {
+		t.Error("Expected error when setting path with empty segment, but got nil")
+	} else if !strings.Contains(err.Error(), "segment") {
+		t.Errorf("unexpected error for double dot path: %v", err)
 	}
 
 	// Test error case: invalid value type

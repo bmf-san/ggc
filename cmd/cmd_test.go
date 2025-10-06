@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/internal/interactive"
 	"github.com/bmf-san/ggc/v7/internal/prompt"
 )
 
@@ -822,29 +823,21 @@ func TestCmd_InteractiveWorkflowIntegration(t *testing.T) {
 	mockClient := &mockGitClient{}
 	cmd := NewCmd(mockClient)
 
-	// Test that NewUI creates workflow-enabled UI
-	ui := NewUI(mockClient, cmd)
-
-	if ui.workflow == nil {
-		t.Error("Expected UI to have workflow initialized")
+	ui := interactive.NewUI(mockClient, cmd)
+	if ui == nil {
+		t.Fatal("interactive.NewUI returned nil")
 	}
 
-	if ui.workflowEx == nil {
-		t.Error("Expected UI to have workflow executor initialized")
+	// Test workflow operations using exported methods
+	if got := ui.AddToWorkflow("add", []string{"."}, "add ."); got != 1 {
+		t.Errorf("AddToWorkflow first ID = %d, want 1", got)
 	}
-
-	// Test workflow operations
-	id := ui.AddToWorkflow("add", []string{"."}, "add .")
-	if id != 1 {
-		t.Errorf("Expected workflow ID 1, got %d", id)
-	}
-
-	if ui.workflow.IsEmpty() {
-		t.Error("Expected workflow to have steps after adding")
+	if got := ui.AddToWorkflow("commit", []string{"-m", "msg"}, "commit"); got != 2 {
+		t.Errorf("AddToWorkflow second ID = %d, want 2", got)
 	}
 
 	ui.ClearWorkflow()
-	if !ui.workflow.IsEmpty() {
-		t.Error("Expected workflow to be empty after clearing")
+	if got := ui.AddToWorkflow("status", nil, "status"); got != 1 {
+		t.Errorf("AddToWorkflow after ClearWorkflow ID = %d, want 1", got)
 	}
 }

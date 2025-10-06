@@ -148,6 +148,16 @@ func TestClient_RenameMoveSetUpstream(t *testing.T) {
 		}
 	})
 
+	t.Run("move_branch_empty_commit", func(t *testing.T) {
+		c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
+			t.Fatalf("execCommand should not be called for invalid commit")
+			return helperCommand(t, "", nil)
+		}}
+		if err := c.MoveBranch("feat", "   "); err == nil {
+			t.Error("Expected error for empty commit, got nil")
+		}
+	})
+
 	t.Run("set_upstream_command", func(t *testing.T) {
 		c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
 			if name != "git" || strings.Join(arg, " ") != "branch -u origin/main feat" {
@@ -159,6 +169,38 @@ func TestClient_RenameMoveSetUpstream(t *testing.T) {
 			t.Errorf("SetUpstreamBranch() error = %v", err)
 		}
 	})
+
+	t.Run("set_upstream_empty_remote", func(t *testing.T) {
+		c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
+			t.Fatalf("execCommand should not be called for empty upstream")
+			return helperCommand(t, "", nil)
+		}}
+		if err := c.SetUpstreamBranch("feat", "  "); err == nil {
+			t.Error("Expected error for empty upstream, got nil")
+		}
+	})
+}
+
+func TestValidateBranchName(t *testing.T) {
+	tests := []struct {
+		name    string
+		branch  string
+		wantErr bool
+	}{
+		{name: "valid_simple", branch: "feature", wantErr: false},
+		{name: "valid_nested", branch: "feature/awesome", wantErr: false},
+		{name: "invalid_empty", branch: "", wantErr: true},
+		{name: "invalid_with_space", branch: "feature branch", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateBranchName(tt.branch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateBranchName(%q) error = %v, wantErr %v", tt.branch, err, tt.wantErr)
+			}
+		})
+	}
 }
 
 func TestClient_ListBranchesVerbose_Parse(t *testing.T) {
@@ -320,6 +362,7 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 		remoteBranch string
 		err          error
 		wantErr      bool
+		expectExec   bool
 	}{
 		{
 			name:         "success_checkout_from_origin",
@@ -327,6 +370,7 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 			remoteBranch: "origin/feature",
 			err:          nil,
 			wantErr:      false,
+			expectExec:   true,
 		},
 		{
 			name:         "success_checkout_from_upstream",
@@ -334,6 +378,7 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 			remoteBranch: "upstream/develop",
 			err:          nil,
 			wantErr:      false,
+			expectExec:   true,
 		},
 		{
 			name:         "error_remote_branch_not_found",
@@ -341,6 +386,7 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 			remoteBranch: "origin/nonexistent",
 			err:          errors.New("fatal: 'origin/nonexistent' is not a commit and a branch 'feature' cannot be created from it"),
 			wantErr:      true,
+			expectExec:   true,
 		},
 		{
 			name:         "error_local_branch_exists",
@@ -348,6 +394,7 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 			remoteBranch: "origin/main",
 			err:          errors.New("fatal: A branch named 'main' already exists"),
 			wantErr:      true,
+			expectExec:   true,
 		},
 		{
 			name:         "success_deep_branch_hierarchy",
@@ -355,13 +402,24 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 			remoteBranch: "origin/feature/user/story/implementation",
 			err:          nil,
 			wantErr:      false,
+			expectExec:   true,
+		},
+		{
+			name:         "error_invalid_local_branch",
+			localBranch:  "feature branch",
+			remoteBranch: "origin/feature-branch",
+			err:          nil,
+			wantErr:      true,
+			expectExec:   false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			executed := false
 			c := &Client{
 				execCommand: func(name string, arg ...string) *exec.Cmd {
+					executed = true
 					expectedArgs := []string{"checkout", "-b", tt.localBranch, "--track", tt.remoteBranch}
 					if name != "git" || len(arg) != len(expectedArgs) {
 						t.Errorf("unexpected command: %s %v", name, arg)
@@ -378,6 +436,9 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 			err := c.CheckoutNewBranchFromRemote(tt.localBranch, tt.remoteBranch)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CheckoutNewBranchFromRemote() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if executed != tt.expectExec {
+				t.Errorf("CheckoutNewBranchFromRemote() exec invoked = %v, expectExec %v", executed, tt.expectExec)
 			}
 		})
 	}

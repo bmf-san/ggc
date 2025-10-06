@@ -1,4 +1,4 @@
-package cmd
+package keybindings
 
 import (
 	"testing"
@@ -48,6 +48,14 @@ func TestRuntimeProfileSwitcherSwitchProfile(t *testing.T) {
 	}
 }
 
+type mockMapApplier struct {
+	last *ContextualKeyBindingMap
+}
+
+func (m *mockMapApplier) ApplyContextualKeybindings(km *ContextualKeyBindingMap) {
+	m.last = km
+}
+
 func TestProfileSwitcherUpdatesHandler(t *testing.T) {
 	cfg := &config.Config{}
 	resolver := NewKeyBindingResolver(cfg)
@@ -61,10 +69,6 @@ func TestProfileSwitcherUpdatesHandler(t *testing.T) {
 		t.Fatalf("ResolveContextual default profile: %v", err)
 	}
 
-	state := &UIState{context: ContextInput}
-	ui := &UI{state: state}
-	ui.handler = &KeyHandler{ui: ui, contextualMap: defaultContextual}
-
 	defaultInput, exists := defaultContextual.GetContext(ContextInput)
 	if !exists || defaultInput == nil {
 		t.Fatalf("expected default input keymap, exists=%v", exists)
@@ -73,20 +77,20 @@ func TestProfileSwitcherUpdatesHandler(t *testing.T) {
 		t.Fatalf("default profile should use Ctrl+W for delete_word")
 	}
 
-	switcher := NewProfileSwitcher(resolver, ui)
+	applier := &mockMapApplier{}
+	switcher := NewProfileSwitcher(resolver, applier)
 	if err := switcher.SwitchProfile(ProfileEmacs); err != nil {
 		t.Fatalf("SwitchProfile(ProfileEmacs) error: %v", err)
 	}
 
-	emacsContextual := ui.handler.contextualMap
-	if emacsContextual == nil {
-		t.Fatal("expected handler contextual map to be updated")
+	if applier.last == nil {
+		t.Fatal("expected applier to receive contextual map")
 	}
-	if emacsContextual != nil && emacsContextual.Profile != ProfileEmacs {
-		t.Fatalf("contextual profile = %s, want %s", emacsContextual.Profile, ProfileEmacs)
+	if applier.last.Profile != ProfileEmacs {
+		t.Fatalf("contextual profile = %s, want %s", applier.last.Profile, ProfileEmacs)
 	}
 
-	emacsInput, exists := emacsContextual.GetContext(ContextInput)
+	emacsInput, exists := applier.last.GetContext(ContextInput)
 	if !exists || emacsInput == nil {
 		t.Fatalf("expected emacs input keymap, exists=%v", exists)
 	}
@@ -96,11 +100,5 @@ func TestProfileSwitcherUpdatesHandler(t *testing.T) {
 	if !emacsInput.MatchesKeyStroke("delete_word", NewAltKeyStroke('d', "")) {
 		t.Logf("emacs delete_word bindings: %#v", emacsInput.DeleteWord)
 		t.Error("emacs profile should use Alt+d for delete_word")
-	}
-
-	currentMap := ui.handler.GetCurrentKeyMap()
-	if !currentMap.MatchesKeyStroke("delete_word", NewAltKeyStroke('d', "")) {
-		t.Logf("current delete_word bindings: %#v", currentMap.DeleteWord)
-		t.Error("handler current map should reflect switched profile bindings")
 	}
 }

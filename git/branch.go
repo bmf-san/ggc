@@ -8,6 +8,24 @@ import (
 	"strings"
 )
 
+func normalizeBranchName(name string) (string, error) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "", fmt.Errorf("branch name cannot be empty")
+	}
+	cmd := exec.Command("git", "check-ref-format", "--branch", trimmed)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("invalid branch name %q: %w", trimmed, err)
+	}
+	return trimmed, nil
+}
+
+// ValidateBranchName checks whether the provided name is a valid git branch name.
+func ValidateBranchName(name string) error {
+	_, err := normalizeBranchName(name)
+	return err
+}
+
 // ListLocalBranches lists local branches.
 func (c *Client) ListLocalBranches() ([]string, error) {
 	cmd := c.execCommand("git", "branch", "--format", "%(refname:short)")
@@ -51,33 +69,48 @@ func (c *Client) CheckoutBranch(name string) error {
 
 // CheckoutNewBranch creates a new branch and checks it out.
 func (c *Client) CheckoutNewBranch(name string) error {
-	cmd := c.execCommand("git", "checkout", "-b", name)
+	normalized, err := normalizeBranchName(name)
+	if err != nil {
+		return err
+	}
+
+	cmd := c.execCommand("git", "checkout", "-b", normalized)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", name), err)
+		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", normalized), err)
 	}
 	return nil
 }
 
 // CheckoutNewBranchFromRemote creates a new local branch tracking a remote branch.
 func (c *Client) CheckoutNewBranchFromRemote(localBranch, remoteBranch string) error {
-	cmd := c.execCommand("git", "checkout", "-b", localBranch, "--track", remoteBranch)
+	normalizedLocal, err := normalizeBranchName(localBranch)
+	if err != nil {
+		return err
+	}
+
+	cmd := c.execCommand("git", "checkout", "-b", normalizedLocal, "--track", remoteBranch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("checkout new branch from remote", fmt.Sprintf("git checkout -b %s --track %s", localBranch, remoteBranch), err)
+		return NewError("checkout new branch from remote", fmt.Sprintf("git checkout -b %s --track %s", normalizedLocal, remoteBranch), err)
 	}
 	return nil
 }
 
 // DeleteBranch deletes a branch.
 func (c *Client) DeleteBranch(name string) error {
-	cmd := c.execCommand("git", "branch", "-d", name)
+	normalized, err := normalizeBranchName(name)
+	if err != nil {
+		return err
+	}
+
+	cmd := c.execCommand("git", "branch", "-d", normalized)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("delete branch", "git branch -d "+name, err)
+		return NewError("delete branch", "git branch -d "+normalized, err)
 	}
 	return nil
 }
@@ -103,33 +136,61 @@ func (c *Client) ListMergedBranches() ([]string, error) {
 
 // RenameBranch renames a branch (git branch -m <old> <new>).
 func (c *Client) RenameBranch(old, newName string) error {
-	cmd := c.execCommand("git", "branch", "-m", old, newName)
+	trimmedOld := strings.TrimSpace(old)
+	if trimmedOld == "" {
+		return fmt.Errorf("branch name cannot be empty")
+	}
+
+	normalizedNew, err := normalizeBranchName(newName)
+	if err != nil {
+		return err
+	}
+
+	cmd := c.execCommand("git", "branch", "-m", trimmedOld, normalizedNew)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rename branch", fmt.Sprintf("git branch -m %s %s", old, newName), err)
+		return NewError("rename branch", fmt.Sprintf("git branch -m %s %s", trimmedOld, normalizedNew), err)
 	}
 	return nil
 }
 
 // MoveBranch moves a branch pointer to a specific commit (git branch -f <branch> <commit>).
 func (c *Client) MoveBranch(branch, commit string) error {
-	cmd := c.execCommand("git", "branch", "-f", branch, commit)
+	normalized, err := normalizeBranchName(branch)
+	if err != nil {
+		return err
+	}
+	trimmedCommit := strings.TrimSpace(commit)
+	if trimmedCommit == "" {
+		return fmt.Errorf("commit cannot be empty")
+	}
+
+	cmd := c.execCommand("git", "branch", "-f", normalized, trimmedCommit)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("move branch", fmt.Sprintf("git branch -f %s %s", branch, commit), err)
+		return NewError("move branch", fmt.Sprintf("git branch -f %s %s", normalized, trimmedCommit), err)
 	}
 	return nil
 }
 
 // SetUpstreamBranch sets upstream for a branch (git branch -u <upstream> <branch>).
 func (c *Client) SetUpstreamBranch(branch, upstream string) error {
-	cmd := c.execCommand("git", "branch", "-u", upstream, branch)
+	normalizedBranch, err := normalizeBranchName(branch)
+	if err != nil {
+		return err
+	}
+	trimmedUpstream := strings.TrimSpace(upstream)
+	if trimmedUpstream == "" {
+		return fmt.Errorf("upstream branch cannot be empty")
+	}
+
+	cmd := c.execCommand("git", "branch", "-u", trimmedUpstream, normalizedBranch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("set upstream branch", fmt.Sprintf("git branch -u %s %s", upstream, branch), err)
+		return NewError("set upstream branch", fmt.Sprintf("git branch -u %s %s", trimmedUpstream, normalizedBranch), err)
 	}
 	return nil
 }

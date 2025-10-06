@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os/exec"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -25,53 +26,72 @@ func TestClient_CommitAllowEmpty(t *testing.T) {
 
 func TestClient_Commit(t *testing.T) {
 	tests := []struct {
-		name    string
-		message string
-		err     error
-		wantErr bool
+		name            string
+		message         string
+		err             error
+		wantErr         bool
+		expectExec      bool
+		wantErrContains string
 	}{
 		{
-			name:    "success_simple_message",
-			message: "Add new feature",
-			err:     nil,
-			wantErr: false,
+			name:       "success_simple_message",
+			message:    "Add new feature",
+			err:        nil,
+			wantErr:    false,
+			expectExec: true,
 		},
 		{
-			name:    "success_multiline_message",
-			message: "Fix critical bug\n\nThis fixes the issue with user authentication",
-			err:     nil,
-			wantErr: false,
+			name:       "success_multiline_message",
+			message:    "Fix critical bug\n\nThis fixes the issue with user authentication",
+			err:        nil,
+			wantErr:    false,
+			expectExec: true,
 		},
 		{
-			name:    "success_empty_message",
-			message: "",
-			err:     nil,
-			wantErr: false,
+			name:       "success_message_with_special_chars",
+			message:    "Update: fix issue #123 & add tests (v2.0)",
+			err:        nil,
+			wantErr:    false,
+			expectExec: true,
 		},
 		{
-			name:    "success_message_with_special_chars",
-			message: "Update: fix issue #123 & add tests (v2.0)",
-			err:     nil,
-			wantErr: false,
+			name:       "error_nothing_to_commit",
+			message:    "Attempt to commit",
+			err:        errors.New("nothing to commit, working tree clean"),
+			wantErr:    true,
+			expectExec: true,
 		},
 		{
-			name:    "error_nothing_to_commit",
-			message: "Attempt to commit",
-			err:     errors.New("nothing to commit, working tree clean"),
-			wantErr: true,
+			name:       "error_pre_commit_hook_failed",
+			message:    "Add new code",
+			err:        errors.New("pre-commit hook failed"),
+			wantErr:    true,
+			expectExec: true,
 		},
 		{
-			name:    "error_pre_commit_hook_failed",
-			message: "Add new code",
-			err:     errors.New("pre-commit hook failed"),
-			wantErr: true,
+			name:            "error_empty_message",
+			message:         "",
+			err:             nil,
+			wantErr:         true,
+			expectExec:      false,
+			wantErrContains: "cannot be empty",
+		},
+		{
+			name:            "error_whitespace_message",
+			message:         "   \n",
+			err:             nil,
+			wantErr:         true,
+			expectExec:      false,
+			wantErrContains: "cannot be empty",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			executed := false
 			c := &Client{
 				execCommand: func(name string, arg ...string) *exec.Cmd {
+					executed = true
 					expectedArgs := []string{"commit", "-m", tt.message}
 					if name != "git" || len(arg) != len(expectedArgs) {
 						t.Errorf("unexpected command: %s %v", name, arg)
@@ -86,8 +106,18 @@ func TestClient_Commit(t *testing.T) {
 			}
 
 			err := c.Commit(tt.message)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Commit() error = %v, wantErr %v", err, tt.wantErr)
+			if executed != tt.expectExec {
+				t.Errorf("Commit() exec invoked = %v, expectExec %v", executed, tt.expectExec)
+			}
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("Commit() expected error, got nil")
+				}
+				if tt.wantErrContains != "" && !strings.Contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("Commit() error = %v, want substring %q", err, tt.wantErrContains)
+				}
+			} else if err != nil {
+				t.Errorf("Commit() unexpected error = %v", err)
 			}
 		})
 	}
@@ -196,47 +226,65 @@ func TestClient_CommitAmendNoEdit(t *testing.T) {
 
 func TestClient_CommitAmendWithMessage(t *testing.T) {
 	tests := []struct {
-		name    string
-		message string
-		err     error
-		wantErr bool
+		name            string
+		message         string
+		err             error
+		wantErr         bool
+		expectExec      bool
+		wantErrContains string
 	}{
 		{
-			name:    "success_amend_with_new_message",
-			message: "Updated commit message",
-			err:     nil,
-			wantErr: false,
+			name:       "success_amend_with_new_message",
+			message:    "Updated commit message",
+			err:        nil,
+			wantErr:    false,
+			expectExec: true,
 		},
 		{
-			name:    "success_amend_with_multiline_message",
-			message: "Fix bug\n\nThis addresses the critical issue found in production",
-			err:     nil,
-			wantErr: false,
+			name:       "success_amend_with_multiline_message",
+			message:    "Fix bug\n\nThis addresses the critical issue found in production",
+			err:        nil,
+			wantErr:    false,
+			expectExec: true,
 		},
 		{
-			name:    "success_amend_with_empty_message",
-			message: "",
-			err:     nil,
-			wantErr: false,
+			name:       "error_no_commits",
+			message:    "New message",
+			err:        errors.New("fatal: --amend: no previous commit"),
+			wantErr:    true,
+			expectExec: true,
 		},
 		{
-			name:    "error_no_commits",
-			message: "New message",
-			err:     errors.New("fatal: --amend: no previous commit"),
-			wantErr: true,
+			name:       "error_nothing_to_amend",
+			message:    "Update message",
+			err:        errors.New("nothing to commit, working tree clean"),
+			wantErr:    true,
+			expectExec: true,
 		},
 		{
-			name:    "error_nothing_to_amend",
-			message: "Update message",
-			err:     errors.New("nothing to commit, working tree clean"),
-			wantErr: true,
+			name:            "error_empty_message",
+			message:         "",
+			err:             nil,
+			wantErr:         true,
+			expectExec:      false,
+			wantErrContains: "cannot be empty",
+		},
+		{
+			name:            "error_whitespace_message",
+			message:         "  ",
+			err:             nil,
+			wantErr:         true,
+			expectExec:      false,
+			wantErrContains: "cannot be empty",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			executed := false
 			c := &Client{
 				execCommand: func(name string, arg ...string) *exec.Cmd {
+					executed = true
 					expectedArgs := []string{"commit", "--amend", "-m", tt.message}
 					if name != "git" || len(arg) != len(expectedArgs) {
 						t.Errorf("unexpected command: %s %v", name, arg)
@@ -251,8 +299,18 @@ func TestClient_CommitAmendWithMessage(t *testing.T) {
 			}
 
 			err := c.CommitAmendWithMessage(tt.message)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CommitAmendWithMessage() error = %v, wantErr %v", err, tt.wantErr)
+			if executed != tt.expectExec {
+				t.Errorf("CommitAmendWithMessage() exec invoked = %v, expectExec %v", executed, tt.expectExec)
+			}
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("CommitAmendWithMessage() expected error, got nil")
+				}
+				if tt.wantErrContains != "" && !strings.Contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("CommitAmendWithMessage() error = %v, want substring %q", err, tt.wantErrContains)
+				}
+			} else if err != nil {
+				t.Errorf("CommitAmendWithMessage() unexpected error = %v", err)
 			}
 		})
 	}
