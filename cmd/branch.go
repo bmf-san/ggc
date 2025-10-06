@@ -229,10 +229,6 @@ func (b *Brancher) branchCreate(args []string) {
 			return
 		}
 	}
-	if branchName == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Error: invalid branch name: branch name cannot be empty")
-		return
-	}
 	if err := validateBranchName(branchName); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
 		return
