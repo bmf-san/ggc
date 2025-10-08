@@ -49,7 +49,7 @@ func (b *Brancher) handleBranchCommand(cmd string, args []string) {
 	branchCommands := map[string]func([]string){
 		"current":  func([]string) { b.handleCurrentBranch() },
 		"checkout": b.handleCheckoutCommand,
-		"create":   func([]string) { b.branchCreate() },
+		"create":   b.branchCreate,
 		"delete":   b.handleDeleteCommand,
 		"rename":   func([]string) { b.branchRename() },
 		"move":     func([]string) { b.branchMove() },
@@ -213,15 +213,20 @@ func (b *Brancher) readLine(promptText string) (string, bool) {
 	return line, true
 }
 
-func (b *Brancher) branchCreate() {
-	input, ok := b.readLine("Enter new branch name: ")
-	if !ok {
-		return
-	}
-	branchName := strings.TrimSpace(input)
-	if branchName == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
-		return
+func (b *Brancher) branchCreate(args []string) {
+	var branchName string
+	if len(args) > 0 {
+		branchName = strings.TrimSpace(args[0])
+	} else {
+		input, ok := b.readLine("Enter new branch name: ")
+		if !ok {
+			return
+		}
+		branchName = strings.TrimSpace(input)
+		if branchName == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+			return
+		}
 	}
 	if err := git.ValidateBranchName(branchName); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
