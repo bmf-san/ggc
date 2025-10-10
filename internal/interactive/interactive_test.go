@@ -142,6 +142,46 @@ func TestUI_Run(t *testing.T) {
 	}
 }
 
+func TestUIResetToSearchModeClearsState(t *testing.T) {
+	state := &UIState{
+		selected:     3,
+		input:        "status",
+		cursorPos:    6,
+		filtered:     []CommandInfo{{Command: "status"}},
+		context:      ContextSearch,
+		contextStack: []Context{ContextInput},
+		showWorkflow: true,
+	}
+
+	ui := &UI{state: state}
+
+	if cleared := ui.ResetToSearchMode(); !cleared {
+		t.Fatal("expected reset to report active state before clearing")
+	}
+
+	if state.input != "" {
+		t.Errorf("input not cleared, got %q", state.input)
+	}
+	if state.cursorPos != 0 {
+		t.Errorf("cursorPos should reset to 0, got %d", state.cursorPos)
+	}
+	if state.selected != 0 {
+		t.Errorf("selected should reset to 0, got %d", state.selected)
+	}
+	if len(state.contextStack) != 0 {
+		t.Errorf("context stack should be empty after reset, got %v", state.contextStack)
+	}
+	if gotCtx := state.GetCurrentContext(); gotCtx != ContextGlobal {
+		t.Errorf("want context %v, got %v", ContextGlobal, gotCtx)
+	}
+	if state.showWorkflow {
+		t.Error("workflow flag should be cleared after reset")
+	}
+	if clearedAgain := ui.ResetToSearchMode(); clearedAgain {
+		t.Fatal("expected reset to report inactive state after clearing")
+	}
+}
+
 func TestExtractPlaceholders(t *testing.T) {
 	tests := []struct {
 		name  string

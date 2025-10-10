@@ -278,6 +278,7 @@ func (c *Cmd) Interactive() {
 		if len(args) >= 2 && args[1] == InteractiveWorkflowCommand {
 			// Workflow was executed, wait for user to continue
 			c.waitForContinue()
+			ui.ResetToSearchMode()
 			continue
 		}
 
@@ -285,6 +286,7 @@ func (c *Cmd) Interactive() {
 
 		// Wait for user to continue
 		c.waitForContinue()
+		ui.ResetToSearchMode()
 	}
 }
 

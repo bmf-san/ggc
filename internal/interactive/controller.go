@@ -1695,6 +1695,11 @@ func (ui *UI) resetToSearchMode() bool {
 	return active
 }
 
+// ResetToSearchMode clears the interactive search UI back to its default state.
+func (ui *UI) ResetToSearchMode() bool {
+	return ui.resetToSearchMode()
+}
+
 func (ui *UI) readPlaceholderInput() (string, bool) {
 	if ui == nil || ui.handler == nil {
 		return "", true
