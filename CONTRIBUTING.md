@@ -38,6 +38,7 @@ When implementing new features or modifying existing ones, please ensure to:
 **📋 Checklist for Command Changes:**
 - [ ] cmd/command/registry.go entry added/updated (usage, examples, handler)
 - [ ] Run `make docs` to update README.md and regenerate shell completions
+- [ ] Refresh demo GIFs (`make demos`) if command output or interactions changed
 - [ ] All tests pass (`make test`)
 - [ ] No lint errors (`make lint`)
 
@@ -88,6 +89,10 @@ make docs  # Updates README.md command table automatically
    - Provide clear, helpful error messages
    - Add examples in help text
    - Ensure command behavior is intuitive
+
+## Demo Assets
+
+The animated demos in `docs/demos/generated` are recorded with VHS. Install `vhs`, `ttyd`, and `ffmpeg`, then run `make demos` (or `make docs`) whenever a change affects the showcased workflows. Temporary git fixtures are created automatically under `docs/demos/workspaces/` and wiped during each run.
 
 ## Testing
 - macOS/Linux/WSL2 are recommended environments
