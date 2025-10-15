@@ -47,6 +47,11 @@ type inputOutcome struct {
 	err      error
 }
 
+var (
+	errNilTerminalReader = errors.New("terminal read writer: nil reader")
+	errNilTerminalWriter = errors.New("terminal read writer: nil writer")
+)
+
 // NewDefault returns a prompter wired to stdin/stdout.
 func NewDefault() Interface {
 	return New(os.Stdin, os.Stdout)
@@ -167,7 +172,9 @@ func (p *Prompter) prepareTerminal() (*term.Terminal, func(), bool) {
 	}
 
 	restore := func() {
-		_ = term.Restore(fd, state)
+		if err := term.Restore(fd, state); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "warning: failed to restore terminal: %v\n", err)
+		}
 		if p.reader != nil && p.baseReader != nil {
 			p.reader.Reset(p.baseReader)
 		}
@@ -262,14 +269,14 @@ type terminalReadWriter struct {
 
 func (rw *terminalReadWriter) Read(p []byte) (int, error) {
 	if rw == nil || rw.reader == nil {
-		return 0, io.EOF
+		return 0, errNilTerminalReader
 	}
 	return rw.reader.Read(p)
 }
 
 func (rw *terminalReadWriter) Write(p []byte) (int, error) {
 	if rw == nil || rw.writer == nil {
-		return 0, io.EOF
+		return 0, errNilTerminalWriter
 	}
 	return rw.writer.Write(p)
 }
