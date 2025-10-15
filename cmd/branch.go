@@ -771,27 +771,3 @@ func (b *Brancher) branchContains() {
 	}
 }
 
-// branchDelete provides the original interactive deletion flow (no args)
-func (b *Brancher) branchDelete() {
-	branches, err := b.gitClient.ListLocalBranches()
-	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
-		return
-	}
-	// Exclude current branch from deletion candidates to avoid failing UX
-	if curr, err := b.gitClient.GetCurrentBranch(); err == nil {
-		filtered := make([]string, 0, len(branches))
-		for _, br := range branches {
-			if br != curr {
-				filtered = append(filtered, br)
-			}
-		}
-		branches = filtered
-	}
-	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
-		return
-	}
-
-	b.runBranchDeleteLoop(branches)
-}
