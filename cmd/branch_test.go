@@ -20,6 +20,7 @@ type mockBranchGitClient struct {
 	mergedBranches         []string
 	checkoutNewBranchError bool
 	createdBranches        []string
+	deletedBranches        []string
 	ops                    *mockBranchOperations
 }
 
@@ -58,7 +59,10 @@ func (m *mockBranchGitClient) CheckoutBranch(_ string) error { return nil }
 func (m *mockBranchGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
 	return nil
 }
-func (m *mockBranchGitClient) DeleteBranch(_ string) error { return nil }
+func (m *mockBranchGitClient) DeleteBranch(name string) error {
+	m.deletedBranches = append(m.deletedBranches, name)
+	return nil
+}
 func (m *mockBranchGitClient) ListMergedBranches() ([]string, error) {
 	if m.mergedBranches != nil {
 		return m.mergedBranches, nil
@@ -1108,5 +1112,93 @@ func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
 				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
 			}
 		})
+	}
+}
+
+func TestBrancher_branchDeleteArgs_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{currentBranch: "main"}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchDeleteArgs([]string{"feature/test"})
+
+	if len(mockClient.deletedBranches) != 1 || mockClient.deletedBranches[0] != "feature/test" {
+		t.Fatalf("expected to delete feature/test, got %v", mockClient.deletedBranches)
+	}
+	if got := buf.String(); got != "" {
+		t.Errorf("expected no output on successful deletion, got %q", got)
+	}
+}
+
+func TestBrancher_branchDeleteArgs_MultipleAndSkipCurrent(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{currentBranch: "main"}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchDeleteArgs([]string{"main", "feature/test", "foo"})
+
+	// Should skip current branch 'main'
+	if got := buf.String(); !strings.Contains(got, "Skipping current branch: main") {
+		t.Errorf("expected skip message, got %q", got)
+	}
+	if len(mockClient.deletedBranches) != 2 {
+		t.Fatalf("expected 2 deletions, got %d (%v)", len(mockClient.deletedBranches), mockClient.deletedBranches)
+	}
+	if mockClient.deletedBranches[0] != "feature/test" || mockClient.deletedBranches[1] != "foo" {
+		t.Errorf("unexpected deleted branches: %v", mockClient.deletedBranches)
+	}
+}
+
+func TestBrancher_branchDeleteArgs_NoArgsFallsBackInteractive(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf, prompter: prompt.New(strings.NewReader("1\n"), &buf)}
+
+	brancher.branchDeleteArgs(nil)
+
+	if got := buf.String(); !strings.Contains(got, "Selected branches deleted.") {
+		t.Errorf("expected interactive deletion confirmation, got %q", got)
+	}
+	if len(mockClient.deletedBranches) == 0 {
+		t.Error("expected at least one branch deletion call")
+	}
+}
+
+func TestBrancher_branchInfoArgs_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{currentBranch: "main"}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchInfoArgs([]string{"feature/test"})
+
+	out := buf.String()
+	if !strings.Contains(out, "Name: feature/test") {
+		t.Errorf("expected branch info to be printed; got %q", out)
+	}
+}
+
+func TestBrancher_branchInfoArgs_Multiple(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchInfoArgs([]string{"main", "feature/test"})
+
+	out := buf.String()
+	if !strings.Contains(out, "Name: main") || !strings.Contains(out, "Name: feature/test") {
+		t.Errorf("expected info for both branches; got %q", out)
+	}
+}
+
+func TestBrancher_branchInfoArgs_NoArgsFallsBackInteractive(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf, prompter: prompt.New(strings.NewReader("2\n"), &buf)}
+
+	brancher.branchInfoArgs(nil)
+
+	out := buf.String()
+	if !strings.Contains(out, "Name: feature/test") {
+		t.Errorf("expected info printed for selected branch; got %q", out)
 	}
 }

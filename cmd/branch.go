@@ -54,7 +54,7 @@ func (b *Brancher) handleBranchCommand(cmd string, args []string) {
 		"rename":   func([]string) { b.branchRename() },
 		"move":     func([]string) { b.branchMove() },
 		"set":      b.handleSetCommand,
-		"info":     func([]string) { b.branchInfo() },
+		"info":     b.branchInfoArgs,
 		"list":     b.handleListCommand,
 		"sort":     func([]string) { b.branchSort() },
 		"contains": func([]string) { b.branchContains() },
@@ -91,7 +91,7 @@ func (b *Brancher) handleDeleteCommand(args []string) {
 	if len(args) > 0 && args[0] == "merged" {
 		b.branchDeleteMerged()
 	} else {
-		b.branchDelete()
+		b.branchDeleteArgs(args)
 	}
 }
 
@@ -239,14 +239,50 @@ func (b *Brancher) branchCreate(args []string) {
 	}
 }
 
-func (b *Brancher) branchDelete() {
+func (b *Brancher) branchDeleteArgs(args []string) {
+	if len(args) > 0 {
+		b.deleteBranchesFromArgs(args)
+		return
+	}
+
+	branches, ok := b.collectDeletableBranches()
+	if !ok {
+		return
+	}
+
+	if len(branches) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		return
+	}
+
+	b.runBranchDeleteLoop(branches)
+}
+
+func (b *Brancher) deleteBranchesFromArgs(args []string) {
+	current, _ := b.gitClient.GetCurrentBranch()
+	for _, a := range args {
+		br := strings.TrimSpace(a)
+		if br == "" {
+			continue
+		}
+		if current != "" && br == current {
+			_, _ = fmt.Fprintf(b.outputWriter, "Skipping current branch: %s\n", br)
+			continue
+		}
+		if err := b.gitClient.DeleteBranch(br); err != nil {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		}
+	}
+}
+
+func (b *Brancher) collectDeletableBranches() ([]string, bool) {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
-		return
+		return nil, false
 	}
-	// Exclude current branch from deletion candidates to avoid failing UX
-	if curr, err := b.gitClient.GetCurrentBranch(); err == nil {
+
+	if curr, err := b.gitClient.GetCurrentBranch(); err == nil && curr != "" {
 		filtered := make([]string, 0, len(branches))
 		for _, br := range branches {
 			if br != curr {
@@ -255,12 +291,8 @@ func (b *Brancher) branchDelete() {
 		}
 		branches = filtered
 	}
-	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
-		return
-	}
 
-	b.runBranchDeleteLoop(branches)
+	return branches, true
 }
 
 // runBranchDeleteLoop runs the interactive branch deletion loop
@@ -588,7 +620,19 @@ func (b *Brancher) selectUpstreamBranch() string {
 	return upIn
 }
 
-func (b *Brancher) branchInfo() {
+func (b *Brancher) branchInfoArgs(args []string) {
+	// If a branch name is provided, show info directly (support multiple names)
+	if len(args) > 0 {
+		for _, a := range args {
+			br := strings.TrimSpace(a)
+			if br == "" {
+				continue
+			}
+			b.printBranchInfo(br)
+		}
+		return
+	}
+
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -726,3 +770,4 @@ func (b *Brancher) branchContains() {
 		_, _ = fmt.Fprintln(b.outputWriter, br)
 	}
 }
+
