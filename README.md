@@ -18,7 +18,9 @@ This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c
 
 ## Demo
 
-![Demo](docs/demo.gif)
+| Branch Management | CLI Workflow | Interactive Overview |
+| --- | --- | --- |
+| <img src="docs/demos/generated/branch-management.gif" alt="Branch management demo" width="320"> | <img src="docs/demos/generated/cli-workflow.gif" alt="CLI workflow demo" width="320"> | <img src="docs/demos/generated/interactive-overview.gif" alt="Interactive overview demo" width="320"> |
 
 ## Overview
 
