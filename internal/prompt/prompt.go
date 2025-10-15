@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"golang.org/x/term"
 )
 
 const defaultCancelMessage = "⚠️  Operation canceled"
@@ -32,9 +34,17 @@ type Interface interface {
 
 // Prompter reads from an input stream and writes prompts/results to an output stream.
 type Prompter struct {
+	baseReader    io.Reader
 	reader        *bufio.Reader
 	writer        io.Writer
 	cancelMessage string
+	inputFile     *os.File
+}
+
+type inputOutcome struct {
+	line     string
+	canceled bool
+	err      error
 }
 
 // NewDefault returns a prompter wired to stdin/stdout.
@@ -51,11 +61,16 @@ func New(reader io.Reader, writer io.Writer) Interface {
 		writer = os.Stdout
 	}
 
-	return &Prompter{
+	p := &Prompter{
+		baseReader:    reader,
 		reader:        bufio.NewReader(reader),
 		writer:        writer,
 		cancelMessage: defaultCancelMessage,
 	}
+	if file, ok := reader.(*os.File); ok {
+		p.inputFile = file
+	}
+	return p
 }
 
 // WithCancelMessage allows overriding the cancel message used by the prompter.
@@ -73,6 +88,14 @@ func (p *Prompter) Input(prompt string) (string, bool, error) {
 		return "", true, nil
 	}
 
+	if outcome, used := p.inputWithTerminal(prompt); used {
+		return outcome.line, outcome.canceled, outcome.err
+	}
+
+	return p.inputWithBuffered(prompt)
+}
+
+func (p *Prompter) inputWithBuffered(prompt string) (string, bool, error) {
 	if _, err := fmt.Fprint(p.writer, prompt); err != nil {
 		return "", false, err
 	}
@@ -100,6 +123,61 @@ func (p *Prompter) Input(prompt string) (string, bool, error) {
 	}
 
 	return trimNewline(line), false, nil
+}
+
+func (p *Prompter) inputWithTerminal(prompt string) (inputOutcome, bool) {
+	terminal, restore, ok := p.prepareTerminal()
+	if !ok {
+		return inputOutcome{}, false
+	}
+	defer restore()
+
+	terminal.SetPrompt(prompt)
+
+	line, readErr := terminal.ReadLine()
+	switch {
+	case readErr == nil:
+		return inputOutcome{line: line}, true
+	case errors.Is(readErr, term.ErrPasteIndicator):
+		return inputOutcome{line: line}, true
+	case errors.Is(readErr, io.EOF):
+		if line != "" {
+			return inputOutcome{line: line}, true
+		}
+		p.printCancelMessage()
+		return inputOutcome{canceled: true}, true
+	default:
+		return inputOutcome{err: readErr}, true
+	}
+}
+
+func (p *Prompter) prepareTerminal() (*term.Terminal, func(), bool) {
+	if p == nil || p.inputFile == nil {
+		return nil, nil, false
+	}
+
+	fd := int(p.inputFile.Fd())
+	if !term.IsTerminal(fd) {
+		return nil, nil, false
+	}
+
+	state, err := term.MakeRaw(fd)
+	if err != nil {
+		return nil, nil, false
+	}
+
+	restore := func() {
+		_ = term.Restore(fd, state)
+		if p.reader != nil && p.baseReader != nil {
+			p.reader.Reset(p.baseReader)
+		}
+	}
+
+	terminal := term.NewTerminal(&terminalReadWriter{
+		reader: p.inputFile,
+		writer: p.writer,
+	}, "")
+	return terminal, restore, true
 }
 
 // Select displays a numbered list and prompts the user to choose an item.
@@ -175,6 +253,25 @@ func (p *Prompter) printCancelMessage() {
 	if _, err := fmt.Fprintf(p.writer, "\n%s\n", p.cancelMessage); err != nil {
 		_ = err // explicitly ignore printing errors
 	}
+}
+
+type terminalReadWriter struct {
+	reader *os.File
+	writer io.Writer
+}
+
+func (rw *terminalReadWriter) Read(p []byte) (int, error) {
+	if rw == nil || rw.reader == nil {
+		return 0, io.EOF
+	}
+	return rw.reader.Read(p)
+}
+
+func (rw *terminalReadWriter) Write(p []byte) (int, error) {
+	if rw == nil || rw.writer == nil {
+		return 0, io.EOF
+	}
+	return rw.writer.Write(p)
 }
 
 func trimNewline(s string) string {
