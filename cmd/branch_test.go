@@ -324,7 +324,7 @@ func TestBrancher_branchDelete_Success(t *testing.T) {
 		prompter:     prompt.New(strings.NewReader("1 2\n"), &buf),
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "feature/test") {
@@ -348,7 +348,7 @@ func TestBrancher_branchDelete_All(t *testing.T) {
 		prompter:     prompt.New(strings.NewReader("all\n"), &buf),
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "All branches deleted.") {
@@ -369,7 +369,7 @@ func TestBrancher_branchDelete_Cancel(t *testing.T) {
 		prompter:     prompt.New(strings.NewReader("\n"), &buf),
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "Canceled.") {
@@ -389,7 +389,7 @@ func TestBrancher_branchDelete_Error(t *testing.T) {
 		outputWriter: &buf,
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to list branches") {
@@ -409,7 +409,7 @@ func TestBrancher_branchDelete_NoBranches(t *testing.T) {
 		outputWriter: &buf,
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "No local branches found.") {
@@ -1054,7 +1054,7 @@ func TestBrancher_Branch_BoundaryDeleteOperations(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
-			brancher.branchDelete()
+			brancher.branchDeleteArgs(nil)
 
 			output := buf.String()
 			if !strings.Contains(output, tt.expected) {
@@ -1105,7 +1105,7 @@ func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
-			brancher.branchDelete()
+			brancher.branchDeleteArgs(nil)
 
 			output := buf.String()
 			if !strings.Contains(output, tt.expected) {
