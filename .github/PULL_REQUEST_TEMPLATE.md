@@ -13,6 +13,7 @@ Example: close #123
 - [ ] Code passes linter checks via `make lint`
 - [ ] All tests are passing
 - [ ] If commands were added/modified: I have run `make docs` to update README.md
+- [ ] I have run `make demos` to regenerate demo assets (if applicable)
 
 ## Screenshots (if appropriate)
 Add screenshots to help explain your changes.
