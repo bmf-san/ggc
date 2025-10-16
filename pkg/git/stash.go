@@ -82,6 +82,27 @@ func (c *Client) StashPop(stash string) error {
 	return nil
 }
 
+// StashPush creates a stash with an optional message.
+func (c *Client) StashPush(message string) error {
+	args := []string{"stash", "push"}
+	if message != "" {
+		args = append(args, "-m", message)
+	}
+
+	cmd := c.execCommand("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		cmdStr := "git stash push"
+		if message != "" {
+			cmdStr = "git stash push -m " + message
+		}
+		return NewError("stash push", cmdStr, err)
+	}
+
+	return nil
+}
+
 // StashDrop drops a stash.
 func (c *Client) StashDrop(stash string) error {
 	var cmd = c.execCommand("git", "stash", "drop")
