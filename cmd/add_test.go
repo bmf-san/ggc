@@ -167,6 +167,7 @@ func (m *mockAddGitClient) StashList() (string, error) { return "", nil }
 func (m *mockAddGitClient) StashShow(_ string) error   { return nil }
 func (m *mockAddGitClient) StashApply(_ string) error  { return nil }
 func (m *mockAddGitClient) StashPop(_ string) error    { return nil }
+func (m *mockAddGitClient) StashPush(_ string) error   { return nil }
 func (m *mockAddGitClient) StashDrop(_ string) error   { return nil }
 func (m *mockAddGitClient) StashClear() error          { return nil }
 

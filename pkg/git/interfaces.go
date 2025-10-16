@@ -182,6 +182,7 @@ type StashOps interface {
 	StashShow(stash string) error
 	StashApply(stash string) error
 	StashPop(stash string) error
+	StashPush(stash string) error
 	StashDrop(stash string) error
 	StashClear() error
 }
