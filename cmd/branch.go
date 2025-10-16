@@ -770,4 +770,3 @@ func (b *Brancher) branchContains() {
 		_, _ = fmt.Fprintln(b.outputWriter, br)
 	}
 }
-
