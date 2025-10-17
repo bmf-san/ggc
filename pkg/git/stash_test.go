@@ -172,6 +172,46 @@ func TestClient_StashPop(t *testing.T) {
 	}
 }
 
+func TestClient_StashPush(t *testing.T) {
+	tests := []struct {
+		name     string
+		message  string
+		wantArgs []string
+	}{
+		{
+			name:     "push without message",
+			message:  "",
+			wantArgs: []string{"git", "stash", "push"},
+		},
+		{
+			name:     "push with message",
+			message:  "update docs",
+			wantArgs: []string{"git", "stash", "push", "-m", "update docs"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotArgs []string
+			client := &Client{
+				execCommand: func(name string, args ...string) *exec.Cmd {
+					gotArgs = append([]string{name}, args...)
+					return exec.Command("echo")
+				},
+			}
+
+			err := client.StashPush(tt.message)
+			if err != nil {
+				t.Errorf("StashPush() error = %v", err)
+			}
+
+			if !slices.Equal(gotArgs, tt.wantArgs) {
+				t.Errorf("StashPush() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+		})
+	}
+}
+
 func TestClient_StashDrop(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -393,5 +433,18 @@ func TestClient_StashClear_Error(t *testing.T) {
 	err := client.StashClear()
 	if err == nil {
 		t.Error("Expected StashClear to return an error")
+	}
+}
+
+func TestClient_StashPush_Error(t *testing.T) {
+	client := &Client{
+		execCommand: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("false") // Command that always fails
+		},
+	}
+
+	err := client.StashPush("message")
+	if err == nil {
+		t.Error("Expected StashPush to return an error")
 	}
 }
