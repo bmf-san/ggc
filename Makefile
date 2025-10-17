@@ -62,8 +62,7 @@ docs:
 	@go run tools/cmd/gendocs/main.go
 	@echo "README.md command table updated from registry"
 	@$(MAKE) completions
-	@$(MAKE) demos
-	@echo "Documentation, completions, and demos refreshed"
+	@echo "Documentation, completions updated successfully"
 
 
 DEMO_SCENARIOS := cli-workflow interactive-overview branch-management stash-cycle
@@ -95,7 +94,6 @@ demos: build
 	@GGC_DEMO_CLI_WORKDIR=$(DEMO_WORKSPACE_ROOT)/cli-workflow PATH="$(CURDIR):$$PATH" vhs docs/demos/scripts/cli-workflow.tape
 	@GGC_DEMO_INTERACTIVE_WORKDIR=$(DEMO_WORKSPACE_ROOT)/interactive-overview PATH="$(CURDIR):$$PATH" vhs docs/demos/scripts/interactive-overview.tape
 	@GGC_DEMO_BRANCH_WORKDIR=$(DEMO_WORKSPACE_ROOT)/branch-management PATH="$(CURDIR):$$PATH" vhs docs/demos/scripts/branch-management.tape
-	@GGC_DEMO_STASH_WORKDIR=$(DEMO_WORKSPACE_ROOT)/stash-cycle PATH="$(CURDIR):$$PATH" vhs docs/demos/scripts/stash-cycle.tape
 	@echo "Demo assets written to $(DEMO_OUTPUT_DIR)"
 
 completions:
