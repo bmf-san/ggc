@@ -13,6 +13,8 @@ import (
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
+const errMsgBranchNameEmpty = "Error: branch name cannot be empty."
+
 // Brancher provides functionality for the branch command.
 type Brancher struct {
 	gitClient    git.BranchOps
@@ -51,13 +53,13 @@ func (b *Brancher) handleBranchCommand(cmd string, args []string) {
 		"checkout": b.handleCheckoutCommand,
 		"create":   b.branchCreate,
 		"delete":   b.handleDeleteCommand,
-		"rename":   func([]string) { b.branchRename() },
-		"move":     func([]string) { b.branchMove() },
+		"rename":   b.branchRename,
+		"move":     b.branchMove,
 		"set":      b.handleSetCommand,
-		"info":     b.branchInfoArgs,
+		"info":     b.branchInfo,
 		"list":     b.handleListCommand,
-		"sort":     func([]string) { b.branchSort() },
-		"contains": func([]string) { b.branchContains() },
+		"sort":     b.branchSort,
+		"contains": b.branchContains,
 	}
 
 	if handler, exists := branchCommands[cmd]; exists {
@@ -98,7 +100,7 @@ func (b *Brancher) handleDeleteCommand(args []string) {
 // handleSetCommand handles set subcommand
 func (b *Brancher) handleSetCommand(args []string) {
 	if len(args) > 0 && args[0] == "upstream" {
-		b.branchSetUpstream()
+		b.branchSetUpstream(args[1:])
 		return
 	}
 	b.helper.ShowBranchHelp()
@@ -478,21 +480,39 @@ func (b *Brancher) handleMergedBranchSelection(input string, branches []string) 
 
 // parseMergedBranchIndices parses user input into selected merged branches
 func (b *Brancher) parseMergedBranchIndices(input string, branches []string) ([]string, bool) {
-	indices := strings.Fields(input)
-	selectedBranches := []string{}
-
-	for _, idx := range indices {
-		n, err := strconv.Atoi(idx)
-		if err != nil || n < 1 || n > len(branches) {
-			_, _ = fmt.Fprintf(b.outputWriter, "\033[1;31mInvalid number: %s\033[0m\n", idx)
-			return nil, false
-		}
-		selectedBranches = append(selectedBranches, branches[n-1])
+	selected, ok := b.parseBranchIndices(input, branches)
+	if !ok {
+		return nil, false
 	}
-	return selectedBranches, true
+	return selected, true
 }
 
-func (b *Brancher) branchRename() {
+func (b *Brancher) branchRename(args []string) {
+	if len(args) >= 2 {
+		oldName := strings.TrimSpace(args[0])
+		newName := strings.TrimSpace(args[1])
+		if oldName == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			return
+		}
+		if newName == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, "Error: new branch name cannot be empty.")
+			return
+		}
+		if err := git.ValidateBranchName(newName); err != nil {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
+			return
+		}
+		if err := b.gitClient.RenameBranch(oldName, newName); err != nil {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		}
+		return
+	}
+
+	b.branchRenameInteractive()
+}
+
+func (b *Brancher) branchRenameInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -526,7 +546,32 @@ func (b *Brancher) branchRename() {
 	}
 }
 
-func (b *Brancher) branchMove() {
+func (b *Brancher) branchMove(args []string) {
+	if len(args) >= 2 {
+		branch := strings.TrimSpace(args[0])
+		commit := strings.TrimSpace(args[1])
+		if branch == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			return
+		}
+		if commit == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, "Error: commit or ref cannot be empty.")
+			return
+		}
+		if !b.gitClient.RevParseVerify(commit) {
+			_, _ = fmt.Fprintln(b.outputWriter, "Invalid commit or ref.")
+			return
+		}
+		if err := b.gitClient.MoveBranch(branch, commit); err != nil {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		}
+		return
+	}
+
+	b.branchMoveInteractive()
+}
+
+func (b *Brancher) branchMoveInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -560,7 +605,29 @@ func (b *Brancher) branchMove() {
 	}
 }
 
-func (b *Brancher) branchSetUpstream() {
+func (b *Brancher) branchSetUpstream(args []string) {
+	switch len(args) {
+	case 0:
+		b.branchSetUpstreamInteractive()
+	case 2:
+		branch := strings.TrimSpace(args[0])
+		if branch == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			return
+		}
+		upstream, ok := b.resolveUpstreamArgument(strings.TrimSpace(args[1]))
+		if !ok {
+			return
+		}
+		if err := b.gitClient.SetUpstreamBranch(branch, upstream); err != nil {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		}
+	default:
+		_, _ = fmt.Fprintln(b.outputWriter, "Error: branch set upstream expects <branch> <upstream>.")
+	}
+}
+
+func (b *Brancher) branchSetUpstreamInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -584,6 +651,28 @@ func (b *Brancher) branchSetUpstream() {
 	if err := b.gitClient.SetUpstreamBranch(branch, upstream); err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
 	}
+}
+
+func (b *Brancher) resolveUpstreamArgument(input string) (string, bool) {
+	if input == "" {
+		_, _ = fmt.Fprintln(b.outputWriter, "Error: upstream cannot be empty.")
+		return "", false
+	}
+
+	if idx, err := strconv.Atoi(input); err == nil {
+		remotes, listErr := b.gitClient.ListRemoteBranches()
+		if listErr != nil {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", listErr)
+			return "", false
+		}
+		if idx < 1 || idx > len(remotes) {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid remote selection: %d\n", idx)
+			return "", false
+		}
+		return remotes[idx-1], true
+	}
+
+	return input, true
 }
 
 // selectLocalBranch prompts user to select a local branch
@@ -620,19 +709,26 @@ func (b *Brancher) selectUpstreamBranch() string {
 	return upIn
 }
 
-func (b *Brancher) branchInfoArgs(args []string) {
-	// If a branch name is provided, show info directly (support multiple names)
-	if len(args) > 0 {
-		for _, a := range args {
-			br := strings.TrimSpace(a)
-			if br == "" {
-				continue
-			}
-			b.printBranchInfo(br)
-		}
+func (b *Brancher) branchInfo(args []string) {
+	if len(args) > 1 {
+		_, _ = fmt.Fprintln(b.outputWriter, "Error: branch info accepts at most one branch name.")
 		return
 	}
 
+	if len(args) == 1 {
+		branch := strings.TrimSpace(args[0])
+		if branch == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			return
+		}
+		b.printBranchInfo(branch)
+		return
+	}
+
+	b.branchInfoInteractive()
+}
+
+func (b *Brancher) branchInfoInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
@@ -726,16 +822,47 @@ func (b *Brancher) branchListRemote() {
 	}
 }
 
-func (b *Brancher) branchSort() {
+func (b *Brancher) branchSort(args []string) {
+	if len(args) > 1 {
+		_, _ = fmt.Fprintln(b.outputWriter, "Error: branch sort accepts at most one option (name|date).")
+		return
+	}
+
+	if len(args) == 1 {
+		choice := strings.ToLower(strings.TrimSpace(args[0]))
+		if choice == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, "Error: sort option cannot be empty.")
+			return
+		}
+		if choice != "name" && choice != "date" {
+			_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid sort option %q. Use 'name' or 'date'.\n", args[0])
+			return
+		}
+		b.printSortedBranches(choice)
+		return
+	}
+
+	b.branchSortInteractive()
+}
+
+func (b *Brancher) branchSortInteractive() {
 	opts := []string{"name", "date"}
 	idx, ok := b.promptSelectIndex("Sort by:", opts, "Enter number: ")
 	if !ok {
 		return
 	}
 	by := opts[idx]
+	b.printSortedBranches(by)
+}
+
+func (b *Brancher) printSortedBranches(by string) {
 	names, err := b.gitClient.SortBranches(by)
 	if err != nil {
 		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		return
+	}
+	if len(names) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
 		return
 	}
 	for _, n := range names {
@@ -743,7 +870,26 @@ func (b *Brancher) branchSort() {
 	}
 }
 
-func (b *Brancher) branchContains() {
+func (b *Brancher) branchContains(args []string) {
+	if len(args) > 1 {
+		_, _ = fmt.Fprintln(b.outputWriter, "Error: branch contains accepts at most one commit or ref.")
+		return
+	}
+
+	if len(args) == 1 {
+		commit := strings.TrimSpace(args[0])
+		if commit == "" {
+			_, _ = fmt.Fprintln(b.outputWriter, "Error: commit or ref cannot be empty.")
+			return
+		}
+		b.branchContainsForCommit(commit)
+		return
+	}
+
+	b.branchContainsInteractive()
+}
+
+func (b *Brancher) branchContainsInteractive() {
 	input, ok := b.readLine("Enter commit or ref: ")
 	if !ok {
 		return
@@ -753,6 +899,10 @@ func (b *Brancher) branchContains() {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
 		return
 	}
+	b.branchContainsForCommit(commit)
+}
+
+func (b *Brancher) branchContainsForCommit(commit string) {
 	if !b.gitClient.RevParseVerify(commit) {
 		_, _ = fmt.Fprintln(b.outputWriter, "Invalid commit or ref.")
 		return

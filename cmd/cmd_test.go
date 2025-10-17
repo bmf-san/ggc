@@ -457,11 +457,20 @@ func TestCmd_Help(t *testing.T) {
 		}
 	}()
 
-	cmd.Help()
+	cmd.Help(nil)
 
 	// Verify that help was actually called (buffer should have content)
 	if buf.Len() == 0 {
 		t.Error("Help() should produce output")
+	}
+
+	buf.Reset()
+	cmd.Help([]string{"branch"})
+	if buf.Len() == 0 {
+		t.Error("Help(command) should produce output")
+	}
+	if !strings.Contains(buf.String(), "ggc branch") {
+		t.Error("Help(command) should render branch usage")
 	}
 }
 
