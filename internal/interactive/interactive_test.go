@@ -337,6 +337,96 @@ func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 	// even if they don't start with it, so this test section is no longer needed
 }
 
+func TestUIState_UpdateFiltered_SortsByRelevance(t *testing.T) {
+	original := commands
+	commands = []CommandInfo{
+		{Command: "status", Description: "status desc"},
+		{Command: "stash", Description: "stash desc"},
+		{Command: "stage", Description: "stage desc"},
+	}
+	defer func() { commands = original }()
+
+	state := &UIState{
+		selected:  0,
+		input:     "sta",
+		cursorPos: 3,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	got := make([]string, len(state.filtered))
+	for i, cmd := range state.filtered {
+		got[i] = cmd.Command
+	}
+
+	expected := []string{"stash", "stage", "status"}
+	if !slices.Equal(got, expected) {
+		t.Errorf("expected order %v, got %v", expected, got)
+	}
+}
+
+func TestUIState_UpdateFiltered_PrefersBaseCommand(t *testing.T) {
+	original := commands
+	commands = []CommandInfo{
+		{Command: "commit <message>", Description: "base commit"},
+		{Command: "commit amend", Description: "amend commit"},
+		{Command: "commit allow empty", Description: "allow empty"},
+	}
+	defer func() { commands = original }()
+
+	state := &UIState{
+		selected:  0,
+		input:     "commit",
+		cursorPos: 6,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	got := make([]string, len(state.filtered))
+	for i, cmd := range state.filtered {
+		got[i] = cmd.Command
+	}
+
+	expected := []string{"commit <message>", "commit amend", "commit allow empty"}
+	if !slices.Equal(got, expected) {
+		t.Errorf("expected order %v, got %v", expected, got)
+	}
+}
+
+func TestUIState_UpdateFiltered_PrefersBranchCommands(t *testing.T) {
+	original := commands
+	commands = []CommandInfo{
+		{Command: "stash branch", Description: "stash branch"},
+		{Command: "branch checkout", Description: "branch checkout"},
+		{Command: "branch delete", Description: "branch delete"},
+	}
+	defer func() { commands = original }()
+
+	state := &UIState{
+		selected:  0,
+		input:     "branch",
+		cursorPos: 6,
+		filtered:  []CommandInfo{},
+	}
+
+	state.UpdateFiltered()
+
+	if len(state.filtered) != 3 {
+		t.Fatalf("expected 3 filtered commands, got %d", len(state.filtered))
+	}
+	if !strings.HasPrefix(state.filtered[0].Command, "branch") {
+		t.Fatalf("expected first result to be a branch command, got %s", state.filtered[0].Command)
+	}
+	if !strings.HasPrefix(state.filtered[1].Command, "branch") {
+		t.Fatalf("expected second result to be a branch command, got %s", state.filtered[1].Command)
+	}
+	if state.filtered[2].Command != "stash branch" {
+		t.Fatalf("expected stash branch to rank last, got %s", state.filtered[2].Command)
+	}
+}
+
 // Test fuzzy matching with non-consecutive characters
 func TestUIState_UpdateFiltered_FuzzyNonConsecutive(t *testing.T) {
 	state := &UIState{
@@ -394,6 +484,24 @@ func TestFuzzyMatch(t *testing.T) {
 		if result != tc.expected {
 			t.Errorf("fuzzyMatch(%q, %q) = %v, expected %v", tc.text, tc.pattern, result, tc.expected)
 		}
+	}
+}
+
+func TestFuzzyMatchScoreContinuationPenalty(t *testing.T) {
+	_, baseScore := fuzzyMatchScore("commit <message>", "commit")
+	_, variantScore := fuzzyMatchScore("commit amend", "commit")
+
+	if !baseScore.less(variantScore) {
+		t.Errorf("expected base command score %v to be less than variant score %v", baseScore, variantScore)
+	}
+}
+
+func TestFuzzyMatchScoreGapPreference(t *testing.T) {
+	_, tight := fuzzyMatchScore("branch", "brn")
+	_, loose := fuzzyMatchScore("branch delete", "brn")
+
+	if !tight.less(loose) {
+		t.Errorf("expected tighter match score %v to be less than loose score %v", tight, loose)
 	}
 }
 
