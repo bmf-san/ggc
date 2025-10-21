@@ -297,32 +297,64 @@ func fuzzyMatchScore(text, pattern string) (bool, matchScore) {
 	textRunes := []rune(text)
 	patternRunes := []rune(pattern)
 
+	matched, meta := matchPattern(textRunes, patternRunes)
+	if !matched {
+		return false, matchScore{}
+	}
+
+	trailing := len(textRunes) - meta.lastIndex - 1
+	continuation := continuationPenalty(textRunes, meta.lastIndex)
+	score := matchScore{
+		first:        meta.firstIndex,
+		gap:          meta.gapScore,
+		trailing:     trailing,
+		continuation: continuation,
+		length:       len(textRunes),
+	}
+
+	return true, score
+}
+
+type matchMetadata struct {
+	firstIndex int
+	lastIndex  int
+	gapScore   int
+}
+
+func matchPattern(textRunes, patternRunes []rune) (bool, matchMetadata) {
+	meta := matchMetadata{
+		firstIndex: -1,
+		lastIndex:  -1,
+	}
+
 	textIdx := 0
 	patternIdx := 0
-	firstMatchIdx := -1
-	lastMatchIdx := -1
-	gapScore := 0
 
 	for textIdx < len(textRunes) && patternIdx < len(patternRunes) {
 		if textRunes[textIdx] == patternRunes[patternIdx] {
-			if firstMatchIdx == -1 {
-				firstMatchIdx = textIdx
+			if meta.firstIndex == -1 {
+				meta.firstIndex = textIdx
 			}
-			if lastMatchIdx != -1 {
-				gapScore += textIdx - lastMatchIdx - 1
+			if meta.lastIndex != -1 {
+				meta.gapScore += textIdx - meta.lastIndex - 1
 			}
-			lastMatchIdx = textIdx
+			meta.lastIndex = textIdx
 			patternIdx++
 		}
 		textIdx++
 	}
 
 	if patternIdx != len(patternRunes) {
-		return false, matchScore{}
+		return false, meta
 	}
 
-	trailing := len(textRunes) - lastMatchIdx - 1
-	continuation := 0
+	return true, meta
+}
+
+func continuationPenalty(textRunes []rune, lastMatchIdx int) int {
+	if lastMatchIdx < 0 || lastMatchIdx+1 >= len(textRunes) {
+		return 0
+	}
 
 	nextIdx := lastMatchIdx + 1
 	spaceSkipped := false
@@ -330,19 +362,12 @@ func fuzzyMatchScore(text, pattern string) (bool, matchScore) {
 		spaceSkipped = true
 		nextIdx++
 	}
+
 	if spaceSkipped && nextIdx < len(textRunes) && (unicode.IsLetter(textRunes[nextIdx]) || unicode.IsDigit(textRunes[nextIdx])) {
-		continuation = 1
+		return 1
 	}
 
-	score := matchScore{
-		first:        firstMatchIdx,
-		gap:          gapScore,
-		trailing:     trailing,
-		continuation: continuation,
-		length:       len(textRunes),
-	}
-
-	return true, score
+	return 0
 }
 
 type matchScore struct {
