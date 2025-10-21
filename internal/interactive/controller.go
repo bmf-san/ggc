@@ -186,7 +186,8 @@ type UIState struct {
 func (s *UIState) UpdateFiltered() {
 	input := strings.ToLower(s.input)
 	if input == "" {
-		s.filtered = append([]CommandInfo(nil), commands...)
+		s.filtered = make([]CommandInfo, len(commands))
+		copy(s.filtered, commands)
 	} else {
 		type match struct {
 			info  CommandInfo
