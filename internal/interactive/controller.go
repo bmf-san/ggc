@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -183,12 +184,27 @@ type UIState struct {
 
 // UpdateFiltered updates the filtered commands based on current input using fuzzy matching
 func (s *UIState) UpdateFiltered() {
-	s.filtered = []CommandInfo{}
 	input := strings.ToLower(s.input)
-	for _, cmd := range commands {
-		cmdLower := strings.ToLower(cmd.Command)
-		if fuzzyMatch(cmdLower, input) {
-			s.filtered = append(s.filtered, cmd)
+	if input == "" {
+		s.filtered = append([]CommandInfo(nil), commands...)
+	} else {
+		type match struct {
+			info  CommandInfo
+			score matchScore
+		}
+		matches := make([]match, 0, len(commands))
+		for _, cmd := range commands {
+			cmdLower := strings.ToLower(cmd.Command)
+			if ok, score := fuzzyMatchScore(cmdLower, input); ok {
+				matches = append(matches, match{info: cmd, score: score})
+			}
+		}
+		sort.SliceStable(matches, func(i, j int) bool {
+			return matches[i].score.less(matches[j].score)
+		})
+		s.filtered = make([]CommandInfo, len(matches))
+		for i, match := range matches {
+			s.filtered[i] = match.info
 		}
 	}
 	// Reset selection if out of bounds
@@ -267,8 +283,15 @@ func (s *UIState) IsInSearchMode() bool {
 // fuzzyMatch performs fuzzy matching between text and pattern
 // Returns true if all characters in pattern appear in text in order (but not necessarily consecutive)
 func fuzzyMatch(text, pattern string) bool {
+	matched, _ := fuzzyMatchScore(text, pattern)
+	return matched
+}
+
+// fuzzyMatchScore returns whether the pattern matches the text and a relevance score for sorting results.
+// Lower scores indicate a tighter, earlier match.
+func fuzzyMatchScore(text, pattern string) (bool, matchScore) {
 	if pattern == "" {
-		return true
+		return true, matchScore{length: len([]rune(text))}
 	}
 
 	textRunes := []rune(text)
@@ -276,15 +299,77 @@ func fuzzyMatch(text, pattern string) bool {
 
 	textIdx := 0
 	patternIdx := 0
+	firstMatchIdx := -1
+	lastMatchIdx := -1
+	gapScore := 0
 
 	for textIdx < len(textRunes) && patternIdx < len(patternRunes) {
 		if textRunes[textIdx] == patternRunes[patternIdx] {
+			if firstMatchIdx == -1 {
+				firstMatchIdx = textIdx
+			}
+			if lastMatchIdx != -1 {
+				gapScore += textIdx - lastMatchIdx - 1
+			}
+			lastMatchIdx = textIdx
 			patternIdx++
 		}
 		textIdx++
 	}
 
-	return patternIdx == len(patternRunes)
+	if patternIdx != len(patternRunes) {
+		return false, matchScore{}
+	}
+
+	trailing := len(textRunes) - lastMatchIdx - 1
+	continuation := 0
+
+	nextIdx := lastMatchIdx + 1
+	spaceSkipped := false
+	for nextIdx < len(textRunes) && textRunes[nextIdx] == ' ' {
+		spaceSkipped = true
+		nextIdx++
+	}
+	if spaceSkipped && nextIdx < len(textRunes) && (unicode.IsLetter(textRunes[nextIdx]) || unicode.IsDigit(textRunes[nextIdx])) {
+		continuation = 1
+	}
+
+	score := matchScore{
+		first:        firstMatchIdx,
+		gap:          gapScore,
+		trailing:     trailing,
+		continuation: continuation,
+		length:       len(textRunes),
+	}
+
+	return true, score
+}
+
+type matchScore struct {
+	first        int
+	gap          int
+	trailing     int
+	continuation int
+	length       int
+}
+
+func (m matchScore) less(other matchScore) bool {
+	if m.first != other.first {
+		return m.first < other.first
+	}
+	if m.gap != other.gap {
+		return m.gap < other.gap
+	}
+	if m.continuation != other.continuation {
+		return m.continuation < other.continuation
+	}
+	if m.trailing != other.trailing {
+		return m.trailing < other.trailing
+	}
+	if m.length != other.length {
+		return m.length < other.length
+	}
+	return false
 }
 
 // MoveUp moves selection up
