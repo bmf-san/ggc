@@ -692,6 +692,9 @@ func (b *Brancher) selectUpstreamBranch() string {
 		return ""
 	}
 
+	if len(remotes) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No remote branches found.")
+	}
 	b.displayRemoteBranches(remotes)
 
 	upIn, ok := b.readLine("Enter upstream (name or number): ")

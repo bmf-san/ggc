@@ -1798,3 +1798,31 @@ func TestBrancher_selectUpstreamBranch_IndexOutOfRange(t *testing.T) {
 		t.Errorf("expected '999' (out of range index returned as-is), got %q", result)
 	}
 }
+
+func TestBrancher_selectUpstreamBranch_NoRemoteBranches(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("origin/main\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	if result != "origin/main" {
+		t.Errorf("expected 'origin/main', got %q", result)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "No remote branches found.") {
+		t.Errorf("expected 'No remote branches found.' message in output, got: %s", output)
+	}
+	// Should still allow manual input
+	if !strings.Contains(output, "Enter upstream") {
+		t.Errorf("expected upstream prompt in output, got: %s", output)
+	}
+}
