@@ -1697,3 +1697,104 @@ func TestBrancher_branchInfo_NoArgsFallsBackInteractive(t *testing.T) {
 		t.Errorf("expected info printed for selected branch; got %q", out)
 	}
 }
+
+func TestBrancher_selectUpstreamBranch_ErrorHandling(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return nil, errors.New("network error: connection refused")
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("origin/main\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	if result != "" {
+		t.Errorf("expected empty string when ListRemoteBranches fails, got %q", result)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "Error listing remote branches") {
+		t.Errorf("expected error message in output, got: %s", output)
+	}
+	if !strings.Contains(output, "network error") {
+		t.Errorf("expected original error message in output, got: %s", output)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_EmptyBranchesFiltered(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main", "", "  ", "origin/feature"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("2\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	// After filtering empty strings, index 2 should map to "origin/feature"
+	if result != "origin/feature" {
+		t.Errorf("expected 'origin/feature', got %q", result)
+	}
+	output := buf.String()
+	// Should only show 2 valid branches
+	if strings.Count(output, "[1]") != 1 || strings.Count(output, "[2]") != 1 {
+		t.Errorf("expected exactly 2 numbered branches in output, got: %s", output)
+	}
+	if strings.Count(output, "[3]") > 0 {
+		t.Errorf("expected no third branch (empty ones should be filtered), got: %s", output)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_Success(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main", "origin/develop"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	if result != "origin/main" {
+		t.Errorf("expected 'origin/main', got %q", result)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "Remote branches:") {
+		t.Errorf("expected 'Remote branches:' in output, got: %s", output)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_IndexOutOfRange(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("999\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	// When index is out of range, it should return the input as-is (not index into array)
+	if result != "999" {
+		t.Errorf("expected '999' (out of range index returned as-is), got %q", result)
+	}
+}
