@@ -27,6 +27,12 @@ func TestClient_ListLocalBranches(t *testing.T) {
 			want:    []string{"main"},
 			wantErr: false,
 		},
+		{
+			name:    "empty_output_returns_empty_slice",
+			output:  "",
+			want:    []string{},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -69,6 +75,12 @@ func TestClient_ListRemoteBranches(t *testing.T) {
 			name:    "success_single_remote_branch",
 			output:  "origin/main",
 			want:    []string{"origin/main"},
+			wantErr: false,
+		},
+		{
+			name:    "empty_output_returns_empty_slice",
+			output:  "   \n",
+			want:    []string{},
 			wantErr: false,
 		},
 	}
@@ -275,6 +287,22 @@ func TestClient_SortBranches(t *testing.T) {
 	}
 }
 
+func TestClient_SortBranches_EmptyOutput(t *testing.T) {
+	c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
+		if name != "git" || strings.Join(arg, " ") != "branch --sort=refname --format %(refname:short)" {
+			t.Errorf("unexpected command: %s %v", name, arg)
+		}
+		return fakeExecCommand("")
+	}}
+	got, err := c.SortBranches("name")
+	if err != nil {
+		t.Fatalf("SortBranches empty output error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty slice, got %v", got)
+	}
+}
+
 func TestClient_BranchesContaining(t *testing.T) {
 	c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
 		if name != "git" || !strings.Contains(strings.Join(arg, " "), "branch --contains abc123") {
@@ -288,6 +316,22 @@ func TestClient_BranchesContaining(t *testing.T) {
 	}
 	if !slices.Equal(got, []string{"main", "feature", "bugfix"}) {
 		t.Errorf("unexpected branches: %v", got)
+	}
+}
+
+func TestClient_BranchesContaining_EmptyOutput(t *testing.T) {
+	c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
+		if name != "git" || !strings.Contains(strings.Join(arg, " "), "branch --contains abc123") {
+			t.Errorf("unexpected command: %s %v", name, arg)
+		}
+		return fakeExecCommand("")
+	}}
+	got, err := c.BranchesContaining("abc123")
+	if err != nil {
+		t.Fatalf("BranchesContaining empty output error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty slice, got %v", got)
 	}
 }
 
