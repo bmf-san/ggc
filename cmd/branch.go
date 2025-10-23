@@ -686,13 +686,17 @@ func (b *Brancher) selectLocalBranch(branches []string) string {
 
 // selectUpstreamBranch prompts user to select an upstream branch
 func (b *Brancher) selectUpstreamBranch() string {
-	remotes, _ := b.gitClient.ListRemoteBranches()
-	if len(remotes) > 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "Remote branches:")
-		for i, rb := range remotes {
-			_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, rb)
-		}
+	remotes, err := b.getValidRemoteBranches()
+	if err != nil {
+		_, _ = fmt.Fprintf(b.outputWriter, "Error listing remote branches: %v\n", err)
+		return ""
 	}
+
+	if len(remotes) == 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "No remote branches found.")
+	}
+	b.displayRemoteBranches(remotes)
+
 	upIn, ok := b.readLine("Enter upstream (name or number): ")
 	if !ok {
 		return ""
@@ -702,11 +706,42 @@ func (b *Brancher) selectUpstreamBranch() string {
 		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
 		return ""
 	}
-	// If numeric and valid index, map to remote branch
-	if id, e := strconv.Atoi(upIn); e == nil && id >= 1 && id <= len(remotes) {
-		upIn = remotes[id-1]
+	return b.resolveUpstreamInput(upIn, remotes)
+}
+
+// getValidRemoteBranches retrieves and filters remote branches
+func (b *Brancher) getValidRemoteBranches() ([]string, error) {
+	remotes, err := b.gitClient.ListRemoteBranches()
+	if err != nil {
+		return nil, err
 	}
-	return upIn
+	// Filter out empty strings from the remote branches list
+	validRemotes := make([]string, 0, len(remotes))
+	for _, rb := range remotes {
+		if strings.TrimSpace(rb) != "" {
+			validRemotes = append(validRemotes, rb)
+		}
+	}
+	return validRemotes, nil
+}
+
+// displayRemoteBranches shows the list of remote branches
+func (b *Brancher) displayRemoteBranches(remotes []string) {
+	if len(remotes) > 0 {
+		_, _ = fmt.Fprintln(b.outputWriter, "Remote branches:")
+		for i, rb := range remotes {
+			_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, rb)
+		}
+	}
+}
+
+// resolveUpstreamInput converts user input to upstream branch name
+func (b *Brancher) resolveUpstreamInput(input string, remotes []string) string {
+	// If numeric and valid index, map to remote branch
+	if id, e := strconv.Atoi(input); e == nil && id >= 1 && id <= len(remotes) {
+		return remotes[id-1]
+	}
+	return input
 }
 
 func (b *Brancher) branchInfo(args []string) {
