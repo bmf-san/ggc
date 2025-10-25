@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
 
@@ -41,7 +42,9 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 		t.Fatal("expected results context map")
 	}
 
-	if len(resultsMap.MoveDown) == 0 || resultsMap.MoveDown[0].Rune != 'j' || !resultsMap.MoveDown[0].Ctrl {
+	if len(resultsMap.MoveDown) == 0 ||
+		resultsMap.MoveDown[0].Rune != 'j' ||
+		resultsMap.MoveDown[0].Kind != keybindings.KeyStrokeCtrl {
 		t.Fatalf("config override not applied: %#v", resultsMap.MoveDown)
 	}
 }
