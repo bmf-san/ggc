@@ -192,7 +192,7 @@ func TestTagger_Tag(t *testing.T) {
 		},
 		{
 			name:           "push tag to specific remote",
-			args:           []string{"push", "v1.0.0", "upstream"},
+			args:           []string{"push", "upstream", "v1.0.0"},
 			expectedOutput: "Tag 'v1.0.0' pushed to upstream",
 			shouldShowHelp: false,
 		},
@@ -544,6 +544,47 @@ func TestTagger_Push_All_UsesTagOps(t *testing.T) {
 
 	if !m.pushAllCalled || m.pushRemote != "origin" {
 		t.Fatalf("expected TagPushAll to origin, got called=%v remote=%q", m.pushAllCalled, m.pushRemote)
+	}
+}
+
+func TestTagger_Push_RemoteOrdering(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantRemote string
+		wantTag    string
+	}{
+		{
+			name:       "remote specified first",
+			args:       []string{"push", "upstream", "v2.0.0"},
+			wantRemote: "upstream",
+			wantTag:    "v2.0.0",
+		},
+		{
+			name:       "single arg uses default remote",
+			args:       []string{"push", "v3.0.0"},
+			wantRemote: "origin",
+			wantTag:    "v3.0.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &mockTagOps{}
+			var buf bytes.Buffer
+			tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+			tg.helper.outputWriter = &buf
+
+			tg.Tag(tt.args)
+
+			if !m.pushCalled {
+				t.Fatal("expected TagPush to be called")
+			}
+			if m.pushRemote != tt.wantRemote || m.pushName != tt.wantTag {
+				t.Fatalf("unexpected push args: got remote=%q tag=%q want remote=%q tag=%q",
+					m.pushRemote, m.pushName, tt.wantRemote, tt.wantTag)
+			}
+		})
 	}
 }
 
