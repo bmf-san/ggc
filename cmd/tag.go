@@ -139,9 +139,12 @@ func (t *Tagger) pushTags(args []string) {
 			tagName = args[0]
 		} else {
 			// git-compatible ordering: remote first, tag second
-			if candidate := strings.TrimSpace(args[0]); candidate != "" {
-				remote = candidate
+			candidate := strings.TrimSpace(args[0])
+			if candidate == "" {
+				_, _ = fmt.Fprintf(t.outputWriter, "Error: remote name cannot be empty or whitespace\n")
+				return
 			}
+			remote = candidate
 			tagName = args[1]
 		}
 		if err := t.gitClient.TagPush(remote, tagName); err != nil {
