@@ -14,6 +14,7 @@ import (
 type Router struct {
 	Executer      cmd.Executer
 	ConfigManager *config.Manager
+	exitFunc      func(int)
 }
 
 // NewRouter creates a new Router with a config manager.
@@ -21,7 +22,17 @@ func NewRouter(e cmd.Executer, cm *config.Manager) *Router {
 	return &Router{
 		Executer:      e,
 		ConfigManager: cm,
+		exitFunc:      os.Exit,
 	}
+}
+
+// SetExitFunc overrides the default exit behavior (mainly for testing).
+func (r *Router) SetExitFunc(f func(int)) {
+	if f == nil {
+		r.exitFunc = os.Exit
+		return
+	}
+	r.exitFunc = f
 }
 
 // Route routes the command to the appropriate handler
@@ -60,7 +71,13 @@ func (r *Router) executeAlias(name string, args []string) {
 
 	case config.SequenceAlias:
 		if len(args) > 0 {
-			_, _ = fmt.Fprintf(os.Stderr, "Warning: arguments ignored for sequence alias '%s'\n", name)
+			_, _ = fmt.Fprintf(os.Stderr, "Error: sequence alias '%s' does not accept arguments (got %s)\n", name, strings.Join(args, " "))
+			if r.exitFunc != nil {
+				r.exitFunc(1)
+			} else {
+				os.Exit(1)
+			}
+			return
 		}
 
 		for _, c := range cmds {
