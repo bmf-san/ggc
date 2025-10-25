@@ -326,6 +326,9 @@ ggc
 | `stash show` | Show changes in stash |
 | `stash show <stash>` | Show changes in specific stash |
 | `stash store <object>` | Store stash object |
+| `debug-keys` | Show current keybindings |
+| `debug-keys raw` | Capture key sequences interactively |
+| `debug-keys raw <file>` | Capture key sequences and save them to a file |
 | `quit` | Exit interactive mode |
 | `version` | Display current ggc version |
 ### Unified Syntax and "--" Separator

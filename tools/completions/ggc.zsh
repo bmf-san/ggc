@@ -27,6 +27,9 @@ _ggc() {
                 config)
                     _ggc_config
                     ;;
+                debug-keys)
+                    _ggc_debug-keys
+                    ;;
                 diff)
                     _ggc_diff
                     ;;
@@ -76,6 +79,7 @@ _ggc_commands() {
         'clean:Remove untracked files and directories'
         'commit:Create commits from staged changes'
         'config:Get and set ggc configuration'
+        'debug-keys:Debug keybinding issues and capture raw key sequences'
         'diff:Inspect changes between commits, the index, and the working tree'
         'fetch:Download objects and refs from remotes'
         'help:Show help information for commands'
@@ -205,6 +209,15 @@ _ggc_config() {
     )
     if (( CURRENT == 2 )); then
         _describe 'config subcommands' subcommands
+    fi
+}
+_ggc_debug-keys() {
+    local subcommands
+    subcommands=(
+        'raw:Capture key sequences interactively'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'debug-keys subcommands' subcommands
     fi
 }
 _ggc_diff() {
