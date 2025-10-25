@@ -48,6 +48,7 @@ type Executer interface {
 	Add(args []string)
 	DebugKeys(args []string)
 	Interactive()
+	Route(args []string)
 }
 
 // Cmd represents the command-line interface.
@@ -343,26 +344,27 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 	}
 
 	handlers := map[string]func([]string){
-		"help":    func(args []string) { cmd.Help(args) },
-		"add":     func(args []string) { cmd.Add(args) },
-		"branch":  func(args []string) { cmd.Branch(args) },
-		"commit":  func(args []string) { cmd.Commit(args) },
-		"log":     func(args []string) { cmd.Log(args) },
-		"pull":    func(args []string) { cmd.Pull(args) },
-		"push":    func(args []string) { cmd.Push(args) },
-		"reset":   func(args []string) { cmd.Reset(args) },
-		"clean":   func(args []string) { cmd.Clean(args) },
-		"version": func(args []string) { cmd.Version(args) },
-		"remote":  func(args []string) { cmd.Remote(args) },
-		"rebase":  func(args []string) { cmd.Rebase(args) },
-		"stash":   func(args []string) { cmd.Stash(args) },
-		"config":  func(args []string) { cmd.Config(args) },
-		"hook":    func(args []string) { cmd.Hook(args) },
-		"tag":     func(args []string) { cmd.Tag(args) },
-		"status":  func(args []string) { cmd.Status(args) },
-		"fetch":   func(args []string) { cmd.Fetch(args) },
-		"diff":    func(args []string) { cmd.Diff(args) },
-		"restore": func(args []string) { cmd.Restore(args) },
+		"help":       func(args []string) { cmd.Help(args) },
+		"add":        func(args []string) { cmd.Add(args) },
+		"branch":     func(args []string) { cmd.Branch(args) },
+		"commit":     func(args []string) { cmd.Commit(args) },
+		"log":        func(args []string) { cmd.Log(args) },
+		"pull":       func(args []string) { cmd.Pull(args) },
+		"push":       func(args []string) { cmd.Push(args) },
+		"reset":      func(args []string) { cmd.Reset(args) },
+		"clean":      func(args []string) { cmd.Clean(args) },
+		"version":    func(args []string) { cmd.Version(args) },
+		"remote":     func(args []string) { cmd.Remote(args) },
+		"rebase":     func(args []string) { cmd.Rebase(args) },
+		"stash":      func(args []string) { cmd.Stash(args) },
+		"config":     func(args []string) { cmd.Config(args) },
+		"hook":       func(args []string) { cmd.Hook(args) },
+		"tag":        func(args []string) { cmd.Tag(args) },
+		"status":     func(args []string) { cmd.Status(args) },
+		"fetch":      func(args []string) { cmd.Fetch(args) },
+		"diff":       func(args []string) { cmd.Diff(args) },
+		"restore":    func(args []string) { cmd.Restore(args) },
+		"debug-keys": func(args []string) { cmd.DebugKeys(args) },
 		InteractiveQuitCommand: func([]string) {
 			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
 		},

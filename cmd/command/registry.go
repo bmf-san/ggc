@@ -282,6 +282,39 @@ var registry = []Info{
 		HandlerID: "version",
 	},
 	{
+		Name:     "debug-keys",
+		Category: CategoryUtility,
+		Summary:  "Debug keybinding issues and capture raw key sequences",
+		Usage: []string{
+			"ggc debug-keys",
+			"ggc debug-keys raw",
+			"ggc debug-keys raw <file>",
+		},
+		Examples: []string{
+			"ggc debug-keys                 # Show active keybindings",
+			"ggc debug-keys raw             # Capture key sequences interactively",
+			"ggc debug-keys raw keys.txt    # Capture and save to keys.txt",
+		},
+		HandlerID: "debug-keys",
+		Subcommands: []SubcommandInfo{
+			{
+				Name:    "debug-keys",
+				Summary: "Show current keybindings",
+				Usage:   []string{"ggc debug-keys"},
+			},
+			{
+				Name:    "debug-keys raw",
+				Summary: "Capture key sequences interactively",
+				Usage:   []string{"ggc debug-keys raw"},
+			},
+			{
+				Name:    "debug-keys raw <file>",
+				Summary: "Capture key sequences and save them to a file",
+				Usage:   []string{"ggc debug-keys raw keys.txt"},
+			},
+		},
+	},
+	{
 		Name:     "clean",
 		Category: CategoryCleanup,
 		Summary:  "Remove untracked files and directories",

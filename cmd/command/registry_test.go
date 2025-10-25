@@ -72,6 +72,10 @@ func TestFind(t *testing.T) {
 		t.Fatalf("expected to find help command")
 	}
 
+	if _, ok := Find("debug-keys"); !ok {
+		t.Fatalf("expected to find debug-keys command")
+	}
+
 	if _, ok := Find("HELP"); !ok {
 		t.Fatalf("expected case-insensitive find")
 	}

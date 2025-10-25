@@ -57,27 +57,28 @@ func TestRouter_DebugKeysIntegration(t *testing.T) {
 	}
 }
 
-// Test that debug-keys command exists in command handlers map
-func TestRouter_DebugKeysCommandHandlers(t *testing.T) {
+// Test that routing delegates through the Executer Route method
+func TestRouter_DebugKeysDelegatesToRoute(t *testing.T) {
 	m := &mockExecuter{}
 	r := NewRouter(m, nil)
 
-	handlers := r.getCommandHandlers()
+	r.Route([]string{"debug-keys", "raw"})
 
-	if _, exists := handlers["debug-keys"]; !exists {
-		t.Error("debug-keys command should exist in command handlers")
+	if len(m.routeCalls) != 1 {
+		t.Fatalf("expected Route to be called once, got %d", len(m.routeCalls))
 	}
-
-	// Test that the handler actually calls the right method
-	handlers["debug-keys"]([]string{"test", "args"})
-
+	got := m.routeCalls[0]
+	want := []string{"debug-keys", "raw"}
+	if len(got) != len(want) {
+		t.Fatalf("expected args %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected arg %d to be %q, got %q", i, want[i], got[i])
+		}
+	}
 	if !m.debugKeysCalled {
-		t.Error("debug-keys handler should call DebugKeys method")
-	}
-
-	expectedArgs := []string{"test", "args"}
-	if len(m.debugKeysArgs) != len(expectedArgs) {
-		t.Errorf("Expected %d args, got %d", len(expectedArgs), len(m.debugKeysArgs))
+		t.Error("expected DebugKeys to be invoked by Route dispatcher")
 	}
 }
 
