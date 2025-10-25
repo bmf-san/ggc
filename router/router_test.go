@@ -1,6 +1,10 @@
 package router
 
 import (
+	"bytes"
+	"io"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v7/internal/testutil"
@@ -160,6 +164,34 @@ func (m *mockExecuter) DebugKeys(args []string) {
 
 func (m *mockExecuter) Interactive() {
 	m.interactiveCalled = true
+}
+
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+
+	orig := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	os.Stderr = w
+
+	var buf bytes.Buffer
+	done := make(chan struct{})
+	go func() {
+		_, _ = io.Copy(&buf, r)
+		close(done)
+	}()
+
+	fn()
+
+	_ = w.Close()
+	os.Stderr = orig
+	<-done
+	_ = r.Close()
+
+	return buf.String()
 }
 
 func TestRouter(t *testing.T) {
@@ -491,10 +523,12 @@ func TestRouter(t *testing.T) {
 
 func TestRouter_WithAliases(t *testing.T) {
 	cases := []struct {
-		name     string
-		aliases  map[string]interface{}
-		args     []string
-		validate func(t *testing.T, m *mockExecuter)
+		name             string
+		aliases          map[string]interface{}
+		args             []string
+		expectExit       bool
+		expectedExitCode int
+		validate         func(t *testing.T, m *mockExecuter)
 	}{
 		{
 			name: "simple alias",
@@ -543,13 +577,12 @@ func TestRouter_WithAliases(t *testing.T) {
 			aliases: map[string]interface{}{
 				"sync": []interface{}{"pull current", "push current"},
 			},
-			args: []string{"sync", "ignored"},
+			args:             []string{"sync", "ignored"},
+			expectExit:       true,
+			expectedExitCode: 1,
 			validate: func(t *testing.T, m *mockExecuter) {
-				if !m.pullCalled {
-					t.Error("Pull should be called for sequence alias")
-				}
-				if !m.pushCalled {
-					t.Error("Push should be called for sequence alias")
+				if m.pullCalled || m.pushCalled {
+					t.Error("Sequence alias should not run when arguments are provided")
 				}
 			},
 		},
@@ -583,9 +616,65 @@ func TestRouter_WithAliases(t *testing.T) {
 
 			m := &mockExecuter{}
 			r := NewRouter(m, configManager)
+			exitCalled := false
+			exitCode := 0
+			r.SetExitFunc(func(code int) {
+				exitCalled = true
+				exitCode = code
+			})
 			r.Route(tc.args)
 			tc.validate(t, m)
+			if tc.expectExit {
+				if !exitCalled {
+					t.Fatal("expected router to exit but it did not")
+				}
+				if exitCode != tc.expectedExitCode {
+					t.Fatalf("expected exit code %d, got %d", tc.expectedExitCode, exitCode)
+				}
+			} else if exitCalled {
+				t.Fatalf("unexpected exit with code %d", exitCode)
+			}
 		})
+	}
+}
+
+func TestRouter_SequenceAliasRejectsArguments(t *testing.T) {
+	mockClient := testutil.NewMockGitClient()
+	configManager := config.NewConfigManager(mockClient)
+	configManager.LoadConfig()
+
+	cfg := configManager.GetConfig()
+	cfg.Aliases = map[string]interface{}{
+		"deploy": []interface{}{"status"},
+	}
+
+	m := &mockExecuter{}
+	r := NewRouter(m, configManager)
+	exitCalled := false
+	exitCode := 0
+	r.SetExitFunc(func(code int) {
+		exitCalled = true
+		exitCode = code
+	})
+
+	output := captureStderr(t, func() {
+		r.Route([]string{"deploy", "production"})
+	})
+
+	if !exitCalled {
+		t.Fatal("sequence alias should exit when arguments are provided")
+	}
+	if exitCode != 1 {
+		t.Fatalf("expected exit code 1, got %d", exitCode)
+	}
+	if m.statusCalled {
+		t.Fatal("sequence commands should not execute when arguments are rejected")
+	}
+	if !strings.Contains(output, "sequence alias 'deploy' does not accept arguments") {
+		t.Fatalf("expected rejection message, got %q", output)
+	}
+	if !strings.Contains(output, "production") {
+		t.Fatalf("expected error to list offending arguments, got %q", output)
 	}
 }
 
