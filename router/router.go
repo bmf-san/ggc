@@ -72,11 +72,7 @@ func (r *Router) executeAlias(name string, args []string) {
 	case config.SequenceAlias:
 		if len(args) > 0 {
 			_, _ = fmt.Fprintf(os.Stderr, "Error: sequence alias '%s' does not accept arguments (got %s)\n", name, strings.Join(args, " "))
-			if r.exitFunc != nil {
-				r.exitFunc(1)
-			} else {
-				os.Exit(1)
-			}
+			r.exitFunc(1)
 			return
 		}
 
