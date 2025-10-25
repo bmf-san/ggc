@@ -8,6 +8,14 @@ import (
 	"strings"
 )
 
+func splitBranchLines(out []byte) []string {
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return []string{}
+	}
+	return strings.Split(trimmed, "\n")
+}
+
 func normalizeBranchName(name string) (string, error) {
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
@@ -33,7 +41,7 @@ func (c *Client) ListLocalBranches() ([]string, error) {
 	if err != nil {
 		return nil, NewError("list local branches", "git branch --format %(refname:short)", err)
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	lines := splitBranchLines(out)
 	return lines, nil
 }
 
@@ -44,7 +52,7 @@ func (c *Client) ListRemoteBranches() ([]string, error) {
 	if err != nil {
 		return nil, NewError("list remote branches", "git branch -r --format %(refname:short)", err)
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	lines := splitBranchLines(out)
 	// Exclude HEAD references such as origin/HEAD -> origin/main
 	filtered := []string{}
 	for _, l := range lines {
@@ -123,7 +131,7 @@ func (c *Client) ListMergedBranches() ([]string, error) {
 		return nil, NewError("list merged branches", "git branch --merged", err)
 	}
 
-	branches := strings.Split(strings.TrimSpace(string(out)), "\n")
+	branches := splitBranchLines(out)
 	result := []string{}
 	for _, branch := range branches {
 		branch = strings.TrimSpace(branch)
@@ -202,7 +210,7 @@ func (c *Client) ListBranchesVerbose() ([]BranchInfo, error) {
 	if err != nil {
 		return nil, NewError("list branches verbose", "git branch -vv", err)
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	lines := splitBranchLines(out)
 	infos := make([]BranchInfo, 0, len(lines))
 	for _, line := range lines {
 		l := strings.TrimRight(line, "\r\n")
@@ -336,11 +344,7 @@ func (c *Client) SortBranches(by string) ([]string, error) {
 	if err != nil {
 		return nil, NewError("sort branches", fmt.Sprintf("git branch --sort=%s --format %%(refname:short)", sortKey), err)
 	}
-	trimmed := strings.TrimSpace(string(out))
-	if trimmed == "" {
-		return []string{}, nil
-	}
-	return strings.Split(trimmed, "\n"), nil
+	return splitBranchLines(out), nil
 }
 
 // BranchesContaining lists branches containing a given commit.
@@ -350,10 +354,11 @@ func (c *Client) BranchesContaining(commit string) ([]string, error) {
 	if err != nil {
 		return nil, NewError("branches containing commit", "git branch --contains "+commit, err)
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	lines := splitBranchLines(out)
 	res := []string{}
 	for _, l := range lines {
-		name := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(l), "* "))
+		l = strings.TrimSpace(l)
+		name := strings.TrimSpace(strings.TrimPrefix(l, "* "))
 		if name != "" {
 			res = append(res, name)
 		}

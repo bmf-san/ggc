@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v7/cmd"
-	"github.com/bmf-san/ggc/v7/config"
+	"github.com/bmf-san/ggc/v7/pkg/config"
 )
 
 // Router represents the command router with config support.
@@ -94,7 +94,7 @@ type commandHandler func([]string)
 // getCommandHandlers returns a map of command names to their handlers
 func (r *Router) getCommandHandlers() map[string]commandHandler {
 	return map[string]commandHandler{
-		"help":       func(_ []string) { r.Executer.Help() },
+		"help":       func(args []string) { r.Executer.Help(args) },
 		"add":        r.Executer.Add,
 		"branch":     r.Executer.Branch,
 		"clean":      r.Executer.Clean,
@@ -123,6 +123,6 @@ func (r *Router) executeCommand(name string, args []string) {
 	if handler, exists := handlers[name]; exists {
 		handler(args)
 	} else {
-		r.Executer.Help()
+		r.Executer.Help(nil)
 	}
 }

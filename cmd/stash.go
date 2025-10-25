@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // Stasher handles stash operations.
@@ -42,6 +42,8 @@ func (s *Stasher) Stash(args []string) {
 		s.stashApply(args)
 	case "pop":
 		s.stashPop(args)
+	case "push":
+		s.stashPush(args)
 	case "drop":
 		s.stashDrop(args)
 	case "clear":
@@ -101,6 +103,17 @@ func (s *Stasher) stashPop(args []string) {
 		stash = args[1]
 	}
 	if err := s.gitClient.StashPop(stash); err != nil {
+		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+	}
+}
+
+// stashPush creates a new stash with an optional message
+func (s *Stasher) stashPush(args []string) {
+	var message string
+	if len(args) > 1 {
+		message = strings.Join(args[1:], " ")
+	}
+	if err := s.gitClient.StashPush(message); err != nil {
 		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
 	}
 }

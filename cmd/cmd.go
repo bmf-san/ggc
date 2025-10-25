@@ -11,8 +11,8 @@ import (
 	"syscall"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
-	"github.com/bmf-san/ggc/v7/git"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // Interactive mode special return values
@@ -26,7 +26,7 @@ const (
 
 // Executer is an interface for executing commands.
 type Executer interface {
-	Help()
+	Help(args []string)
 	Branch(args []string)
 	Commit(args []string)
 	Log(args []string)
@@ -143,8 +143,16 @@ func (c *Cmd) SetDefaultRemote(remote string) {
 }
 
 // Help displays help information.
-func (c *Cmd) Help() {
-	c.helper.ShowHelp()
+func (c *Cmd) Help(args []string) {
+	var name string
+	if len(args) > 0 {
+		name = strings.TrimSpace(args[0])
+	}
+	if name == "" {
+		c.helper.ShowHelp()
+		return
+	}
+	c.helper.renderCommandFromRegistry(name, nil, "")
 }
 
 // Branch executes the branch command with the given arguments.
@@ -278,6 +286,7 @@ func (c *Cmd) Interactive() {
 		if len(args) >= 2 && args[1] == InteractiveWorkflowCommand {
 			// Workflow was executed, wait for user to continue
 			c.waitForContinue()
+			ui.ResetToSearchMode()
 			continue
 		}
 
@@ -285,13 +294,14 @@ func (c *Cmd) Interactive() {
 
 		// Wait for user to continue
 		c.waitForContinue()
+		ui.ResetToSearchMode()
 	}
 }
 
 // Route routes the command to the appropriate handler based on args.
 func (c *Cmd) Route(args []string) {
 	if len(args) == 0 {
-		c.Help()
+		c.Help(nil)
 		return
 	}
 
@@ -312,7 +322,7 @@ func (c *Cmd) routeCommand(cmd string, args []string) {
 		return
 	}
 
-	c.Help()
+	c.Help(nil)
 }
 
 type commandRouter struct {
@@ -333,7 +343,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 	}
 
 	handlers := map[string]func([]string){
-		"help":    func([]string) { cmd.Help() },
+		"help":    func(args []string) { cmd.Help(args) },
 		"add":     func(args []string) { cmd.Add(args) },
 		"branch":  func(args []string) { cmd.Branch(args) },
 		"commit":  func(args []string) { cmd.Commit(args) },

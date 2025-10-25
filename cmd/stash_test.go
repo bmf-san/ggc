@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 type mockStashOps struct {
@@ -14,6 +14,7 @@ type mockStashOps struct {
 	showCalled  bool
 	applyCalled bool
 	popCalled   bool
+	pushCalled  bool
 	dropCalled  bool
 	clearCalled bool
 	stashName   string
@@ -37,6 +38,11 @@ func (m *mockStashOps) StashApply(stash string) error {
 }
 func (m *mockStashOps) StashPop(stash string) error {
 	m.popCalled = true
+	m.stashName = stash
+	return nil
+}
+func (m *mockStashOps) StashPush(stash string) error {
+	m.pushCalled = true
 	m.stashName = stash
 	return nil
 }

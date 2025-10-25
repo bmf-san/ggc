@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/git"
 	"github.com/bmf-san/ggc/v7/internal/prompt"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // mockBranchGitClient is a mock implementation focused on branch operations for tests
@@ -19,6 +19,8 @@ type mockBranchGitClient struct {
 	listRemoteBranches     func() ([]string, error)
 	mergedBranches         []string
 	checkoutNewBranchError bool
+	createdBranches        []string
+	deletedBranches        []string
 	ops                    *mockBranchOperations
 }
 
@@ -43,6 +45,7 @@ func (m *mockBranchGitClient) ListRemoteBranches() ([]string, error) {
 
 // Branch Operations methods
 func (m *mockBranchGitClient) CheckoutNewBranch(branchName string) error {
+	m.createdBranches = append(m.createdBranches, branchName)
 	if m.checkoutNewBranchError {
 		return errors.New("exit status 1")
 	}
@@ -56,7 +59,10 @@ func (m *mockBranchGitClient) CheckoutBranch(_ string) error { return nil }
 func (m *mockBranchGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
 	return nil
 }
-func (m *mockBranchGitClient) DeleteBranch(_ string) error { return nil }
+func (m *mockBranchGitClient) DeleteBranch(name string) error {
+	m.deletedBranches = append(m.deletedBranches, name)
+	return nil
+}
 func (m *mockBranchGitClient) ListMergedBranches() ([]string, error) {
 	if m.mergedBranches != nil {
 		return m.mergedBranches, nil
@@ -66,13 +72,17 @@ func (m *mockBranchGitClient) ListMergedBranches() ([]string, error) {
 
 // Track calls for better testing
 type mockBranchOperations struct {
-	renameBranchCalls      []struct{ old, new string }
-	moveBranchCalls        []struct{ branch, commit string }
-	setUpstreamBranchCalls []struct{ branch, upstream string }
-	renameBranchError      error
-	moveBranchError        error
-	setUpstreamError       error
-	revParseVerifyResult   bool
+	renameBranchCalls       []struct{ old, new string }
+	moveBranchCalls         []struct{ branch, commit string }
+	setUpstreamBranchCalls  []struct{ branch, upstream string }
+	renameBranchError       error
+	moveBranchError         error
+	setUpstreamError        error
+	revParseVerifyResult    bool
+	sortBranchesCalls       []string
+	sortBranchesError       error
+	branchesContainingCalls []string
+	branchesContainingError error
 }
 
 func (m *mockBranchGitClient) RenameBranch(old, new string) error {
@@ -124,12 +134,26 @@ func (m *mockBranchGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
 	}, nil
 }
 func (m *mockBranchGitClient) SortBranches(by string) ([]string, error) {
+	if m.ops == nil {
+		m.ops = &mockBranchOperations{}
+	}
+	m.ops.sortBranchesCalls = append(m.ops.sortBranchesCalls, by)
+	if m.ops.sortBranchesError != nil {
+		return nil, m.ops.sortBranchesError
+	}
 	if by == "date" {
 		return []string{"feature/test", "main"}, nil
 	}
 	return []string{"feature/test", "main"}, nil
 }
-func (m *mockBranchGitClient) BranchesContaining(_ string) ([]string, error) {
+func (m *mockBranchGitClient) BranchesContaining(commit string) ([]string, error) {
+	if m.ops == nil {
+		m.ops = &mockBranchOperations{}
+	}
+	m.ops.branchesContainingCalls = append(m.ops.branchesContainingCalls, commit)
+	if m.ops.branchesContainingError != nil {
+		return nil, m.ops.branchesContainingError
+	}
 	return []string{"main", "feature"}, nil
 }
 
@@ -250,6 +274,483 @@ func TestBrancher_Branch_DeleteMerged(t *testing.T) {
 	}
 }
 
+func TestBrancher_Branch_Rename_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"rename", "feature/old", "feature/new"})
+
+	if mockClient.ops == nil || len(mockClient.ops.renameBranchCalls) != 1 {
+		t.Fatalf("expected one rename call, got %v", mockClient.ops)
+	}
+	call := mockClient.ops.renameBranchCalls[0]
+	if call.old != "feature/old" || call.new != "feature/new" {
+		t.Errorf("unexpected rename args: got %+v", call)
+	}
+}
+
+func TestBrancher_Branch_Rename_WithArgsInvalid(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"rename", "feature/old", ""})
+
+	if mockClient.ops != nil && len(mockClient.ops.renameBranchCalls) != 0 {
+		t.Fatalf("expected no rename calls, got %v", mockClient.ops.renameBranchCalls)
+	}
+	if !strings.Contains(buf.String(), "Error: new branch name cannot be empty.") {
+		t.Errorf("expected empty-name error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Rename_WithArgsGitError(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{renameBranchError: errors.New("rename failed")},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"rename", "feature/old", "feature/new"})
+
+	if mockClient.ops == nil || len(mockClient.ops.renameBranchCalls) != 1 {
+		t.Fatalf("expected one rename call, got %v", mockClient.ops)
+	}
+	if !strings.Contains(buf.String(), "Error: rename failed") {
+		t.Errorf("expected git error output, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Move_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"move", "feature/work", "abc123"})
+
+	if mockClient.ops == nil || len(mockClient.ops.moveBranchCalls) != 1 {
+		t.Fatalf("expected one move call, got %v", mockClient.ops)
+	}
+	call := mockClient.ops.moveBranchCalls[0]
+	if call.branch != "feature/work" || call.commit != "abc123" {
+		t.Errorf("unexpected move args: got %+v", call)
+	}
+}
+
+func TestBrancher_Branch_Move_WithArgsInvalidCommit(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{revParseVerifyResult: false},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"move", "feature/work", "abc123"})
+
+	if len(mockClient.ops.moveBranchCalls) != 0 {
+		t.Fatalf("expected no move call, got %v", mockClient.ops.moveBranchCalls)
+	}
+	if !strings.Contains(buf.String(), "Invalid commit or ref.") {
+		t.Errorf("expected invalid commit message, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Move_WithArgsGitError(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{revParseVerifyResult: true, moveBranchError: errors.New("move failed")},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"move", "feature/work", "abc123"})
+
+	if mockClient.ops == nil || len(mockClient.ops.moveBranchCalls) != 1 {
+		t.Fatalf("expected one move call, got %v", mockClient.ops)
+	}
+	if !strings.Contains(buf.String(), "Error: move failed") {
+		t.Errorf("expected move error output, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_SetUpstream_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"set", "upstream", "feature/work", "origin/feature"})
+
+	if mockClient.ops == nil || len(mockClient.ops.setUpstreamBranchCalls) != 1 {
+		t.Fatalf("expected one upstream call, got %v", mockClient.ops)
+	}
+	call := mockClient.ops.setUpstreamBranchCalls[0]
+	if call.branch != "feature/work" || call.upstream != "origin/feature" {
+		t.Errorf("unexpected upstream args: got %+v", call)
+	}
+}
+
+func TestBrancher_Branch_SetUpstream_WithNumericArg(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main", "origin/feature"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"set", "upstream", "feature/work", "2"})
+
+	if mockClient.ops == nil || len(mockClient.ops.setUpstreamBranchCalls) != 1 {
+		t.Fatalf("expected one upstream call, got %v", mockClient.ops)
+	}
+	call := mockClient.ops.setUpstreamBranchCalls[0]
+	if call.upstream != "origin/feature" {
+		t.Errorf("expected numeric mapping, got %+v", call)
+	}
+}
+
+func TestBrancher_Branch_SetUpstream_WithInvalidSelection(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"set", "upstream", "feature/work", "5"})
+
+	if mockClient.ops != nil && len(mockClient.ops.setUpstreamBranchCalls) != 0 {
+		t.Fatalf("expected no upstream call, got %v", mockClient.ops.setUpstreamBranchCalls)
+	}
+	if !strings.Contains(buf.String(), "Error: invalid remote selection") {
+		t.Errorf("expected invalid selection error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_SetUpstream_WithArgsGitError(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{setUpstreamError: errors.New("set upstream failed")},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"set", "upstream", "feature/work", "origin/feature"})
+
+	if mockClient.ops == nil || len(mockClient.ops.setUpstreamBranchCalls) != 1 {
+		t.Fatalf("expected one upstream call, got %v", mockClient.ops)
+	}
+	if !strings.Contains(buf.String(), "Error: set upstream failed") {
+		t.Errorf("expected upstream error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_SetUpstream_WithInvalidArity(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"set", "upstream", "feature/work"})
+
+	if mockClient.ops != nil && len(mockClient.ops.setUpstreamBranchCalls) != 0 {
+		t.Fatalf("expected no upstream call, got %v", mockClient.ops.setUpstreamBranchCalls)
+	}
+	if !strings.Contains(buf.String(), "expects <branch> <upstream>") {
+		t.Errorf("expected arity error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Info_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"info", "feature/test"})
+
+	if !strings.Contains(buf.String(), "Name: feature/test") {
+		t.Errorf("expected branch info output, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Info_WithEmptyArg(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"info", ""})
+
+	if !strings.Contains(buf.String(), "branch name cannot be empty") {
+		t.Errorf("expected empty-name error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Info_WithExtraArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"info", "one", "two"})
+
+	if !strings.Contains(buf.String(), "at most one branch") {
+		t.Errorf("expected extra-arg error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Sort_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"sort", "date"})
+
+	if mockClient.ops == nil || len(mockClient.ops.sortBranchesCalls) != 1 {
+		t.Fatalf("expected one sort call, got %v", mockClient.ops)
+	}
+	if mockClient.ops.sortBranchesCalls[0] != "date" {
+		t.Errorf("expected sort by date, got %v", mockClient.ops.sortBranchesCalls)
+	}
+	if !strings.Contains(buf.String(), "feature/test") {
+		t.Errorf("expected sorted output, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Sort_InvalidOption(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"sort", "semantic"})
+
+	if mockClient.ops != nil && len(mockClient.ops.sortBranchesCalls) != 0 {
+		t.Fatalf("expected no sort call, got %v", mockClient.ops.sortBranchesCalls)
+	}
+	if !strings.Contains(buf.String(), "invalid sort option") {
+		t.Errorf("expected invalid option error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Sort_EmptyOption(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"sort", ""})
+
+	if mockClient.ops != nil && len(mockClient.ops.sortBranchesCalls) != 0 {
+		t.Fatalf("expected no sort call, got %v", mockClient.ops.sortBranchesCalls)
+	}
+	if !strings.Contains(buf.String(), "sort option cannot be empty") {
+		t.Errorf("expected empty option error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Sort_WithError(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{sortBranchesError: errors.New("sort failed")},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"sort", "name"})
+
+	if mockClient.ops == nil || len(mockClient.ops.sortBranchesCalls) != 1 {
+		t.Fatalf("expected one sort call, got %v", mockClient.ops)
+	}
+	if !strings.Contains(buf.String(), "Error: sort failed") {
+		t.Errorf("expected sort error output, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Contains_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"contains", "abc123"})
+
+	if mockClient.ops == nil || len(mockClient.ops.branchesContainingCalls) != 1 {
+		t.Fatalf("expected one contains call, got %v", mockClient.ops)
+	}
+	if mockClient.ops.branchesContainingCalls[0] != "abc123" {
+		t.Errorf("expected commit 'abc123', got %v", mockClient.ops.branchesContainingCalls)
+	}
+	if !strings.Contains(buf.String(), "main") {
+		t.Errorf("expected branches output, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Contains_InvalidCommit(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{revParseVerifyResult: false},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"contains", "abc123"})
+
+	if len(mockClient.ops.branchesContainingCalls) != 0 {
+		t.Fatalf("expected no contains call, got %v", mockClient.ops.branchesContainingCalls)
+	}
+	if !strings.Contains(buf.String(), "Invalid commit or ref.") {
+		t.Errorf("expected invalid commit error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Contains_EmptyArg(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"contains", ""})
+
+	if !strings.Contains(buf.String(), "commit or ref cannot be empty") {
+		t.Errorf("expected empty commit error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Contains_TooManyArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"contains", "one", "two"})
+
+	if !strings.Contains(buf.String(), "at most one commit") {
+		t.Errorf("expected arity error, got %q", buf.String())
+	}
+}
+
+func TestBrancher_Branch_Contains_WithError(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		ops: &mockBranchOperations{revParseVerifyResult: true, branchesContainingError: errors.New("lookup failed")},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	brancher.helper.outputWriter = &buf
+
+	brancher.Branch([]string{"contains", "abc123"})
+
+	if mockClient.ops == nil || len(mockClient.ops.branchesContainingCalls) != 1 {
+		t.Fatalf("expected one contains call, got %v", mockClient.ops)
+	}
+	if !strings.Contains(buf.String(), "Error: lookup failed") {
+		t.Errorf("expected lookup error, got %q", buf.String())
+	}
+}
+
 func TestBrancher_Branch_Help(t *testing.T) {
 	var buf bytes.Buffer
 	brancher := &Brancher{
@@ -318,7 +819,7 @@ func TestBrancher_branchDelete_Success(t *testing.T) {
 		prompter:     prompt.New(strings.NewReader("1 2\n"), &buf),
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "feature/test") {
@@ -342,7 +843,7 @@ func TestBrancher_branchDelete_All(t *testing.T) {
 		prompter:     prompt.New(strings.NewReader("all\n"), &buf),
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "All branches deleted.") {
@@ -363,7 +864,7 @@ func TestBrancher_branchDelete_Cancel(t *testing.T) {
 		prompter:     prompt.New(strings.NewReader("\n"), &buf),
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "Canceled.") {
@@ -383,7 +884,7 @@ func TestBrancher_branchDelete_Error(t *testing.T) {
 		outputWriter: &buf,
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "Error: failed to list branches") {
@@ -403,7 +904,7 @@ func TestBrancher_branchDelete_NoBranches(t *testing.T) {
 		outputWriter: &buf,
 	}
 
-	brancher.branchDelete()
+	brancher.branchDeleteArgs(nil)
 
 	output := buf.String()
 	if !strings.Contains(output, "No local branches found.") {
@@ -651,6 +1152,40 @@ func TestBrancher_branchCreate_ExistingBranch(t *testing.T) {
 	}
 }
 
+func TestBrancher_branchCreate_WithArgument(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+	}
+
+	brancher.Branch([]string{"create", "feature/new"})
+
+	if len(mockClient.createdBranches) != 1 || mockClient.createdBranches[0] != "feature/new" {
+		t.Fatalf("expected branch creation with name %q, got %#v", "feature/new", mockClient.createdBranches)
+	}
+	if output := buf.String(); output != "" {
+		t.Fatalf("expected no output, got %q", output)
+	}
+}
+
+func TestBrancher_branchCreate_WithEmptyArgument(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+
+	brancher.Branch([]string{"create", "   "})
+
+	output := buf.String()
+	expected := "Error: invalid branch name: branch name cannot be empty\n"
+	if output != expected {
+		t.Errorf("unexpected output for empty argument:\ngot:  %q\nwant: %q", output, expected)
+	}
+}
+
 // Consolidated boundary tests for branch checkout input to avoid repetitive single-case tests.
 // Covers various numeric/non-numeric forms and validates expected outputs for each.
 func TestBrancher_Branch_BoundaryInputValues(t *testing.T) {
@@ -806,7 +1341,7 @@ func TestBrancher_Branch_BoundaryBranchNames(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.branchName+"\n"), &buf),
 			}
 
-			brancher.branchCreate()
+			brancher.branchCreate(nil)
 
 			output := buf.String()
 			if tt.expectedPass {
@@ -884,7 +1419,7 @@ func TestBrancher_Branch_BoundaryUserInput(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
-			brancher.branchCreate()
+			brancher.branchCreate(nil)
 
 			output := buf.String()
 			if tt.expected != "" {
@@ -1014,7 +1549,7 @@ func TestBrancher_Branch_BoundaryDeleteOperations(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
-			brancher.branchDelete()
+			brancher.branchDeleteArgs(nil)
 
 			output := buf.String()
 			if !strings.Contains(output, tt.expected) {
@@ -1065,12 +1600,229 @@ func TestBrancher_Branch_BoundaryRemoteOperations(t *testing.T) {
 				prompter:     prompt.New(strings.NewReader(tt.input), &buf),
 			}
 
-			brancher.branchDelete()
+			brancher.branchDeleteArgs(nil)
 
 			output := buf.String()
 			if !strings.Contains(output, tt.expected) {
 				t.Errorf("Expected %q in output, got: %s", tt.expected, output)
 			}
 		})
+	}
+}
+
+func TestBrancher_branchDeleteArgs_WithArgs(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{currentBranch: "main"}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchDeleteArgs([]string{"feature/test"})
+
+	if len(mockClient.deletedBranches) != 1 || mockClient.deletedBranches[0] != "feature/test" {
+		t.Fatalf("expected to delete feature/test, got %v", mockClient.deletedBranches)
+	}
+	if got := buf.String(); got != "" {
+		t.Errorf("expected no output on successful deletion, got %q", got)
+	}
+}
+
+func TestBrancher_branchDeleteArgs_MultipleAndSkipCurrent(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{currentBranch: "main"}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchDeleteArgs([]string{"main", "feature/test", "foo"})
+
+	// Should skip current branch 'main'
+	if got := buf.String(); !strings.Contains(got, "Skipping current branch: main") {
+		t.Errorf("expected skip message, got %q", got)
+	}
+	if len(mockClient.deletedBranches) != 2 {
+		t.Fatalf("expected 2 deletions, got %d (%v)", len(mockClient.deletedBranches), mockClient.deletedBranches)
+	}
+	if mockClient.deletedBranches[0] != "feature/test" || mockClient.deletedBranches[1] != "foo" {
+		t.Errorf("unexpected deleted branches: %v", mockClient.deletedBranches)
+	}
+}
+
+func TestBrancher_branchDeleteArgs_NoArgsFallsBackInteractive(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf, prompter: prompt.New(strings.NewReader("1\n"), &buf)}
+
+	brancher.branchDeleteArgs(nil)
+
+	if got := buf.String(); !strings.Contains(got, "Selected branches deleted.") {
+		t.Errorf("expected interactive deletion confirmation, got %q", got)
+	}
+	if len(mockClient.deletedBranches) == 0 {
+		t.Error("expected at least one branch deletion call")
+	}
+}
+
+func TestBrancher_branchInfo_WithArgsLegacy(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{currentBranch: "main"}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchInfo([]string{"feature/test"})
+
+	out := buf.String()
+	if !strings.Contains(out, "Name: feature/test") {
+		t.Errorf("expected branch info to be printed; got %q", out)
+	}
+}
+
+func TestBrancher_branchInfo_MultipleArgsShowsError(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf}
+
+	brancher.branchInfo([]string{"main", "feature/test"})
+
+	out := buf.String()
+	if !strings.Contains(out, "at most one branch") {
+		t.Errorf("expected error message for multiple args; got %q", out)
+	}
+}
+
+func TestBrancher_branchInfo_NoArgsFallsBackInteractive(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{}
+	brancher := &Brancher{gitClient: mockClient, outputWriter: &buf, prompter: prompt.New(strings.NewReader("2\n"), &buf)}
+
+	brancher.branchInfo(nil)
+
+	out := buf.String()
+	if !strings.Contains(out, "Name: feature/test") {
+		t.Errorf("expected info printed for selected branch; got %q", out)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_ErrorHandling(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return nil, errors.New("network error: connection refused")
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("origin/main\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	if result != "" {
+		t.Errorf("expected empty string when ListRemoteBranches fails, got %q", result)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "Error listing remote branches") {
+		t.Errorf("expected error message in output, got: %s", output)
+	}
+	if !strings.Contains(output, "network error") {
+		t.Errorf("expected original error message in output, got: %s", output)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_EmptyBranchesFiltered(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main", "", "  ", "origin/feature"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("2\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	// After filtering empty strings, index 2 should map to "origin/feature"
+	if result != "origin/feature" {
+		t.Errorf("expected 'origin/feature', got %q", result)
+	}
+	output := buf.String()
+	// Should only show 2 valid branches
+	if strings.Count(output, "[1]") != 1 || strings.Count(output, "[2]") != 1 {
+		t.Errorf("expected exactly 2 numbered branches in output, got: %s", output)
+	}
+	if strings.Count(output, "[3]") > 0 {
+		t.Errorf("expected no third branch (empty ones should be filtered), got: %s", output)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_Success(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main", "origin/develop"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	if result != "origin/main" {
+		t.Errorf("expected 'origin/main', got %q", result)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "Remote branches:") {
+		t.Errorf("expected 'Remote branches:' in output, got: %s", output)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_IndexOutOfRange(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{"origin/main"}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("999\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	// When index is out of range, it should return the input as-is (not index into array)
+	if result != "999" {
+		t.Errorf("expected '999' (out of range index returned as-is), got %q", result)
+	}
+}
+
+func TestBrancher_selectUpstreamBranch_NoRemoteBranches(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockBranchGitClient{
+		listRemoteBranches: func() ([]string, error) {
+			return []string{}, nil
+		},
+	}
+	brancher := &Brancher{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		prompter:     prompt.New(strings.NewReader("origin/main\n"), &buf),
+	}
+
+	result := brancher.selectUpstreamBranch()
+
+	if result != "origin/main" {
+		t.Errorf("expected 'origin/main', got %q", result)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "No remote branches found.") {
+		t.Errorf("expected 'No remote branches found.' message in output, got: %s", output)
+	}
+	// Should still allow manual input
+	if !strings.Contains(output, "Enter upstream") {
+		t.Errorf("expected upstream prompt in output, got: %s", output)
 	}
 }

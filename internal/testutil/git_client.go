@@ -5,7 +5,7 @@
 package testutil
 
 import (
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // NewMockGitClient creates a new mock git client for testing
@@ -105,6 +105,7 @@ func (m *testMockGitClient) StashList() (string, error) { return "", nil }
 func (m *testMockGitClient) StashShow(_ string) error   { return nil }
 func (m *testMockGitClient) StashApply(_ string) error  { return nil }
 func (m *testMockGitClient) StashPop(_ string) error    { return nil }
+func (m *testMockGitClient) StashPush(_ string) error   { return nil }
 func (m *testMockGitClient) StashDrop(_ string) error   { return nil }
 func (m *testMockGitClient) StashClear() error          { return nil }
 

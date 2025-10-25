@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/config"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v7/pkg/config"
 )
 
 type mockExecuter struct {
 	helpCalled        bool
+	helpArgs          []string
 	branchCalled      bool
 	branchArgs        []string
 	commitCalled      bool
@@ -56,8 +57,9 @@ type mockExecuter struct {
 	interactiveCalled bool
 }
 
-func (m *mockExecuter) Help() {
+func (m *mockExecuter) Help(args []string) {
 	m.helpCalled = true
+	m.helpArgs = args
 }
 
 func (m *mockExecuter) Branch(args []string) {
@@ -204,6 +206,9 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.helpCalled {
 					t.Error("Help should be called")
+				}
+				if len(m.helpArgs) != 0 {
+					t.Errorf("Help should receive no args, got %v", m.helpArgs)
 				}
 			},
 		},
@@ -489,6 +494,9 @@ func TestRouter(t *testing.T) {
 			validate: func(t *testing.T, m *mockExecuter) {
 				if !m.helpCalled {
 					t.Error("Help should be called")
+				}
+				if len(m.helpArgs) != 0 {
+					t.Errorf("Help fallback should receive no args, got %v", m.helpArgs)
 				}
 			},
 		},

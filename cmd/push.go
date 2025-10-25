@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v7/git"
+	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
 // Pusher provides functionality for the push command.

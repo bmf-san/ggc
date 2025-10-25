@@ -39,3 +39,6 @@ dist/
 .DS_Store
 gendocs
 gencompletions
+
+# VHS demo workspaces
+docs/demos/workspaces/
