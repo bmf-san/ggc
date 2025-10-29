@@ -55,6 +55,7 @@ type mockExecuter struct {
 	debugKeysCalled   bool
 	debugKeysArgs     []string
 	interactiveCalled bool
+	routeCalls        [][]string
 }
 
 func (m *mockExecuter) Help(args []string) {
@@ -164,6 +165,63 @@ func (m *mockExecuter) DebugKeys(args []string) {
 
 func (m *mockExecuter) Interactive() {
 	m.interactiveCalled = true
+}
+
+func (m *mockExecuter) Route(args []string) {
+	copied := append([]string(nil), args...)
+	m.routeCalls = append(m.routeCalls, copied)
+	if len(args) == 0 {
+		m.Help(nil)
+		return
+	}
+	cmd := args[0]
+	cmdArgs := args[1:]
+	switch cmd {
+	case "help":
+		m.Help(cmdArgs)
+	case "add":
+		m.Add(cmdArgs)
+	case "branch":
+		m.Branch(cmdArgs)
+	case "clean":
+		m.Clean(cmdArgs)
+	case "commit":
+		m.Commit(cmdArgs)
+	case "config":
+		m.Config(cmdArgs)
+	case "debug-keys":
+		m.DebugKeys(cmdArgs)
+	case "diff":
+		m.Diff(cmdArgs)
+	case "fetch":
+		m.Fetch(cmdArgs)
+	case "hook":
+		m.Hook(cmdArgs)
+	case "log":
+		m.Log(cmdArgs)
+	case "pull":
+		m.Pull(cmdArgs)
+	case "push":
+		m.Push(cmdArgs)
+	case "rebase":
+		m.Rebase(cmdArgs)
+	case "remote":
+		m.Remote(cmdArgs)
+	case "reset":
+		m.Reset(cmdArgs)
+	case "restore":
+		m.Restore(cmdArgs)
+	case "stash":
+		m.Stash(cmdArgs)
+	case "status":
+		m.Status(cmdArgs)
+	case "tag":
+		m.Tag(cmdArgs)
+	case "version":
+		m.Version(cmdArgs)
+	default:
+		m.Help(nil)
+	}
 }
 
 func captureStderr(t *testing.T, fn func()) string {

@@ -84,41 +84,7 @@ func (r *Router) executeAlias(name string, args []string) {
 	}
 }
 
-// commandHandler represents a function that handles a command
-type commandHandler func([]string)
-
-// getCommandHandlers returns a map of command names to their handlers
-func (r *Router) getCommandHandlers() map[string]commandHandler {
-	return map[string]commandHandler{
-		"help":       func(args []string) { r.Executer.Help(args) },
-		"add":        r.Executer.Add,
-		"branch":     r.Executer.Branch,
-		"clean":      r.Executer.Clean,
-		"commit":     r.Executer.Commit,
-		"config":     r.Executer.Config,
-		"debug-keys": r.Executer.DebugKeys,
-		"diff":       r.Executer.Diff,
-		"fetch":      r.Executer.Fetch,
-		"hook":       r.Executer.Hook,
-		"log":        r.Executer.Log,
-		"pull":       r.Executer.Pull,
-		"push":       r.Executer.Push,
-		"rebase":     r.Executer.Rebase,
-		"remote":     r.Executer.Remote,
-		"reset":      r.Executer.Reset,
-		"restore":    r.Executer.Restore,
-		"stash":      r.Executer.Stash,
-		"status":     r.Executer.Status,
-		"tag":        r.Executer.Tag,
-		"version":    r.Executer.Version,
-	}
-}
-
 func (r *Router) executeCommand(name string, args []string) {
-	handlers := r.getCommandHandlers()
-	if handler, exists := handlers[name]; exists {
-		handler(args)
-	} else {
-		r.Executer.Help(nil)
-	}
+	allArgs := append([]string{name}, args...)
+	r.Executer.Route(allArgs)
 }

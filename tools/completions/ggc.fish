@@ -10,7 +10,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean commit config diff fetch help hook log pull push quit rebase remote restore stash status tag version"
+complete -c ggc -f -a "add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote restore stash status tag version"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "checkout contains create current delete info list move rename set sort"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"
@@ -20,6 +20,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow amend"
 complete -c ggc -f -n "__fish_seen_subcommand_from commit; and __fish_seen_subcommand_from allow" -a "empty"
 complete -c ggc -f -n "__fish_seen_subcommand_from commit; and __fish_seen_subcommand_from amend" -a "no-edit"
 complete -c ggc -f -n "__fish_seen_subcommand_from config" -a "get list set"
+complete -c ggc -f -n "__fish_seen_subcommand_from debug-keys" -a "raw"
 complete -c ggc -f -n "__fish_seen_subcommand_from diff" -a "head staged unstaged"
 complete -c ggc -f -n "__fish_seen_subcommand_from fetch" -a "prune"
 complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "disable edit enable install list uninstall"

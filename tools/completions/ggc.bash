@@ -8,7 +8,7 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add branch clean commit config diff fetch help hook log pull push quit rebase remote restore stash status tag version"
+    opts="add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote restore stash status tag version"
     case ${prev} in
         branch)
             subopts="checkout contains create current delete info list move rename set sort"
@@ -27,6 +27,11 @@ _ggc()
             ;;
         config)
             subopts="get list set"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        debug-keys)
+            subopts="raw"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
