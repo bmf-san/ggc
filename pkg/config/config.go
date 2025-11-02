@@ -454,7 +454,9 @@ func validatePlaceholder(placeholder string) error {
 		return fmt.Errorf("empty placeholder")
 	}
 
-	// Check for shell metacharacters
+	// Check for shell metacharacters.
+	// Note: Braces '{}' are included here because they are used as placeholder delimiters.
+	// This prevents nested placeholders like {message: {0}}, as braces in the placeholder content are rejected.
 	if strings.ContainsAny(placeholder, ";|&$`()[]{}*?<>\"'\\") {
 		return fmt.Errorf("placeholder contains unsafe characters")
 	}

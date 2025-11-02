@@ -385,6 +385,7 @@ Aliases support two formats:
 - Use `{0}` for the first argument, `{1}` for the second, etc.
 - Required arguments must be provided or the command will fail with a clear error
 - Example: `ggc feature main user-auth` → executes with `{0}=main`, `{1}=user-auth`
+- **Note**: Arguments containing spaces or quotes may be split incorrectly (e.g., `'fix bug'` becomes `'fix` and `bug'` as separate arguments)
 
 ## Interactive Mode Keybindings
 
