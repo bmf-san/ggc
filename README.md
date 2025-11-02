@@ -207,10 +207,12 @@ ggc
 - `Ctrl+c`: Exit interactive mode
 
 **Workflow Operations:**
-- `Tab`: Add selected command to workflow
-- `Ctrl+t`: Toggle workflow detail view
-- `c`: Clear workflow (in workflow view)
-- `Enter`: Execute entire workflow (in workflow view)
+- `Tab`: Choose which workflow receives the selected command
+- `Enter`: Confirm the selection overlay or execute the highlighted workflow
+- `Esc`: Dismiss the selection overlay or exit workflow view
+- `Ctrl+n`: Create a new workflow (in workflow view)
+- `d`: Delete the selected workflow (in workflow view)
+- `Ctrl+t`: Toggle the workflow management view
 
 **Command Execution:**
 - If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
@@ -220,10 +222,10 @@ ggc
 - All UI and prompts are in English
 
 **Workflow Feature:**
-- Build multi-command workflows by adding commands with `Tab`
-- Commands are executed sequentially when you run the workflow
+- Build and manage multiple workflows in parallel
+- Use the selection overlay (`Tab`) to choose a target workflow per command
 - Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
-- Workflows persist after execution for reuse
+- Workflows persist after execution for reuse or further editing
 - Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
 
 **Examples of Fuzzy Search:**

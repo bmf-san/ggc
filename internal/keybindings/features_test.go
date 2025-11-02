@@ -342,8 +342,8 @@ func TestProfileTypes(t *testing.T) {
 
 // TestContextTypes tests Context type constants
 func TestContextTypes(t *testing.T) {
-	contexts := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch}
-	expected := []string{"global", "input", "results", "search"}
+	contexts := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch, ContextWorkflowView, ContextWorkflowSelection}
+	expected := []string{"global", "input", "results", "search", "workflow_view", "workflow_selection"}
 
 	for i, context := range contexts {
 		if string(context) != expected[i] {
@@ -355,7 +355,7 @@ func TestContextTypes(t *testing.T) {
 // TestGetAllContexts tests that all contexts are returned
 func TestGetAllContexts(t *testing.T) {
 	contexts := GetAllContexts()
-	expectedCount := 4
+	expectedCount := 6
 
 	if len(contexts) != expectedCount {
 		t.Errorf("GetAllContexts: expected %d contexts, got %d", expectedCount, len(contexts))
@@ -367,7 +367,7 @@ func TestGetAllContexts(t *testing.T) {
 		contextMap[ctx] = true
 	}
 
-	expectedContexts := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch}
+	expectedContexts := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch, ContextWorkflowView, ContextWorkflowSelection}
 	for _, expected := range expectedContexts {
 		if !contextMap[expected] {
 			t.Errorf("GetAllContexts: missing context %q", expected)

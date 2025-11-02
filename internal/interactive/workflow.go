@@ -99,6 +99,184 @@ func (w *Workflow) Size() int {
 	return len(w.steps)
 }
 
+// WorkflowSummary describes a workflow for listing/selection purposes.
+type WorkflowSummary struct {
+	ID        int
+	StepCount int
+	IsActive  bool
+}
+
+// WorkflowManager manages multiple workflows and their lifecycle.
+type WorkflowManager struct {
+	mutex     sync.RWMutex
+	workflows map[int]*Workflow
+	order     []int
+	nextID    int
+	activeID  int
+}
+
+// NewWorkflowManager constructs a manager with an initial empty workflow.
+func NewWorkflowManager() *WorkflowManager {
+	mgr := &WorkflowManager{
+		workflows: make(map[int]*Workflow),
+		order:     make([]int, 0, 4),
+		nextID:    1,
+	}
+
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	mgr.createWorkflowLocked()
+
+	return mgr
+}
+
+// createWorkflowLocked allocates a new workflow assuming the mutex is held.
+func (m *WorkflowManager) createWorkflowLocked() int {
+	id := m.nextID
+	m.nextID++
+
+	m.workflows[id] = NewWorkflow()
+	m.order = append(m.order, id)
+	m.activeID = id
+
+	return id
+}
+
+// CreateWorkflow adds a new workflow and makes it active.
+func (m *WorkflowManager) CreateWorkflow() int {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.createWorkflowLocked()
+}
+
+// DeleteWorkflow removes a workflow by ID, returning the new active workflow ID.
+func (m *WorkflowManager) DeleteWorkflow(id int) (int, bool) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	wf, exists := m.workflows[id]
+	if !exists || wf == nil {
+		return m.activeID, false
+	}
+
+	delete(m.workflows, id)
+
+	removedIndex := -1
+	for i, existing := range m.order {
+		if existing == id {
+			removedIndex = i
+			m.order = append(m.order[:i], m.order[i+1:]...)
+			break
+		}
+	}
+
+	if len(m.workflows) == 0 {
+		newID := m.createWorkflowLocked()
+		return newID, true
+	}
+
+	if m.activeID == id {
+		if removedIndex >= len(m.order) {
+			removedIndex = len(m.order) - 1
+		}
+		if removedIndex < 0 {
+			removedIndex = 0
+		}
+		m.activeID = m.order[removedIndex]
+	}
+
+	return m.activeID, true
+}
+
+// ListWorkflows returns ordered summaries of all workflows.
+func (m *WorkflowManager) ListWorkflows() []WorkflowSummary {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	summaries := make([]WorkflowSummary, 0, len(m.order))
+	for _, id := range m.order {
+		workflow := m.workflows[id]
+		stepCount := 0
+		if workflow != nil {
+			stepCount = workflow.Size()
+		}
+		summaries = append(summaries, WorkflowSummary{
+			ID:        id,
+			StepCount: stepCount,
+			IsActive:  id == m.activeID,
+		})
+	}
+	return summaries
+}
+
+// SetActive designates the workflow with the provided ID as active.
+func (m *WorkflowManager) SetActive(id int) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if _, exists := m.workflows[id]; !exists {
+		return false
+	}
+	m.activeID = id
+	return true
+}
+
+// GetActiveID returns the current active workflow ID.
+func (m *WorkflowManager) GetActiveID() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.activeID
+}
+
+// GetWorkflow returns the workflow pointer for a given ID.
+func (m *WorkflowManager) GetWorkflow(id int) (*Workflow, bool) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	wf, exists := m.workflows[id]
+	return wf, exists
+}
+
+// GetActiveWorkflow retrieves the currently active workflow.
+func (m *WorkflowManager) GetActiveWorkflow() (*Workflow, int) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	wf, exists := m.workflows[m.activeID]
+	if !exists {
+		return nil, 0
+	}
+	return wf, m.activeID
+}
+
+// AddStep appends a step to the specified workflow.
+func (m *WorkflowManager) AddStep(id int, command string, args []string, description string) (int, error) {
+	workflow, exists := m.GetWorkflow(id)
+	if !exists {
+		return 0, fmt.Errorf("workflow %d not found", id)
+	}
+	return workflow.AddStep(command, args, description), nil
+}
+
+// ClearWorkflow removes all steps from the specified workflow.
+func (m *WorkflowManager) ClearWorkflow(id int) bool {
+	workflow, exists := m.GetWorkflow(id)
+	if !exists {
+		return false
+	}
+	workflow.Clear()
+	return true
+}
+
+// WorkflowCount returns the number of managed workflows.
+func (m *WorkflowManager) WorkflowCount() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return len(m.workflows)
+}
+
 // CommandRouter represents an interface for routing commands
 type CommandRouter interface {
 	Route(args []string)
