@@ -152,21 +152,21 @@ func buildInteractiveCommands() []CommandInfo {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin                   io.Reader
-	stdout                  io.Writer
-	stderr                  io.Writer
-	term                    termio.Terminal
-	renderer                *Renderer
-	state                   *UIState
-	handler                 *KeyHandler
-	colors                  *ANSIColors
-	gitStatus               *GitStatus
-	gitClient               git.StatusInfoReader
-	reader                  *bufio.Reader
-	contextMgr              *ContextManager
-	profile                 Profile
-	workflowMgr             *WorkflowManager
-	workflow                *Workflow // Deprecated: maintained for legacy tests until refactor completes.
+	stdin       io.Reader
+	stdout      io.Writer
+	stderr      io.Writer
+	term        termio.Terminal
+	renderer    *Renderer
+	state       *UIState
+	handler     *KeyHandler
+	colors      *ANSIColors
+	gitStatus   *GitStatus
+	gitClient   git.StatusInfoReader
+	reader      *bufio.Reader
+	contextMgr  *ContextManager
+	profile     Profile
+	workflowMgr *WorkflowManager
+
 	workflowEx              *WorkflowExecutor
 	softCancelFlash         atomic.Bool
 	pendingWorkflowTemplate string
@@ -1940,7 +1940,6 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 	}
 	ui.bootstrapConfigWorkflows()
 	state.SetWorkflowListIndex(0, len(ui.workflowMgr.ListWorkflows()))
-	ui.updateWorkflowPointer()
 
 	ui.handler = &KeyHandler{
 		ui:            ui,
@@ -1966,7 +1965,6 @@ func (ui *UI) ToggleWorkflowView() {
 	} else {
 		ui.state.ExitContext()
 		ui.state.SetWorkflowListIndex(0, len(ui.listWorkflows()))
-		ui.updateWorkflowPointer()
 	}
 }
 
@@ -1992,7 +1990,6 @@ func (ui *UI) AddToWorkflowByID(workflowID int, command string, args []string, d
 	}
 
 	ui.ensureWorkflowListSelection()
-	ui.updateWorkflowPointer()
 	return id, nil
 }
 
@@ -2046,7 +2043,7 @@ func (ui *UI) ClearWorkflowByID(workflowID int) error {
 	if !ui.workflowMgr.ClearWorkflow(workflowID) {
 		return fmt.Errorf("workflow %d not found", workflowID)
 	}
-	ui.updateWorkflowPointer()
+
 	return nil
 }
 
@@ -2100,7 +2097,6 @@ func (ui *UI) ensureWorkflowListSelection() {
 		}
 	}
 	ui.state.SetWorkflowListIndex(index, len(summaries))
-	ui.updateWorkflowPointer()
 }
 
 // clearPendingWorkflowSelection releases transient command data captured by the selection overlay.
@@ -2132,15 +2128,6 @@ func (ui *UI) hasWorkflowSteps() bool {
 	return false
 }
 
-func (ui *UI) updateWorkflowPointer() {
-	if ui == nil || ui.workflowMgr == nil {
-		ui.workflow = nil
-		return
-	}
-	workflow, _ := ui.workflowMgr.GetActiveWorkflow()
-	ui.workflow = workflow
-}
-
 func (ui *UI) bootstrapConfigWorkflows() {
 	if ui == nil || ui.workflowMgr == nil || ui.config == nil {
 		return
@@ -2155,7 +2142,6 @@ func (ui *UI) bootstrapConfigWorkflows() {
 		}
 	}
 	ui.ensureWorkflowListSelection()
-	ui.updateWorkflowPointer()
 }
 
 // updateSize updates the terminal dimensions
@@ -2923,13 +2909,6 @@ func pluralize(count int) string {
 	return "s"
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // renderGitStatus renders the Git repository status information
 func (r *Renderer) renderGitStatus(ui *UI, status *GitStatus) {
 	var parts []string
@@ -3216,7 +3195,6 @@ func (h *KeyHandler) createWorkflowFromView() {
 	summaries := h.ui.listWorkflows()
 	h.ui.state.SetWorkflowListIndex(len(summaries)-1, len(summaries))
 	h.ui.ensureWorkflowListSelection()
-	h.ui.updateWorkflowPointer()
 	h.ui.write("%s➕ Created workflow #%d%s\n",
 		h.ui.colors.BrightGreen,
 		newID,
@@ -3267,7 +3245,6 @@ func (h *KeyHandler) copyWorkflowFromView() {
 
 	h.ui.workflowMgr.SetActive(newID)
 	h.ui.ensureWorkflowListSelection()
-	h.ui.updateWorkflowPointer()
 	h.ui.write("%s📄 Copied to workflow #%d:%s %s%s%s\n\n",
 		h.ui.colors.BrightGreen,
 		newID,
@@ -3437,7 +3414,6 @@ func (h *KeyHandler) finalizeWorkflowSelection() {
 	}
 
 	h.ui.workflowMgr.SetActive(workflowID)
-	h.ui.updateWorkflowPointer()
 	stepID, err := h.ui.AddToWorkflowByID(
 		workflowID,
 		h.ui.pendingWorkflowCommand,
@@ -3518,7 +3494,6 @@ func (h *KeyHandler) clearWorkflow() {
 		}
 		h.ui.workflowMgr.SetActive(newActive)
 		h.ui.ensureWorkflowListSelection()
-		h.ui.updateWorkflowPointer()
 		h.ui.write("%s🗑️  Deleted workflow #%d%s\n",
 			h.ui.colors.BrightYellow,
 			targetID,
@@ -3580,7 +3555,6 @@ func (h *KeyHandler) executionTargetWorkflowID() int {
 
 func (h *KeyHandler) workflowByID(workflowID int) *Workflow {
 	h.ui.workflowMgr.SetActive(workflowID)
-	h.ui.updateWorkflowPointer()
 	workflow, exists := h.ui.workflowMgr.GetWorkflow(workflowID)
 	if !exists {
 		return nil

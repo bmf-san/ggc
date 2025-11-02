@@ -148,13 +148,14 @@ func TestWorkflowExecutor_Execute(t *testing.T) {
 
 func TestWorkflowExecutor_ExecuteCanceled(t *testing.T) {
 	colors := NewANSIColors()
+	workflowMgr := NewWorkflowManager()
 	ui := &UI{
-		stdin:    strings.NewReader("\n"),
-		stdout:   &bytes.Buffer{},
-		stderr:   &bytes.Buffer{},
-		colors:   colors,
-		workflow: NewWorkflow(),
-		term:     &mockTerminal{shouldFailRaw: true},
+		stdin:       strings.NewReader("\n"),
+		stdout:      &bytes.Buffer{},
+		stderr:      &bytes.Buffer{},
+		colors:      colors,
+		workflowMgr: workflowMgr,
+		term:        &mockTerminal{shouldFailRaw: true},
 	}
 
 	handler := &KeyHandler{ui: ui}

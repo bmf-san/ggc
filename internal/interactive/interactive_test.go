@@ -103,13 +103,13 @@ func TestUI_Run(t *testing.T) {
 
 			ui := &testUI{
 				UI: UI{
-					term:      mockTerm,
-					renderer:  renderer,
-					state:     state,
-					colors:    colors,
-					gitClient: mockGitClient,
-					gitStatus: getGitStatus(mockGitClient),
-					workflow:  NewWorkflow(),
+					term:        mockTerm,
+					renderer:    renderer,
+					state:       state,
+					colors:      colors,
+					gitClient:   mockGitClient,
+					gitStatus:   getGitStatus(mockGitClient),
+					workflowMgr: NewWorkflowManager(),
 				},
 				inputBytes: tt.input,
 			}
@@ -863,16 +863,16 @@ func TestRenderer_KeybindHelp(t *testing.T) {
 	mockGitClient := testutil.NewMockGitClient()
 
 	ui := &UI{
-		stdin:     strings.NewReader(""),
-		stdout:    &buf,
-		stderr:    &bytes.Buffer{},
-		term:      &mockTerminal{},
-		renderer:  renderer,
-		state:     state,
-		colors:    colors,
-		gitClient: mockGitClient,
-		gitStatus: getGitStatus(mockGitClient),
-		workflow:  NewWorkflow(),
+		stdin:       strings.NewReader(""),
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		state:       state,
+		colors:      colors,
+		gitClient:   mockGitClient,
+		gitStatus:   getGitStatus(mockGitClient),
+		workflowMgr: NewWorkflowManager(),
 	}
 
 	renderer.Render(ui, state)
@@ -918,14 +918,14 @@ func TestRenderer_EmptyState(t *testing.T) {
 	}
 
 	ui := &UI{
-		stdin:    strings.NewReader(""),
-		stdout:   &buf,
-		stderr:   &bytes.Buffer{},
-		term:     &mockTerminal{},
-		renderer: renderer,
-		state:    state,
-		colors:   colors,
-		workflow: NewWorkflow(),
+		stdin:       strings.NewReader(""),
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		state:       state,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
 	}
 
 	renderer.Render(ui, state)
@@ -1012,14 +1012,14 @@ func TestRenderer_RenderGitStatus(t *testing.T) {
 	}
 
 	ui := &UI{
-		stdin:     strings.NewReader(""),
-		stdout:    &buf,
-		stderr:    &bytes.Buffer{},
-		term:      &mockTerminal{},
-		renderer:  renderer,
-		colors:    colors,
-		workflow:  NewWorkflow(),
-		gitStatus: mockStatus,
+		stdin:       strings.NewReader(""),
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
+		gitStatus:   mockStatus,
 	}
 
 	renderer.renderGitStatus(ui, mockStatus)
@@ -1055,14 +1055,14 @@ func TestRenderer_RenderHeader(t *testing.T) {
 	}
 
 	ui := &UI{
-		stdin:     strings.NewReader(""),
-		stdout:    &buf,
-		stderr:    &bytes.Buffer{},
-		term:      &mockTerminal{},
-		renderer:  renderer,
-		colors:    colors,
-		workflow:  NewWorkflow(),
-		gitStatus: nil, // No git status
+		stdin:       strings.NewReader(""),
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
+		gitStatus:   nil, // No git status
 	}
 
 	renderer.renderHeader(ui)
@@ -1139,13 +1139,13 @@ func TestRenderer_RenderCommandItem(t *testing.T) {
 	}
 
 	ui := &UI{
-		stdin:    strings.NewReader(""),
-		stdout:   &buf,
-		stderr:   &bytes.Buffer{},
-		term:     &mockTerminal{},
-		renderer: renderer,
-		colors:   colors,
-		workflow: NewWorkflow(),
+		stdin:       strings.NewReader(""),
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
 	}
 
 	cmd := CommandInfo{
@@ -1180,13 +1180,13 @@ func TestKeyHandler_InteractiveInput(t *testing.T) {
 	mockTerm := &mockTerminal{shouldFailRaw: true}
 
 	ui := &UI{
-		stdin:     strings.NewReader("test value\n"),
-		stdout:    &stdout,
-		stderr:    &stderr,
-		colors:    colors,
-		workflow:  NewWorkflow(),
-		term:      mockTerm,
-		gitClient: mockGitClient,
+		stdin:       strings.NewReader("test value\n"),
+		stdout:      &stdout,
+		stderr:      &stderr,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
+		term:        mockTerm,
+		gitClient:   mockGitClient,
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -1287,12 +1287,12 @@ func TestKeyHandler_ProcessCommand_WithPlaceholders(t *testing.T) {
 	mockTerm := &mockTerminal{shouldFailRaw: true}
 
 	ui := &UI{
-		stdin:    strings.NewReader("fix bug\n"),
-		stdout:   &stdout,
-		stderr:   &stderr,
-		colors:   colors,
-		workflow: NewWorkflow(),
-		term:     mockTerm,
+		stdin:       strings.NewReader("fix bug\n"),
+		stdout:      &stdout,
+		stderr:      &stderr,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
+		term:        mockTerm,
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -1403,7 +1403,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 				input:    "test",
 				filtered: []CommandInfo{},
 			},
-			workflow: NewWorkflow(),
+			workflowMgr: NewWorkflowManager(),
 		}
 
 		handler := &KeyHandler{ui: ui}
@@ -1434,7 +1434,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 				cursorPos: 4,
 				filtered:  []CommandInfo{},
 			},
-			workflow: NewWorkflow(),
+			workflowMgr: NewWorkflowManager(),
 		}
 
 		handler := &KeyHandler{ui: ui}
@@ -1473,7 +1473,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 				cursorPos: 0,
 				filtered:  []CommandInfo{},
 			},
-			workflow: NewWorkflow(),
+			workflowMgr: NewWorkflowManager(),
 		}
 
 		handler := &KeyHandler{ui: ui}
@@ -1603,14 +1603,14 @@ func TestRenderer_KeybindDisplay(t *testing.T) {
 	}
 
 	ui := &UI{
-		stdin:    strings.NewReader(""),
-		stdout:   &buf,
-		stderr:   &bytes.Buffer{},
-		term:     &mockTerminal{},
-		renderer: renderer,
-		state:    state,
-		colors:   colors,
-		workflow: NewWorkflow(),
+		stdin:       strings.NewReader(""),
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		state:       state,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
 	}
 
 	renderer.Render(ui, state)
@@ -1652,14 +1652,14 @@ func TestKeyHandler_HandleKey(t *testing.T) {
 	}
 
 	ui := &UI{
-		stdin:    strings.NewReader(""),
-		stdout:   &stdout,
-		stderr:   &stderr,
-		term:     &mockTerminal{},
-		renderer: renderer,
-		state:    state,
-		colors:   colors,
-		workflow: NewWorkflow(),
+		stdin:       strings.NewReader(""),
+		stdout:      &stdout,
+		stderr:      &stderr,
+		term:        &mockTerminal{},
+		renderer:    renderer,
+		state:       state,
+		colors:      colors,
+		workflowMgr: NewWorkflowManager(),
 	}
 
 	handler := &KeyHandler{ui: ui}
@@ -1941,7 +1941,6 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 		ui.ToggleWorkflowView()
 		ui.state.SetWorkflowListIndex(1, len(ui.listWorkflows()))
 		ui.workflowMgr.SetActive(secondID)
-		ui.updateWorkflowPointer()
 
 		initialCount := ui.workflowMgr.WorkflowCount()
 		if initialCount < 2 {
@@ -1973,7 +1972,6 @@ func TestKeyHandler_CopyWorkflowFromView(t *testing.T) {
 	if _, err := ui.workflowMgr.AddStep(activeID, "status", nil, "status"); err != nil {
 		t.Fatalf("failed to seed workflow: %v", err)
 	}
-	ui.updateWorkflowPointer()
 
 	handler := &KeyHandler{ui: ui}
 	handler.copyWorkflowFromView()
@@ -2030,7 +2028,6 @@ func TestKeyHandler_SaveWorkflowFromView(t *testing.T) {
 	if _, err := ui.workflowMgr.AddStep(activeID, "status", nil, "status"); err != nil {
 		t.Fatalf("failed to seed workflow: %v", err)
 	}
-	ui.updateWorkflowPointer()
 
 	handler := &KeyHandler{ui: ui}
 	handler.saveWorkflowFromView()
@@ -2125,7 +2122,11 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 
 			ui.handler.finalizeWorkflowSelection()
 
-			steps := ui.workflow.GetSteps()
+			workflow, _ := ui.workflowMgr.GetActiveWorkflow()
+			var steps []WorkflowStep
+			if workflow != nil {
+				steps = workflow.GetSteps()
+			}
 			if len(steps) != tt.expectSteps {
 				t.Fatalf("expected %d steps, got %d", tt.expectSteps, len(steps))
 			}
@@ -2201,10 +2202,16 @@ func TestKeyHandler_ClearWorkflow(t *testing.T) {
 	ui.stdout = &bytes.Buffer{}
 
 	// Add some steps
-	ui.workflow.AddStep("add", []string{"."}, "add .")
-	ui.workflow.AddStep("commit", []string{"-m", "test"}, "commit -m test")
+	activeID := ui.workflowMgr.GetActiveID()
+	if _, err := ui.workflowMgr.AddStep(activeID, "add", []string{"."}, "add ."); err != nil {
+		t.Fatalf("failed to add step: %v", err)
+	}
+	if _, err := ui.workflowMgr.AddStep(activeID, "commit", []string{"-m", "test"}, "commit -m test"); err != nil {
+		t.Fatalf("failed to add step: %v", err)
+	}
 
-	if ui.workflow.IsEmpty() {
+	workflow, _ := ui.workflowMgr.GetActiveWorkflow()
+	if workflow == nil || workflow.IsEmpty() {
 		t.Fatal("Expected workflow to have steps before clearing")
 	}
 
@@ -2212,7 +2219,8 @@ func TestKeyHandler_ClearWorkflow(t *testing.T) {
 	ui.handler.clearWorkflow()
 
 	// Verify
-	if !ui.workflow.IsEmpty() {
+	workflow, _ = ui.workflowMgr.GetActiveWorkflow()
+	if workflow != nil && !workflow.IsEmpty() {
 		t.Error("Expected workflow to be empty after clearing")
 	}
 }
@@ -2253,14 +2261,19 @@ func TestUI_WorkflowOperations(t *testing.T) {
 		t.Errorf("Expected first workflow ID to be 1, got %d", id)
 	}
 
-	steps := ui.workflow.GetSteps()
+	workflow, _ := ui.workflowMgr.GetActiveWorkflow()
+	var steps []WorkflowStep
+	if workflow != nil {
+		steps = workflow.GetSteps()
+	}
 	if len(steps) != 1 {
 		t.Errorf("Expected 1 step, got %d", len(steps))
 	}
 
 	// Test ClearWorkflow
 	ui.ClearWorkflow()
-	if !ui.workflow.IsEmpty() {
+	workflow, _ = ui.workflowMgr.GetActiveWorkflow()
+	if workflow != nil && !workflow.IsEmpty() {
 		t.Error("Expected workflow to be empty after clearing")
 	}
 }
@@ -2310,7 +2323,10 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 			for _, step := range tt.workflowSteps {
 				parts := strings.Fields(step.cmd)
 				if len(parts) > 0 {
-					ui.workflow.AddStep(parts[0], parts[1:], step.desc)
+					activeID := ui.workflowMgr.GetActiveID()
+					if _, err := ui.workflowMgr.AddStep(activeID, parts[0], parts[1:], step.desc); err != nil {
+						t.Fatalf("failed to add step: %v", err)
+					}
 				}
 			}
 
