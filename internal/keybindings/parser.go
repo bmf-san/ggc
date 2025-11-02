@@ -1599,7 +1599,7 @@ func CreateDefaultProfile() *KeyBindingProfile {
 			ContextWorkflowView: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
-				"workflow_create":      {NewCtrlKeyStroke('n')},
+				"workflow_create":      {NewCharKeyStroke('w')},
 				"workflow_delete":      {NewCharKeyStroke('d')},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
@@ -1760,7 +1760,7 @@ func CreateEmacsProfile() *KeyBindingProfile {
 			ContextWorkflowView: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
-				"workflow_create":      {NewCtrlKeyStroke('n')},
+				"workflow_create":      {NewCtrlKeyStroke('c')},
 				"workflow_delete":      {NewCharKeyStroke('d')},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
@@ -2134,7 +2134,7 @@ func CreateReadlineProfile() *KeyBindingProfile {
 			ContextWorkflowView: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
-				"workflow_create":      {NewCtrlKeyStroke('n')},
+				"workflow_create":      {NewAltKeyStroke('n', "")},
 				"workflow_delete":      {NewRawKeyStroke([]byte{'d'})},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')},
