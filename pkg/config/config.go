@@ -110,6 +110,8 @@ type Config struct {
 			ClearWorkflow      string `yaml:"clear_workflow"`
 			WorkflowDelete     string `yaml:"workflow_delete"`
 			WorkflowCreate     string `yaml:"workflow_create"`
+			WorkflowCopy       string `yaml:"workflow_copy"`
+			WorkflowSave       string `yaml:"workflow_save"`
 			WorkflowCancel     string `yaml:"workflow_cancel"`
 			SoftCancel         string `yaml:"soft_cancel"`
 		} `yaml:"keybindings"`
@@ -147,6 +149,8 @@ type Config struct {
 			Token string `yaml:"token"`
 		} `yaml:"gitlab"`
 	} `yaml:"integration"`
+
+	Workflows []WorkflowConfig `yaml:"workflows,omitempty"`
 }
 
 // AliasType represents the type of alias
@@ -163,6 +167,12 @@ const (
 type ParsedAlias struct {
 	Type     AliasType
 	Commands []string
+}
+
+// WorkflowConfig defines a reusable workflow composed of command templates.
+type WorkflowConfig struct {
+	Name  string   `yaml:"name,omitempty"`
+	Steps []string `yaml:"steps"`
 }
 
 // Manager handles configuration loading, saving, and operations
@@ -182,6 +192,7 @@ var (
 	// Allow slashes; additional structural checks are applied separately
 	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
 	configPathSegmentRe  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+	placeholderPattern   = regexp.MustCompile(`<[^>]+>`)
 )
 
 // NewConfigManager creates a new configuration manager with the provided git client
@@ -403,6 +414,9 @@ func (c *Config) Validate() error {
 		return err
 	}
 	if err := c.validateKeybindings(); err != nil {
+		return err
+	}
+	if err := c.validateWorkflows(); err != nil {
 		return err
 	}
 	return nil
@@ -1052,6 +1066,8 @@ func (c *Config) validateKeybindings() error {
 		"clear_workflow":       c.Interactive.Keybindings.ClearWorkflow,
 		"workflow_delete":      c.Interactive.Keybindings.WorkflowDelete,
 		"workflow_create":      c.Interactive.Keybindings.WorkflowCreate,
+		"workflow_copy":        c.Interactive.Keybindings.WorkflowCopy,
+		"workflow_save":        c.Interactive.Keybindings.WorkflowSave,
 		"workflow_cancel":      c.Interactive.Keybindings.WorkflowCancel,
 		"soft_cancel":          c.Interactive.Keybindings.SoftCancel,
 	}
@@ -1080,6 +1096,37 @@ func (c *Config) validateKeybindings() error {
 		return err
 	}
 
+	return nil
+}
+
+func (c *Config) validateWorkflows() error {
+	for i, wf := range c.Workflows {
+		if len(wf.Steps) == 0 {
+			return &ValidationError{
+				Field:   fmt.Sprintf("workflows[%d].steps", i),
+				Value:   wf.Steps,
+				Message: "workflow must contain at least one step",
+			}
+		}
+		for j, step := range wf.Steps {
+			trimmed := strings.TrimSpace(step)
+			if trimmed == "" {
+				return &ValidationError{
+					Field:   fmt.Sprintf("workflows[%d].steps[%d]", i, j),
+					Value:   step,
+					Message: "step cannot be empty",
+				}
+			}
+			sanitized := placeholderPattern.ReplaceAllString(trimmed, "placeholder")
+			if err := security.ValidateCommand(sanitized); err != nil {
+				return &ValidationError{
+					Field:   fmt.Sprintf("workflows[%d].steps[%d]", i, j),
+					Value:   trimmed,
+					Message: err.Error(),
+				}
+			}
+		}
+	}
 	return nil
 }
 

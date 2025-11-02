@@ -252,9 +252,11 @@ type KeyBindingMap struct {
 	MoveRight          []KeyStroke // default: [], can add: [right arrow] for cursor movement
 	AddToWorkflow      []KeyStroke // default: [Tab]
 	ToggleWorkflowView []KeyStroke // default: [Ctrl+T]
-	ClearWorkflow      []KeyStroke // default: [c]
+	ClearWorkflow      []KeyStroke // default: []
 	WorkflowDelete     []KeyStroke // default: [d]
 	WorkflowCreate     []KeyStroke // default: [Ctrl+N]
+	WorkflowCopy       []KeyStroke // default: [c]
+	WorkflowSave       []KeyStroke // default: [s]
 	WorkflowCancel     []KeyStroke // default: [Esc]
 	SoftCancel         []KeyStroke // default: [Ctrl+G, Esc]
 }
@@ -273,9 +275,11 @@ func DefaultKeyBindingMap() *KeyBindingMap {
 		MoveRight:          []KeyStroke{}, // Empty by default, users can add right arrow
 		AddToWorkflow:      []KeyStroke{NewTabKeyStroke()},
 		ToggleWorkflowView: []KeyStroke{NewCtrlKeyStroke('t')},
-		ClearWorkflow:      []KeyStroke{NewCharKeyStroke('c')},
+		ClearWorkflow:      []KeyStroke{},
 		WorkflowDelete:     []KeyStroke{NewCharKeyStroke('d')},
 		WorkflowCreate:     []KeyStroke{NewCtrlKeyStroke('n')},
+		WorkflowCopy:       []KeyStroke{NewCharKeyStroke('c')},
+		WorkflowSave:       []KeyStroke{NewCharKeyStroke('s')},
 		WorkflowCancel:     []KeyStroke{NewEscapeKeyStroke()},
 		SoftCancel:         []KeyStroke{NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 	}
@@ -362,6 +366,8 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 		"clear_workflow":       km.ClearWorkflow,
 		"workflow_delete":      km.WorkflowDelete,
 		"workflow_create":      km.WorkflowCreate,
+		"workflow_copy":        km.WorkflowCopy,
+		"workflow_save":        km.WorkflowSave,
 		"workflow_cancel":      km.WorkflowCancel,
 		"soft_cancel":          km.SoftCancel,
 	}
@@ -1134,6 +1140,8 @@ func (r *KeyBindingResolver) GetEffectiveKeybindings(profile Profile, context Co
 	result["clear_workflow"] = clone(keyMap.ClearWorkflow)
 	result["workflow_delete"] = clone(keyMap.WorkflowDelete)
 	result["workflow_create"] = clone(keyMap.WorkflowCreate)
+	result["workflow_copy"] = clone(keyMap.WorkflowCopy)
+	result["workflow_save"] = clone(keyMap.WorkflowSave)
 	result["workflow_cancel"] = clone(keyMap.WorkflowCancel)
 
 	return result
@@ -1156,6 +1164,8 @@ func (r *KeyBindingResolver) applyDefaults(keyMap *KeyBindingMap) {
 	keyMap.ClearWorkflow = append(keyMap.ClearWorkflow, defaults.ClearWorkflow...)
 	keyMap.WorkflowDelete = append(keyMap.WorkflowDelete, defaults.WorkflowDelete...)
 	keyMap.WorkflowCreate = append(keyMap.WorkflowCreate, defaults.WorkflowCreate...)
+	keyMap.WorkflowCopy = append(keyMap.WorkflowCopy, defaults.WorkflowCopy...)
+	keyMap.WorkflowSave = append(keyMap.WorkflowSave, defaults.WorkflowSave...)
 	keyMap.WorkflowCancel = append(keyMap.WorkflowCancel, defaults.WorkflowCancel...)
 	keyMap.SoftCancel = append(keyMap.SoftCancel, defaults.SoftCancel...)
 }
@@ -1182,6 +1192,8 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("clear_workflow", &keyMap.ClearWorkflow)
 	applyBinding("workflow_delete", &keyMap.WorkflowDelete)
 	applyBinding("workflow_create", &keyMap.WorkflowCreate)
+	applyBinding("workflow_copy", &keyMap.WorkflowCopy)
+	applyBinding("workflow_save", &keyMap.WorkflowSave)
 	applyBinding("workflow_cancel", &keyMap.WorkflowCancel)
 	applyBinding("soft_cancel", &keyMap.SoftCancel)
 }
@@ -1504,24 +1516,20 @@ func (r *KeyBindingResolver) applyUserNavigationAction(keyMap *KeyBindingMap, ac
 
 // applyUserWorkflowAction applies user workflow-related keybinding actions
 func (r *KeyBindingResolver) applyUserWorkflowAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) {
-	switch action {
-	case "add_to_workflow":
-		keyMap.AddToWorkflow = keystrokes
-	case "toggle_workflow_view":
-		keyMap.ToggleWorkflowView = keystrokes
-	case "clear_workflow":
-		keyMap.ClearWorkflow = keystrokes
-	case "workflow_delete":
-		keyMap.WorkflowDelete = keystrokes
-	case "workflow_create":
-		keyMap.WorkflowCreate = keystrokes
-	case "workflow_cancel":
-		keyMap.WorkflowCancel = keystrokes
-	case "soft_cancel":
-		keyMap.SoftCancel = keystrokes
-	// Explicitly ignore unsupported actions
-	default:
-		// User-defined action not supported in this context
+	actionMap := map[string]*[]KeyStroke{
+		"add_to_workflow":      &keyMap.AddToWorkflow,
+		"toggle_workflow_view": &keyMap.ToggleWorkflowView,
+		"clear_workflow":       &keyMap.ClearWorkflow,
+		"workflow_delete":      &keyMap.WorkflowDelete,
+		"workflow_create":      &keyMap.WorkflowCreate,
+		"workflow_copy":        &keyMap.WorkflowCopy,
+		"workflow_save":        &keyMap.WorkflowSave,
+		"workflow_cancel":      &keyMap.WorkflowCancel,
+		"soft_cancel":          &keyMap.SoftCancel,
+	}
+
+	if target, exists := actionMap[action]; exists {
+		*target = keystrokes
 	}
 }
 
@@ -1587,20 +1595,20 @@ func CreateDefaultProfile() *KeyBindingProfile {
 				"move_down":            {NewCtrlKeyStroke('n')},
 				"add_to_workflow":      {NewTabKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
-				"clear_workflow":       {NewCharKeyStroke('c')},
 			},
 			ContextSearch: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
 				"add_to_workflow":      {NewTabKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
-				"clear_workflow":       {NewCharKeyStroke('c')},
 			},
 			ContextWorkflowView: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
 				"workflow_create":      {NewCharKeyStroke('w')},
 				"workflow_delete":      {NewCharKeyStroke('d')},
+				"workflow_copy":        {NewCharKeyStroke('c')},
+				"workflow_save":        {NewCharKeyStroke('s')},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
 			},
@@ -1728,7 +1736,6 @@ func CreateEmacsProfile() *KeyBindingProfile {
 				// Workflow operations (adapted for Emacs style)
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})}, // Tab
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},      // C-t
-				"clear_workflow":       {NewAltKeyStroke('c', "")},   // M-c clear
 			},
 			ContextSearch: {
 				// Search-specific Emacs bindings
@@ -1755,13 +1762,14 @@ func CreateEmacsProfile() *KeyBindingProfile {
 				// Workflow operations (search context)
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})}, // Tab
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},      // C-t
-				"clear_workflow":       {NewAltKeyStroke('x', "")},   // M-x clear (avoiding conflict with M-c)
 			},
 			ContextWorkflowView: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
 				"workflow_create":      {NewCtrlKeyStroke('c')},
 				"workflow_delete":      {NewCharKeyStroke('d')},
+				"workflow_copy":        {NewCharKeyStroke('c')},
+				"workflow_save":        {NewCharKeyStroke('s')},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
 			},
@@ -1907,13 +1915,14 @@ func CreateViProfile() *KeyBindingProfile {
 				// Workflow operations (Vi normal mode style)
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},   // Tab
 				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})}, // W - workflow view (capital W)
-				"clear_workflow":       {NewRawKeyStroke([]byte{'D'})}, // D - delete/clear workflow
 			},
 			ContextWorkflowView: {
 				"move_up":              {NewRawKeyStroke([]byte{'k'})},
 				"move_down":            {NewRawKeyStroke([]byte{'j'})},
 				"workflow_create":      {NewRawKeyStroke([]byte{'c'})},
 				"workflow_delete":      {NewRawKeyStroke([]byte{'d'})},
+				"workflow_copy":        {NewRawKeyStroke([]byte{'y'})},
+				"workflow_save":        {NewRawKeyStroke([]byte{'s'})},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})},
 			},
@@ -1956,7 +1965,6 @@ func CreateViProfile() *KeyBindingProfile {
 				// Workflow operations (Vi search mode)
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},   // Tab
 				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})}, // W - workflow view
-				"clear_workflow":       {NewRawKeyStroke([]byte{'D'})}, // D - delete/clear workflow
 			},
 		},
 	}
@@ -2129,13 +2137,14 @@ func CreateReadlineProfile() *KeyBindingProfile {
 				// Workflow operations (Readline style)
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},                   // Tab
 				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')}, // C-x C-w workflow
-				"clear_workflow":       {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('c')}, // C-x C-c clear
 			},
 			ContextWorkflowView: {
 				"move_up":              {NewCtrlKeyStroke('p')},
 				"move_down":            {NewCtrlKeyStroke('n')},
 				"workflow_create":      {NewAltKeyStroke('n', "")},
 				"workflow_delete":      {NewRawKeyStroke([]byte{'d'})},
+				"workflow_copy":        {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('y')},
+				"workflow_save":        {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('s')},
 				"workflow_cancel":      {NewEscapeKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')},
 			},
@@ -2184,7 +2193,6 @@ func CreateReadlineProfile() *KeyBindingProfile {
 				// Workflow operations (search context)
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},                   // Tab
 				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')}, // C-x C-w workflow
-				"clear_workflow":       {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('c')}, // C-x C-c clear
 			},
 		},
 	}

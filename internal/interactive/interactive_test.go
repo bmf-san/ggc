@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/bmf-san/ggc/v7/internal/termio"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v7/pkg/config"
 )
 
 // mockTerminal mocks terminal operations
@@ -1957,6 +1959,137 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 	})
 }
 
+func TestKeyHandler_CopyWorkflowFromView(t *testing.T) {
+	colors := NewANSIColors()
+	ui := &UI{
+		workflowMgr: NewWorkflowManager(),
+		state:       &UIState{},
+		stdout:      &bytes.Buffer{},
+		stderr:      &bytes.Buffer{},
+		colors:      colors,
+	}
+
+	activeID := ui.workflowMgr.GetActiveID()
+	if _, err := ui.workflowMgr.AddStep(activeID, "status", nil, "status"); err != nil {
+		t.Fatalf("failed to seed workflow: %v", err)
+	}
+	ui.updateWorkflowPointer()
+
+	handler := &KeyHandler{ui: ui}
+	handler.copyWorkflowFromView()
+
+	summaries := ui.listWorkflows()
+	if len(summaries) != 2 {
+		t.Fatalf("expected 2 workflows after copy, got %d", len(summaries))
+	}
+
+	var copySummary *WorkflowSummary
+	for i := range summaries {
+		if summaries[i].IsActive {
+			copySummary = &summaries[i]
+			break
+		}
+	}
+	if copySummary == nil {
+		t.Fatal("expected copied workflow to become active")
+	}
+	if copySummary.Source != WorkflowSourceDynamic {
+		t.Fatalf("expected copied workflow source dynamic, got %v", copySummary.Source)
+	}
+	if copySummary.ReadOnly {
+		t.Fatal("copied workflow should be editable")
+	}
+	if copySummary.StepCount != 1 {
+		t.Fatalf("expected copied workflow to retain step count, got %d", copySummary.StepCount)
+	}
+}
+
+func TestKeyHandler_SaveWorkflowFromView(t *testing.T) {
+	colors := NewANSIColors()
+	gitClient := testutil.NewMockGitClient()
+	tempDir := t.TempDir()
+	t.Setenv("HOME", tempDir)
+	manager := config.NewConfigManager(gitClient)
+	if err := manager.Load(); err != nil {
+		t.Fatalf("failed to load config manager: %v", err)
+	}
+	managerConfig := manager.GetConfig()
+	managerConfig.Workflows = nil
+	managerConfigPath := filepath.Join(tempDir, ".ggcconfig.yaml")
+
+	ui := &UI{
+		workflowMgr: NewWorkflowManager(),
+		state:       &UIState{},
+		stdout:      &bytes.Buffer{},
+		stderr:      &bytes.Buffer{},
+		colors:      colors,
+		configMgr:   manager,
+		config:      managerConfig,
+	}
+	activeID := ui.workflowMgr.GetActiveID()
+	if _, err := ui.workflowMgr.AddStep(activeID, "status", nil, "status"); err != nil {
+		t.Fatalf("failed to seed workflow: %v", err)
+	}
+	ui.updateWorkflowPointer()
+
+	handler := &KeyHandler{ui: ui}
+	handler.saveWorkflowFromView()
+
+	if len(managerConfig.Workflows) != 1 {
+		t.Fatalf("expected 1 workflow in config, got %d", len(managerConfig.Workflows))
+	}
+	saved := managerConfig.Workflows[0]
+	if len(saved.Steps) != 1 || strings.TrimSpace(saved.Steps[0]) != "status" {
+		t.Fatalf("unexpected saved steps: %#v", saved.Steps)
+	}
+
+	if _, err := os.Stat(managerConfigPath); err != nil {
+		t.Fatalf("expected config file to be written: %v", err)
+	}
+
+	var foundConfig bool
+	for _, summary := range ui.listWorkflows() {
+		if summary.Source == WorkflowSourceConfig {
+			foundConfig = true
+			if !summary.ReadOnly {
+				t.Fatal("config workflow should be read-only")
+			}
+			if summary.StepCount != 1 {
+				t.Fatalf("expected config workflow to have 1 step, got %d", summary.StepCount)
+			}
+		}
+	}
+	if !foundConfig {
+		t.Fatal("expected config-defined workflow to be present after saving")
+	}
+
+	// Subsequent save should not duplicate entries
+	handler.saveWorkflowFromView()
+	if len(managerConfig.Workflows) != 1 {
+		t.Fatalf("expected config workflows to remain at 1 after duplicate save, got %d", len(managerConfig.Workflows))
+	}
+
+	// Re-create UI to ensure config workflows bootstrap correctly.
+	reloadedUI := NewUI(gitClient)
+	reloadedSummaries := reloadedUI.listWorkflows()
+	var configSummary *WorkflowSummary
+	for i := range reloadedSummaries {
+		if reloadedSummaries[i].Source == WorkflowSourceConfig {
+			configSummary = &reloadedSummaries[i]
+			break
+		}
+	}
+	if configSummary == nil {
+		t.Fatalf("expected reloaded UI to include config workflow; got summaries %+v", reloadedSummaries)
+	}
+	if configSummary.StepCount != 1 {
+		t.Fatalf("expected reloaded config workflow to have 1 step, got %d", configSummary.StepCount)
+	}
+	if !configSummary.ReadOnly {
+		t.Fatal("expected reloaded config workflow to remain read-only")
+	}
+}
+
 // TestKeyHandler_AddCommandToWorkflow tests staging and confirming workflow additions.
 func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 	tests := []struct {
@@ -2000,6 +2133,61 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 				t.Fatalf("expected description %q, got %q", tt.cmdTemplate, steps[0].Description)
 			}
 		})
+	}
+}
+
+func TestRenderer_WorkflowTags(t *testing.T) {
+	colors := NewANSIColors()
+	var buf bytes.Buffer
+
+	ui := &UI{
+		workflowMgr: NewWorkflowManager(),
+		state:       &UIState{},
+		colors:      colors,
+		stdout:      &buf,
+		stderr:      &bytes.Buffer{},
+	}
+
+	activeID := ui.workflowMgr.GetActiveID()
+	if _, err := ui.workflowMgr.AddStep(activeID, "status", nil, "status"); err != nil {
+		t.Fatalf("failed to seed dynamic workflow: %v", err)
+	}
+	configID, err := ui.workflowMgr.CreateReadOnlyWorkflow("config-release", []string{"commit <message>"})
+	if err != nil {
+		t.Fatalf("failed to create config workflow: %v", err)
+	}
+	if !ui.workflowMgr.SetActive(configID) {
+		t.Fatalf("failed to activate config workflow")
+	}
+	ui.ensureWorkflowListSelection()
+
+	renderer := &Renderer{
+		writer: &buf,
+		colors: colors,
+		width:  80,
+		height: 24,
+	}
+
+	state := &UIState{showWorkflow: true}
+	ui.state = state
+
+	renderer.renderWorkflowView(ui, state)
+	output := buf.String()
+	if !strings.Contains(output, "[Config]") {
+		t.Fatalf("expected workflow view output to include config tag, got:\n%s", output)
+	}
+	if !strings.Contains(output, "[Dynamic]") {
+		t.Fatalf("expected workflow view output to include dynamic tag, got:\n%s", output)
+	}
+	if !strings.Contains(output, "config-release") {
+		t.Fatalf("expected workflow name to be rendered, got:\n%s", output)
+	}
+
+	buf.Reset()
+	renderer.renderWorkflowStatus(ui)
+	statusOutput := buf.String()
+	if !strings.Contains(statusOutput, "[Config]") {
+		t.Fatalf("expected workflow status to include config tag, got:\n%s", statusOutput)
 	}
 }
 

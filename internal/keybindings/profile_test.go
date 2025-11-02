@@ -39,3 +39,24 @@ func TestContextValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkflowCreateKeybindingsAvoidNavigationConflicts(t *testing.T) {
+	profiles := []struct {
+		name    string
+		profile *KeyBindingProfile
+	}{
+		{"default", CreateDefaultProfile()},
+		{"emacs", CreateEmacsProfile()},
+		{"vi", CreateViProfile()},
+		{"readline", CreateReadlineProfile()},
+	}
+
+	for _, tc := range profiles {
+		bindings := tc.profile.Contexts[ContextWorkflowView]
+		moveDown := FormatKeyStrokesForDisplay(bindings["move_down"])
+		create := FormatKeyStrokesForDisplay(bindings["workflow_create"])
+		if moveDown != "" && create != "" && moveDown == create {
+			t.Fatalf("profile %s has conflicting keybindings for move_down (%s) and workflow_create (%s)", tc.name, moveDown, create)
+		}
+	}
+}

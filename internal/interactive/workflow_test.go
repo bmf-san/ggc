@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v7/pkg/config"
 )
 
 func TestWorkflow_AddStep(t *testing.T) {
@@ -336,5 +338,116 @@ func TestWorkflowManagerAddStep(t *testing.T) {
 	}
 	if !summaries[0].IsActive {
 		t.Fatal("expected summary to mark workflow as active")
+	}
+	if summaries[0].Source != WorkflowSourceDynamic {
+		t.Fatalf("expected workflow source dynamic, got %v", summaries[0].Source)
+	}
+	if summaries[0].ReadOnly {
+		t.Fatal("expected dynamic workflow to be writable")
+	}
+}
+
+func TestWorkflowManagerReadOnlyWorkflows(t *testing.T) {
+	manager := NewWorkflowManager()
+
+	id, err := manager.CreateReadOnlyWorkflow("config-release", []string{"status"})
+	if err != nil {
+		t.Fatalf("unexpected error creating config workflow: %v", err)
+	}
+
+	summaries := manager.ListWorkflows()
+	var configSummary *WorkflowSummary
+	for i := range summaries {
+		if summaries[i].ID == id {
+			configSummary = &summaries[i]
+			break
+		}
+	}
+	if configSummary == nil {
+		t.Fatalf("expected to find config workflow summary for ID %d", id)
+	}
+	if !configSummary.ReadOnly {
+		t.Fatal("expected config workflow to be read-only")
+	}
+	if configSummary.Source != WorkflowSourceConfig {
+		t.Fatalf("expected config workflow source, got %v", configSummary.Source)
+	}
+
+	if _, err := manager.AddStep(id, "add", nil, "add"); err == nil {
+		t.Fatal("expected add step to read-only workflow to fail")
+	}
+	if manager.ClearWorkflow(id) {
+		t.Fatal("expected clear workflow on read-only workflow to be rejected")
+	}
+	if _, ok := manager.DeleteWorkflow(id); ok {
+		t.Fatal("expected delete to fail for read-only workflow")
+	}
+}
+
+func TestWorkflowManagerCreateWorkflowFromTemplates(t *testing.T) {
+	manager := NewWorkflowManager()
+	id, err := manager.CreateWorkflowFromTemplates("cloned", []string{"add .", "commit <message>"})
+	if err != nil {
+		t.Fatalf("unexpected error creating workflow from templates: %v", err)
+	}
+	summaries := manager.ListWorkflows()
+	var summary *WorkflowSummary
+	for i := range summaries {
+		if summaries[i].ID == id {
+			summary = &summaries[i]
+			break
+		}
+	}
+	if summary == nil {
+		t.Fatalf("expected summary for workflow %d", id)
+	}
+	if summary.StepCount != 2 {
+		t.Fatalf("expected step count 2, got %d", summary.StepCount)
+	}
+	if summary.ReadOnly {
+		t.Fatal("expected workflow created from templates to be writable")
+	}
+	if summary.Source != WorkflowSourceDynamic {
+		t.Fatalf("expected dynamic source, got %v", summary.Source)
+	}
+}
+
+func TestUI_bootstrapConfigWorkflows(t *testing.T) {
+	ui := &UI{
+		workflowMgr: NewWorkflowManager(),
+		state:       &UIState{},
+		stderr:      &bytes.Buffer{},
+		config: &config.Config{
+			Workflows: []config.WorkflowConfig{
+				{
+					Name:  "release",
+					Steps: []string{"status", "commit <message>", "push current"},
+				},
+			},
+		},
+	}
+
+	ui.bootstrapConfigWorkflows()
+
+	summaries := ui.listWorkflows()
+	if len(summaries) != 2 {
+		t.Fatalf("expected 2 workflows (default + config), got %d", len(summaries))
+	}
+
+	var found bool
+	for _, summary := range summaries {
+		if summary.Name == "release" {
+			found = true
+			if summary.Source != WorkflowSourceConfig {
+				t.Fatalf("expected config source, got %v", summary.Source)
+			}
+			if !summary.ReadOnly {
+				t.Fatal("expected config workflow to be read-only")
+			}
+			break
+		}
+	}
+	if !found {
+		t.Fatal("expected to find config-defined workflow in summaries")
 	}
 }
