@@ -156,8 +156,10 @@ const (
 
 // ParsedAlias represents a parsed alias with its type and commands
 type ParsedAlias struct {
-	Type     AliasType
-	Commands []string
+	Type             AliasType
+	Commands         []string
+	Placeholders     map[string]bool // Track which placeholders are used
+	MaxPositionalArg int             // Highest positional argument index (-1 if none)
 }
 
 // Manager handles configuration loading, saving, and operations
@@ -177,6 +179,8 @@ var (
 	// Allow slashes; additional structural checks are applied separately
 	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
 	configPathSegmentRe  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+	aliasPlaceholderPattern = regexp.MustCompile(`\{([^}]*)\}`)
 )
 
 // NewConfigManager creates a new configuration manager with the provided git client
@@ -403,6 +407,68 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// analyzePlaceholders analyzes a command string for placeholders and returns placeholder info
+func analyzePlaceholders(commands []string) (map[string]bool, int, error) {
+	placeholders := make(map[string]bool)
+	maxPositionalArg := -1
+
+	for _, cmd := range commands {
+		matches := aliasPlaceholderPattern.FindAllStringSubmatch(cmd, -1)
+		for _, match := range matches {
+			if len(match) < 2 {
+				continue
+			}
+			placeholder := match[1]
+
+			// Validate placeholder format
+			if err := validatePlaceholder(placeholder); err != nil {
+				return nil, -1, fmt.Errorf("invalid placeholder {%s}: %w", placeholder, err)
+			}
+
+			placeholders[placeholder] = true
+
+			// Check if it's a positional argument
+			if len(placeholder) == 1 && placeholder[0] >= '0' && placeholder[0] <= '9' {
+				argIndex := int(placeholder[0] - '0')
+				if argIndex > maxPositionalArg {
+					maxPositionalArg = argIndex
+				}
+			}
+		}
+	}
+
+	return placeholders, maxPositionalArg, nil
+}
+
+// isValidPlaceholderChar checks if a character is valid in a placeholder
+func isValidPlaceholderChar(char rune) bool {
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char >= '0' && char <= '9') ||
+		char == '_' || char == '-'
+}
+
+// validatePlaceholder validates a placeholder name
+func validatePlaceholder(placeholder string) error {
+	if placeholder == "" {
+		return fmt.Errorf("empty placeholder")
+	}
+
+	// Check for shell metacharacters
+	if strings.ContainsAny(placeholder, ";|&$`()[]{}*?<>\"'\\") {
+		return fmt.Errorf("placeholder contains unsafe characters")
+	}
+
+	// Allow alphanumeric, underscore, and hyphen
+	for _, char := range placeholder {
+		if !isValidPlaceholderChar(char) {
+			return fmt.Errorf("placeholder contains invalid character: %c", char)
+		}
+	}
+
+	return nil
+}
+
 // ParseAlias parses an alias value and returns its type and commands
 func (c *Config) ParseAlias(name string) (*ParsedAlias, error) {
 	value, exists := c.Aliases[name]
@@ -412,9 +478,16 @@ func (c *Config) ParseAlias(name string) (*ParsedAlias, error) {
 
 	switch v := value.(type) {
 	case string:
+		placeholders, maxPositionalArg, err := analyzePlaceholders([]string{v})
+		if err != nil {
+			return nil, fmt.Errorf("error analyzing placeholders in simple alias '%s': %w", name, err)
+		}
+
 		return &ParsedAlias{
-			Type:     SimpleAlias,
-			Commands: []string{v},
+			Type:             SimpleAlias,
+			Commands:         []string{v},
+			Placeholders:     placeholders,
+			MaxPositionalArg: maxPositionalArg,
 		}, nil
 
 	case []interface{}:
@@ -426,9 +499,17 @@ func (c *Config) ParseAlias(name string) (*ParsedAlias, error) {
 			}
 			commands[i] = cmdStr
 		}
+
+		placeholders, maxPositionalArg, err := analyzePlaceholders(commands)
+		if err != nil {
+			return nil, fmt.Errorf("error analyzing placeholders in sequence alias '%s': %w", name, err)
+		}
+
 		return &ParsedAlias{
-			Type:     SequenceAlias,
-			Commands: commands,
+			Type:             SequenceAlias,
+			Commands:         commands,
+			Placeholders:     placeholders,
+			MaxPositionalArg: maxPositionalArg,
 		}, nil
 
 	default:
