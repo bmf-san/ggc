@@ -1907,57 +1907,107 @@ func TestHandleInputChar_MultibyteDisplay(t *testing.T) {
 	}
 }
 
-// TestKeyHandler_HandleWorkflowKeys exercises interactive workflow shortcuts.
+// TestKeyHandler_HandleWorkflowKeys tests workflow key handling
 func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
-	t.Run("Tab opens workflow selection overlay", func(t *testing.T) {
-		gitClient := testutil.NewMockGitClient()
-		ui := NewUI(gitClient)
-		ui.stdout = &bytes.Buffer{}
+	tests := []struct {
+		name           string
+		key            rune
+		showWorkflow   bool
+		hasInput       bool
+		selectedCmd    *CommandInfo
+		expectedResult bool
+		expectedAction string
+	}{
+		{
+			name:           "Tab key adds command to workflow",
+			key:            '\t',
+			showWorkflow:   false,
+			hasInput:       true,
+			selectedCmd:    &CommandInfo{Command: "add .", Description: "Add all changes"},
+			expectedResult: true,
+			expectedAction: "add_to_workflow",
+		},
+		{
+			name:           "Tab key in workflow view returns true but no action",
+			key:            '\t',
+			showWorkflow:   true,
+			hasInput:       true,
+			selectedCmd:    &CommandInfo{Command: "add .", Description: "Add all changes"},
+			expectedResult: true,
+			expectedAction: "no_action",
+		},
+		{
+			name:           "c key clears workflow in workflow view",
+			key:            'c',
+			showWorkflow:   true,
+			hasInput:       false,
+			selectedCmd:    nil,
+			expectedResult: true,
+			expectedAction: "clear_workflow",
+		},
+		{
+			name:           "c key in search view returns false because it is unhandled",
+			key:            'c',
+			showWorkflow:   false,
+			hasInput:       true,
+			selectedCmd:    nil,
+			expectedResult: false,
+			expectedAction: "no_action",
+		},
+		{
+			name:           "unhandled key returns false",
+			key:            'x',
+			showWorkflow:   false,
+			hasInput:       true,
+			selectedCmd:    nil,
+			expectedResult: false,
+			expectedAction: "none",
+		},
+	}
 
-		ui.state.filtered = []CommandInfo{{Command: "status", Description: "git status"}}
-		ui.state.selected = 0
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			gitClient := testutil.NewMockGitClient()
+			ui := NewUI(gitClient)
+			ui.state.showWorkflow = tt.showWorkflow
+			if tt.hasInput {
+				ui.state.input = "test"
+				ui.state.filtered = []CommandInfo{
+					{Command: "add .", Description: "Add all changes"},
+				}
+				ui.state.selected = 0
+			}
 
-		handled := ui.handler.handleWorkflowKeys('\t')
-		if !handled {
-			t.Fatal("expected Tab key to be handled")
-		}
-		if !ui.state.workflowSelectionActive {
-			t.Fatal("expected workflow selection overlay to be active")
-		}
-		if ui.pendingWorkflowTemplate != "status" {
-			t.Fatalf("expected pending template 'status', got %q", ui.pendingWorkflowTemplate)
-		}
-	})
+			// Mock workflow for clear test
+			if tt.expectedAction == "clear_workflow" {
+				ui.workflow.AddStep("test", []string{}, "test command")
+			}
 
-	t.Run("Delete key removes workflow in management view", func(t *testing.T) {
-		gitClient := testutil.NewMockGitClient()
-		ui := NewUI(gitClient)
-		ui.stdout = &bytes.Buffer{}
+			// Execute
+			result := ui.handler.handleWorkflowKeys(tt.key)
 
-		secondID := ui.workflowMgr.CreateWorkflow()
-		ui.ensureWorkflowListSelection()
-		ui.ToggleWorkflowView()
-		ui.state.SetWorkflowListIndex(1, len(ui.listWorkflows()))
-		ui.workflowMgr.SetActive(secondID)
-		ui.updateWorkflowPointer()
+			// Verify
+			if result != tt.expectedResult {
+				t.Errorf("Expected result %v, got %v", tt.expectedResult, result)
+			}
 
-		initialCount := ui.workflowMgr.WorkflowCount()
-		if initialCount < 2 {
-			t.Fatalf("expected at least two workflows, got %d", initialCount)
-		}
-
-		handled := ui.handler.handleWorkflowKeys('d')
-		if !handled {
-			t.Fatal("expected delete key to be handled")
-		}
-
-		if ui.workflowMgr.WorkflowCount() != initialCount-1 {
-			t.Fatalf("expected workflow count %d, got %d", initialCount-1, ui.workflowMgr.WorkflowCount())
-		}
-	})
+			// Verify side effects
+			switch tt.expectedAction {
+			case "add_to_workflow":
+				if ui.workflow.IsEmpty() {
+					t.Error("Expected workflow to have steps after adding command")
+				}
+			case "clear_workflow":
+				if !ui.workflow.IsEmpty() {
+					t.Error("Expected workflow to be empty after clearing")
+				}
+			}
+		})
+	}
 }
 
-// TestKeyHandler_AddCommandToWorkflow tests staging and confirming workflow additions.
+// TestKeyHandler_AddCommandToWorkflow tests adding commands to workflow
 func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -1974,30 +2024,35 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 			cmdTemplate: "commit <message>",
 			expectSteps: 1,
 		},
+		{
+			name:        "Add complex command",
+			cmdTemplate: "branch create <name>",
+			expectSteps: 1,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Setup
 			gitClient := testutil.NewMockGitClient()
 			ui := NewUI(gitClient)
+
+			// Redirect output to avoid test output pollution
 			ui.stdout = &bytes.Buffer{}
 
-			ui.state.filtered = []CommandInfo{{Command: tt.cmdTemplate, Description: tt.cmdTemplate}}
-			ui.state.selected = 0
-
+			// Execute
 			ui.handler.addCommandToWorkflow(tt.cmdTemplate)
-			if !ui.state.workflowSelectionActive {
-				t.Fatal("expected workflow selection overlay to be active")
-			}
 
-			ui.handler.finalizeWorkflowSelection()
-
+			// Verify
 			steps := ui.workflow.GetSteps()
 			if len(steps) != tt.expectSteps {
-				t.Fatalf("expected %d steps, got %d", tt.expectSteps, len(steps))
+				t.Errorf("Expected %d steps, got %d", tt.expectSteps, len(steps))
 			}
-			if len(steps) > 0 && steps[0].Description != tt.cmdTemplate {
-				t.Fatalf("expected description %q, got %q", tt.cmdTemplate, steps[0].Description)
+
+			if len(steps) > 0 {
+				if steps[0].Description != tt.cmdTemplate {
+					t.Errorf("Expected description '%s', got '%s'", tt.cmdTemplate, steps[0].Description)
+				}
 			}
 		})
 	}

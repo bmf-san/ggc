@@ -152,41 +152,34 @@ func buildInteractiveCommands() []CommandInfo {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin                   io.Reader
-	stdout                  io.Writer
-	stderr                  io.Writer
-	term                    termio.Terminal
-	renderer                *Renderer
-	state                   *UIState
-	handler                 *KeyHandler
-	colors                  *ANSIColors
-	gitStatus               *GitStatus
-	gitClient               git.StatusInfoReader
-	reader                  *bufio.Reader
-	contextMgr              *ContextManager
-	profile                 Profile
-	workflowMgr             *WorkflowManager
-	workflow                *Workflow // Deprecated: maintained for legacy tests until refactor completes.
-	workflowEx              *WorkflowExecutor
-	softCancelFlash         atomic.Bool
-	pendingWorkflowTemplate string
-	pendingWorkflowCommand  string
-	pendingWorkflowArgs     []string
+	stdin           io.Reader
+	stdout          io.Writer
+	stderr          io.Writer
+	term            termio.Terminal
+	renderer        *Renderer
+	state           *UIState
+	handler         *KeyHandler
+	colors          *ANSIColors
+	gitStatus       *GitStatus
+	gitClient       git.StatusInfoReader
+	reader          *bufio.Reader
+	contextMgr      *ContextManager
+	profile         Profile
+	workflow        *Workflow
+	workflowEx      *WorkflowExecutor
+	softCancelFlash atomic.Bool
 }
 
 // UIState holds the current state of the interactive UI
 type UIState struct {
-	selected                int
-	input                   string
-	cursorPos               int // Cursor position in input string
-	filtered                []CommandInfo
-	context                 Context   // Current UI context (input/results/search/global)
-	contextStack            []Context // Context stack for nested states
-	onContextChange         func(Context, Context)
-	showWorkflow            bool // Whether to show the workflow builder
-	workflowSelectionActive bool
-	workflowSelectionIndex  int
-	workflowListIndex       int
+	selected        int
+	input           string
+	cursorPos       int // Cursor position in input string
+	filtered        []CommandInfo
+	context         Context   // Current UI context (input/results/search/global)
+	contextStack    []Context // Context stack for nested states
+	onContextChange func(Context, Context)
+	showWorkflow    bool // Whether to show the workflow builder
 }
 
 // UpdateFiltered updates the filtered commands based on current input using fuzzy matching
@@ -271,45 +264,6 @@ func (s *UIState) notifyContextChange(oldCtx, newCtx Context) {
 	if s.onContextChange != nil && oldCtx != newCtx {
 		s.onContextChange(oldCtx, newCtx)
 	}
-}
-
-// ActivateWorkflowSelection enables the workflow selection overlay.
-func (s *UIState) ActivateWorkflowSelection(initialIndex int) {
-	s.workflowSelectionActive = true
-	s.workflowSelectionIndex = initialIndex
-}
-
-// DeactivateWorkflowSelection closes the workflow selection overlay.
-func (s *UIState) DeactivateWorkflowSelection() {
-	s.workflowSelectionActive = false
-	s.workflowSelectionIndex = 0
-}
-
-// AdjustWorkflowSelection moves the selection pointer within bounds.
-func (s *UIState) AdjustWorkflowSelection(delta, max int) {
-	if !s.workflowSelectionActive || max <= 0 {
-		return
-	}
-	s.workflowSelectionIndex += delta
-	if s.workflowSelectionIndex < 0 {
-		s.workflowSelectionIndex = max - 1
-	} else if s.workflowSelectionIndex >= max {
-		s.workflowSelectionIndex = 0
-	}
-}
-
-// SetWorkflowListIndex updates the pointer used in the management view.
-func (s *UIState) SetWorkflowListIndex(value, max int) {
-	if max <= 0 {
-		s.workflowListIndex = 0
-		return
-	}
-	if value < 0 {
-		value = 0
-	} else if value >= max {
-		value = max - 1
-	}
-	s.workflowListIndex = value
 }
 
 // IsInInputMode returns true if currently in input context
@@ -700,77 +654,35 @@ func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State, reader *buf
 // handleWorkflowKeys processes workflow-related key bindings and returns (handled, result)
 func (h *KeyHandler) handleWorkflowKeys(r rune) bool {
 	km := h.GetCurrentKeyMap()
-	if km == nil {
-		km = DefaultKeyBindingMap()
-	}
 
+	// Create KeyStroke for this character
 	keyStroke := NewCharKeyStroke(r)
-	state := h.ui.state
 
-	if state.workflowSelectionActive {
-		return h.handleWorkflowSelectionKey(km, keyStroke)
+	// Check add to workflow
+	if km.MatchesKeyStroke("add_to_workflow", keyStroke) {
+		// Add current selection to workflow
+		if !h.ui.state.showWorkflow && h.ui.state.HasInput() {
+			selectedCmd := h.ui.state.GetSelectedCommand()
+			if selectedCmd != nil {
+				h.addCommandToWorkflow(selectedCmd.Command)
+				// Clear input after adding to workflow
+				h.ui.state.ClearInput()
+				return true
+			}
+		}
+		return true
 	}
 
-	if km.MatchesKeyStroke("workflow_cancel", keyStroke) {
-		if h.handleWorkflowCancel(state) {
+	// Check clear workflow
+	if km.MatchesKeyStroke("clear_workflow", keyStroke) {
+		// Clear workflow
+		if h.ui.state.showWorkflow {
+			h.clearWorkflow()
 			return true
 		}
 	}
 
-	if !state.showWorkflow {
-		return h.handleSearchWorkflowKey(km, keyStroke, state)
-	}
-
-	if km.MatchesKeyStroke("workflow_create", keyStroke) {
-		h.createWorkflowFromView()
-		return true
-	}
-
-	if km.MatchesKeyStroke("workflow_delete", keyStroke) || km.MatchesKeyStroke("clear_workflow", keyStroke) {
-		h.clearWorkflow()
-		return true
-	}
-
-	if km.MatchesKeyStroke("add_to_workflow", keyStroke) {
-		return true
-	}
-
 	return false
-}
-
-func (h *KeyHandler) handleSearchWorkflowKey(km *KeyBindingMap, keyStroke KeyStroke, state *UIState) bool {
-	if !km.MatchesKeyStroke("add_to_workflow", keyStroke) {
-		return false
-	}
-	if state.HasMatches() {
-		if selectedCmd := state.GetSelectedCommand(); selectedCmd != nil {
-			h.addCommandToWorkflow(selectedCmd.Command)
-		}
-	}
-	return true
-}
-
-func (h *KeyHandler) handleWorkflowSelectionKey(km *KeyBindingMap, keyStroke KeyStroke) bool {
-	switch {
-	case km.MatchesKeyStroke("add_to_workflow", keyStroke):
-		h.moveWorkflowSelection(1)
-	case km.MatchesKeyStroke("workflow_cancel", keyStroke):
-		h.cancelWorkflowSelection()
-	}
-	return true
-}
-
-func (h *KeyHandler) handleWorkflowCancel(state *UIState) bool {
-	switch {
-	case state.workflowSelectionActive:
-		h.cancelWorkflowSelection()
-		return true
-	case state.showWorkflow:
-		h.ui.ToggleWorkflowView()
-		return true
-	default:
-		return false
-	}
 }
 
 // handleControlChar processes control characters and returns (handled, shouldContinue, result)
@@ -780,40 +692,6 @@ func (h *KeyHandler) handleWorkflowCancel(state *UIState) bool {
 func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	// Get the appropriate keybinding map for current context
 	km := h.GetCurrentKeyMap()
-	state := h.ui.state
-
-	if state.workflowSelectionActive {
-		if b >= 1 && b <= 26 {
-			ctrlStroke := NewCtrlKeyStroke(rune('a' + b - 1))
-			if km.MatchesKeyStroke("move_up", ctrlStroke) {
-				h.moveWorkflowSelection(-1)
-				return true, true, nil
-			}
-			if km.MatchesKeyStroke("move_down", ctrlStroke) {
-				h.moveWorkflowSelection(1)
-				return true, true, nil
-			}
-			if km.MatchesKeyStroke("soft_cancel", ctrlStroke) {
-				h.cancelWorkflowSelection()
-				return true, true, nil
-			}
-			if km.MatchesKeyStroke("workflow_cancel", ctrlStroke) {
-				h.cancelWorkflowSelection()
-				return true, true, nil
-			}
-		}
-
-		switch b {
-		case 13: // Enter
-			h.finalizeWorkflowSelection()
-			return true, true, nil
-		case 27: // Esc
-			h.cancelWorkflowSelection()
-			return true, true, nil
-		default:
-			return true, true, nil
-		}
-	}
 
 	// Create KeyStroke for this control character
 	if b >= 1 && b <= 26 {
@@ -822,19 +700,15 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 
 		// Check each action using new KeyStroke matching
 		if km.MatchesKeyStroke("move_up", ctrlStroke) {
-			switch {
-			case state.showWorkflow:
-				h.moveWorkflowList(-1)
-			default:
+			// No navigation in workflow view - just normal command navigation
+			if !h.ui.state.showWorkflow {
 				h.ui.state.MoveUp()
 			}
 			return true, true, nil
 		}
 		if km.MatchesKeyStroke("move_down", ctrlStroke) {
-			switch {
-			case state.showWorkflow:
-				h.moveWorkflowList(1)
-			default:
+			// No navigation in workflow view - just normal command navigation
+			if !h.ui.state.showWorkflow {
 				h.ui.state.MoveDown()
 			}
 			return true, true, nil
@@ -865,18 +739,6 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 			h.ui.ToggleWorkflowView()
 			return true, true, nil
 		}
-		if km.MatchesKeyStroke("workflow_create", ctrlStroke) {
-			if state.showWorkflow {
-				h.createWorkflowFromView()
-			}
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("workflow_cancel", ctrlStroke) {
-			if state.showWorkflow {
-				h.ui.ToggleWorkflowView()
-			}
-			return true, true, nil
-		}
 		if km.MatchesKeyStroke("soft_cancel", ctrlStroke) {
 			h.handleSoftCancel(oldState)
 			return true, true, nil
@@ -889,22 +751,12 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 		h.handleCtrlC(oldState)
 		return true, false, nil
 	case 13: // Enter
-		if state.workflowSelectionActive {
-			h.finalizeWorkflowSelection()
-			return true, true, nil
-		}
 		shouldContinue, result := h.handleEnter(oldState)
 		return true, shouldContinue, result
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
 		return true, true, nil
 	case 27: // ESC: arrow keys and Option/Alt modifiers
-		escStroke := NewEscapeKeyStroke()
-		if km.MatchesKeyStroke("workflow_cancel", escStroke) {
-			if h.handleWorkflowCancel(state) {
-				return true, true, nil
-			}
-		}
 		if h.shouldHandleEscapeAsSoftCancel() {
 			h.handleSoftCancel(oldState)
 			return true, true, nil
@@ -1122,26 +974,17 @@ func (h *KeyHandler) handleApplicationCursorMode(reader *bufio.Reader) {
 func (h *KeyHandler) handleDefaultAppCursorMovement(nb byte) {
 	switch nb {
 	case 'A':
-		h.handleVerticalNavigation(-1)
+		if !h.ui.state.showWorkflow {
+			h.ui.state.MoveUp()
+		}
 	case 'B':
-		h.handleVerticalNavigation(1)
+		if !h.ui.state.showWorkflow {
+			h.ui.state.MoveDown()
+		}
 	case 'C':
 		h.ui.state.MoveRight()
 	case 'D':
 		h.ui.state.MoveLeft()
-	}
-}
-
-func (h *KeyHandler) handleVerticalNavigation(delta int) {
-	switch {
-	case h.ui.state.workflowSelectionActive:
-		h.moveWorkflowSelection(delta)
-	case h.ui.state.showWorkflow:
-		h.moveWorkflowList(delta)
-	case delta < 0:
-		h.ui.state.MoveUp()
-	default:
-		h.ui.state.MoveDown()
 	}
 }
 
@@ -1891,35 +1734,31 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 			Platform: DetectPlatform(),
 			Terminal: DetectTerminal(),
 			Contexts: map[Context]*KeyBindingMap{
-				ContextGlobal:            keyMap,
-				ContextInput:             keyMap,
-				ContextResults:           keyMap,
-				ContextSearch:            keyMap,
-				ContextWorkflowView:      keyMap,
-				ContextWorkflowSelection: keyMap,
+				ContextGlobal:  keyMap,
+				ContextInput:   keyMap,
+				ContextResults: keyMap,
+				ContextSearch:  keyMap,
 			},
 		}
 	}
 
 	ui := &UI{
-		stdin:       os.Stdin,
-		stdout:      os.Stdout,
-		stderr:      os.Stderr,
-		term:        termio.DefaultTerminal{},
-		renderer:    renderer,
-		state:       state,
-		colors:      colors,
-		gitClient:   gitClient,
-		gitStatus:   getGitStatus(gitClient),
-		contextMgr:  contextManager,
-		profile:     profile,
-		workflowMgr: NewWorkflowManager(),
+		stdin:      os.Stdin,
+		stdout:     os.Stdout,
+		stderr:     os.Stderr,
+		term:       termio.DefaultTerminal{},
+		renderer:   renderer,
+		state:      state,
+		colors:     colors,
+		gitClient:  gitClient,
+		gitStatus:  getGitStatus(gitClient),
+		contextMgr: contextManager,
+		profile:    profile,
+		workflow:   NewWorkflow(),
 	}
 	state.onContextChange = func(_ Context, newCtx Context) {
 		contextManager.SetContext(newCtx)
 	}
-	state.SetWorkflowListIndex(0, len(ui.workflowMgr.ListWorkflows()))
-	ui.updateWorkflowPointer()
 
 	ui.handler = &KeyHandler{
 		ui:            ui,
@@ -1937,42 +1776,11 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 // ToggleWorkflowView toggles between normal command view and workflow view
 func (ui *UI) ToggleWorkflowView() {
 	ui.state.showWorkflow = !ui.state.showWorkflow
-	if ui.state.showWorkflow {
-		ui.state.EnterContext(ContextWorkflowView)
-		ui.state.DeactivateWorkflowSelection()
-		ui.clearPendingWorkflowSelection()
-		ui.ensureWorkflowListSelection()
-	} else {
-		ui.state.ExitContext()
-		ui.state.SetWorkflowListIndex(0, len(ui.listWorkflows()))
-		ui.updateWorkflowPointer()
-	}
 }
 
 // AddToWorkflow adds a command to the workflow
 func (ui *UI) AddToWorkflow(command string, args []string, description string) int {
-	id, _ := ui.AddToWorkflowByID(ui.workflowMgr.GetActiveID(), command, args, description)
-	return id
-}
-
-// AddToWorkflowByID adds a step to the specified workflow.
-func (ui *UI) AddToWorkflowByID(workflowID int, command string, args []string, description string) (int, error) {
-	if ui.workflowMgr == nil {
-		return 0, fmt.Errorf("workflow manager not initialized")
-	}
-
-	if workflowID == 0 {
-		workflowID = ui.workflowMgr.GetActiveID()
-	}
-
-	id, err := ui.workflowMgr.AddStep(workflowID, command, args, description)
-	if err != nil {
-		return 0, err
-	}
-
-	ui.ensureWorkflowListSelection()
-	ui.updateWorkflowPointer()
-	return id, nil
+	return ui.workflow.AddStep(command, args, description)
 }
 
 // ApplyContextualKeybindings updates the active keybinding map, satisfying keybindings.ContextualMapApplier.
@@ -1989,14 +1797,12 @@ func (ui *UI) resetToSearchMode() bool {
 	}
 
 	state := ui.state
-	active := state.HasInput() || state.showWorkflow || state.workflowSelectionActive || len(state.contextStack) > 0 || state.GetCurrentContext() != ContextGlobal
+	active := state.HasInput() || state.showWorkflow || len(state.contextStack) > 0 || state.GetCurrentContext() != ContextGlobal
 	state.ClearInput()
 	state.selected = 0
 	state.contextStack = nil
 	state.SetContext(ContextGlobal)
 	state.showWorkflow = false
-	state.DeactivateWorkflowSelection()
-	ui.clearPendingWorkflowSelection()
 	return active
 }
 
@@ -2014,110 +1820,20 @@ func (ui *UI) readPlaceholderInput() (string, bool) {
 
 // ClearWorkflow removes all steps from the workflow
 func (ui *UI) ClearWorkflow() {
-	_ = ui.ClearWorkflowByID(ui.workflowMgr.GetActiveID())
-}
-
-// ClearWorkflowByID clears the workflow with the provided ID.
-func (ui *UI) ClearWorkflowByID(workflowID int) error {
-	if ui.workflowMgr == nil {
-		return fmt.Errorf("workflow manager not initialized")
-	}
-	if !ui.workflowMgr.ClearWorkflow(workflowID) {
-		return fmt.Errorf("workflow %d not found", workflowID)
-	}
-	ui.updateWorkflowPointer()
-	return nil
+	ui.workflow.Clear()
 }
 
 // ExecuteWorkflow executes the current workflow
 func (ui *UI) ExecuteWorkflow() error {
-	return ui.ExecuteWorkflowByID(ui.workflowMgr.GetActiveID())
-}
-
-// ExecuteWorkflowByID executes the workflow identified by workflowID.
-func (ui *UI) ExecuteWorkflowByID(workflowID int) error {
 	if ui.workflowEx == nil {
 		return fmt.Errorf("workflow executor not initialized")
 	}
 
-	workflow, exists := ui.workflowMgr.GetWorkflow(workflowID)
-	if !exists {
-		return fmt.Errorf("workflow %d not found", workflowID)
-	}
-
-	if workflow.IsEmpty() {
+	if ui.workflow.IsEmpty() {
 		return fmt.Errorf("workflow is empty")
 	}
 
-	return ui.workflowEx.Execute(workflow)
-}
-
-// listWorkflows provides a snapshot of available workflows for rendering.
-func (ui *UI) listWorkflows() []WorkflowSummary {
-	if ui == nil || ui.workflowMgr == nil {
-		return nil
-	}
-	return ui.workflowMgr.ListWorkflows()
-}
-
-// ensureWorkflowListSelection keeps the management view index aligned with the active workflow.
-func (ui *UI) ensureWorkflowListSelection() {
-	if ui == nil {
-		return
-	}
-	summaries := ui.listWorkflows()
-	if len(summaries) == 0 {
-		return
-	}
-
-	activeID := ui.workflowMgr.GetActiveID()
-	index := 0
-	for i, summary := range summaries {
-		if summary.ID == activeID {
-			index = i
-			break
-		}
-	}
-	ui.state.SetWorkflowListIndex(index, len(summaries))
-	ui.updateWorkflowPointer()
-}
-
-// clearPendingWorkflowSelection releases transient command data captured by the selection overlay.
-func (ui *UI) clearPendingWorkflowSelection() {
-	ui.pendingWorkflowTemplate = ""
-	ui.pendingWorkflowCommand = ""
-	ui.pendingWorkflowArgs = nil
-}
-
-// workflowStepsByID returns a copy of workflow steps for rendering purposes.
-func (ui *UI) workflowStepsByID(workflowID int) []WorkflowStep {
-	if ui == nil || ui.workflowMgr == nil {
-		return nil
-	}
-	workflow, exists := ui.workflowMgr.GetWorkflow(workflowID)
-	if !exists || workflow == nil {
-		return nil
-	}
-	return workflow.GetSteps()
-}
-
-// hasWorkflowSteps indicates whether any workflow currently contains steps.
-func (ui *UI) hasWorkflowSteps() bool {
-	for _, summary := range ui.listWorkflows() {
-		if summary.StepCount > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func (ui *UI) updateWorkflowPointer() {
-	if ui == nil || ui.workflowMgr == nil {
-		ui.workflow = nil
-		return
-	}
-	workflow, _ := ui.workflowMgr.GetActiveWorkflow()
-	ui.workflow = workflow
+	return ui.workflowEx.Execute(ui.workflow)
 }
 
 // updateSize updates the terminal dimensions
@@ -2202,50 +1918,34 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	r.renderHeader(ui)
 	r.renderSoftCancelFlash(ui)
 
-	r.renderWorkflowStatusIfNeeded(ui, state)
+	// Render workflow status if it has steps and no search input
+	if !ui.workflow.IsEmpty() && !state.showWorkflow && state.input == "" {
+		r.renderWorkflowStatus(ui)
+	}
 
+	// Render content based on state
 	if state.showWorkflow {
 		r.renderWorkflowView(ui, state)
-		return
-	}
-
-	restoreCursor = r.renderSearchArea(ui, state)
-	if state.workflowSelectionActive {
-		r.renderWorkflowSelection(ui, state)
-	}
-}
-
-func (r *Renderer) renderWorkflowStatusIfNeeded(ui *UI, state *UIState) {
-	if !ui.hasWorkflowSteps() || state.showWorkflow || state.workflowSelectionActive || state.input != "" {
-		return
-	}
-	r.renderWorkflowStatus(ui)
-}
-
-func (r *Renderer) renderSearchArea(ui *UI, state *UIState) func() {
-	r.renderSearchPrompt(ui, state)
-	restoreCursor := r.saveCursorAtSearchPrompt(state)
-
-	switch {
-	case state.input == "":
-		r.renderInitialSearchState(ui)
-	case len(state.filtered) == 0:
-		r.renderNoMatches(ui, state)
-	default:
-		r.renderCommandList(ui, state)
-	}
-
-	return restoreCursor
-}
-
-func (r *Renderer) renderInitialSearchState(ui *UI) {
-	if !ui.hasWorkflowSteps() {
-		r.renderEmptyState(ui)
 	} else {
-		r.renderEmptyStateWithWorkflow(ui)
+		r.renderSearchPrompt(ui, state)
+		restoreCursor = r.saveCursorAtSearchPrompt(state)
+
+		switch {
+		case state.input == "":
+			if ui.workflow.IsEmpty() {
+				r.renderEmptyState(ui)
+			} else {
+				r.renderEmptyStateWithWorkflow(ui)
+			}
+			r.writeEmptyLine()
+			r.renderSearchKeybinds(ui)
+		case len(state.filtered) == 0:
+			r.renderNoMatches(ui, state)
+		default:
+			r.renderCommandList(ui, state)
+		}
 	}
-	r.writeEmptyLine()
-	r.renderSearchKeybinds(ui)
+
 }
 
 func (r *Renderer) renderSoftCancelFlash(ui *UI) {
@@ -2451,35 +2151,10 @@ func (r *Renderer) renderSearchKeybinds(ui *UI) {
 // renderWorkflowKeybinds renders keybinds available in workflow UI
 func (r *Renderer) renderWorkflowKeybinds(ui *UI) {
 	// Workflow-specific keybinds
-	defaultMap := DefaultKeyBindingMap()
-	km := defaultMap
-	if ui != nil && ui.handler != nil {
-		if current := ui.handler.GetCurrentKeyMap(); current != nil {
-			km = current
-		}
-	}
-
-	format := func(keys []KeyStroke, fallback []KeyStroke, placeholder string) string {
-		selected := keys
-		if len(selected) == 0 {
-			selected = fallback
-		}
-		if len(selected) == 0 {
-			return placeholder
-		}
-		if formatted := FormatKeyStrokesForDisplay(selected); formatted != "" {
-			return formatted
-		}
-		return placeholder
-	}
-
 	keybinds := []struct{ key, desc string }{
-		{"↑/↓", "Navigate workflows"},
-		{"Enter", "Execute selected workflow"},
-		{format(km.WorkflowCreate, defaultMap.WorkflowCreate, "Ctrl+n"), "Create new workflow"},
-		{format(km.WorkflowDelete, defaultMap.WorkflowDelete, "d"), "Delete selected workflow"},
-		{format(km.WorkflowCancel, defaultMap.WorkflowCancel, "Esc"), "Back to search view"},
-		{format(km.ToggleWorkflowView, defaultMap.ToggleWorkflowView, "Ctrl+t"), "Back to search view"},
+		{"Enter", "Execute workflow"},
+		{"c", "Clear workflow"},
+		{"Ctrl+t", "Back to search view"},
 		{"Ctrl+c", "Quit"},
 	}
 
@@ -2578,76 +2253,25 @@ func (r *Renderer) writeColorln(_ *UI, text string) {
 
 // renderEmptyStateWithWorkflow renders the empty state with workflow info
 func (r *Renderer) renderEmptyStateWithWorkflow(ui *UI) {
-	activeID := ui.workflowMgr.GetActiveID()
-	summaries := ui.listWorkflows()
-
-	var activeSteps int
-	totalSteps := 0
-	for _, summary := range summaries {
-		totalSteps += summary.StepCount
-		if summary.ID == activeID {
-			activeSteps = summary.StepCount
-		}
-	}
-
-	r.writeColorln(ui, fmt.Sprintf("%s📝 Workflows ready. Press Tab to choose where the next step goes.%s",
+	r.writeColorln(ui, fmt.Sprintf("%s📝 Start typing to search commands...%s",
 		r.colors.BrightBlue,
-		r.colors.Reset))
-	r.writeColorln(ui, fmt.Sprintf("   %sActive workflow #%d:%s %s%d step(s)%s | %sTotal:%s %s%d%s",
-		r.colors.BrightBlack,
-		activeID,
-		r.colors.Reset,
-		r.colors.BrightGreen,
-		activeSteps,
-		r.colors.Reset,
-		r.colors.BrightBlack,
-		r.colors.Reset,
-		r.colors.BrightGreen,
-		totalSteps,
 		r.colors.Reset))
 }
 
 // renderWorkflowStatus renders workflow information at the top of the UI
 func (r *Renderer) renderWorkflowStatus(ui *UI) {
-	summaries := ui.listWorkflows()
-	if len(summaries) == 0 {
+	steps := ui.workflow.GetSteps()
+	if len(steps) == 0 {
 		return
 	}
 
-	totalSteps := 0
-	var activeSummary *WorkflowSummary
-	otherWithSteps := 0
-
-	for i := range summaries {
-		summary := &summaries[i]
-		totalSteps += summary.StepCount
-		if summary.IsActive {
-			activeSummary = summary
-		} else if summary.StepCount > 0 {
-			otherWithSteps++
-		}
-	}
-
-	if totalSteps == 0 {
-		return
-	}
-
-	activeLabel := "Active workflow"
-	activeSteps := 0
-	activeID := 0
-	if activeSummary != nil {
-		activeID = activeSummary.ID
-		activeSteps = activeSummary.StepCount
-		activeLabel = fmt.Sprintf("Workflow #%d", activeSummary.ID)
-	}
-
-	statusText := fmt.Sprintf("%s📋 %s (%d step(s))%s",
+	// Workflow status bar
+	statusText := fmt.Sprintf("%s📋 Workflow Ready (%d steps):%s",
 		r.colors.BrightYellow+r.colors.Bold,
-		activeLabel,
-		activeSteps,
+		len(steps),
 		r.colors.Reset)
 
-	steps := ui.workflowStepsByID(activeID)
+	// Show first few steps inline
 	stepTexts := make([]string, 0, min(3, len(steps)))
 	for i, step := range steps[:min(3, len(steps))] {
 		stepText := fmt.Sprintf("%s%d.%s %s%s%s",
@@ -2665,32 +2289,22 @@ func (r *Renderer) renderWorkflowStatus(ui *UI) {
 			r.colors.BrightBlack, len(steps)-3, r.colors.Reset))
 	}
 
-	if otherWithSteps > 0 {
-		stepTexts = append(stepTexts, fmt.Sprintf("%s+%d other workflow(s)%s",
-			r.colors.BrightBlack, otherWithSteps, r.colors.Reset))
-	}
-
 	r.writeColorln(ui, statusText+" "+strings.Join(stepTexts, " → "))
-	r.writeColorln(ui, fmt.Sprintf("%sTotal steps across workflows:%s %s%d%s",
-		r.colors.BrightBlack,
-		r.colors.Reset,
-		r.colors.BrightGreen,
-		totalSteps,
-		r.colors.Reset))
 	r.writeColorln(ui, "")
 }
 
 // renderWorkflowView renders the detailed workflow view
-func (r *Renderer) renderWorkflowView(ui *UI, state *UIState) {
-	summaries := ui.listWorkflows()
+func (r *Renderer) renderWorkflowView(ui *UI, _ *UIState) {
+	steps := ui.workflow.GetSteps()
 
 	// Detailed workflow header
-	r.writeColorln(ui, fmt.Sprintf("%s📋 Multiple Workflows%s",
+	r.writeColorln(ui, fmt.Sprintf("%s📋 Workflow Details (%d steps)%s",
 		r.colors.BrightYellow+r.colors.Bold,
+		len(steps),
 		r.colors.Reset))
 	r.writeColorln(ui, "")
 
-	if len(summaries) == 0 {
+	if len(steps) == 0 {
 		r.writeColorln(ui, fmt.Sprintf("%s  No steps in workflow%s",
 			r.colors.BrightBlack,
 			r.colors.Reset))
@@ -2701,124 +2315,22 @@ func (r *Renderer) renderWorkflowView(ui *UI, state *UIState) {
 		return
 	}
 
-	for i, summary := range summaries {
-		isSelected := i == state.workflowListIndex
-		prefix := "    "
-		if isSelected {
-			prefix = fmt.Sprintf("%s▶ %s", r.colors.BrightCyan+r.colors.Bold, r.colors.Reset)
-		}
-
-		metaLine := fmt.Sprintf("%sWorkflow #%d%s %s(%d step(s))%s",
-			r.colors.BrightGreen+r.colors.Bold,
-			summary.ID,
+	// Render all workflow steps
+	for i, step := range steps {
+		stepLine := fmt.Sprintf("  %s%d.%s %s%s%s",
+			r.colors.BrightBlue+r.colors.Bold,
+			i+1,
 			r.colors.Reset,
-			r.colors.BrightBlack,
-			summary.StepCount,
+			r.colors.BrightGreen+r.colors.Bold,
+			step.Description,
 			r.colors.Reset)
-
-		if summary.IsActive {
-			metaLine += fmt.Sprintf(" %s[active]%s",
-				r.colors.BrightBlue,
-				r.colors.Reset)
-		}
-
-		r.writeColorln(ui, prefix+metaLine)
-
-		steps := ui.workflowStepsByID(summary.ID)
-		if len(steps) == 0 {
-			r.writeColorln(ui, fmt.Sprintf("%s      (empty)%s",
-				r.colors.BrightBlack,
-				r.colors.Reset))
-		} else {
-			for idx, step := range steps {
-				stepLine := fmt.Sprintf("      %s%d.%s %s%s%s",
-					r.colors.BrightBlue+r.colors.Bold,
-					idx+1,
-					r.colors.Reset,
-					r.colors.BrightGreen+r.colors.Bold,
-					step.Description,
-					r.colors.Reset)
-				r.writeColorln(ui, stepLine)
-			}
-		}
-
-		r.writeColorln(ui, "")
+		r.writeColorln(ui, stepLine)
 	}
+
+	r.writeColorln(ui, "")
 
 	// Render workflow keybinds
 	r.renderWorkflowKeybinds(ui)
-}
-
-// renderWorkflowSelection shows the overlay for choosing a workflow target.
-func (r *Renderer) renderWorkflowSelection(ui *UI, state *UIState) {
-	summaries := ui.listWorkflows()
-	totalOptions := len(summaries) + 1 // include "create new"
-	if totalOptions == 0 {
-		return
-	}
-
-	r.writeColorln(ui, fmt.Sprintf("%s┌─ Select Workflow ──────────────────────────┐%s",
-		r.colors.BrightYellow,
-		r.colors.Reset))
-
-	for idx, summary := range summaries {
-		selected := state.workflowSelectionIndex == idx
-		prefix := "│   "
-		if selected {
-			prefix = fmt.Sprintf("│ %s▶%s ", r.colors.BrightCyan+r.colors.Bold, r.colors.Reset)
-		}
-
-		line := fmt.Sprintf("Workflow #%d (%d step%s)",
-			summary.ID,
-			summary.StepCount,
-			pluralize(summary.StepCount))
-
-		if summary.IsActive {
-			line += fmt.Sprintf(" %s[active]%s", r.colors.BrightBlue, r.colors.Reset)
-		}
-
-		r.writeColorln(ui, fmt.Sprintf("%s%s%-28s%s│",
-			prefix,
-			r.colors.BrightWhite,
-			line,
-			r.colors.Reset))
-	}
-
-	createIdx := len(summaries)
-	selectedCreate := state.workflowSelectionIndex == createIdx
-	prefix := "│   "
-	if selectedCreate {
-		prefix = fmt.Sprintf("│ %s▶%s ", r.colors.BrightCyan+r.colors.Bold, r.colors.Reset)
-	}
-	createLabel := fmt.Sprintf("%s+ Create new workflow%s",
-		r.colors.BrightGreen+r.colors.Bold,
-		r.colors.Reset)
-	r.writeColorln(ui, fmt.Sprintf("%s%-36s│", prefix, createLabel))
-
-	r.writeColorln(ui, fmt.Sprintf("%s└────────────────────────────────────────────┘%s",
-		r.colors.BrightYellow,
-		r.colors.Reset))
-
-	r.writeColorln(ui, fmt.Sprintf("%s   Enter%s to confirm • %sEsc%s to cancel",
-		r.colors.BrightBlack,
-		r.colors.Reset,
-		r.colors.BrightBlack,
-		r.colors.Reset))
-	r.writeColorln(ui, "")
-}
-
-func pluralize(count int) string {
-	if count == 1 {
-		return ""
-	}
-	return "s"
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // renderGitStatus renders the Git repository status information
@@ -3024,256 +2536,78 @@ func extractPlaceholders(s string) []string {
 	return res
 }
 
-// addCommandToWorkflow stages a command for interactive workflow selection.
+// addCommandToWorkflow adds a command to the workflow (preserving placeholders)
 func (h *KeyHandler) addCommandToWorkflow(cmdTemplate string) {
-	if !h.stageWorkflowCommand(cmdTemplate) {
-		return
-	}
-	h.ui.state.ClearInput()
-	h.openWorkflowSelection()
-}
+	// Don't process placeholders here - save the template as-is
+	// Placeholders will be resolved during workflow execution
 
-func (h *KeyHandler) stageWorkflowCommand(cmdTemplate string) bool {
+	// Parse command and arguments from template
 	parts := strings.Fields(cmdTemplate)
 	if len(parts) == 0 {
-		return false
-	}
-
-	h.ui.pendingWorkflowTemplate = cmdTemplate
-	h.ui.pendingWorkflowCommand = parts[0]
-	h.ui.pendingWorkflowArgs = append([]string(nil), parts[1:]...)
-	return true
-}
-
-func (h *KeyHandler) openWorkflowSelection() {
-	summaries := h.ui.listWorkflows()
-	initialIndex := 0
-	activeID := h.ui.workflowMgr.GetActiveID()
-	for idx, summary := range summaries {
-		if summary.ID == activeID {
-			initialIndex = idx
-			break
-		}
-	}
-	h.ui.state.ActivateWorkflowSelection(initialIndex)
-	h.ui.state.EnterContext(ContextWorkflowSelection)
-	h.ui.ensureWorkflowListSelection()
-}
-
-func (h *KeyHandler) moveWorkflowSelection(delta int) {
-	options := len(h.ui.listWorkflows()) + 1
-	if options <= 0 {
-		return
-	}
-	h.ui.state.AdjustWorkflowSelection(delta, options)
-}
-
-func (h *KeyHandler) cancelWorkflowSelection() {
-	if h.ui.state.workflowSelectionActive {
-		h.ui.state.ExitContext()
-	}
-	h.ui.state.DeactivateWorkflowSelection()
-	h.ui.clearPendingWorkflowSelection()
-	h.ui.ensureWorkflowListSelection()
-}
-
-func (h *KeyHandler) moveWorkflowList(delta int) {
-	summaries := h.ui.listWorkflows()
-	if len(summaries) == 0 {
-		return
-	}
-	h.ui.state.SetWorkflowListIndex(h.ui.state.workflowListIndex+delta, len(summaries))
-}
-
-func (h *KeyHandler) createWorkflowFromView() {
-	newID := h.ui.workflowMgr.CreateWorkflow()
-	h.ui.workflowMgr.SetActive(newID)
-	summaries := h.ui.listWorkflows()
-	h.ui.state.SetWorkflowListIndex(len(summaries)-1, len(summaries))
-	h.ui.ensureWorkflowListSelection()
-	h.ui.updateWorkflowPointer()
-	h.ui.write("%s➕ Created workflow #%d%s\n",
-		h.ui.colors.BrightGreen,
-		newID,
-		h.ui.colors.Reset)
-}
-
-func (h *KeyHandler) finalizeWorkflowSelection() {
-	if h.ui.pendingWorkflowCommand == "" {
-		h.cancelWorkflowSelection()
 		return
 	}
 
-	summaries := h.ui.listWorkflows()
-	creating := h.ui.state.workflowSelectionIndex >= len(summaries)
+	command := parts[0]
+	args := parts[1:]
 
-	var workflowID int
-	if creating {
-		workflowID = h.ui.workflowMgr.CreateWorkflow()
-	} else {
-		idx := h.ui.state.workflowSelectionIndex
-		workflowID = summaries[idx].ID
-	}
+	// Add template to workflow (with placeholders intact)
+	id := h.ui.AddToWorkflow(command, args, cmdTemplate)
 
-	h.ui.workflowMgr.SetActive(workflowID)
-	h.ui.updateWorkflowPointer()
-	stepID, err := h.ui.AddToWorkflowByID(
-		workflowID,
-		h.ui.pendingWorkflowCommand,
-		append([]string(nil), h.ui.pendingWorkflowArgs...),
-		h.ui.pendingWorkflowTemplate,
-	)
-	if err != nil {
-		h.ui.write("%sFailed to add command to workflow #%d: %v%s\n",
-			h.ui.colors.BrightRed,
-			workflowID,
-			err,
-			h.ui.colors.Reset)
-		h.cancelWorkflowSelection()
-		return
-	}
-
-	placeholders := extractPlaceholders(h.ui.pendingWorkflowTemplate)
-	h.ui.write("\n%s🎯 Added to workflow #%d!%s\n",
-		h.ui.colors.BrightGreen+h.ui.colors.Bold,
-		workflowID,
-		h.ui.colors.Reset)
-
-	if creating {
-		h.ui.write("%s  Created new workflow #%d%s\n",
-			h.ui.colors.BrightBlack,
-			workflowID,
-			h.ui.colors.Reset)
-	}
-
+	// Show success message
+	placeholders := extractPlaceholders(cmdTemplate)
 	if len(placeholders) > 0 {
+		h.ui.write("\n%s🎯 Added to workflow!%s\n",
+			h.ui.colors.BrightGreen+h.ui.colors.Bold, h.ui.colors.Reset)
 		h.ui.write("%s  Step %d: %s%s%s %s(will prompt for: %v)%s\n",
-			h.ui.colors.BrightCyan,
-			stepID,
-			h.ui.colors.BrightWhite+h.ui.colors.Bold,
-			h.ui.pendingWorkflowTemplate,
-			h.ui.colors.Reset,
-			h.ui.colors.BrightYellow,
-			placeholders,
-			h.ui.colors.Reset)
+			h.ui.colors.BrightCyan, id, h.ui.colors.BrightWhite+h.ui.colors.Bold, cmdTemplate, h.ui.colors.Reset,
+			h.ui.colors.BrightYellow, placeholders, h.ui.colors.Reset)
 	} else {
+		h.ui.write("\n%s🎯 Added to workflow!%s\n",
+			h.ui.colors.BrightGreen+h.ui.colors.Bold, h.ui.colors.Reset)
 		h.ui.write("%s  Step %d: %s%s%s\n",
-			h.ui.colors.BrightCyan,
-			stepID,
-			h.ui.colors.BrightWhite+h.ui.colors.Bold,
-			h.ui.pendingWorkflowTemplate,
-			h.ui.colors.Reset)
+			h.ui.colors.BrightCyan, id, h.ui.colors.BrightWhite+h.ui.colors.Bold, cmdTemplate, h.ui.colors.Reset)
 	}
-
-	h.ui.write("%s  Press 'Ctrl+t' to manage workflows, or continue adding commands%s\n\n",
-		h.ui.colors.BrightBlack,
-		h.ui.colors.Reset)
-
-	h.cancelWorkflowSelection()
+	h.ui.write("%s  Press 'Ctrl+t' to view workflow, or continue adding more commands%s\n\n",
+		h.ui.colors.BrightBlack, h.ui.colors.Reset)
 }
 
 // clearWorkflow clears all steps from workflow
 func (h *KeyHandler) clearWorkflow() {
-	if h.ui.state.showWorkflow {
-		summaries := h.ui.listWorkflows()
-		if len(summaries) == 0 {
-			h.ui.write("%sNo workflows available to delete.%s\n",
-				h.ui.colors.BrightYellow, h.ui.colors.Reset)
-			return
-		}
-		idx := h.ui.state.workflowListIndex
-		if idx < 0 {
-			idx = 0
-		}
-		if idx >= len(summaries) {
-			idx = len(summaries) - 1
-		}
-		targetID := summaries[idx].ID
-		newActive, ok := h.ui.workflowMgr.DeleteWorkflow(targetID)
-		if !ok {
-			h.ui.write("%sUnable to delete workflow #%d%s\n",
-				h.ui.colors.BrightRed, targetID, h.ui.colors.Reset)
-			return
-		}
-		h.ui.workflowMgr.SetActive(newActive)
-		h.ui.ensureWorkflowListSelection()
-		h.ui.updateWorkflowPointer()
-		h.ui.write("%s🗑️  Deleted workflow #%d%s\n",
-			h.ui.colors.BrightYellow,
-			targetID,
-			h.ui.colors.Reset)
-		return
-	}
-
-	if err := h.ui.ClearWorkflowByID(h.ui.workflowMgr.GetActiveID()); err != nil {
-		h.ui.write("%sFailed to clear workflow: %v%s\n",
-			h.ui.colors.BrightRed, err, h.ui.colors.Reset)
-		return
-	}
-	h.ui.write("%s🧹 Active workflow cleared%s\n", h.ui.colors.BrightYellow, h.ui.colors.Reset)
+	h.ui.ClearWorkflow()
+	h.ui.write("%s🧹 Workflow cleared%s\n", h.ui.colors.BrightYellow, h.ui.colors.Reset)
 }
 
 // executeWorkflow executes the current workflow
 func (h *KeyHandler) executeWorkflow(oldState *term.State) (bool, []string) {
-	workflowID := h.executionTargetWorkflowID()
-	workflow := h.workflowByID(workflowID)
-	if workflow == nil || workflow.IsEmpty() {
+	if h.ui.workflow.IsEmpty() {
 		h.ui.write("%sWorkflow is empty. Add some steps first!%s\n",
 			h.ui.colors.BrightRed, h.ui.colors.Reset)
 		return true, nil
 	}
 
-	h.restoreTerminalBeforeWorkflow(oldState)
+	// Restore terminal state before execution
+	if oldState != nil {
+		if f, ok := h.ui.stdin.(*os.File); ok {
+			if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
+				h.ui.writeError("failed to restore terminal state: %v", err)
+			}
+		}
+	}
+
+	// Clear screen and execute workflow
 	clearScreen(h.ui.stdout)
 
-	if err := h.ui.ExecuteWorkflowByID(workflowID); err != nil {
-		if errors.Is(err, ErrWorkflowCanceled) {
-			h.handleSoftCancel(oldState)
-			return true, nil
-		}
+	err := h.ui.ExecuteWorkflow()
+	if errors.Is(err, ErrWorkflowCanceled) {
+		h.handleSoftCancel(oldState)
+		return true, nil
+	}
+	if err != nil {
 		fmt.Printf("\n❌ Workflow execution failed: %v\n", err)
 	} else {
 		fmt.Printf("\n✨ Workflow preserved for reuse. Press 'Ctrl+t' to view or modify.\n")
 	}
 
+	// Keep workflow for reuse - don't clear it
 	return false, []string{"ggc", InteractiveWorkflowCommand}
-}
-
-func (h *KeyHandler) executionTargetWorkflowID() int {
-	if !h.ui.state.showWorkflow {
-		return h.ui.workflowMgr.GetActiveID()
-	}
-	summaries := h.ui.listWorkflows()
-	if len(summaries) == 0 {
-		return h.ui.workflowMgr.GetActiveID()
-	}
-	idx := h.ui.state.workflowListIndex
-	if idx < 0 {
-		idx = 0
-	}
-	if idx >= len(summaries) {
-		idx = len(summaries) - 1
-	}
-	return summaries[idx].ID
-}
-
-func (h *KeyHandler) workflowByID(workflowID int) *Workflow {
-	h.ui.workflowMgr.SetActive(workflowID)
-	h.ui.updateWorkflowPointer()
-	workflow, exists := h.ui.workflowMgr.GetWorkflow(workflowID)
-	if !exists {
-		return nil
-	}
-	return workflow
-}
-
-func (h *KeyHandler) restoreTerminalBeforeWorkflow(oldState *term.State) {
-	if oldState == nil {
-		return
-	}
-	if f, ok := h.ui.stdin.(*os.File); ok {
-		if err := h.ui.term.Restore(int(f.Fd()), oldState); err != nil {
-			h.ui.writeError("failed to restore terminal state: %v", err)
-		}
-	}
 }

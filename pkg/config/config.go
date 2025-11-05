@@ -108,18 +108,13 @@ type Config struct {
 			AddToWorkflow      string `yaml:"add_to_workflow"`
 			ToggleWorkflowView string `yaml:"toggle_workflow_view"`
 			ClearWorkflow      string `yaml:"clear_workflow"`
-			WorkflowDelete     string `yaml:"workflow_delete"`
-			WorkflowCreate     string `yaml:"workflow_create"`
-			WorkflowCancel     string `yaml:"workflow_cancel"`
 			SoftCancel         string `yaml:"soft_cancel"`
 		} `yaml:"keybindings"`
 
 		Contexts struct {
-			Input             KeybindingsConfig `yaml:"input,omitempty"`
-			Results           KeybindingsConfig `yaml:"results,omitempty"`
-			Search            KeybindingsConfig `yaml:"search,omitempty"`
-			WorkflowView      KeybindingsConfig `yaml:"workflow_view,omitempty"`
-			WorkflowSelection KeybindingsConfig `yaml:"workflow_selection,omitempty"`
+			Input   KeybindingsConfig `yaml:"input,omitempty"`
+			Results KeybindingsConfig `yaml:"results,omitempty"`
+			Search  KeybindingsConfig `yaml:"search,omitempty"`
 		} `yaml:"contexts,omitempty"`
 
 		Darwin  KeybindingsConfig `yaml:"darwin,omitempty"`
@@ -1050,9 +1045,6 @@ func (c *Config) validateKeybindings() error {
 		"add_to_workflow":      c.Interactive.Keybindings.AddToWorkflow,
 		"toggle_workflow_view": c.Interactive.Keybindings.ToggleWorkflowView,
 		"clear_workflow":       c.Interactive.Keybindings.ClearWorkflow,
-		"workflow_delete":      c.Interactive.Keybindings.WorkflowDelete,
-		"workflow_create":      c.Interactive.Keybindings.WorkflowCreate,
-		"workflow_cancel":      c.Interactive.Keybindings.WorkflowCancel,
 		"soft_cancel":          c.Interactive.Keybindings.SoftCancel,
 	}
 
@@ -1110,11 +1102,9 @@ func (c *Config) validateProfile() error {
 // validateContextKeybindings validates context-specific keybindings
 func (c *Config) validateContextKeybindings() error {
 	contexts := map[string]map[string]interface{}{
-		"input":              c.Interactive.Contexts.Input.Keybindings,
-		"results":            c.Interactive.Contexts.Results.Keybindings,
-		"search":             c.Interactive.Contexts.Search.Keybindings,
-		"workflow_view":      c.Interactive.Contexts.WorkflowView.Keybindings,
-		"workflow_selection": c.Interactive.Contexts.WorkflowSelection.Keybindings,
+		"input":   c.Interactive.Contexts.Input.Keybindings,
+		"results": c.Interactive.Contexts.Results.Keybindings,
+		"search":  c.Interactive.Contexts.Search.Keybindings,
 	}
 
 	for contextName, bindings := range contexts {
