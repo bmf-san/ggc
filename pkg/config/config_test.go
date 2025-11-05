@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -1191,6 +1192,91 @@ func TestConfig_validateAliases(t *testing.T) {
 				}
 			} else if err != nil {
 				t.Errorf("validateAliases() unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestConfig_validateWorkflows(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		workflows  []WorkflowConfig
+		wantErr    bool
+		wantField  string
+		wantSubstr string
+	}{
+		{
+			name: "valid workflows",
+			workflows: []WorkflowConfig{
+				{
+					Name:  "release",
+					Steps: []string{"add .", "commit <message>", "push current"},
+				},
+				{
+					Name:  "hotfix",
+					Steps: []string{"branch create hotfix/<issue>", "add .", "commit <message>"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty steps rejected",
+			workflows: []WorkflowConfig{
+				{Name: "invalid", Steps: []string{}},
+			},
+			wantErr:    true,
+			wantField:  "workflows[0].steps",
+			wantSubstr: "at least one step",
+		},
+		{
+			name: "blank step rejected",
+			workflows: []WorkflowConfig{
+				{Name: "invalid", Steps: []string{"add .", "   "}},
+			},
+			wantErr:    true,
+			wantField:  "workflows[0].steps[1]",
+			wantSubstr: "cannot be empty",
+		},
+		{
+			name: "unsafe command rejected",
+			workflows: []WorkflowConfig{
+				{Name: "invalid", Steps: []string{"status; rm -rf /"}},
+			},
+			wantErr:    true,
+			wantField:  "workflows[0].steps[0]",
+			wantSubstr: "unsafe",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Workflows: tt.workflows}
+			err := cfg.validateWorkflows()
+
+			if !tt.wantErr {
+				if err != nil {
+					t.Fatalf("validateWorkflows() unexpected error: %v", err)
+				}
+				return
+			}
+
+			if err == nil {
+				t.Fatal("validateWorkflows() expected error, got nil")
+			}
+
+			var validationErr *ValidationError
+			if !errors.As(err, &validationErr) {
+				t.Fatalf("validateWorkflows() expected ValidationError, got %T", err)
+			}
+
+			if tt.wantField != "" && validationErr.Field != tt.wantField {
+				t.Fatalf("expected field %s, got %s", tt.wantField, validationErr.Field)
+			}
+			if tt.wantSubstr != "" && !strings.Contains(validationErr.Message, tt.wantSubstr) {
+				t.Fatalf("expected error message to contain %q, got %q", tt.wantSubstr, validationErr.Message)
 			}
 		})
 	}

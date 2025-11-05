@@ -99,17 +99,37 @@ func (w *Workflow) Size() int {
 	return len(w.steps)
 }
 
+// WorkflowSource identifies how a workflow was created.
+type WorkflowSource int
+
+const (
+	// WorkflowSourceDynamic marks workflows created during the interactive session.
+	WorkflowSourceDynamic WorkflowSource = iota
+	// WorkflowSourceConfig marks workflows sourced from configuration.
+	WorkflowSourceConfig
+)
+
+type managedWorkflow struct {
+	data     *Workflow
+	name     string
+	source   WorkflowSource
+	readOnly bool
+}
+
 // WorkflowSummary describes a workflow for listing/selection purposes.
 type WorkflowSummary struct {
 	ID        int
 	StepCount int
 	IsActive  bool
+	Name      string
+	Source    WorkflowSource
+	ReadOnly  bool
 }
 
 // WorkflowManager manages multiple workflows and their lifecycle.
 type WorkflowManager struct {
 	mutex     sync.RWMutex
-	workflows map[int]*Workflow
+	workflows map[int]*managedWorkflow
 	order     []int
 	nextID    int
 	activeID  int
@@ -118,7 +138,7 @@ type WorkflowManager struct {
 // NewWorkflowManager constructs a manager with an initial empty workflow.
 func NewWorkflowManager() *WorkflowManager {
 	mgr := &WorkflowManager{
-		workflows: make(map[int]*Workflow),
+		workflows: make(map[int]*managedWorkflow),
 		order:     make([]int, 0, 4),
 		nextID:    1,
 	}
@@ -126,29 +146,61 @@ func NewWorkflowManager() *WorkflowManager {
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
 
-	mgr.createWorkflowLocked()
+	mgr.createWorkflowLocked(NewWorkflow(), WorkflowSourceDynamic, "", false, true)
 
 	return mgr
 }
 
-// createWorkflowLocked allocates a new workflow assuming the mutex is held.
-func (m *WorkflowManager) createWorkflowLocked() int {
+func (m *WorkflowManager) createWorkflowLocked(workflow *Workflow, source WorkflowSource, name string, readOnly bool, makeActive bool) int {
 	id := m.nextID
 	m.nextID++
 
-	m.workflows[id] = NewWorkflow()
+	m.workflows[id] = &managedWorkflow{
+		data:     workflow,
+		name:     name,
+		source:   source,
+		readOnly: readOnly,
+	}
 	m.order = append(m.order, id)
-	m.activeID = id
+	if makeActive || m.activeID == 0 {
+		m.activeID = id
+	}
 
 	return id
 }
 
-// CreateWorkflow adds a new workflow and makes it active.
+// CreateWorkflow adds a new empty workflow and makes it active.
 func (m *WorkflowManager) CreateWorkflow() int {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	return m.createWorkflowLocked()
+	return m.createWorkflowLocked(NewWorkflow(), WorkflowSourceDynamic, "", false, true)
+}
+
+// CreateReadOnlyWorkflow adds a workflow seeded from configuration templates.
+func (m *WorkflowManager) CreateReadOnlyWorkflow(name string, templates []string) (int, error) {
+	workflow, err := workflowFromTemplates(templates)
+	if err != nil {
+		return 0, err
+	}
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.createWorkflowLocked(workflow, WorkflowSourceConfig, name, true, m.activeID == 0), nil
+}
+
+// CreateWorkflowFromTemplates creates a dynamic workflow populated with provided templates.
+func (m *WorkflowManager) CreateWorkflowFromTemplates(name string, templates []string) (int, error) {
+	workflow, err := workflowFromTemplates(templates)
+	if err != nil {
+		return 0, err
+	}
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.createWorkflowLocked(workflow, WorkflowSourceDynamic, name, false, true), nil
 }
 
 // DeleteWorkflow removes a workflow by ID, returning the new active workflow ID.
@@ -156,8 +208,8 @@ func (m *WorkflowManager) DeleteWorkflow(id int) (int, bool) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	wf, exists := m.workflows[id]
-	if !exists || wf == nil {
+	mw, exists := m.workflows[id]
+	if !exists || mw == nil || mw.readOnly {
 		return m.activeID, false
 	}
 
@@ -173,7 +225,7 @@ func (m *WorkflowManager) DeleteWorkflow(id int) (int, bool) {
 	}
 
 	if len(m.workflows) == 0 {
-		newID := m.createWorkflowLocked()
+		newID := m.createWorkflowLocked(NewWorkflow(), WorkflowSourceDynamic, "", false, true)
 		return newID, true
 	}
 
@@ -197,15 +249,18 @@ func (m *WorkflowManager) ListWorkflows() []WorkflowSummary {
 
 	summaries := make([]WorkflowSummary, 0, len(m.order))
 	for _, id := range m.order {
-		workflow := m.workflows[id]
-		stepCount := 0
-		if workflow != nil {
-			stepCount = workflow.Size()
+		managed := m.workflows[id]
+		if managed == nil {
+			continue
 		}
+		stepCount := managed.data.Size()
 		summaries = append(summaries, WorkflowSummary{
 			ID:        id,
 			StepCount: stepCount,
 			IsActive:  id == m.activeID,
+			Name:      managed.name,
+			Source:    managed.source,
+			ReadOnly:  managed.readOnly,
 		})
 	}
 	return summaries
@@ -230,13 +285,38 @@ func (m *WorkflowManager) GetActiveID() int {
 	return m.activeID
 }
 
-// GetWorkflow returns the workflow pointer for a given ID.
-func (m *WorkflowManager) GetWorkflow(id int) (*Workflow, bool) {
+func (m *WorkflowManager) getManagedWorkflow(id int) (*managedWorkflow, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
+	mw, exists := m.workflows[id]
+	return mw, exists
+}
 
-	wf, exists := m.workflows[id]
-	return wf, exists
+// GetWorkflow returns the workflow pointer for a given ID.
+func (m *WorkflowManager) GetWorkflow(id int) (*Workflow, bool) {
+	mw, exists := m.getManagedWorkflow(id)
+	if !exists || mw == nil {
+		return nil, false
+	}
+	return mw.data, true
+}
+
+// GetManagedWorkflowMetadata returns metadata for a workflow without exposing internals.
+func (m *WorkflowManager) GetManagedWorkflowMetadata(id int) (WorkflowSummary, bool) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	mw, exists := m.workflows[id]
+	if !exists || mw == nil {
+		return WorkflowSummary{}, false
+	}
+	return WorkflowSummary{
+		ID:        id,
+		StepCount: mw.data.Size(),
+		IsActive:  id == m.activeID,
+		Name:      mw.name,
+		Source:    mw.source,
+		ReadOnly:  mw.readOnly,
+	}, true
 }
 
 // GetActiveWorkflow retrieves the currently active workflow.
@@ -244,29 +324,39 @@ func (m *WorkflowManager) GetActiveWorkflow() (*Workflow, int) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	wf, exists := m.workflows[m.activeID]
-	if !exists {
+	mw, exists := m.workflows[m.activeID]
+	if !exists || mw == nil {
 		return nil, 0
 	}
-	return wf, m.activeID
+	return mw.data, m.activeID
 }
 
 // AddStep appends a step to the specified workflow.
 func (m *WorkflowManager) AddStep(id int, command string, args []string, description string) (int, error) {
-	workflow, exists := m.GetWorkflow(id)
-	if !exists {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	mw, exists := m.workflows[id]
+	if !exists || mw == nil {
 		return 0, fmt.Errorf("workflow %d not found", id)
 	}
-	return workflow.AddStep(command, args, description), nil
+	if mw.readOnly {
+		return 0, fmt.Errorf("workflow %d is read-only", id)
+	}
+
+	return mw.data.AddStep(command, args, description), nil
 }
 
 // ClearWorkflow removes all steps from the specified workflow.
 func (m *WorkflowManager) ClearWorkflow(id int) bool {
-	workflow, exists := m.GetWorkflow(id)
-	if !exists {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	mw, exists := m.workflows[id]
+	if !exists || mw == nil || mw.readOnly {
 		return false
 	}
-	workflow.Clear()
+	mw.data.Clear()
 	return true
 }
 
@@ -275,6 +365,62 @@ func (m *WorkflowManager) WorkflowCount() int {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	return len(m.workflows)
+}
+
+func workflowFromTemplates(templates []string) (*Workflow, error) {
+	wf := NewWorkflow()
+	for i, tmpl := range templates {
+		trimmed := strings.TrimSpace(tmpl)
+		if trimmed == "" {
+			return nil, fmt.Errorf("workflow template at index %d is empty", i)
+		}
+		parts := strings.Fields(trimmed)
+		if len(parts) == 0 {
+			return nil, fmt.Errorf("workflow template at index %d is invalid", i)
+		}
+		wf.AddStep(parts[0], append([]string(nil), parts[1:]...), trimmed)
+	}
+	return wf, nil
+}
+
+func workflowToTemplates(wf *Workflow) []string {
+	if wf == nil {
+		return nil
+	}
+	steps := wf.GetSteps()
+	templates := make([]string, 0, len(steps))
+	for _, step := range steps {
+		template := strings.TrimSpace(step.Description)
+		if template == "" {
+			fields := append([]string{step.Command}, step.Args...)
+			template = strings.Join(fields, " ")
+		}
+		templates = append(templates, template)
+	}
+	return templates
+}
+
+func normalizeTemplates(templates []string) []string {
+	if len(templates) == 0 {
+		return nil
+	}
+	normalized := make([]string, len(templates))
+	for i, template := range templates {
+		normalized[i] = strings.TrimSpace(template)
+	}
+	return normalized
+}
+
+func templatesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if strings.TrimSpace(a[i]) != strings.TrimSpace(b[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // CommandRouter represents an interface for routing commands

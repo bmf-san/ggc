@@ -212,6 +212,8 @@ ggc
 - `Esc`: Dismiss the selection overlay or exit workflow view
 - `Ctrl+n`: Create a new workflow (in workflow view)
 - `d`: Delete the selected workflow (in workflow view)
+- `c`: Copy the selected workflow to a new editable workflow (in workflow view)
+- `s`: Save the selected workflow to `.ggcconfig.yaml` (dynamic workflows only)
 - `Ctrl+t`: Toggle the workflow management view
 
 **Command Execution:**
@@ -224,9 +226,34 @@ ggc
 **Workflow Feature:**
 - Build and manage multiple workflows in parallel
 - Use the selection overlay (`Tab`) to choose a target workflow per command
+- Config-defined workflows load automatically from `.ggcconfig.yaml` and remain read-only for safety
+- Save frequently used dynamic workflows back to config with `s`
 - Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
 - Workflows persist after execution for reuse or further editing
 - Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
+
+### Config-Defined Workflows
+
+You can preload workflows by declaring them in `~/.ggcconfig.yaml`. Config-defined workflows appear in the workflow list as read-only entries—you can copy them with `c` or execute them directly. Saving a dynamic workflow with `s` appends a new entry to this list.
+
+```yaml
+workflows:
+  - name: "release"
+    steps:
+      - "add ."
+      - "commit <message>"
+      - "tag create <version>"
+      - "push current"
+      - "push --tags"
+  - name: "hotfix"
+    steps:
+      - "branch create hotfix/<issue>"
+      - "add ."
+      - "commit <message>"
+      - "push current"
+```
+
+Each step is entered exactly as you would in interactive mode, and placeholders such as `<message>` still trigger prompts during execution.
 
 **Examples of Fuzzy Search:**
 - `"bd"` → finds `"branch delete"`

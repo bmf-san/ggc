@@ -152,26 +152,28 @@ func buildInteractiveCommands() []CommandInfo {
 
 // UI represents the interface for terminal UI operations
 type UI struct {
-	stdin                   io.Reader
-	stdout                  io.Writer
-	stderr                  io.Writer
-	term                    termio.Terminal
-	renderer                *Renderer
-	state                   *UIState
-	handler                 *KeyHandler
-	colors                  *ANSIColors
-	gitStatus               *GitStatus
-	gitClient               git.StatusInfoReader
-	reader                  *bufio.Reader
-	contextMgr              *ContextManager
-	profile                 Profile
-	workflowMgr             *WorkflowManager
-	workflow                *Workflow // Deprecated: maintained for legacy tests until refactor completes.
+	stdin       io.Reader
+	stdout      io.Writer
+	stderr      io.Writer
+	term        termio.Terminal
+	renderer    *Renderer
+	state       *UIState
+	handler     *KeyHandler
+	colors      *ANSIColors
+	gitStatus   *GitStatus
+	gitClient   git.StatusInfoReader
+	reader      *bufio.Reader
+	contextMgr  *ContextManager
+	profile     Profile
+	workflowMgr *WorkflowManager
+
 	workflowEx              *WorkflowExecutor
 	softCancelFlash         atomic.Bool
 	pendingWorkflowTemplate string
 	pendingWorkflowCommand  string
 	pendingWorkflowArgs     []string
+	configMgr               *config.Manager
+	config                  *config.Config
 }
 
 // UIState holds the current state of the interactive UI
@@ -717,25 +719,16 @@ func (h *KeyHandler) handleWorkflowKeys(r rune) bool {
 		}
 	}
 
-	if !state.showWorkflow {
-		return h.handleSearchWorkflowKey(km, keyStroke, state)
-	}
-
-	if km.MatchesKeyStroke("workflow_create", keyStroke) {
-		h.createWorkflowFromView()
-		return true
-	}
-
-	if km.MatchesKeyStroke("workflow_delete", keyStroke) || km.MatchesKeyStroke("clear_workflow", keyStroke) {
+	if !state.showWorkflow && km.MatchesKeyStroke("clear_workflow", keyStroke) {
 		h.clearWorkflow()
 		return true
 	}
 
-	if km.MatchesKeyStroke("add_to_workflow", keyStroke) {
-		return true
+	if !state.showWorkflow {
+		return h.handleSearchWorkflowKey(km, keyStroke, state)
 	}
 
-	return false
+	return h.handleWorkflowKeysInView(km, keyStroke)
 }
 
 func (h *KeyHandler) handleSearchWorkflowKey(km *KeyBindingMap, keyStroke KeyStroke, state *UIState) bool {
@@ -758,6 +751,27 @@ func (h *KeyHandler) handleWorkflowSelectionKey(km *KeyBindingMap, keyStroke Key
 		h.cancelWorkflowSelection()
 	}
 	return true
+}
+
+func (h *KeyHandler) handleWorkflowKeysInView(km *KeyBindingMap, keyStroke KeyStroke) bool {
+	switch {
+	case km.MatchesKeyStroke("workflow_create", keyStroke):
+		h.createWorkflowFromView()
+		return true
+	case km.MatchesKeyStroke("workflow_copy", keyStroke):
+		h.copyWorkflowFromView()
+		return true
+	case km.MatchesKeyStroke("workflow_save", keyStroke):
+		h.saveWorkflowFromView()
+		return true
+	case km.MatchesKeyStroke("workflow_delete", keyStroke) || km.MatchesKeyStroke("clear_workflow", keyStroke):
+		h.clearWorkflow()
+		return true
+	case km.MatchesKeyStroke("add_to_workflow", keyStroke):
+		return true
+	default:
+		return false
+	}
 }
 
 func (h *KeyHandler) handleWorkflowCancel(state *UIState) bool {
@@ -1853,11 +1867,15 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 	}
 
 	// Load config and create resolver
-	var cfg *config.Config
+	var (
+		cfg           *config.Config
+		configManager *config.Manager
+	)
 	if ops, ok := gitClient.(git.ConfigOps); ok {
-		configManager := config.NewConfigManager(ops)
-		// Load config - if it fails, we'll use defaults from manager
-		_ = configManager.Load()
+		configManager = config.NewConfigManager(ops)
+		if err := configManager.Load(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v. Using defaults.\n", err)
+		}
 		cfg = configManager.GetConfig()
 	} else {
 		// Fallback to empty config (built-in defaults and profiles will be used)
@@ -1914,12 +1932,14 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 		contextMgr:  contextManager,
 		profile:     profile,
 		workflowMgr: NewWorkflowManager(),
+		configMgr:   configManager,
+		config:      cfg,
 	}
 	state.onContextChange = func(_ Context, newCtx Context) {
 		contextManager.SetContext(newCtx)
 	}
+	ui.bootstrapConfigWorkflows()
 	state.SetWorkflowListIndex(0, len(ui.workflowMgr.ListWorkflows()))
-	ui.updateWorkflowPointer()
 
 	ui.handler = &KeyHandler{
 		ui:            ui,
@@ -1945,7 +1965,6 @@ func (ui *UI) ToggleWorkflowView() {
 	} else {
 		ui.state.ExitContext()
 		ui.state.SetWorkflowListIndex(0, len(ui.listWorkflows()))
-		ui.updateWorkflowPointer()
 	}
 }
 
@@ -1971,7 +1990,6 @@ func (ui *UI) AddToWorkflowByID(workflowID int, command string, args []string, d
 	}
 
 	ui.ensureWorkflowListSelection()
-	ui.updateWorkflowPointer()
 	return id, nil
 }
 
@@ -2025,7 +2043,7 @@ func (ui *UI) ClearWorkflowByID(workflowID int) error {
 	if !ui.workflowMgr.ClearWorkflow(workflowID) {
 		return fmt.Errorf("workflow %d not found", workflowID)
 	}
-	ui.updateWorkflowPointer()
+
 	return nil
 }
 
@@ -2079,7 +2097,6 @@ func (ui *UI) ensureWorkflowListSelection() {
 		}
 	}
 	ui.state.SetWorkflowListIndex(index, len(summaries))
-	ui.updateWorkflowPointer()
 }
 
 // clearPendingWorkflowSelection releases transient command data captured by the selection overlay.
@@ -2111,13 +2128,20 @@ func (ui *UI) hasWorkflowSteps() bool {
 	return false
 }
 
-func (ui *UI) updateWorkflowPointer() {
-	if ui == nil || ui.workflowMgr == nil {
-		ui.workflow = nil
+func (ui *UI) bootstrapConfigWorkflows() {
+	if ui == nil || ui.workflowMgr == nil || ui.config == nil {
 		return
 	}
-	workflow, _ := ui.workflowMgr.GetActiveWorkflow()
-	ui.workflow = workflow
+
+	for _, wf := range ui.config.Workflows {
+		if len(wf.Steps) == 0 {
+			continue
+		}
+		if _, err := ui.workflowMgr.CreateReadOnlyWorkflow(wf.Name, wf.Steps); err != nil {
+			_, _ = fmt.Fprintf(ui.stderr, "Warning: failed to load workflow %q from config: %v\n", wf.Name, err)
+		}
+	}
+	ui.ensureWorkflowListSelection()
 }
 
 // updateSize updates the terminal dimensions
@@ -2614,40 +2638,24 @@ func (r *Renderer) renderWorkflowStatus(ui *UI) {
 		return
 	}
 
-	totalSteps := 0
-	var activeSummary *WorkflowSummary
-	otherWithSteps := 0
-
-	for i := range summaries {
-		summary := &summaries[i]
-		totalSteps += summary.StepCount
-		if summary.IsActive {
-			activeSummary = summary
-		} else if summary.StepCount > 0 {
-			otherWithSteps++
-		}
-	}
+	activeSummary, totalSteps, otherWithSteps := summarizeWorkflowStatus(summaries)
 
 	if totalSteps == 0 {
 		return
 	}
 
-	activeLabel := "Active workflow"
-	activeSteps := 0
-	activeID := 0
-	if activeSummary != nil {
-		activeID = activeSummary.ID
-		activeSteps = activeSummary.StepCount
-		activeLabel = fmt.Sprintf("Workflow #%d", activeSummary.ID)
-	}
+	desc := r.describeActiveWorkflow(activeSummary)
 
-	statusText := fmt.Sprintf("%s📋 %s (%d step(s))%s",
+	statusText := fmt.Sprintf("%s📋 %s%s%s %s(%d step(s))%s",
 		r.colors.BrightYellow+r.colors.Bold,
-		activeLabel,
-		activeSteps,
+		desc.TagSegment,
+		r.colors.BrightWhite+r.colors.Bold,
+		desc.Name,
+		r.colors.BrightBlack,
+		desc.Steps,
 		r.colors.Reset)
 
-	steps := ui.workflowStepsByID(activeID)
+	steps := ui.workflowStepsByID(desc.ID)
 	stepTexts := make([]string, 0, min(3, len(steps)))
 	for i, step := range steps[:min(3, len(steps))] {
 		stepText := fmt.Sprintf("%s%d.%s %s%s%s",
@@ -2680,6 +2688,62 @@ func (r *Renderer) renderWorkflowStatus(ui *UI) {
 	r.writeColorln(ui, "")
 }
 
+func summarizeWorkflowStatus(summaries []WorkflowSummary) (*WorkflowSummary, int, int) {
+	var activeSummary *WorkflowSummary
+	totalSteps := 0
+	otherWithSteps := 0
+
+	for i := range summaries {
+		summary := &summaries[i]
+		totalSteps += summary.StepCount
+		if summary.IsActive {
+			activeSummary = summary
+		} else if summary.StepCount > 0 {
+			otherWithSteps++
+		}
+	}
+
+	return activeSummary, totalSteps, otherWithSteps
+}
+
+type activeWorkflowDescriptor struct {
+	ID         int
+	Steps      int
+	Name       string
+	TagSegment string
+}
+
+func (r *Renderer) describeActiveWorkflow(activeSummary *WorkflowSummary) activeWorkflowDescriptor {
+	desc := activeWorkflowDescriptor{
+		Name: "Active workflow",
+	}
+
+	if activeSummary == nil {
+		return desc
+	}
+
+	desc.ID = activeSummary.ID
+	desc.Steps = activeSummary.StepCount
+	if trimmed := strings.TrimSpace(activeSummary.Name); trimmed != "" {
+		desc.Name = trimmed
+	} else {
+		desc.Name = fmt.Sprintf("Workflow #%d", activeSummary.ID)
+	}
+
+	tagText := "[Dynamic]"
+	tagColor := r.colors.BrightMagenta + r.colors.Bold
+	if activeSummary.Source == WorkflowSourceConfig {
+		tagText = "[Config]"
+		tagColor = r.colors.BrightYellow + r.colors.Bold
+	}
+
+	if tagText != "" {
+		desc.TagSegment = fmt.Sprintf("%s%s%s ", tagColor, tagText, r.colors.Reset)
+	}
+
+	return desc
+}
+
 // renderWorkflowView renders the detailed workflow view
 func (r *Renderer) renderWorkflowView(ui *UI, state *UIState) {
 	summaries := ui.listWorkflows()
@@ -2708,9 +2772,24 @@ func (r *Renderer) renderWorkflowView(ui *UI, state *UIState) {
 			prefix = fmt.Sprintf("%s▶ %s", r.colors.BrightCyan+r.colors.Bold, r.colors.Reset)
 		}
 
-		metaLine := fmt.Sprintf("%sWorkflow #%d%s %s(%d step(s))%s",
+		displayName := strings.TrimSpace(summary.Name)
+		if displayName == "" {
+			displayName = fmt.Sprintf("Workflow #%d", summary.ID)
+		}
+
+		tagText := "[Dynamic]"
+		tagColor := r.colors.BrightMagenta + r.colors.Bold
+		if summary.Source == WorkflowSourceConfig {
+			tagText = "[Config]"
+			tagColor = r.colors.BrightYellow + r.colors.Bold
+		}
+
+		metaLine := fmt.Sprintf("%s%s%s %s%s%s %s(%d step(s))%s",
+			tagColor,
+			tagText,
+			r.colors.Reset,
 			r.colors.BrightGreen+r.colors.Bold,
-			summary.ID,
+			displayName,
 			r.colors.Reset,
 			r.colors.BrightBlack,
 			summary.StepCount,
@@ -2768,20 +2847,36 @@ func (r *Renderer) renderWorkflowSelection(ui *UI, state *UIState) {
 			prefix = fmt.Sprintf("│ %s▶%s ", r.colors.BrightCyan+r.colors.Bold, r.colors.Reset)
 		}
 
-		line := fmt.Sprintf("Workflow #%d (%d step%s)",
-			summary.ID,
+		displayName := strings.TrimSpace(summary.Name)
+		if displayName == "" {
+			displayName = fmt.Sprintf("Workflow #%d", summary.ID)
+		}
+
+		tagText := "[Dynamic]"
+		tagColor := r.colors.BrightMagenta + r.colors.Bold
+		if summary.Source == WorkflowSourceConfig {
+			tagText = "[Config]"
+			tagColor = r.colors.BrightYellow + r.colors.Bold
+		}
+		tagSegment := fmt.Sprintf("%s%s%s", tagColor, tagText, r.colors.Reset)
+
+		line := fmt.Sprintf("%s %s%s%s %s(%d step%s)%s",
+			tagSegment,
+			r.colors.BrightWhite+r.colors.Bold,
+			displayName,
+			r.colors.Reset,
+			r.colors.BrightBlack,
 			summary.StepCount,
-			pluralize(summary.StepCount))
+			pluralize(summary.StepCount),
+			r.colors.Reset)
 
 		if summary.IsActive {
 			line += fmt.Sprintf(" %s[active]%s", r.colors.BrightBlue, r.colors.Reset)
 		}
 
-		r.writeColorln(ui, fmt.Sprintf("%s%s%-28s%s│",
+		r.writeColorln(ui, fmt.Sprintf("%s%s │",
 			prefix,
-			r.colors.BrightWhite,
-			line,
-			r.colors.Reset))
+			line))
 	}
 
 	createIdx := len(summaries)
@@ -2812,13 +2907,6 @@ func pluralize(count int) string {
 		return ""
 	}
 	return "s"
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // renderGitStatus renders the Git repository status information
@@ -3085,17 +3173,227 @@ func (h *KeyHandler) moveWorkflowList(delta int) {
 	h.ui.state.SetWorkflowListIndex(h.ui.state.workflowListIndex+delta, len(summaries))
 }
 
+func (h *KeyHandler) currentWorkflowSummary() (WorkflowSummary, bool) {
+	summaries := h.ui.listWorkflows()
+	if len(summaries) == 0 {
+		return WorkflowSummary{}, false
+	}
+	idx := h.ui.state.workflowListIndex
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(summaries) {
+		idx = len(summaries) - 1
+	}
+	h.ui.state.SetWorkflowListIndex(idx, len(summaries))
+	return summaries[idx], true
+}
+
 func (h *KeyHandler) createWorkflowFromView() {
 	newID := h.ui.workflowMgr.CreateWorkflow()
 	h.ui.workflowMgr.SetActive(newID)
 	summaries := h.ui.listWorkflows()
 	h.ui.state.SetWorkflowListIndex(len(summaries)-1, len(summaries))
 	h.ui.ensureWorkflowListSelection()
-	h.ui.updateWorkflowPointer()
 	h.ui.write("%s➕ Created workflow #%d%s\n",
 		h.ui.colors.BrightGreen,
 		newID,
 		h.ui.colors.Reset)
+}
+
+func (h *KeyHandler) copyWorkflowFromView() {
+	summary, ok := h.currentWorkflowSummary()
+	if !ok {
+		h.ui.write("%sNo workflow available to copy%s\n",
+			h.ui.colors.BrightYellow,
+			h.ui.colors.Reset)
+		return
+	}
+
+	workflow, exists := h.ui.workflowMgr.GetWorkflow(summary.ID)
+	if !exists || workflow == nil {
+		h.ui.write("%sUnable to locate workflow #%d%s\n",
+			h.ui.colors.BrightRed,
+			summary.ID,
+			h.ui.colors.Reset)
+		return
+	}
+
+	templates := workflowToTemplates(workflow)
+	if len(templates) == 0 {
+		h.ui.write("%sWorkflow #%d has no steps to copy%s\n",
+			h.ui.colors.BrightYellow,
+			summary.ID,
+			h.ui.colors.Reset)
+		return
+	}
+
+	baseName := strings.TrimSpace(summary.Name)
+	if baseName == "" {
+		baseName = fmt.Sprintf("Workflow #%d", summary.ID)
+	}
+	copyName := fmt.Sprintf("%s (copy)", baseName)
+
+	newID, err := h.ui.workflowMgr.CreateWorkflowFromTemplates(copyName, templates)
+	if err != nil {
+		h.ui.write("%sFailed to copy workflow: %v%s\n",
+			h.ui.colors.BrightRed,
+			err,
+			h.ui.colors.Reset)
+		return
+	}
+
+	h.ui.workflowMgr.SetActive(newID)
+	h.ui.ensureWorkflowListSelection()
+	h.ui.write("%s📄 Copied to workflow #%d:%s %s%s%s\n\n",
+		h.ui.colors.BrightGreen,
+		newID,
+		h.ui.colors.Reset,
+		h.ui.colors.BrightWhite+h.ui.colors.Bold,
+		copyName,
+		h.ui.colors.Reset)
+}
+
+type workflowSavePlan struct {
+	Name       string
+	Templates  []string
+	Normalized []string
+}
+
+func (h *KeyHandler) saveWorkflowFromView() {
+	summary, workflow, ok := h.workflowSaveContext()
+	if !ok {
+		return
+	}
+
+	plan, ok := h.prepareWorkflowSave(summary, workflow)
+	if !ok {
+		return
+	}
+
+	if !h.persistWorkflowToConfig(plan) {
+		return
+	}
+
+	h.registerConfigWorkflowInView(plan)
+	h.ui.write("%s💾 Saved workflow to config as %s%s%s\n\n",
+		h.ui.colors.BrightGreen,
+		h.ui.colors.BrightWhite+h.ui.colors.Bold,
+		plan.Name,
+		h.ui.colors.Reset)
+}
+
+func (h *KeyHandler) workflowSaveContext() (*WorkflowSummary, *Workflow, bool) {
+	summary, ok := h.currentWorkflowSummary()
+	if !ok {
+		h.ui.write("%sNo workflow selected to save%s\n",
+			h.ui.colors.BrightYellow,
+			h.ui.colors.Reset)
+		return nil, nil, false
+	}
+
+	if summary.ReadOnly {
+		h.ui.write("%sWorkflow #%d is already provided by config. Use copy to duplicate it.%s\n",
+			h.ui.colors.BrightYellow,
+			summary.ID,
+			h.ui.colors.Reset)
+		return nil, nil, false
+	}
+
+	if h.ui.configMgr == nil || h.ui.config == nil {
+		h.ui.write("%sSaving workflows requires write access to configuration.%s\n",
+			h.ui.colors.BrightYellow,
+			h.ui.colors.Reset)
+		return nil, nil, false
+	}
+
+	workflow, exists := h.ui.workflowMgr.GetWorkflow(summary.ID)
+	if !exists || workflow == nil {
+		h.ui.write("%sUnable to locate workflow #%d%s\n",
+			h.ui.colors.BrightRed,
+			summary.ID,
+			h.ui.colors.Reset)
+		return nil, nil, false
+	}
+
+	return &summary, workflow, true
+}
+
+func (h *KeyHandler) prepareWorkflowSave(summary *WorkflowSummary, workflow *Workflow) (*workflowSavePlan, bool) {
+	templates := workflowToTemplates(workflow)
+	if len(templates) == 0 {
+		h.ui.write("%sWorkflow #%d has no steps to save%s\n",
+			h.ui.colors.BrightYellow,
+			summary.ID,
+			h.ui.colors.Reset)
+		return nil, false
+	}
+
+	name := strings.TrimSpace(summary.Name)
+	if name == "" {
+		name = fmt.Sprintf("workflow-%d", len(h.ui.config.Workflows)+1)
+	}
+
+	normalized := normalizeTemplates(templates)
+	for _, existing := range h.ui.config.Workflows {
+		if templatesEqual(normalized, normalizeTemplates(existing.Steps)) {
+			h.ui.write("%sA workflow with the same steps already exists in config.%s\n",
+				h.ui.colors.BrightYellow,
+				h.ui.colors.Reset)
+			return nil, false
+		}
+	}
+
+	return &workflowSavePlan{Name: name, Templates: templates, Normalized: normalized}, true
+}
+
+func (h *KeyHandler) persistWorkflowToConfig(plan *workflowSavePlan) bool {
+	h.ui.config.Workflows = append(h.ui.config.Workflows, config.WorkflowConfig{
+		Name:  plan.Name,
+		Steps: plan.Templates,
+	})
+
+	if err := h.ui.configMgr.Save(); err != nil {
+		h.ui.config.Workflows = h.ui.config.Workflows[:len(h.ui.config.Workflows)-1]
+		h.ui.write("%sFailed to save workflow to config: %v%s\n",
+			h.ui.colors.BrightRed,
+			err,
+			h.ui.colors.Reset)
+		return false
+	}
+
+	return true
+}
+
+func (h *KeyHandler) registerConfigWorkflowInView(plan *workflowSavePlan) {
+	alreadyPresent := false
+	for _, existing := range h.ui.listWorkflows() {
+		if existing.Source != WorkflowSourceConfig {
+			continue
+		}
+		existingWorkflow, ok := h.ui.workflowMgr.GetWorkflow(existing.ID)
+		if !ok || existingWorkflow == nil {
+			continue
+		}
+		if templatesEqual(plan.Normalized, normalizeTemplates(workflowToTemplates(existingWorkflow))) {
+			alreadyPresent = true
+			break
+		}
+	}
+
+	if alreadyPresent {
+		return
+	}
+
+	if _, err := h.ui.workflowMgr.CreateReadOnlyWorkflow(plan.Name, plan.Templates); err != nil {
+		h.ui.write("%sSaved to config, but failed to register workflow in view: %v%s\n",
+			h.ui.colors.BrightYellow,
+			err,
+			h.ui.colors.Reset)
+		return
+	}
+
+	h.ui.ensureWorkflowListSelection()
 }
 
 func (h *KeyHandler) finalizeWorkflowSelection() {
@@ -3116,7 +3414,6 @@ func (h *KeyHandler) finalizeWorkflowSelection() {
 	}
 
 	h.ui.workflowMgr.SetActive(workflowID)
-	h.ui.updateWorkflowPointer()
 	stepID, err := h.ui.AddToWorkflowByID(
 		workflowID,
 		h.ui.pendingWorkflowCommand,
@@ -3197,7 +3494,6 @@ func (h *KeyHandler) clearWorkflow() {
 		}
 		h.ui.workflowMgr.SetActive(newActive)
 		h.ui.ensureWorkflowListSelection()
-		h.ui.updateWorkflowPointer()
 		h.ui.write("%s🗑️  Deleted workflow #%d%s\n",
 			h.ui.colors.BrightYellow,
 			targetID,
@@ -3259,7 +3555,6 @@ func (h *KeyHandler) executionTargetWorkflowID() int {
 
 func (h *KeyHandler) workflowByID(workflowID int) *Workflow {
 	h.ui.workflowMgr.SetActive(workflowID)
-	h.ui.updateWorkflowPointer()
 	workflow, exists := h.ui.workflowMgr.GetWorkflow(workflowID)
 	if !exists {
 		return nil
