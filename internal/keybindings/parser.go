@@ -43,12 +43,10 @@ type Context string
 
 // Available contexts for interactive UI states.
 const (
-	ContextGlobal            Context = "global"             // Always active (reserved keys like Ctrl+C)
-	ContextInput             Context = "input"              // When typing/editing the search query
-	ContextResults           Context = "results"            // When navigating through filtered results
-	ContextSearch            Context = "search"             // When fuzzy search is active (combines input + results)
-	ContextWorkflowView      Context = "workflow_view"      // When managing workflows
-	ContextWorkflowSelection Context = "workflow_selection" // When picking a workflow target
+	ContextGlobal  Context = "global"  // Always active (reserved keys like Ctrl+C)
+	ContextInput   Context = "input"   // When typing/editing the search query
+	ContextResults Context = "results" // When navigating through filtered results
+	ContextSearch  Context = "search"  // When fuzzy search is active (combines input + results)
 )
 
 // String returns the string representation of a Context
@@ -59,7 +57,7 @@ func (c Context) String() string {
 // IsValid checks if a Context value is valid
 func (c Context) IsValid() bool {
 	switch c {
-	case ContextGlobal, ContextInput, ContextResults, ContextSearch, ContextWorkflowView, ContextWorkflowSelection:
+	case ContextGlobal, ContextInput, ContextResults, ContextSearch:
 		return true
 	default:
 		return false
@@ -73,7 +71,7 @@ func GetAllProfiles() []Profile {
 
 // GetAllContexts returns a list of all valid contexts
 func GetAllContexts() []Context {
-	return []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch, ContextWorkflowView, ContextWorkflowSelection}
+	return []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch}
 }
 
 // KeyStrokeKind represents the type of key stroke
@@ -253,9 +251,6 @@ type KeyBindingMap struct {
 	AddToWorkflow      []KeyStroke // default: [Tab]
 	ToggleWorkflowView []KeyStroke // default: [Ctrl+T]
 	ClearWorkflow      []KeyStroke // default: [c]
-	WorkflowDelete     []KeyStroke // default: [d]
-	WorkflowCreate     []KeyStroke // default: [Ctrl+N]
-	WorkflowCancel     []KeyStroke // default: [Esc]
 	SoftCancel         []KeyStroke // default: [Ctrl+G, Esc]
 }
 
@@ -274,9 +269,6 @@ func DefaultKeyBindingMap() *KeyBindingMap {
 		AddToWorkflow:      []KeyStroke{NewTabKeyStroke()},
 		ToggleWorkflowView: []KeyStroke{NewCtrlKeyStroke('t')},
 		ClearWorkflow:      []KeyStroke{NewCharKeyStroke('c')},
-		WorkflowDelete:     []KeyStroke{NewCharKeyStroke('d')},
-		WorkflowCreate:     []KeyStroke{NewCtrlKeyStroke('n')},
-		WorkflowCancel:     []KeyStroke{NewEscapeKeyStroke()},
 		SoftCancel:         []KeyStroke{NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 	}
 }
@@ -360,9 +352,6 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 		"add_to_workflow":      km.AddToWorkflow,
 		"toggle_workflow_view": km.ToggleWorkflowView,
 		"clear_workflow":       km.ClearWorkflow,
-		"workflow_delete":      km.WorkflowDelete,
-		"workflow_create":      km.WorkflowCreate,
-		"workflow_cancel":      km.WorkflowCancel,
 		"soft_cancel":          km.SoftCancel,
 	}
 
@@ -1132,9 +1121,6 @@ func (r *KeyBindingResolver) GetEffectiveKeybindings(profile Profile, context Co
 	result["add_to_workflow"] = clone(keyMap.AddToWorkflow)
 	result["toggle_workflow_view"] = clone(keyMap.ToggleWorkflowView)
 	result["clear_workflow"] = clone(keyMap.ClearWorkflow)
-	result["workflow_delete"] = clone(keyMap.WorkflowDelete)
-	result["workflow_create"] = clone(keyMap.WorkflowCreate)
-	result["workflow_cancel"] = clone(keyMap.WorkflowCancel)
 
 	return result
 }
@@ -1154,9 +1140,6 @@ func (r *KeyBindingResolver) applyDefaults(keyMap *KeyBindingMap) {
 	keyMap.AddToWorkflow = append(keyMap.AddToWorkflow, defaults.AddToWorkflow...)
 	keyMap.ToggleWorkflowView = append(keyMap.ToggleWorkflowView, defaults.ToggleWorkflowView...)
 	keyMap.ClearWorkflow = append(keyMap.ClearWorkflow, defaults.ClearWorkflow...)
-	keyMap.WorkflowDelete = append(keyMap.WorkflowDelete, defaults.WorkflowDelete...)
-	keyMap.WorkflowCreate = append(keyMap.WorkflowCreate, defaults.WorkflowCreate...)
-	keyMap.WorkflowCancel = append(keyMap.WorkflowCancel, defaults.WorkflowCancel...)
 	keyMap.SoftCancel = append(keyMap.SoftCancel, defaults.SoftCancel...)
 }
 
@@ -1180,9 +1163,6 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("add_to_workflow", &keyMap.AddToWorkflow)
 	applyBinding("toggle_workflow_view", &keyMap.ToggleWorkflowView)
 	applyBinding("clear_workflow", &keyMap.ClearWorkflow)
-	applyBinding("workflow_delete", &keyMap.WorkflowDelete)
-	applyBinding("workflow_create", &keyMap.WorkflowCreate)
-	applyBinding("workflow_cancel", &keyMap.WorkflowCancel)
 	applyBinding("soft_cancel", &keyMap.SoftCancel)
 }
 
@@ -1270,12 +1250,6 @@ func (r *KeyBindingResolver) applyWorkflowAction(keyMap *KeyBindingMap, action s
 		keyMap.ToggleWorkflowView = bindings
 	case "clear_workflow":
 		keyMap.ClearWorkflow = bindings
-	case "workflow_delete":
-		keyMap.WorkflowDelete = bindings
-	case "workflow_create":
-		keyMap.WorkflowCreate = bindings
-	case "workflow_cancel":
-		keyMap.WorkflowCancel = bindings
 	case "soft_cancel":
 		keyMap.SoftCancel = bindings
 	// Explicitly ignore unsupported actions
@@ -1301,9 +1275,6 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 		"add_to_workflow":      userBindings.AddToWorkflow,
 		"toggle_workflow_view": userBindings.ToggleWorkflowView,
 		"clear_workflow":       userBindings.ClearWorkflow,
-		"workflow_delete":      userBindings.WorkflowDelete,
-		"workflow_create":      userBindings.WorkflowCreate,
-		"workflow_cancel":      userBindings.WorkflowCancel,
 		"soft_cancel":          userBindings.SoftCancel,
 	}
 
@@ -1336,12 +1307,6 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 					keyMap.ToggleWorkflowView = []KeyStroke{ks}
 				case "clear_workflow":
 					keyMap.ClearWorkflow = []KeyStroke{ks}
-				case "workflow_delete":
-					keyMap.WorkflowDelete = []KeyStroke{ks}
-				case "workflow_create":
-					keyMap.WorkflowCreate = []KeyStroke{ks}
-				case "workflow_cancel":
-					keyMap.WorkflowCancel = []KeyStroke{ks}
 				case "soft_cancel":
 					keyMap.SoftCancel = []KeyStroke{ks}
 				}
@@ -1372,9 +1337,6 @@ func (r *KeyBindingResolver) applyEnvironmentOverrides(keyMap *KeyBindingMap) {
 		"GGC_KEYBIND_ADD_TO_WORKFLOW":      &keyMap.AddToWorkflow,
 		"GGC_KEYBIND_TOGGLE_WORKFLOW_VIEW": &keyMap.ToggleWorkflowView,
 		"GGC_KEYBIND_CLEAR_WORKFLOW":       &keyMap.ClearWorkflow,
-		"GGC_KEYBIND_WORKFLOW_DELETE":      &keyMap.WorkflowDelete,
-		"GGC_KEYBIND_WORKFLOW_CREATE":      &keyMap.WorkflowCreate,
-		"GGC_KEYBIND_WORKFLOW_CANCEL":      &keyMap.WorkflowCancel,
 		"GGC_KEYBIND_SOFT_CANCEL":          &keyMap.SoftCancel,
 	}
 
@@ -1398,10 +1360,6 @@ func (r *KeyBindingResolver) applyUserContextBindings(keyMap *KeyBindingMap, con
 		contextBindings = r.userConfig.Interactive.Contexts.Results.Keybindings
 	case ContextSearch:
 		contextBindings = r.userConfig.Interactive.Contexts.Search.Keybindings
-	case ContextWorkflowView:
-		contextBindings = r.userConfig.Interactive.Contexts.WorkflowView.Keybindings
-	case ContextWorkflowSelection:
-		contextBindings = r.userConfig.Interactive.Contexts.WorkflowSelection.Keybindings
 	}
 
 	if contextBindings != nil {
@@ -1511,12 +1469,6 @@ func (r *KeyBindingResolver) applyUserWorkflowAction(keyMap *KeyBindingMap, acti
 		keyMap.ToggleWorkflowView = keystrokes
 	case "clear_workflow":
 		keyMap.ClearWorkflow = keystrokes
-	case "workflow_delete":
-		keyMap.WorkflowDelete = keystrokes
-	case "workflow_create":
-		keyMap.WorkflowCreate = keystrokes
-	case "workflow_cancel":
-		keyMap.WorkflowCancel = keystrokes
 	case "soft_cancel":
 		keyMap.SoftCancel = keystrokes
 	// Explicitly ignore unsupported actions
@@ -1595,20 +1547,6 @@ func CreateDefaultProfile() *KeyBindingProfile {
 				"add_to_workflow":      {NewTabKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
 				"clear_workflow":       {NewCharKeyStroke('c')},
-			},
-			ContextWorkflowView: {
-				"move_up":              {NewCtrlKeyStroke('p')},
-				"move_down":            {NewCtrlKeyStroke('n')},
-				"workflow_create":      {NewCharKeyStroke('w')},
-				"workflow_delete":      {NewCharKeyStroke('d')},
-				"workflow_cancel":      {NewEscapeKeyStroke()},
-				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
-			},
-			ContextWorkflowSelection: {
-				"move_up":         {NewCtrlKeyStroke('p')},
-				"move_down":       {NewCtrlKeyStroke('n')},
-				"add_to_workflow": {NewTabKeyStroke()},
-				"workflow_cancel": {NewEscapeKeyStroke()},
 			},
 		},
 	}
@@ -1757,20 +1695,6 @@ func CreateEmacsProfile() *KeyBindingProfile {
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},      // C-t
 				"clear_workflow":       {NewAltKeyStroke('x', "")},   // M-x clear (avoiding conflict with M-c)
 			},
-			ContextWorkflowView: {
-				"move_up":              {NewCtrlKeyStroke('p')},
-				"move_down":            {NewCtrlKeyStroke('n')},
-				"workflow_create":      {NewCtrlKeyStroke('c')},
-				"workflow_delete":      {NewCharKeyStroke('d')},
-				"workflow_cancel":      {NewEscapeKeyStroke()},
-				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
-			},
-			ContextWorkflowSelection: {
-				"move_up":         {NewCtrlKeyStroke('p')},
-				"move_down":       {NewCtrlKeyStroke('n')},
-				"add_to_workflow": {NewRawKeyStroke([]byte{9})},
-				"workflow_cancel": {NewEscapeKeyStroke()},
-			},
 		},
 	}
 }
@@ -1908,20 +1832,6 @@ func CreateViProfile() *KeyBindingProfile {
 				"add_to_workflow":      {NewRawKeyStroke([]byte{9})},   // Tab
 				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})}, // W - workflow view (capital W)
 				"clear_workflow":       {NewRawKeyStroke([]byte{'D'})}, // D - delete/clear workflow
-			},
-			ContextWorkflowView: {
-				"move_up":              {NewRawKeyStroke([]byte{'k'})},
-				"move_down":            {NewRawKeyStroke([]byte{'j'})},
-				"workflow_create":      {NewRawKeyStroke([]byte{'c'})},
-				"workflow_delete":      {NewRawKeyStroke([]byte{'d'})},
-				"workflow_cancel":      {NewEscapeKeyStroke()},
-				"toggle_workflow_view": {NewRawKeyStroke([]byte{'W'})},
-			},
-			ContextWorkflowSelection: {
-				"move_up":         {NewRawKeyStroke([]byte{'k'})},
-				"move_down":       {NewRawKeyStroke([]byte{'j'})},
-				"add_to_workflow": {NewRawKeyStroke([]byte{9})},
-				"workflow_cancel": {NewEscapeKeyStroke()},
 			},
 			ContextSearch: {
 				// Vi search mode bindings (when in / or ? search)
@@ -2131,20 +2041,6 @@ func CreateReadlineProfile() *KeyBindingProfile {
 				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')}, // C-x C-w workflow
 				"clear_workflow":       {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('c')}, // C-x C-c clear
 			},
-			ContextWorkflowView: {
-				"move_up":              {NewCtrlKeyStroke('p')},
-				"move_down":            {NewCtrlKeyStroke('n')},
-				"workflow_create":      {NewAltKeyStroke('n', "")},
-				"workflow_delete":      {NewRawKeyStroke([]byte{'d'})},
-				"workflow_cancel":      {NewEscapeKeyStroke()},
-				"toggle_workflow_view": {NewCtrlKeyStroke('x'), NewCtrlKeyStroke('w')},
-			},
-			ContextWorkflowSelection: {
-				"move_up":         {NewCtrlKeyStroke('p')},
-				"move_down":       {NewCtrlKeyStroke('n')},
-				"add_to_workflow": {NewRawKeyStroke([]byte{9})},
-				"workflow_cancel": {NewEscapeKeyStroke()},
-			},
 			ContextSearch: {
 				// Search mode using Readline search conventions
 				"search_forward":  {NewCtrlKeyStroke('s')},       // C-s search-forward
@@ -2238,7 +2134,7 @@ func ValidateProfile(profile *KeyBindingProfile) error { //nolint:revive // perf
 	}
 
 	// Validate that profile has required contexts
-	requiredContexts := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch, ContextWorkflowView, ContextWorkflowSelection}
+	requiredContexts := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch}
 	for _, requiredCtx := range requiredContexts {
 		if _, exists := profile.Contexts[requiredCtx]; !exists {
 			return fmt.Errorf("profile missing required context: %s", requiredCtx)
