@@ -895,3 +895,416 @@ func TestRouter_AliasSequenceExecution(t *testing.T) {
 		})
 	}
 }
+
+func TestRouter_PlaceholderProcessing(t *testing.T) {
+	tests := []struct {
+		name             string
+		aliases          map[string]interface{}
+		args             []string
+		expectExit       bool
+		expectedExitCode int
+		validate         func(t *testing.T, m *mockExecuter)
+	}{
+		{
+			name: "simple alias with placeholder",
+			aliases: map[string]interface{}{
+				"commit-msg": "commit -m '{0}'",
+			},
+			args: []string{"commit-msg", "fix bug"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.commitCalled {
+					t.Error("Commit should be called for simple alias with placeholder")
+				}
+				expectedArgs := []string{"-m", "'fix", "bug'"}
+				if len(m.commitArgs) != len(expectedArgs) {
+					t.Errorf("Expected %d commit args, got %d", len(expectedArgs), len(m.commitArgs))
+					return
+				}
+				for i, arg := range expectedArgs {
+					if i < len(m.commitArgs) && m.commitArgs[i] != arg {
+						t.Errorf("commit arg[%d] = %q, want %q", i, m.commitArgs[i], arg)
+					}
+				}
+			},
+		},
+		{
+			name: "sequence alias with placeholders",
+			aliases: map[string]interface{}{
+				"deploy": []interface{}{"branch checkout {0}", "push {0}"},
+			},
+			args: []string{"deploy", "production"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called for sequence alias with placeholders")
+				}
+				if !m.pushCalled {
+					t.Error("Push should be called for sequence alias with placeholders")
+				}
+				if len(m.branchArgs) != 2 || m.branchArgs[0] != "checkout" || m.branchArgs[1] != "production" {
+					t.Errorf("branch args = %v, want [checkout production]", m.branchArgs)
+				}
+				if len(m.pushArgs) != 1 || m.pushArgs[0] != "production" {
+					t.Errorf("push args = %v, want [production]", m.pushArgs)
+				}
+			},
+		},
+		{
+			name: "sequence alias with multiple positional placeholders",
+			aliases: map[string]interface{}{
+				"feature": []interface{}{"branch checkout-from {0} feature/{1}", "commit -m 'Start {1} from {0}'"},
+			},
+			args: []string{"feature", "main", "user-auth"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called for feature alias")
+				}
+				if !m.commitCalled {
+					t.Error("Commit should be called for feature alias")
+				}
+				expectedBranchArgs := []string{"checkout-from", "main", "feature/user-auth"}
+				if len(m.branchArgs) != len(expectedBranchArgs) {
+					t.Errorf("branch args length = %d, want %d", len(m.branchArgs), len(expectedBranchArgs))
+				} else {
+					for i, arg := range expectedBranchArgs {
+						if m.branchArgs[i] != arg {
+							t.Errorf("branch arg[%d] = %q, want %q", i, m.branchArgs[i], arg)
+						}
+					}
+				}
+				expectedCommitArgs := []string{"-m", "'Start", "user-auth", "from", "main'"}
+				if len(m.commitArgs) != len(expectedCommitArgs) {
+					t.Errorf("commit args length = %d, want %d", len(m.commitArgs), len(expectedCommitArgs))
+				} else {
+					for i, arg := range expectedCommitArgs {
+						if m.commitArgs[i] != arg {
+							t.Errorf("commit arg[%d] = %q, want %q", i, m.commitArgs[i], arg)
+						}
+					}
+				}
+			},
+		},
+		{
+			name: "simple alias with placeholder - missing argument",
+			aliases: map[string]interface{}{
+				"commit-msg": "commit -m '{0}'",
+			},
+			args:             []string{"commit-msg"},
+			expectExit:       true,
+			expectedExitCode: 1,
+			validate: func(t *testing.T, m *mockExecuter) {
+				if m.commitCalled {
+					t.Error("Commit should not be called when placeholder argument is missing")
+				}
+			},
+		},
+		{
+			name: "sequence alias with placeholder - missing argument",
+			aliases: map[string]interface{}{
+				"deploy": []interface{}{"branch checkout {0}", "push {0}"},
+			},
+			args:             []string{"deploy"},
+			expectExit:       true,
+			expectedExitCode: 1,
+			validate: func(t *testing.T, m *mockExecuter) {
+				if m.branchCalled || m.pushCalled {
+					t.Error("No commands should be called when placeholder arguments are missing")
+				}
+			},
+		},
+		{
+			name: "sequence alias with multiple placeholders - insufficient arguments",
+			aliases: map[string]interface{}{
+				"feature": []interface{}{"branch checkout-from {0} feature/{1}", "commit -m 'Start {1} from {0}'"},
+			},
+			args:             []string{"feature", "main"},
+			expectExit:       true,
+			expectedExitCode: 1,
+			validate: func(t *testing.T, m *mockExecuter) {
+				if m.branchCalled || m.commitCalled {
+					t.Error("No commands should be called when not all placeholder arguments are provided")
+				}
+			},
+		},
+		{
+			name: "simple alias without placeholders - arguments forwarded",
+			aliases: map[string]interface{}{
+				"st": "status",
+			},
+			args: []string{"st", "short"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called for simple alias without placeholders")
+				}
+				if len(m.statusArgs) != 1 || m.statusArgs[0] != "short" {
+					t.Errorf("status args = %v, want [short]", m.statusArgs)
+				}
+			},
+		},
+		{
+			name: "sequence alias without placeholders - arguments rejected",
+			aliases: map[string]interface{}{
+				"sync": []interface{}{"pull current", "push current"},
+			},
+			args:             []string{"sync", "unwanted"},
+			expectExit:       true,
+			expectedExitCode: 1,
+			validate: func(t *testing.T, m *mockExecuter) {
+				if m.pullCalled || m.pushCalled {
+					t.Error("No commands should be called when sequence alias without placeholders receives arguments")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := testutil.NewMockGitClient()
+			configManager := config.NewConfigManager(mockClient)
+
+			// Manually set aliases in the config
+			cfg := configManager.GetConfig()
+			cfg.Aliases = tt.aliases
+
+			mockExec := &mockExecuter{}
+			router := NewRouter(mockExec, configManager)
+
+			exitCalled := false
+			var exitCode int
+			router.SetExitFunc(func(code int) {
+				exitCalled = true
+				exitCode = code
+			})
+
+			router.Route(tt.args)
+
+			if tt.expectExit {
+				if !exitCalled {
+					t.Fatal("expected router to exit but it did not")
+				}
+				if exitCode != tt.expectedExitCode {
+					t.Fatalf("expected exit code %d, got %d", tt.expectedExitCode, exitCode)
+				}
+			} else if exitCalled {
+				t.Fatalf("unexpected exit with code %d", exitCode)
+			}
+
+			tt.validate(t, mockExec)
+		})
+	}
+}
+
+func TestRouter_PlaceholderEdgeCases(t *testing.T) {
+	tests := []struct {
+		name             string
+		aliases          map[string]interface{}
+		args             []string
+		expectExit       bool
+		expectedExitCode int
+		validate         func(t *testing.T, m *mockExecuter)
+	}{
+		{
+			name: "duplicate placeholders in same command",
+			aliases: map[string]interface{}{
+				"duplicate": []interface{}{"branch checkout {0}", "commit -m '{0} - {0}'"},
+			},
+			args: []string{"duplicate", "main"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called")
+				}
+				if !m.commitCalled {
+					t.Error("Commit should be called")
+				}
+				expectedBranch := []string{"checkout", "main"}
+				if len(m.branchArgs) != len(expectedBranch) {
+					t.Errorf("branch args length = %d, want %d", len(m.branchArgs), len(expectedBranch))
+				}
+				expectedCommit := []string{"-m", "'main", "-", "main'"}
+				if len(m.commitArgs) != len(expectedCommit) {
+					t.Errorf("commit args length = %d, want %d", len(m.commitArgs), len(expectedCommit))
+				}
+			},
+		},
+		{
+			name: "placeholder with empty string argument",
+			aliases: map[string]interface{}{
+				"empty-arg": "commit -m '{0}'",
+			},
+			args: []string{"empty-arg", ""},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.commitCalled {
+					t.Error("Commit should be called even with empty argument")
+				}
+				expectedArgs := []string{"-m", "''"}
+				if len(m.commitArgs) != len(expectedArgs) {
+					t.Errorf("Expected %d commit args, got %d", len(expectedArgs), len(m.commitArgs))
+				}
+			},
+		},
+		{
+			name: "placeholder with special characters in argument",
+			aliases: map[string]interface{}{
+				"special-chars": "commit -m '{0}'",
+			},
+			args: []string{"special-chars", "fix: issue #123 & update (v2.0)"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.commitCalled {
+					t.Error("Commit should be called with special characters")
+				}
+				expectedArgs := []string{"-m", "'fix:", "issue", "#123", "&", "update", "(v2.0)'"}
+				if len(m.commitArgs) != len(expectedArgs) {
+					t.Errorf("Expected %d commit args, got %d", len(expectedArgs), len(m.commitArgs))
+				}
+			},
+		},
+		{
+			name: "excess arguments beyond placeholders",
+			aliases: map[string]interface{}{
+				"single-placeholder": "branch checkout {0}",
+			},
+			args: []string{"single-placeholder", "main", "extra1", "extra2"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called despite excess arguments")
+				}
+				expectedArgs := []string{"checkout", "main"}
+				if len(m.branchArgs) != len(expectedArgs) {
+					t.Errorf("branch args = %v, want %v", m.branchArgs, expectedArgs)
+				}
+			},
+		},
+		{
+			name: "placeholder at beginning of command",
+			aliases: map[string]interface{}{
+				"prefix-placeholder": "{0} current",
+			},
+			args: []string{"prefix-placeholder", "status"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called when placeholder is at beginning")
+				}
+				expectedArgs := []string{"current"}
+				if len(m.statusArgs) != len(expectedArgs) {
+					t.Errorf("status args = %v, want %v", m.statusArgs, expectedArgs)
+				}
+			},
+		},
+		{
+			name: "placeholder at end of command",
+			aliases: map[string]interface{}{
+				"suffix-placeholder": "status {0}",
+			},
+			args: []string{"suffix-placeholder", "short"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called when placeholder is at end")
+				}
+				expectedArgs := []string{"short"}
+				if len(m.statusArgs) != len(expectedArgs) {
+					t.Errorf("status args = %v, want %v", m.statusArgs, expectedArgs)
+				}
+			},
+		},
+		{
+			name: "multiple placeholders in mixed order",
+			aliases: map[string]interface{}{
+				"mixed-order": "branch checkout-from {1} {0}",
+			},
+			args: []string{"mixed-order", "feature/test", "main"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.branchCalled {
+					t.Error("Branch should be called with mixed placeholder order")
+				}
+				expectedArgs := []string{"checkout-from", "main", "feature/test"}
+				if len(m.branchArgs) != len(expectedArgs) {
+					t.Errorf("branch args length = %d, want %d", len(m.branchArgs), len(expectedArgs))
+				}
+				for i, arg := range expectedArgs {
+					if i < len(m.branchArgs) && m.branchArgs[i] != arg {
+						t.Errorf("branch arg[%d] = %q, want %q", i, m.branchArgs[i], arg)
+					}
+				}
+			},
+		},
+		{
+			name: "sequence alias with no placeholders gets extra args rejected",
+			aliases: map[string]interface{}{
+				"no-placeholders-seq": []interface{}{"status", "branch current"},
+			},
+			args:             []string{"no-placeholders-seq", "unwanted"},
+			expectExit:       true,
+			expectedExitCode: 1,
+			validate: func(t *testing.T, m *mockExecuter) {
+				if m.statusCalled || m.branchCalled {
+					t.Error("No commands should execute when sequence alias without placeholders gets args")
+				}
+			},
+		},
+		{
+			name: "simple alias with placeholders but no args provided",
+			aliases: map[string]interface{}{
+				"needs-arg": "commit -m '{0}'",
+			},
+			args:             []string{"needs-arg"},
+			expectExit:       true,
+			expectedExitCode: 1,
+			validate: func(t *testing.T, m *mockExecuter) {
+				if m.commitCalled {
+					t.Error("Commit should not be called when required placeholder arg is missing")
+				}
+			},
+		},
+		{
+			name: "very long argument list",
+			aliases: map[string]interface{}{
+				"many-args": "status {0} {1} {2} {3} {4}",
+			},
+			args: []string{"many-args", "arg0", "arg1", "arg2", "arg3", "arg4", "extra1", "extra2"},
+			validate: func(t *testing.T, m *mockExecuter) {
+				if !m.statusCalled {
+					t.Error("Status should be called with many arguments")
+				}
+				expectedArgs := []string{"arg0", "arg1", "arg2", "arg3", "arg4"}
+				if len(m.statusArgs) != len(expectedArgs) {
+					t.Errorf("status args length = %d, want %d", len(m.statusArgs), len(expectedArgs))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := testutil.NewMockGitClient()
+			configManager := config.NewConfigManager(mockClient)
+
+			// Manually set aliases in the config
+			cfg := configManager.GetConfig()
+			cfg.Aliases = tt.aliases
+
+			mockExec := &mockExecuter{}
+			router := NewRouter(mockExec, configManager)
+
+			exitCalled := false
+			var exitCode int
+			router.SetExitFunc(func(code int) {
+				exitCalled = true
+				exitCode = code
+			})
+
+			router.Route(tt.args)
+
+			if tt.expectExit {
+				if !exitCalled {
+					t.Fatal("expected router to exit but it did not")
+				}
+				if exitCode != tt.expectedExitCode {
+					t.Fatalf("expected exit code %d, got %d", tt.expectedExitCode, exitCode)
+				}
+			} else if exitCalled {
+				t.Fatalf("unexpected exit with code %d", exitCode)
+			}
+
+			tt.validate(t, mockExec)
+		})
+	}
+}
