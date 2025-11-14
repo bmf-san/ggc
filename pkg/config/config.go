@@ -158,8 +158,8 @@ const (
 type ParsedAlias struct {
 	Type             AliasType
 	Commands         []string
-	Placeholders     map[string]bool // Track which placeholders are used
-	MaxPositionalArg int             // Highest positional argument index (-1 if none)
+	Placeholders     map[string]struct{} // Track which placeholders are used
+	MaxPositionalArg int                 // Highest positional argument index (-1 if none)
 }
 
 // Manager handles configuration loading, saving, and operations
@@ -408,8 +408,8 @@ func (c *Config) Validate() error {
 }
 
 // analyzePlaceholders analyzes a command string for placeholders and returns placeholder info
-func analyzePlaceholders(commands []string) (map[string]bool, int, error) {
-	placeholders := make(map[string]bool)
+func analyzePlaceholders(commands []string) (map[string]struct{}, int, error) {
+	placeholders := make(map[string]struct{})
 	maxPositionalArg := -1
 
 	for _, cmd := range commands {
@@ -425,7 +425,7 @@ func analyzePlaceholders(commands []string) (map[string]bool, int, error) {
 				return nil, -1, fmt.Errorf("invalid placeholder {%s}: %w", placeholder, err)
 			}
 
-			placeholders[placeholder] = true
+			placeholders[placeholder] = struct{}{}
 
 			// Check if it's a positional argument
 			if len(placeholder) == 1 && placeholder[0] >= '0' && placeholder[0] <= '9' {

@@ -972,7 +972,7 @@ func TestAnalyzePlaceholders(t *testing.T) {
 	tests := []struct {
 		name                 string
 		commands             []string
-		wantPlaceholders     map[string]bool
+		wantPlaceholders     map[string]struct{}
 		wantMaxPositionalArg int
 		wantError            bool
 		wantErrorMsg         string
@@ -980,35 +980,35 @@ func TestAnalyzePlaceholders(t *testing.T) {
 		{
 			name:                 "no placeholders",
 			commands:             []string{"status", "branch"},
-			wantPlaceholders:     map[string]bool{},
+			wantPlaceholders:     map[string]struct{}{},
 			wantMaxPositionalArg: -1,
 			wantError:            false,
 		},
 		{
 			name:                 "single positional placeholder",
 			commands:             []string{"branch checkout {0}"},
-			wantPlaceholders:     map[string]bool{"0": true},
+			wantPlaceholders:     map[string]struct{}{"0": {}},
 			wantMaxPositionalArg: 0,
 			wantError:            false,
 		},
 		{
 			name:                 "multiple positional placeholders",
 			commands:             []string{"commit -m '{0}'", "push {1}"},
-			wantPlaceholders:     map[string]bool{"0": true, "1": true},
+			wantPlaceholders:     map[string]struct{}{"0": {}, "1": {}},
 			wantMaxPositionalArg: 1,
 			wantError:            false,
 		},
 		{
 			name:                 "named placeholders",
 			commands:             []string{"branch checkout {env}", "push {branch}"},
-			wantPlaceholders:     map[string]bool{"env": true, "branch": true},
+			wantPlaceholders:     map[string]struct{}{"env": {}, "branch": {}},
 			wantMaxPositionalArg: -1,
 			wantError:            false,
 		},
 		{
 			name:                 "mixed placeholders",
 			commands:             []string{"commit -m '{0} on {env}'"},
-			wantPlaceholders:     map[string]bool{"0": true, "env": true},
+			wantPlaceholders:     map[string]struct{}{"0": {}, "env": {}},
 			wantMaxPositionalArg: 0,
 			wantError:            false,
 		},
@@ -1061,7 +1061,7 @@ func TestAnalyzePlaceholders(t *testing.T) {
 			}
 
 			for placeholder := range tt.wantPlaceholders {
-				if !placeholders[placeholder] {
+				if _, exists := placeholders[placeholder]; !exists {
 					t.Errorf("analyzePlaceholders() missing placeholder %q", placeholder)
 				}
 			}
@@ -1261,7 +1261,7 @@ func TestAnalyzePlaceholdersEdgeCases(t *testing.T) {
 	tests := []struct {
 		name                 string
 		commands             []string
-		wantPlaceholders     map[string]bool
+		wantPlaceholders     map[string]struct{}
 		wantMaxPositionalArg int
 		wantError            bool
 		wantErrorMsg         string
@@ -1275,14 +1275,14 @@ func TestAnalyzePlaceholdersEdgeCases(t *testing.T) {
 		{
 			name:                 "command with multiple placeholders on same line",
 			commands:             []string{"echo {0} {1} {0}"},
-			wantPlaceholders:     map[string]bool{"0": true, "1": true},
+			wantPlaceholders:     map[string]struct{}{"0": {}, "1": {}},
 			wantMaxPositionalArg: 1,
 			wantError:            false,
 		},
 		{
 			name:                 "command with placeholder containing numbers and letters",
 			commands:             []string{"echo {arg0}", "echo {arg1}"},
-			wantPlaceholders:     map[string]bool{"arg0": true, "arg1": true},
+			wantPlaceholders:     map[string]struct{}{"arg0": {}, "arg1": {}},
 			wantMaxPositionalArg: -1,
 			wantError:            false,
 		},
@@ -1301,14 +1301,14 @@ func TestAnalyzePlaceholdersEdgeCases(t *testing.T) {
 		{
 			name:                 "command with high numbered positional placeholder",
 			commands:             []string{"echo {9}"},
-			wantPlaceholders:     map[string]bool{"9": true},
+			wantPlaceholders:     map[string]struct{}{"9": {}},
 			wantMaxPositionalArg: 9,
 			wantError:            false,
 		},
 		{
 			name:                 "empty command list",
 			commands:             []string{},
-			wantPlaceholders:     map[string]bool{},
+			wantPlaceholders:     map[string]struct{}{},
 			wantMaxPositionalArg: -1,
 			wantError:            false,
 		},
@@ -1349,7 +1349,7 @@ func TestAnalyzePlaceholdersEdgeCases(t *testing.T) {
 			}
 
 			for placeholder := range tt.wantPlaceholders {
-				if !placeholders[placeholder] {
+				if _, exists := placeholders[placeholder]; !exists {
 					t.Errorf("analyzePlaceholders() missing placeholder %q", placeholder)
 				}
 			}
