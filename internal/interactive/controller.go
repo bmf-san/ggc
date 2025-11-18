@@ -3100,14 +3100,29 @@ func (ui *UI) readNextRune(reader *bufio.Reader, isRawMode bool) (rune, error) {
 // Extract <...> placeholders from a string
 func extractPlaceholders(s string) []string {
 	var res []string
-	start := -1
-	for i, c := range s {
-		if c == '<' {
-			start = i + 1
-		} else if c == '>' && start != -1 {
+	inside := false
+	start := 0
+	for i, r := range s {
+		switch r {
+		case '<':
+			if inside {
+				// Nested '<' is invalid
+				return []string{}
+			}
+			inside = true
+			start = i + 1 // start after '<'
+		case '>':
+			if !inside {
+				return []string{}
+			}
+			// capture placeholder content
 			res = append(res, s[start:i])
-			start = -1
+			inside = false
 		}
+	}
+	if inside {
+		// Unclosed '<' is invalid
+		return []string{}
 	}
 	return res
 }

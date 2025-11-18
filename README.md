@@ -217,7 +217,7 @@ ggc
 - `Ctrl+t`: Toggle the workflow management view
 
 **Command Execution:**
-- If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
+- If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input (see [Placeholder Syntax and Prompts](#placeholder-syntax-and-prompts))
 - After command execution, results are displayed and you can press Enter to continue
 - After viewing results, you return to the command selection screen for continuous use
 - Type `"quit"` or use `Ctrl+c` to exit interactive mode
@@ -231,6 +231,29 @@ ggc
 - Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
 - Workflows persist after execution for reuse or further editing
 - Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
+
+### Placeholder Syntax and Prompts
+
+Many commands accept arguments via lightweight placeholders that the UI will prompt you to fill in at run time.
+
+Rules:
+- A placeholder is any text delimited by a single `<` followed later by a single `>`, for example `<file>` or `<message>`.
+- Nested or consecutive `<` while already inside a placeholder is invalid. For example: `<<name>>` is invalid.
+- A `>` without a matching preceding `<` is invalid.
+- An unclosed `<` at the end of the string is invalid.
+- If any invalid syntax is detected anywhere in the command, ggc treats the input literally and does not prompt. This preserves the original text unchanged.
+- An empty placeholder `<>` is allowed and will prompt; you may submit an empty value if that makes sense for the command.
+
+Examples (valid):
+- `add <file>` → prompts for `file`, e.g., `add src/main.go`
+- `remote add <name> <url>` → prompts twice, for `name` and `url`
+- `commit <message>` → prompts for `message`
+- `command <>` → prompts for an optional value (empty accepted)
+
+Examples (invalid, no prompts shown; the text is used as-is):
+- `command <<name>>`
+- `triple <<<placeholder>>`
+- `unclosed <name`
 
 ### Config-Defined Workflows
 

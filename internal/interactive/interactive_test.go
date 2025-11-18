@@ -216,9 +216,19 @@ func TestExtractPlaceholders(t *testing.T) {
 			want:  []string{},
 		},
 		{
-			name:  "nested placeholder",
+			name:  "nested placeholder should be invalid (no extraction)",
 			input: "command <<nested>>",
-			want:  []string{"nested"},
+			want:  []string{},
+		},
+		{
+			name:  "nested with words",
+			input: "nested <<placeholder>>",
+			want:  []string{},
+		},
+		{
+			name:  "triple opening brackets",
+			input: "triple <<<placeholder>>",
+			want:  []string{},
 		},
 	}
 
