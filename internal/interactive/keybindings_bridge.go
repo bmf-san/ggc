@@ -66,8 +66,8 @@ const (
 	ContextResults = kb.ContextResults
 	// ContextSearch exposes the search key binding context identifier.
 	ContextSearch = kb.ContextSearch
-	// ContextWorkflowView exposes the workflow management context identifier.
+	// ContextWorkflowView exposes the workflow management view context identifier.
 	ContextWorkflowView = kb.ContextWorkflowView
-	// ContextWorkflowSelection exposes the workflow selection context identifier.
+	// ContextWorkflowSelection exposes the workflow selection overlay context identifier.
 	ContextWorkflowSelection = kb.ContextWorkflowSelection
 )

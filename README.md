@@ -35,7 +35,6 @@ ggc is a Git tool written in Go, offering both traditional CLI commands and an i
 - Composite commands that combine multiple Git operations
 - Interactive UI for branch/file selection and message input
 - Customizable keybindings with profile support (default, emacs, vi, readline)
-- Command aliases for chaining multiple operations
 - Unified, flagless command syntax for intuitive usage
 - Shell completion for Bash, Zsh, and Fish
 - Configurable via YAML configuration file
@@ -229,7 +228,7 @@ ggc
 - Config-defined workflows load automatically from `.ggcconfig.yaml` and remain read-only for safety
 - Save frequently used dynamic workflows back to config with `s`
 - Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
-- Workflows persist after execution for reuse or further editing
+- Workflows persist after execution for reuse
 - Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
 
 ### Placeholder Syntax and Prompts
@@ -396,21 +395,29 @@ Each step is entered exactly as you would in interactive mode, and placeholders 
 Chain multiple `ggc` commands together with custom aliases you define. Here is an example of aliases in your `~/.ggcconfig.yaml` file:
 ```yaml
 aliases:
-    ac:
-        - add .
-        - commit tmp
+    # Simple aliases
     br: branch
     ci: commit
+    st: status
+
+    # Simple aliases with placeholders
+    commit-msg: "commit -m '{0}'"
+
+    # Sequence aliases
     quick:
         - status
         - add .
         - commit
-    st: status
-    sync:
-        - pull current
-        - add .
-        - commit
-        - push current
+
+    # Sequence aliases with placeholders
+    deploy:
+        - "branch checkout {0}"
+        - "pull current"
+        - "push {0}"
+
+    feature:
+        - "branch checkout-from {0} feature/{1}"
+        - "commit -m 'Start feature {1} from {0}'"
 ```
 
 Aliases support two formats:
@@ -418,13 +425,19 @@ Aliases support two formats:
 1. **Simple alias**: Maps to a single command (e.g., `br: branch`)
    - Arguments are passed to the aliased command
    - Example: `ggc br list` will execute `ggc branch list`
+   - Supports placeholders: `commit-msg: "commit -m '{0}'"` allows `ggc commit-msg "Fix bug"`
 
-2. **Sequence alias**: Maps to multiple commands in sequence (e.g., `ac: [add ., commit tmp]`)
+2. **Sequence alias**: Maps to multiple commands in sequence
    - Commands are executed in order
-   - Arguments are ignored for sequence aliases
-   - Example: Running `ggc ac` will execute first `ggc add .` then `ggc commit tmp` and terminate
+   - Without placeholders: Arguments are ignored (e.g., `quick: [status, add ., commit]`)
+   - With placeholders: Arguments are substituted using `{0}`, `{1}`, etc.
+   - Example: `deploy: ["branch checkout {0}", "push {0}"]` allows `ggc deploy production`
 
-Any arguments passed to sequence aliases are ignored - this is by design.
+**Placeholder Support**: Both simple and sequence aliases support positional placeholders:
+- Use `{0}` for the first argument, `{1}` for the second, etc.
+- Required arguments must be provided or the command will fail with a clear error
+- Example: `ggc feature main user-auth` → executes with `{0}=main`, `{1}=user-auth`
+- **Note**: Arguments containing spaces or quotes may be split incorrectly (e.g., `'fix bug'` becomes `'fix` and `bug'` as separate arguments)
 
 ## Interactive Mode Keybindings
 

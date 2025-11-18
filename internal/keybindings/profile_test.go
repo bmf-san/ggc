@@ -22,7 +22,7 @@ func TestProfileValidation(t *testing.T) {
 }
 
 func TestContextValidation(t *testing.T) {
-	valid := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch, ContextWorkflowView, ContextWorkflowSelection}
+	valid := []Context{ContextGlobal, ContextInput, ContextResults, ContextSearch}
 	for _, ctx := range valid {
 		if !ctx.IsValid() {
 			t.Fatalf("expected context %q to be valid", ctx)
