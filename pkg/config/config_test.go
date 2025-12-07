@@ -854,77 +854,503 @@ func TestConfig_Validate(t *testing.T) {
 func TestConfig_ParseAlias(t *testing.T) {
 	config := &Config{
 		Aliases: map[string]interface{}{
-			"st":   "status",
-			"acp":  []interface{}{"add", "commit", "push"},
-			"sync": []interface{}{"pull", "add", "commit", "push"},
+			"st":         "status",
+			"acp":        []interface{}{"add", "commit", "push"},
+			"sync":       []interface{}{"pull", "add", "commit", "push"},
+			"deploy":     []interface{}{"branch checkout {0}", "push {0}"},
+			"deploy-msg": "commit -m '{0}'",
 		},
 	}
 
 	tests := []struct {
-		name         string
-		aliasName    string
-		wantType     AliasType
-		wantCommands []string
-		wantError    bool
+		name                 string
+		aliasName            string
+		wantType             AliasType
+		wantCommands         []string
+		wantMaxPositionalArg int
+		wantPlaceholderCount int
+		wantError            bool
 	}{
 		{
-			name:         "simple alias",
-			aliasName:    "st",
-			wantType:     SimpleAlias,
-			wantCommands: []string{"status"},
-			wantError:    false,
+			name:                 "simple alias",
+			aliasName:            "st",
+			wantType:             SimpleAlias,
+			wantCommands:         []string{"status"},
+			wantMaxPositionalArg: -1,
+			wantPlaceholderCount: 0,
+			wantError:            false,
 		},
 		{
-			name:         "sequence alias - short",
-			aliasName:    "acp",
-			wantType:     SequenceAlias,
-			wantCommands: []string{"add", "commit", "push"},
-			wantError:    false,
+			name:                 "sequence alias - short",
+			aliasName:            "acp",
+			wantType:             SequenceAlias,
+			wantCommands:         []string{"add", "commit", "push"},
+			wantMaxPositionalArg: -1,
+			wantPlaceholderCount: 0,
+			wantError:            false,
 		},
 		{
-			name:         "sequence alias - long",
-			aliasName:    "sync",
-			wantType:     SequenceAlias,
-			wantCommands: []string{"pull", "add", "commit", "push"},
-			wantError:    false,
+			name:                 "sequence alias - long",
+			aliasName:            "sync",
+			wantType:             SequenceAlias,
+			wantCommands:         []string{"pull", "add", "commit", "push"},
+			wantMaxPositionalArg: -1,
+			wantPlaceholderCount: 0,
+			wantError:            false,
 		},
 		{
-			name:         "non-existent alias",
-			aliasName:    "nonexistent",
-			wantType:     SimpleAlias,
-			wantCommands: nil,
-			wantError:    true,
+			name:                 "simple alias with placeholder",
+			aliasName:            "deploy-msg",
+			wantType:             SimpleAlias,
+			wantCommands:         []string{"commit -m '{0}'"},
+			wantMaxPositionalArg: 0,
+			wantPlaceholderCount: 1,
+			wantError:            false,
+		},
+		{
+			name:                 "sequence alias with placeholders",
+			aliasName:            "deploy",
+			wantType:             SequenceAlias,
+			wantCommands:         []string{"branch checkout {0}", "push {0}"},
+			wantMaxPositionalArg: 0,
+			wantPlaceholderCount: 1,
+			wantError:            false,
+		},
+		{
+			name:                 "non-existent alias",
+			aliasName:            "nonexistent",
+			wantType:             SimpleAlias,
+			wantCommands:         nil,
+			wantMaxPositionalArg: -1,
+			wantPlaceholderCount: 0,
+			wantError:            true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parsed, err := config.ParseAlias(tt.aliasName)
+			alias, err := config.ParseAlias(tt.aliasName)
 
 			if tt.wantError {
 				if err == nil {
-					t.Errorf("ParseAlias() expected error, got nil")
+					t.Errorf("ParseAlias() error = %v, wantErr %v", err, tt.wantError)
 				}
 				return
 			}
 
 			if err != nil {
-				t.Errorf("ParseAlias() unexpected error: %v", err)
+				t.Errorf("ParseAlias() unexpected error = %v", err)
 				return
 			}
 
-			if parsed.Type != tt.wantType {
-				t.Errorf("ParseAlias() type = %v, want %v", parsed.Type, tt.wantType)
+			if alias.Type != tt.wantType {
+				t.Errorf("ParseAlias() type = %v, want %v", alias.Type, tt.wantType)
 			}
 
-			if len(parsed.Commands) != len(tt.wantCommands) {
-				t.Errorf("ParseAlias() commands length = %v, want %v", len(parsed.Commands), len(tt.wantCommands))
+			if len(alias.Commands) != len(tt.wantCommands) {
+				t.Errorf("ParseAlias() commands length = %v, want %v", len(alias.Commands), len(tt.wantCommands))
+			}
+
+			for i, cmd := range alias.Commands {
+				if i < len(tt.wantCommands) && cmd != tt.wantCommands[i] {
+					t.Errorf("ParseAlias() command[%d] = %v, want %v", i, cmd, tt.wantCommands[i])
+				}
+			}
+
+			if alias.MaxPositionalArg != tt.wantMaxPositionalArg {
+				t.Errorf("ParseAlias() MaxPositionalArg = %v, want %v", alias.MaxPositionalArg, tt.wantMaxPositionalArg)
+			}
+
+			if len(alias.Placeholders) != tt.wantPlaceholderCount {
+				t.Errorf("ParseAlias() placeholder count = %v, want %v", len(alias.Placeholders), tt.wantPlaceholderCount)
+			}
+		})
+	}
+}
+
+func TestAnalyzePlaceholders(t *testing.T) {
+	tests := []struct {
+		name                 string
+		commands             []string
+		wantPlaceholders     map[string]struct{}
+		wantMaxPositionalArg int
+		wantError            bool
+		wantErrorMsg         string
+	}{
+		{
+			name:                 "no placeholders",
+			commands:             []string{"status", "branch"},
+			wantPlaceholders:     map[string]struct{}{},
+			wantMaxPositionalArg: -1,
+			wantError:            false,
+		},
+		{
+			name:                 "single positional placeholder",
+			commands:             []string{"branch checkout {0}"},
+			wantPlaceholders:     map[string]struct{}{"0": {}},
+			wantMaxPositionalArg: 0,
+			wantError:            false,
+		},
+		{
+			name:                 "multiple positional placeholders",
+			commands:             []string{"commit -m '{0}'", "push {1}"},
+			wantPlaceholders:     map[string]struct{}{"0": {}, "1": {}},
+			wantMaxPositionalArg: 1,
+			wantError:            false,
+		},
+		{
+			name:                 "named placeholders",
+			commands:             []string{"branch checkout {env}", "push {branch}"},
+			wantPlaceholders:     map[string]struct{}{"env": {}, "branch": {}},
+			wantMaxPositionalArg: -1,
+			wantError:            false,
+		},
+		{
+			name:                 "mixed placeholders",
+			commands:             []string{"commit -m '{0} on {env}'"},
+			wantPlaceholders:     map[string]struct{}{"0": {}, "env": {}},
+			wantMaxPositionalArg: 0,
+			wantError:            false,
+		},
+		{
+			name:         "invalid placeholder with shell chars",
+			commands:     []string{"echo {0; rm -rf /}"},
+			wantError:    true,
+			wantErrorMsg: "placeholder contains unsafe characters",
+		},
+		{
+			name:         "empty placeholder",
+			commands:     []string{"echo {}"},
+			wantError:    true,
+			wantErrorMsg: "empty placeholder",
+		},
+		{
+			name:         "placeholder with spaces",
+			commands:     []string{"echo {hello world}"},
+			wantError:    true,
+			wantErrorMsg: "placeholder contains invalid character",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			placeholders, maxArg, err := analyzePlaceholders(tt.commands)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("analyzePlaceholders() expected error containing %q, got nil", tt.wantErrorMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.wantErrorMsg) {
+					t.Errorf("analyzePlaceholders() error = %q, want error containing %q", err.Error(), tt.wantErrorMsg)
+				}
 				return
 			}
 
-			for i, cmd := range parsed.Commands {
-				if cmd != tt.wantCommands[i] {
-					t.Errorf("ParseAlias() commands[%d] = %v, want %v", i, cmd, tt.wantCommands[i])
+			if err != nil {
+				t.Errorf("analyzePlaceholders() unexpected error = %v", err)
+				return
+			}
+
+			if maxArg != tt.wantMaxPositionalArg {
+				t.Errorf("analyzePlaceholders() maxArg = %v, want %v", maxArg, tt.wantMaxPositionalArg)
+			}
+
+			if len(placeholders) != len(tt.wantPlaceholders) {
+				t.Errorf("analyzePlaceholders() placeholders count = %v, want %v", len(placeholders), len(tt.wantPlaceholders))
+			}
+
+			for placeholder := range tt.wantPlaceholders {
+				if _, exists := placeholders[placeholder]; !exists {
+					t.Errorf("analyzePlaceholders() missing placeholder %q", placeholder)
+				}
+			}
+		})
+	}
+}
+
+func TestValidatePlaceholder(t *testing.T) {
+	tests := []struct {
+		name        string
+		placeholder string
+		wantError   bool
+		wantErrMsg  string
+	}{
+		{
+			name:        "valid positional",
+			placeholder: "0",
+			wantError:   false,
+		},
+		{
+			name:        "valid named",
+			placeholder: "env",
+			wantError:   false,
+		},
+		{
+			name:        "valid with underscore",
+			placeholder: "env_name",
+			wantError:   false,
+		},
+		{
+			name:        "valid with hyphen",
+			placeholder: "env-name",
+			wantError:   false,
+		},
+		{
+			name:        "empty placeholder",
+			placeholder: "",
+			wantError:   true,
+			wantErrMsg:  "empty placeholder",
+		},
+		{
+			name:        "semicolon injection",
+			placeholder: "0; rm -rf /",
+			wantError:   true,
+			wantErrMsg:  "placeholder contains unsafe characters",
+		},
+		{
+			name:        "pipe injection",
+			placeholder: "env | cat",
+			wantError:   true,
+			wantErrMsg:  "placeholder contains unsafe characters",
+		},
+		{
+			name:        "command substitution",
+			placeholder: "$(whoami)",
+			wantError:   true,
+			wantErrMsg:  "placeholder contains unsafe characters",
+		},
+		{
+			name:        "backtick injection",
+			placeholder: "`whoami`",
+			wantError:   true,
+			wantErrMsg:  "placeholder contains unsafe characters",
+		},
+		{
+			name:        "space in placeholder",
+			placeholder: "hello world",
+			wantError:   true,
+			wantErrMsg:  "placeholder contains invalid character",
+		},
+		{
+			name:        "special characters",
+			placeholder: "test@domain",
+			wantError:   true,
+			wantErrMsg:  "placeholder contains invalid character",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePlaceholder(tt.placeholder)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("validatePlaceholder() expected error containing %q, got nil", tt.wantErrMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.wantErrMsg) {
+					t.Errorf("validatePlaceholder() error = %q, want error containing %q", err.Error(), tt.wantErrMsg)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("validatePlaceholder() unexpected error = %v", err)
+			}
+		})
+	}
+}
+
+func TestConfig_ParseAliasPlaceholderEdgeCases(t *testing.T) {
+	tests := []struct {
+		name       string
+		aliases    map[string]interface{}
+		aliasName  string
+		wantError  bool
+		wantErrMsg string
+	}{
+		{
+			name: "alias with malformed placeholder - missing closing brace",
+			aliases: map[string]interface{}{
+				"bad": "commit -m '{0'",
+			},
+			aliasName: "bad",
+			wantError: false, // Regex won't match, so no error but no placeholders detected
+		},
+		{
+			name: "alias with malformed placeholder - missing opening brace",
+			aliases: map[string]interface{}{
+				"bad": "commit -m '0}'",
+			},
+			aliasName: "bad",
+			wantError: false, // Regex won't match, so no error but no placeholders detected
+		},
+		{
+			name: "alias with invalid placeholder containing injection",
+			aliases: map[string]interface{}{
+				"malicious": "echo {0; rm -rf /}",
+			},
+			aliasName:  "malicious",
+			wantError:  true,
+			wantErrMsg: "placeholder contains unsafe characters",
+		},
+		{
+			name: "sequence alias with mixed valid and invalid placeholders",
+			aliases: map[string]interface{}{
+				"mixed": []interface{}{"status {0}", "echo {bad|placeholder}"},
+			},
+			aliasName:  "mixed",
+			wantError:  true,
+			wantErrMsg: "placeholder contains unsafe characters",
+		},
+		{
+			name: "alias with very long placeholder name",
+			aliases: map[string]interface{}{
+				"long": "echo {this_is_a_very_long_placeholder_name_that_should_still_be_valid_123}",
+			},
+			aliasName: "long",
+			wantError: false,
+		},
+		{
+			name: "alias with placeholder containing unicode",
+			aliases: map[string]interface{}{
+				"unicode": "echo {测试}",
+			},
+			aliasName:  "unicode",
+			wantError:  true,
+			wantErrMsg: "placeholder contains invalid character",
+		},
+		{
+			name: "sequence alias with non-sequential placeholders",
+			aliases: map[string]interface{}{
+				"nonseq": []interface{}{"echo {0}", "echo {2}"},
+			},
+			aliasName: "nonseq",
+			wantError: false, // This should be valid - gaps are allowed
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{
+				Aliases: tt.aliases,
+			}
+
+			_, err := config.ParseAlias(tt.aliasName)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("ParseAlias() expected error containing %q, got nil", tt.wantErrMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.wantErrMsg) {
+					t.Errorf("ParseAlias() error = %q, want error containing %q", err.Error(), tt.wantErrMsg)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("ParseAlias() unexpected error = %v", err)
+			}
+		})
+	}
+}
+
+func TestAnalyzePlaceholdersEdgeCases(t *testing.T) {
+	tests := []struct {
+		name                 string
+		commands             []string
+		wantPlaceholders     map[string]struct{}
+		wantMaxPositionalArg int
+		wantError            bool
+		wantErrorMsg         string
+	}{
+		{
+			name:         "command with nested braces",
+			commands:     []string{"echo '{message: {0}}'"},
+			wantError:    true,
+			wantErrorMsg: "placeholder contains unsafe characters",
+		},
+		{
+			name:                 "command with multiple placeholders on same line",
+			commands:             []string{"echo {0} {1} {0}"},
+			wantPlaceholders:     map[string]struct{}{"0": {}, "1": {}},
+			wantMaxPositionalArg: 1,
+			wantError:            false,
+		},
+		{
+			name:                 "command with placeholder containing numbers and letters",
+			commands:             []string{"echo {arg0}", "echo {arg1}"},
+			wantPlaceholders:     map[string]struct{}{"arg0": {}, "arg1": {}},
+			wantMaxPositionalArg: -1,
+			wantError:            false,
+		},
+		{
+			name:         "command with placeholder containing spaces",
+			commands:     []string{"echo {hello world}"},
+			wantError:    true,
+			wantErrorMsg: "placeholder contains invalid character",
+		},
+		{
+			name:         "command with placeholder containing special characters",
+			commands:     []string{"echo {test@domain.com}"},
+			wantError:    true,
+			wantErrorMsg: "placeholder contains invalid character",
+		},
+		{
+			name:                 "command with high numbered positional placeholder",
+			commands:             []string{"echo {9}"},
+			wantPlaceholders:     map[string]struct{}{"9": {}},
+			wantMaxPositionalArg: 9,
+			wantError:            false,
+		},
+		{
+			name:                 "empty command list",
+			commands:             []string{},
+			wantPlaceholders:     map[string]struct{}{},
+			wantMaxPositionalArg: -1,
+			wantError:            false,
+		},
+		{
+			name:         "command with just braces no content",
+			commands:     []string{"echo {}"},
+			wantError:    true,
+			wantErrorMsg: "empty placeholder",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			placeholders, maxArg, err := analyzePlaceholders(tt.commands)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("analyzePlaceholders() expected error containing %q, got nil", tt.wantErrorMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.wantErrorMsg) {
+					t.Errorf("analyzePlaceholders() error = %q, want error containing %q", err.Error(), tt.wantErrorMsg)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("analyzePlaceholders() unexpected error = %v", err)
+				return
+			}
+
+			if maxArg != tt.wantMaxPositionalArg {
+				t.Errorf("analyzePlaceholders() maxArg = %v, want %v", maxArg, tt.wantMaxPositionalArg)
+			}
+
+			if len(placeholders) != len(tt.wantPlaceholders) {
+				t.Errorf("analyzePlaceholders() placeholders count = %v, want %v", len(placeholders), len(tt.wantPlaceholders))
+			}
+
+			for placeholder := range tt.wantPlaceholders {
+				if _, exists := placeholders[placeholder]; !exists {
+					t.Errorf("analyzePlaceholders() missing placeholder %q", placeholder)
 				}
 			}
 		})
