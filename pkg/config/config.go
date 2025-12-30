@@ -108,6 +108,8 @@ type Config struct {
 			AddToWorkflow      string `yaml:"add_to_workflow"`
 			ToggleWorkflowView string `yaml:"toggle_workflow_view"`
 			ClearWorkflow      string `yaml:"clear_workflow"`
+			WorkflowCreate     string `yaml:"workflow_create"`
+			WorkflowDelete     string `yaml:"workflow_delete"`
 			SoftCancel         string `yaml:"soft_cancel"`
 		} `yaml:"keybindings"`
 
@@ -1128,6 +1130,8 @@ func (c *Config) validateKeybindings() error {
 		"add_to_workflow":      c.Interactive.Keybindings.AddToWorkflow,
 		"toggle_workflow_view": c.Interactive.Keybindings.ToggleWorkflowView,
 		"clear_workflow":       c.Interactive.Keybindings.ClearWorkflow,
+		"workflow_create":      c.Interactive.Keybindings.WorkflowCreate,
+		"workflow_delete":      c.Interactive.Keybindings.WorkflowDelete,
 		"soft_cancel":          c.Interactive.Keybindings.SoftCancel,
 	}
 
@@ -1190,8 +1194,22 @@ func (c *Config) validateContextKeybindings() error {
 		"search":  c.Interactive.Contexts.Search.Keybindings,
 	}
 
+	nonNil := 0
+	for _, bindings := range contexts {
+		if bindings != nil {
+			nonNil++
+		}
+	}
+
 	for contextName, bindings := range contexts {
 		if bindings == nil {
+			if nonNil > 0 {
+				return &ValidationError{
+					Field:   fmt.Sprintf("interactive.contexts.%s.keybindings", contextName),
+					Value:   bindings,
+					Message: "keybindings map is missing for this context",
+				}
+			}
 			continue
 		}
 		for action, value := range bindings {

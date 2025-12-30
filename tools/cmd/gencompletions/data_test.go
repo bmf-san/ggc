@@ -39,6 +39,7 @@ func TestBuildTemplateData(t *testing.T) {
 
 	if data == nil {
 		t.Fatalf("buildTemplateData returned nil")
+		return
 	}
 
 	if len(data.TopLevel) != 2 {
@@ -52,6 +53,7 @@ func TestBuildTemplateData(t *testing.T) {
 	branch := data.CommandMap["branch"]
 	if branch == nil {
 		t.Fatalf("branch command missing in map")
+		return
 	}
 
 	if !branch.IncludeInCase {
@@ -69,6 +71,7 @@ func TestBuildTemplateData(t *testing.T) {
 	checkout := branch.Subcommand("checkout")
 	if checkout == nil {
 		t.Fatalf("checkout subcommand lookup failed")
+		return
 	}
 
 	if checkout.KeywordList != "remote" {
@@ -85,6 +88,7 @@ func TestBuildTemplateData(t *testing.T) {
 	deleteSub := branch.Subcommand("delete")
 	if deleteSub == nil {
 		t.Fatalf("delete subcommand not found")
+		return
 	}
 	if deleteSub.KeywordList != "merged" {
 		t.Fatalf("expected delete keyword 'merged', got %q", deleteSub.KeywordList)
@@ -93,6 +97,7 @@ func TestBuildTemplateData(t *testing.T) {
 	listSub := branch.Subcommand("list")
 	if listSub == nil {
 		t.Fatalf("list subcommand not found")
+		return
 	}
 	if listSub.KeywordList != "local remote" {
 		t.Fatalf("expected list keywords 'local remote', got %q", listSub.KeywordList)
@@ -101,6 +106,7 @@ func TestBuildTemplateData(t *testing.T) {
 	add := data.CommandMap["add"]
 	if add == nil {
 		t.Fatalf("add command missing in map")
+		return
 	}
 
 	if add.IncludeInCase {
