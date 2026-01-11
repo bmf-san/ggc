@@ -209,9 +209,11 @@ ggc
 - `Tab`: Add selected command to the active workflow (Search Mode)
 - `Ctrl+t`: Switch between Search Mode and Workflow Mode
 - `Enter`: Add selected command to the active workflow (Workflow Mode, input focus)
+- `Ctrl+n/p` (Workflow Mode, input focus): Navigate command results
+- `Ctrl+n/p` (Workflow Mode, list focus): Navigate workflow list
 - `Tab` (Workflow Mode, list focus): Switch the active workflow
 - `Shift+Tab` (Workflow Mode, list focus): Switch the active workflow (reverse)
-- `Ctrl+n` (Workflow Mode, list focus): Create a new workflow
+- `n` (Workflow Mode, list focus): Create a new workflow
 - `Ctrl+d` (Workflow Mode, list focus): Delete the active workflow
 - `x` (Workflow Mode, list focus): Execute the active workflow
 - `↑/↓` (Workflow Mode): Move focus between the input/results and workflow list
@@ -528,7 +530,7 @@ Here are some common keybinding action names you can customize:
 - **Editing**: `delete_word`, `clear_line`, `delete_to_end`
 - **Cursor Movement**: `move_to_beginning`, `move_to_end`, `move_word_left`, `move_word_right`
 - **Control**: `execute`, `cancel`, `quit`
-- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `workflow_create`, `workflow_delete`
+- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `workflow_delete`
 
 #### Special Key Support
 

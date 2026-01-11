@@ -773,6 +773,11 @@ func (h *KeyHandler) handleWorkflowModeShortcut(r rune, oldState *term.State) bo
 			h.executeWorkflow(oldState)
 			return true
 		}
+	case 'n':
+		if !h.ui.state.IsInputFocused() {
+			h.createWorkflow()
+			return true
+		}
 	}
 	return false
 }
@@ -830,15 +835,17 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 		ctrlStroke := NewCtrlKeyStroke(rune('a' + b - 1))
 
 		if h.ui.state.IsWorkflowMode() && !h.ui.state.IsInputFocused() {
-			if km.MatchesKeyStroke("workflow_create", ctrlStroke) {
-				h.createWorkflow()
-				return true, true, nil
-			}
 			if km.MatchesKeyStroke("workflow_delete", ctrlStroke) {
 				h.deleteActiveWorkflow()
 				return true, true, nil
 			}
-			if km.MatchesKeyStroke("move_up", ctrlStroke) || km.MatchesKeyStroke("move_down", ctrlStroke) {
+			// Ctrl+n/p navigate workflow list when list is focused
+			if km.MatchesKeyStroke("move_down", ctrlStroke) {
+				h.moveWorkflowList(1)
+				return true, true, nil
+			}
+			if km.MatchesKeyStroke("move_up", ctrlStroke) {
+				h.moveWorkflowList(-1)
 				return true, true, nil
 			}
 		}
@@ -1001,8 +1008,8 @@ func (h *KeyHandler) handleMoveDown() {
 	switch h.ui.state.mode {
 	case ModeWorkflow:
 		if h.ui.state.IsInputFocused() {
-			// If no input and at top, move focus to workflow list
-			if !h.ui.state.HasInput() && len(h.ui.state.filtered) == 0 {
+			// If no input, move focus to workflow list (per issue spec)
+			if !h.ui.state.HasInput() {
 				h.ui.state.FocusWorkflowList()
 				return
 			}
@@ -2705,7 +2712,7 @@ func (r *Renderer) renderWorkflowList(ui *UI, state *UIState) {
 	r.writeColorln(ui, fmt.Sprintf("%s📋 Workflows%s", r.colors.BrightYellow+r.colors.Bold, r.colors.Reset))
 
 	if len(summaries) == 0 {
-		r.writeColorln(ui, fmt.Sprintf("  %sNo workflows yet. Press Ctrl+N to create a workflow.%s",
+		r.writeColorln(ui, fmt.Sprintf("  %sNo workflows yet. Press 'n' to create a workflow.%s",
 			r.colors.BrightBlack, r.colors.Reset))
 		return
 	}
@@ -2804,10 +2811,12 @@ func (r *Renderer) renderWorkflowStepPreview(ui *UI, steps []WorkflowStep, maxSt
 func (r *Renderer) renderWorkflowModeKeybinds(ui *UI, state *UIState) {
 	keybinds := []struct{ key, desc string }{
 		{"Enter", "Add selected command to active workflow"},
+		{"Ctrl+n/p", "Navigate commands (input focus)"},
+		{"↑/↓", "Move focus (input ↔ list)"},
+		{"Ctrl+n/p", "Navigate workflows (list focus)"},
 		{"Tab", "Switch active workflow (list focus)"},
 		{"Shift+Tab", "Switch active workflow (list focus, reverse)"},
-		{"↑/↓", "Move focus (input ↔ list)"},
-		{"Ctrl+N", "Create workflow (list focus)"},
+		{"n", "Create new workflow (list focus)"},
 		{"Ctrl+D", "Delete active workflow (list focus)"},
 		{"x", "Execute active workflow (list focus)"},
 		{"Ctrl+t", "Back to search mode"},
@@ -2817,13 +2826,27 @@ func (r *Renderer) renderWorkflowModeKeybinds(ui *UI, state *UIState) {
 	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sWorkflow mode keybinds:%s",
 		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
 
+	inputFocusKeys := map[string]bool{
+		"Enter": true,
+	}
+	listFocusKeys := map[string]bool{
+		"Tab": true, "Shift+Tab": true, "n": true, "Ctrl+D": true, "x": true,
+	}
+
 	for _, kb := range keybinds {
 		// Highlight focus-specific keys
 		color := r.colors.BrightGreen
-		if kb.key == "Enter" && state.workflowFocus != FocusInput {
+		// Ctrl+n/p appears twice with different descriptions based on focus
+		if kb.key == "Ctrl+n/p" {
+			if strings.Contains(kb.desc, "input focus") && state.workflowFocus != FocusInput {
+				color = r.colors.BrightBlack
+			}
+			if strings.Contains(kb.desc, "list focus") && state.workflowFocus != FocusWorkflowList {
+				color = r.colors.BrightBlack
+			}
+		} else if inputFocusKeys[kb.key] && state.workflowFocus != FocusInput {
 			color = r.colors.BrightBlack
-		}
-		if (kb.key == "Tab" || kb.key == "Shift+Tab" || kb.key == "x" || kb.key == "Ctrl+N" || kb.key == "Ctrl+D") && state.workflowFocus != FocusWorkflowList {
+		} else if listFocusKeys[kb.key] && state.workflowFocus != FocusWorkflowList {
 			color = r.colors.BrightBlack
 		}
 		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
@@ -3208,7 +3231,7 @@ func (h *KeyHandler) clearWorkflow() {
 // executeWorkflow executes the current workflow
 func (h *KeyHandler) executeWorkflow(oldState *term.State) {
 	if h.ui.workflow == nil {
-		h.ui.notifyWorkflowError("No active workflow. Press Ctrl+N to create one.", 3*time.Second)
+		h.ui.notifyWorkflowError("No active workflow. Press 'n' to create one.", 3*time.Second)
 		return
 	}
 	if h.ui.workflow.IsEmpty() {

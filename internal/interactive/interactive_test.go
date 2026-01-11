@@ -2136,8 +2136,9 @@ func TestWorkflowModeFocusActions(t *testing.T) {
 		t.Fatal("expected at least one workflow")
 	}
 
-	if handled, _, _ := handler.handleControlChar(14, nil, nil); !handled { // Ctrl+N
-		t.Fatal("expected Ctrl+N to be handled in list focus")
+	// 'n' key creates new workflow when list is focused
+	if handled := handler.handleWorkflowModeShortcut('n', nil); !handled {
+		t.Fatal("expected 'n' to be handled in list focus")
 	}
 	if len(ui.listWorkflows()) != initialCount+1 {
 		t.Fatalf("expected workflow count to increase, got %d", len(ui.listWorkflows()))
@@ -2160,11 +2161,12 @@ func TestWorkflowModeFocusActions(t *testing.T) {
 		t.Fatalf("expected active workflow to be cleared, got %d", ui.workflowMgr.GetActiveID())
 	}
 
+	// 'n' should not create workflow when input is focused
 	ui.state.FocusInput()
 	ui.state.input = "add"
 	ui.state.filtered = []CommandInfo{{Command: "add .", Description: "Add all changes"}}
 	ui.state.selected = 0
-	_, _, _ = handler.handleControlChar(14, nil, nil) // Ctrl+N should not create in input focus
+	_ = handler.handleWorkflowModeShortcut('n', nil) // 'n' should not create in input focus
 	if len(ui.listWorkflows()) != 0 {
 		t.Fatalf("expected no workflows to be created in input focus, got %d", len(ui.listWorkflows()))
 	}
@@ -2221,11 +2223,15 @@ func TestWorkflowModeMoveFocusAndSelection(t *testing.T) {
 		t.Fatalf("expected selection to move down, got %d", ui.state.selected)
 	}
 
+	// When input is empty, pressing down should move focus to workflow list
+	// (even if filtered results exist - this is the expected behavior per issue spec)
 	ui.state.input = ""
-	ui.state.filtered = nil
+	ui.state.filtered = []CommandInfo{
+		{Command: "add .", Description: "Add all changes"},
+	}
 	handler.handleMoveDown()
 	if ui.state.workflowFocus != FocusWorkflowList {
-		t.Fatal("expected focus to move to workflow list when results are empty")
+		t.Fatal("expected focus to move to workflow list when input is empty")
 	}
 
 	ui.state.workflowListIdx = 0
