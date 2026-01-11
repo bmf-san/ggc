@@ -172,6 +172,8 @@ type UI struct {
 	softCancelFlash atomic.Bool
 	workflowError   string
 	errorExpiresAt  time.Time
+	workflowNotice  string
+	noticeExpiresAt time.Time
 }
 
 // UIMode describes the high-level mode of the interactive UI.
@@ -2239,6 +2241,7 @@ func (ui *UI) notifyWorkflowError(message string, duration time.Duration) {
 	if ui == nil {
 		return
 	}
+	ui.workflowNotice = ""
 	ui.workflowError = message
 	ui.errorExpiresAt = time.Now().Add(duration)
 }
@@ -2252,6 +2255,26 @@ func (ui *UI) workflowErrorMessage() string {
 		return ""
 	}
 	return ui.workflowError
+}
+
+func (ui *UI) notifyWorkflowSuccess(message string, duration time.Duration) {
+	if ui == nil {
+		return
+	}
+	ui.workflowError = ""
+	ui.workflowNotice = message
+	ui.noticeExpiresAt = time.Now().Add(duration)
+}
+
+func (ui *UI) workflowNoticeMessage() string {
+	if ui == nil || ui.workflowNotice == "" {
+		return ""
+	}
+	if time.Now().After(ui.noticeExpiresAt) {
+		ui.workflowNotice = ""
+		return ""
+	}
+	return ui.workflowNotice
 }
 
 // clearScreen clears the entire screen and hides cursor
@@ -2298,6 +2321,7 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 	r.renderHeader(ui)
 	r.renderSoftCancelFlash(ui)
 	r.renderWorkflowError(ui)
+	r.renderWorkflowNotice(ui)
 
 	switch state.mode {
 	case ModeWorkflow:
@@ -2340,6 +2364,19 @@ func (r *Renderer) renderWorkflowError(ui *UI) {
 	}
 	alert := fmt.Sprintf("%s⚠️  %s%s", r.colors.BrightRed+r.colors.Bold, message, r.colors.Reset)
 	r.writeColorln(ui, alert)
+	r.writeColorln(ui, "")
+}
+
+func (r *Renderer) renderWorkflowNotice(ui *UI) {
+	if ui == nil || ui.state == nil || !ui.state.IsWorkflowMode() {
+		return
+	}
+	message := ui.workflowNoticeMessage()
+	if message == "" {
+		return
+	}
+	notice := fmt.Sprintf("%s%s%s", r.colors.BrightGreen+r.colors.Bold, message, r.colors.Reset)
+	r.writeColorln(ui, notice)
 	r.writeColorln(ui, "")
 }
 
@@ -3193,8 +3230,11 @@ func (h *KeyHandler) executeWorkflow(oldState *term.State) {
 	}
 	if err != nil {
 		h.ui.notifyWorkflowError(fmt.Sprintf("Workflow execution failed: %v", err), 3*time.Second)
+		h.reenterRawMode(oldState)
+		return
 	}
 
+	h.ui.notifyWorkflowSuccess("Workflow preserved for reuse. Press 'Ctrl+t' to view or modify.", 3*time.Second)
 	h.reenterRawMode(oldState)
 
 	// Keep workflow for reuse - don't clear it
