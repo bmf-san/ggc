@@ -445,7 +445,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 
 			// Set up the mock config to return our test value
 			cfg := cm.GetConfig()
-			cfg.Integration.Github.DefaultRemote = tt.mockDefaultRemote
+			cfg.Git.DefaultRemote = tt.mockDefaultRemote
 
 			// Initialize cmd and check default remote setting logic
 			cmd.SetVersionGetter(GetVersionInfo)
@@ -509,7 +509,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 
 			// Set up test config
 			cfg := cm.GetConfig()
-			cfg.Integration.Github.DefaultRemote = tt.defaultRemote
+			cfg.Git.DefaultRemote = tt.defaultRemote
 
 			// Step 2: Set version getter
 			cmd.SetVersionGetter(GetVersionInfo)
@@ -677,7 +677,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		// Step 4: Default remote setup (requires config to be loaded)
 		cfg := cm.GetConfig()
 		if cfg != nil {
-			if r := strings.TrimSpace(cfg.Integration.Github.DefaultRemote); r != "" {
+			if r := strings.TrimSpace(cfg.Git.DefaultRemote); r != "" {
 				c.SetDefaultRemote(r)
 				t.Logf("Default remote set to: %s", r)
 			}

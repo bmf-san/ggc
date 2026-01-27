@@ -157,8 +157,8 @@ func TestGetDefaultConfig(t *testing.T) {
 		t.Error("Expected stash-before-switch to be true")
 	}
 
-	if config.Integration.Github.DefaultRemote != "origin" {
-		t.Errorf("Expected default remote to be 'origin', got %s", config.Integration.Github.DefaultRemote)
+	if config.Git.DefaultRemote != "origin" {
+		t.Errorf("Expected default remote to be 'origin', got %s", config.Git.DefaultRemote)
 	}
 }
 
@@ -244,12 +244,8 @@ behavior:
 aliases:
   s: "status"
   c: "commit"
-integration:
-  github:
-    token: "test-token"
-    default-remote: "upstream"
-  gitlab:
-    token: "gitlab-token"
+git:
+  default-remote: "upstream"
 `
 
 	err := os.WriteFile(configPath, []byte(testConfig), 0644)
@@ -278,8 +274,8 @@ integration:
 	if cm.config.Aliases["s"] != "status" {
 		t.Errorf("Expected alias 's' to be 'status', got %s", cm.config.Aliases["s"])
 	}
-	if cm.config.Integration.Github.Token != "test-token" {
-		t.Errorf("Expected github token to be 'test-token', got %s", cm.config.Integration.Github.Token)
+	if cm.config.Git.DefaultRemote != "upstream" {
+		t.Errorf("Expected git default remote to be 'upstream', got %s", cm.config.Git.DefaultRemote)
 	}
 }
 
@@ -400,7 +396,7 @@ func TestGetValueByPath(t *testing.T) {
 		{"default.editor", "vim"},
 		{"ui.color", true},
 		{"behavior.auto-push", false},
-		{"integration.github.default-remote", "origin"},
+		{"git.default-remote", "origin"},
 	}
 
 	for _, tc := range testCases {
@@ -543,7 +539,7 @@ func TestList(t *testing.T) {
 		"default.editor",
 		"ui.color",
 		"behavior.auto-push",
-		"integration.github.default-remote",
+		"git.default-remote",
 	}
 
 	for _, key := range expectedKeys {
@@ -745,9 +741,7 @@ func TestConfig_Validate(t *testing.T) {
 		cfg.Behavior.AutoFetch = true
 		cfg.Behavior.StashBeforeSwitch = true
 		cfg.Aliases = map[string]any{"st": "status"}
-		cfg.Integration.Github.Token = "ghp_1234567890asdflkasfdasf"
-		cfg.Integration.Github.DefaultRemote = "origin"
-		cfg.Integration.Gitlab.Token = "glpat-abc123asdlfkasjdflasfdasdf"
+		cfg.Git.DefaultRemote = "origin"
 
 		err := cfg.Validate()
 		if err != nil {
@@ -776,38 +770,6 @@ func TestConfig_Validate(t *testing.T) {
 		cfg.Default.Editor = "vim"
 		cfg.Default.Branch = "main"
 		cfg.Aliases = map[string]any{"invalid alias": "status"}
-
-		err := cfg.Validate()
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "invalid value") {
-			t.Errorf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("Invalid GitHub token", func(t *testing.T) {
-		cfg := &Config{}
-		cfg.Behavior.ConfirmDestructive = "always"
-		cfg.Default.Editor = "vim"
-		cfg.Integration.Github.Token = "bad-token"
-		cfg.Default.Branch = "main"
-
-		err := cfg.Validate()
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "invalid value") {
-			t.Errorf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("Invalid GitLab token", func(t *testing.T) {
-		cfg := &Config{}
-		cfg.Behavior.ConfirmDestructive = "always"
-		cfg.Default.Editor = "vim"
-		cfg.Integration.Gitlab.Token = "bad-token"
-		cfg.Default.Branch = "main"
 
 		err := cfg.Validate()
 		if err == nil {
