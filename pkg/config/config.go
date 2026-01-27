@@ -135,15 +135,9 @@ type Config struct {
 
 	Aliases map[string]interface{} `yaml:"aliases"`
 
-	Integration struct {
-		Github struct {
-			Token         string `yaml:"token"`
-			DefaultRemote string `yaml:"default-remote"`
-		} `yaml:"github"`
-		Gitlab struct {
-			Token string `yaml:"token"`
-		} `yaml:"gitlab"`
-	} `yaml:"integration"`
+	Git struct {
+		DefaultRemote string `yaml:"default-remote"`
+	} `yaml:"git"`
 }
 
 // AliasType represents the type of alias
@@ -172,12 +166,6 @@ type Manager struct {
 }
 
 var (
-	// Accept classic GitHub tokens like ghp_, gho_, ghu_, ghs_, ghr_
-	githubTokenClassicRe = regexp.MustCompile(`^gh[opusr]_[A-Za-z0-9]{20,250}$`)
-	// Accept fine-grained PATs starting with github_pat_
-	githubTokenFineRe = regexp.MustCompile(`^github_pat_[A-Za-z0-9_-]{20,255}$`)
-	// Accept GitLab tokens with optional glpat- prefix
-	gitlabTokenRe = regexp.MustCompile(`^(glpat-)?[A-Za-z0-9_-]{20,100}$`)
 	// Allow slashes; additional structural checks are applied separately
 	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
 	configPathSegmentRe  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
@@ -258,58 +246,16 @@ func (c *Config) validateConfirmDestructive() error {
 	return nil
 }
 
-func (c *Config) validateIntegrationTokens() error {
-	if err := c.validateGithubToken(); err != nil {
-		return err
-	}
-
-	if err := c.validateGitlabToken(); err != nil {
-		return err
-	}
-
-	return c.validateGithubRemote()
-}
-
-// validateGithubToken validates GitHub token format
-func (c *Config) validateGithubToken() error {
-	ghToken := c.Integration.Github.Token
-	if ghToken != "" {
-		if !githubTokenClassicRe.MatchString(ghToken) && !githubTokenFineRe.MatchString(ghToken) {
-			return &ValidationError{
-				Field:   "integration.github.token",
-				Value:   "[REDACTED]",
-				Message: "GitHub token must be a valid classic (gh[pousr]_) or fine-grained (github_pat_) token",
-			}
-		}
-	}
-	return nil
-}
-
-// validateGitlabToken validates GitLab token format
-func (c *Config) validateGitlabToken() error {
-	glToken := c.Integration.Gitlab.Token
-	if glToken != "" {
-		if !gitlabTokenRe.MatchString(glToken) {
-			return &ValidationError{
-				Field:   "integration.gitlab.token",
-				Value:   "[REDACTED]",
-				Message: "GitLab token must be 20-100 characters (alphanumeric, _ or -), with optional glpat- prefix",
-			}
-		}
-	}
-	return nil
-}
-
-// validateGithubRemote validates GitHub remote name format
-func (c *Config) validateGithubRemote() error {
-	remote := c.Integration.Github.DefaultRemote
+// validateGitDefaultRemote validates git default remote name format
+func (c *Config) validateGitDefaultRemote() error {
+	remote := c.Git.DefaultRemote
 	if remote == "" {
 		return nil
 	}
 
 	if !gitRemoteNameCharsRe.MatchString(remote) || strings.Contains(remote, " ") {
 		return &ValidationError{
-			Field:   "integration.github.default-remote",
+			Field:   "git.default-remote",
 			Value:   remote,
 			Message: "Remote may contain letters, digits, ., _, -, and / only",
 		}
@@ -318,7 +264,7 @@ func (c *Config) validateGithubRemote() error {
 	// Additional structural checks: no leading/trailing '.' or '/', and no empty/unsafe segments
 	if strings.HasPrefix(remote, "/") || strings.HasSuffix(remote, "/") || strings.HasPrefix(remote, ".") || strings.HasSuffix(remote, ".") || strings.Contains(remote, "//") || strings.Contains(remote, "..") {
 		return &ValidationError{
-			Field:   "integration.github.default-remote",
+			Field:   "git.default-remote",
 			Value:   remote,
 			Message: "Remote must not start/end with '.' or '/', nor contain '..' or '//'",
 		}
@@ -397,7 +343,7 @@ func (c *Config) Validate() error {
 	if err := c.validateConfirmDestructive(); err != nil {
 		return err
 	}
-	if err := c.validateIntegrationTokens(); err != nil {
+	if err := c.validateGitDefaultRemote(); err != nil {
 		return err
 	}
 	if err := c.validateAliases(); err != nil {
@@ -569,7 +515,7 @@ func getDefaultConfig(gitClient git.ConfigOps) *Config {
 	config.Behavior.AutoFetch = true
 	config.Behavior.StashBeforeSwitch = true
 
-	config.Integration.Github.DefaultRemote = "origin"
+	config.Git.DefaultRemote = "origin"
 
 	// Set meta values using gitClient
 	if version, err := gitClient.GetVersion(); err == nil {

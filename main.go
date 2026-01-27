@@ -56,7 +56,7 @@ func RunApp(args []string) {
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd(git.NewClient())
 	// Cache default remote in tagger to avoid repeated config loads.
-	if r := strings.TrimSpace(cm.GetConfig().Integration.Github.DefaultRemote); r != "" {
+	if r := strings.TrimSpace(cm.GetConfig().Git.DefaultRemote); r != "" {
 		c.SetDefaultRemote(r)
 	}
 	r := router.NewRouter(c, cm)
