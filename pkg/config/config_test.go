@@ -834,6 +834,24 @@ func TestConfig_Validate(t *testing.T) {
 		}
 	})
 
+	t.Run("Context keybindings missing in partial configuration", func(t *testing.T) {
+		cfg := &Config{}
+		cfg.Default.Branch = "main"
+		cfg.Default.Editor = "vim"
+		cfg.Behavior.ConfirmDestructive = "never"
+		cfg.Interactive.Contexts.Input.Keybindings = map[string]interface{}{
+			"move_up": "Ctrl+P",
+		}
+
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("expected validation error for missing context keybindings")
+		}
+		if !strings.Contains(err.Error(), "interactive.contexts.") || !strings.Contains(err.Error(), "keybindings map is missing") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("Invalid interactive profile", func(t *testing.T) {
 		cfg := &Config{}
 		cfg.Default.Branch = "main"
@@ -1739,6 +1757,8 @@ func TestManagerSaveWithKeybindingOverrides(t *testing.T) {
 	cm.config.Interactive.Contexts.Input.Keybindings = map[string]interface{}{
 		"move_up": []interface{}{"Ctrl+P", "Ctrl+N"},
 	}
+	cm.config.Interactive.Contexts.Results.Keybindings = map[string]interface{}{}
+	cm.config.Interactive.Contexts.Search.Keybindings = map[string]interface{}{}
 	cm.config.Interactive.Darwin.Keybindings = map[string]interface{}{
 		"move_down": "Ctrl+J",
 	}

@@ -628,6 +628,8 @@ func TestContextualKeybindingValidation(t *testing.T) {
 		"delete_word": "ctrl+w",
 		"clear_line":  []interface{}{"ctrl+u", "ctrl+k"},
 	}
+	cfg.Interactive.Contexts.Results.Keybindings = map[string]interface{}{}
+	cfg.Interactive.Contexts.Search.Keybindings = map[string]interface{}{}
 
 	if err := cfg.Validate(); err != nil {
 		t.Errorf("Expected valid context bindings to pass validation: %v", err)
