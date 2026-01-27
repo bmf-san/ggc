@@ -206,10 +206,15 @@ ggc
 - `Ctrl+c`: Exit interactive mode
 
 **Workflow Operations:**
-- `Tab`: Add selected command to workflow
-- `Ctrl+t`: Toggle workflow detail view
-- `c`: Clear workflow (in workflow view)
-- `Enter`: Execute entire workflow (in workflow view)
+- `Tab`: Add selected command to the active workflow (Search Mode)
+- `Ctrl+t`: Switch between Search Mode and Workflow Mode
+- `Enter`: Add selected command to the active workflow (Workflow Mode, input focus)
+- `Tab` (Workflow Mode, list focus): Switch the active workflow
+- `Shift+Tab` (Workflow Mode, list focus): Switch the active workflow (reverse)
+- `Ctrl+n` (Workflow Mode, list focus): Create a new workflow
+- `Ctrl+d` (Workflow Mode, list focus): Delete the active workflow
+- `x` (Workflow Mode, list focus): Execute the active workflow
+- `↑/↓` (Workflow Mode): Move focus between the input/results and workflow list
 
 **Command Execution:**
 - If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
@@ -220,7 +225,9 @@ ggc
 
 **Workflow Feature:**
 - Build multi-command workflows by adding commands with `Tab`
-- Commands are executed sequentially when you run the workflow
+- Manage and execute workflows in a dedicated Workflow Mode
+- Create, delete, and cycle through multiple workflows
+- Commands are executed sequentially when you run the active workflow
 - Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
 - Workflows persist after execution for reuse
 - Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
@@ -521,7 +528,7 @@ Here are some common keybinding action names you can customize:
 - **Editing**: `delete_word`, `clear_line`, `delete_to_end`
 - **Cursor Movement**: `move_to_beginning`, `move_to_end`, `move_word_left`, `move_word_right`
 - **Control**: `execute`, `cancel`, `quit`
-- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `clear_workflow`
+- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `workflow_create`, `workflow_delete`
 
 #### Special Key Support
 
