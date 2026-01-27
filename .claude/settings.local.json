@@ -3,7 +3,9 @@
     "allow": [
       "Bash(go test:*)",
       "Bash(make fmt:*)",
-      "Bash(make lint:*)"
+      "Bash(make lint:*)",
+      "Bash(make test:*)",
+      "Bash(golangci-lint run:*)"
     ]
   }
 }

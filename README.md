@@ -209,11 +209,11 @@ ggc
 - `Tab`: Add selected command to the active workflow (Search Mode)
 - `Ctrl+t`: Switch between Search Mode and Workflow Mode
 - `Enter`: Add selected command to the active workflow (Workflow Mode, input focus)
+- `Tab` (Workflow Mode, input focus): Switch the active workflow
+- `Shift+Tab` (Workflow Mode, input focus): Switch the active workflow (reverse)
 - `Ctrl+n/p` (Workflow Mode, input focus): Navigate command results
 - `Ctrl+n/p` (Workflow Mode, list focus): Navigate workflow list
-- `Tab` (Workflow Mode, list focus): Switch the active workflow
-- `Shift+Tab` (Workflow Mode, list focus): Switch the active workflow (reverse)
-- `n` (Workflow Mode, list focus): Create a new workflow
+- `n` (Workflow Mode, list focus): Create a new workflow (returns to input focus)
 - `Ctrl+d` (Workflow Mode, list focus): Delete the active workflow
 - `x` (Workflow Mode, list focus): Execute the active workflow
 - `↑/↓` (Workflow Mode): Move focus between the input/results and workflow list

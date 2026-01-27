@@ -715,8 +715,9 @@ func (h *KeyHandler) HandleKey(r rune, _ bool, oldState *term.State, reader *buf
 	}
 
 	// Handle printable characters (both ASCII and multibyte)
+	// Workflow mode has no input field, so ignore printable characters
 	if unicode.IsPrint(r) {
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.AddRune(r)
 		}
 	}
@@ -764,20 +765,17 @@ func (h *KeyHandler) handleWorkflowModeKeys(r rune, oldState *term.State) (bool,
 func (h *KeyHandler) handleWorkflowModeShortcut(r rune, oldState *term.State) bool {
 	switch r {
 	case '\t':
-		if !h.ui.state.IsInputFocused() {
-			h.cycleActiveWorkflow(1)
-		}
+		h.cycleActiveWorkflow(1)
 		return true
 	case 'x':
-		if !h.ui.state.IsInputFocused() {
-			h.executeWorkflow(oldState)
-			return true
-		}
+		h.executeWorkflow(oldState)
+		return true
 	case 'n':
-		if !h.ui.state.IsInputFocused() {
-			h.createWorkflow()
-			return true
-		}
+		h.createWorkflow()
+		return true
+	case 'd':
+		h.deleteActiveWorkflow()
+		return true
 	}
 	return false
 }
@@ -834,12 +832,13 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 		// Control character: convert back to letter
 		ctrlStroke := NewCtrlKeyStroke(rune('a' + b - 1))
 
-		if h.ui.state.IsWorkflowMode() && !h.ui.state.IsInputFocused() {
+		// Workflow mode: simplified key handling (no input field)
+		if h.ui.state.IsWorkflowMode() {
 			if km.MatchesKeyStroke("workflow_delete", ctrlStroke) {
 				h.deleteActiveWorkflow()
 				return true, true, nil
 			}
-			// Ctrl+n/p navigate workflow list when list is focused
+			// Ctrl+n/p navigate workflow list
 			if km.MatchesKeyStroke("move_down", ctrlStroke) {
 				h.moveWorkflowList(1)
 				return true, true, nil
@@ -848,9 +847,20 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 				h.moveWorkflowList(-1)
 				return true, true, nil
 			}
+			// Ctrl+t toggles back to search mode
+			if km.MatchesKeyStroke("toggle_workflow_view", ctrlStroke) {
+				h.ui.ToggleWorkflowView()
+				return true, true, nil
+			}
+			if km.MatchesKeyStroke("soft_cancel", ctrlStroke) {
+				h.handleSoftCancel(oldState)
+				return true, true, nil
+			}
+			// Ignore input-related Ctrl keys in workflow mode
+			return false, true, nil
 		}
 
-		// Check each action using new KeyStroke matching
+		// Search mode: full key handling
 		if km.MatchesKeyStroke("move_up", ctrlStroke) {
 			h.handleMoveUp()
 			return true, true, nil
@@ -859,23 +869,23 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 			h.handleMoveDown()
 			return true, true, nil
 		}
-		if km.MatchesKeyStroke("clear_line", ctrlStroke) && h.ui.state.IsInputFocused() {
+		if km.MatchesKeyStroke("clear_line", ctrlStroke) {
 			h.ui.state.ClearInput()
 			return true, true, nil
 		}
-		if km.MatchesKeyStroke("delete_word", ctrlStroke) && h.ui.state.IsInputFocused() {
+		if km.MatchesKeyStroke("delete_word", ctrlStroke) {
 			h.ui.state.DeleteWord()
 			return true, true, nil
 		}
-		if km.MatchesKeyStroke("delete_to_end", ctrlStroke) && h.ui.state.IsInputFocused() {
+		if km.MatchesKeyStroke("delete_to_end", ctrlStroke) {
 			h.ui.state.DeleteToEnd()
 			return true, true, nil
 		}
-		if km.MatchesKeyStroke("move_to_beginning", ctrlStroke) && h.ui.state.IsInputFocused() {
+		if km.MatchesKeyStroke("move_to_beginning", ctrlStroke) {
 			h.ui.state.MoveToBeginning()
 			return true, true, nil
 		}
-		if km.MatchesKeyStroke("move_to_end", ctrlStroke) && h.ui.state.IsInputFocused() {
+		if km.MatchesKeyStroke("move_to_end", ctrlStroke) {
 			h.ui.state.MoveToEnd()
 			return true, true, nil
 		}
@@ -903,6 +913,11 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 		h.ui.state.RemoveChar()
 		return true, true, nil
 	case 27: // ESC: arrow keys and Option/Alt modifiers
+		// In workflow mode, ESC returns to search mode (if no pending input)
+		if h.ui.state.IsWorkflowMode() && h.shouldHandleEscapeAsSoftCancel() {
+			h.ui.enterSearchMode()
+			return true, true, nil
+		}
 		if h.shouldHandleEscapeAsSoftCancel() {
 			h.handleSoftCancel(oldState)
 			return true, true, nil
@@ -994,11 +1009,7 @@ func (h *KeyHandler) shouldHandleEscapeAsSoftCancel() bool {
 func (h *KeyHandler) handleMoveUp() {
 	switch h.ui.state.mode {
 	case ModeWorkflow:
-		if h.ui.state.IsInputFocused() {
-			h.ui.state.MoveUp()
-		} else {
-			h.moveWorkflowList(-1)
-		}
+		h.moveWorkflowList(-1)
 	default:
 		h.ui.state.MoveUp()
 	}
@@ -1007,16 +1018,7 @@ func (h *KeyHandler) handleMoveUp() {
 func (h *KeyHandler) handleMoveDown() {
 	switch h.ui.state.mode {
 	case ModeWorkflow:
-		if h.ui.state.IsInputFocused() {
-			// If no input, move focus to workflow list (per issue spec)
-			if !h.ui.state.HasInput() {
-				h.ui.state.FocusWorkflowList()
-				return
-			}
-			h.ui.state.MoveDown()
-		} else {
-			h.moveWorkflowList(1)
-		}
+		h.moveWorkflowList(1)
 	default:
 		h.ui.state.MoveDown()
 	}
@@ -1061,7 +1063,8 @@ func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
 	isWord := isWordMotionParam(params)
 
 	if final == 'Z' {
-		if h.ui != nil && h.ui.state.IsWorkflowMode() && !h.ui.state.IsInputFocused() {
+		// Shift+Tab cycles workflow in reverse
+		if h.ui != nil && h.ui.state.IsWorkflowMode() {
 			h.cycleActiveWorkflow(-1)
 		}
 		return
@@ -1180,14 +1183,6 @@ func (h *KeyHandler) moveWorkflowList(delta int) {
 	if len(summaries) == 0 {
 		return
 	}
-	if h.ui.state.workflowFocus != FocusWorkflowList {
-		h.ui.state.FocusWorkflowList()
-	}
-	if h.ui.state.workflowListIdx == 0 && delta < 0 {
-		// Move focus back to input when navigating above first item
-		h.ui.state.FocusInput()
-		return
-	}
 	h.ui.state.SetWorkflowListIndex(h.ui.state.workflowListIdx+delta, len(summaries))
 	idx := h.ui.state.workflowListIdx
 	if idx < 0 || idx >= len(summaries) {
@@ -1211,7 +1206,7 @@ func (h *KeyHandler) cycleActiveWorkflow(delta int) {
 			break
 		}
 	}
-	h.ui.state.FocusWorkflowList()
+	// Note: Do NOT change focus here - Tab should only switch active workflow
 	h.ui.updateWorkflowPointer()
 }
 
@@ -1227,7 +1222,6 @@ func (h *KeyHandler) createWorkflow() {
 			break
 		}
 	}
-	h.ui.state.FocusWorkflowList()
 	h.ui.updateWorkflowPointer()
 	h.ui.write("%s✨ Created workflow #%d%s\n", h.ui.colors.BrightGreen, newID, h.ui.colors.Reset)
 }
@@ -1311,14 +1305,9 @@ func (h *KeyHandler) reenterRawMode(oldState *term.State) {
 
 // handleEnter handles Enter key press
 func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
-	// Workflow mode: Enter adds to active workflow when input is focused.
+	// Workflow mode: Enter returns to Search Mode
 	if h.ui.state.IsWorkflowMode() {
-		if h.ui.state.IsInputFocused() && h.ui.state.HasInput() {
-			if cmd := h.ui.state.GetSelectedCommand(); cmd != nil {
-				h.addCommandToWorkflow(cmd.Command)
-				h.ui.state.ClearInput()
-			}
-		}
+		h.ui.enterSearchMode()
 		return true, nil
 	}
 
@@ -2068,13 +2057,13 @@ func (ui *UI) ToggleWorkflowView() {
 }
 
 // enterWorkflowMode switches UI into workflow management mode.
+// Workflow mode has no input field - it's a pure management interface.
 func (ui *UI) enterWorkflowMode() {
 	if ui == nil || ui.state == nil {
 		return
 	}
 	ui.state.SetMode(ModeWorkflow)
-	ui.state.FocusInput()
-	ui.state.SetContext(ContextSearch)
+	ui.state.SetContext(ContextGlobal)
 	ui.ensureWorkflowListSelection()
 	ui.updateWorkflowPointer()
 }
@@ -2332,8 +2321,7 @@ func (r *Renderer) Render(ui *UI, state *UIState) {
 
 	switch state.mode {
 	case ModeWorkflow:
-		r.renderSearchPrompt(ui, state)
-		restoreCursor = r.saveCursorAtSearchPrompt(state)
+		// Workflow mode: no search prompt, just workflow management
 		r.renderWorkflowMode(ui, state)
 	default:
 		r.renderSearchPrompt(ui, state)
@@ -2387,17 +2375,9 @@ func (r *Renderer) renderWorkflowNotice(ui *UI) {
 	r.writeColorln(ui, "")
 }
 
-// renderWorkflowMode renders the workflow management screen (search + workflow list).
+// renderWorkflowMode renders the workflow management screen.
+// Simplified: no input field, just workflow list and keybinds.
 func (r *Renderer) renderWorkflowMode(ui *UI, state *UIState) {
-	switch {
-	case state.input == "":
-		r.renderEmptyState(ui)
-	case len(state.filtered) == 0:
-		r.renderNoMatches(ui, state)
-	default:
-		r.renderCommandList(ui, state)
-	}
-
 	r.writeEmptyLine()
 	r.renderWorkflowList(ui, state)
 	r.writeEmptyLine()
@@ -2744,7 +2724,7 @@ func (r *Renderer) renderWorkflowSummary(ui *UI, state *UIState, summary Workflo
 	}
 
 	selectPrefix := " "
-	if state.workflowListIdx == index && state.workflowFocus == FocusWorkflowList {
+	if state.workflowListIdx == index {
 		selectPrefix = fmt.Sprintf("%s>%s", r.colors.BrightWhite+r.colors.Bold, r.colors.Reset)
 	}
 
@@ -2808,49 +2788,24 @@ func (r *Renderer) renderWorkflowStepPreview(ui *UI, steps []WorkflowStep, maxSt
 }
 
 // renderWorkflowModeKeybinds renders keybinds available in workflow mode.
-func (r *Renderer) renderWorkflowModeKeybinds(ui *UI, state *UIState) {
+// Simplified: no focus-based dimming since there's no input field.
+func (r *Renderer) renderWorkflowModeKeybinds(_ *UI, _ *UIState) {
 	keybinds := []struct{ key, desc string }{
-		{"Enter", "Add selected command to active workflow"},
-		{"Ctrl+n/p", "Navigate commands (input focus)"},
-		{"↑/↓", "Move focus (input ↔ list)"},
-		{"Ctrl+n/p", "Navigate workflows (list focus)"},
-		{"Tab", "Switch active workflow (list focus)"},
-		{"Shift+Tab", "Switch active workflow (list focus, reverse)"},
-		{"n", "Create new workflow (list focus)"},
-		{"Ctrl+D", "Delete active workflow (list focus)"},
-		{"x", "Execute active workflow (list focus)"},
-		{"Ctrl+t", "Back to search mode"},
+		{"n", "Create new workflow"},
+		{"d / Ctrl+D", "Delete active workflow"},
+		{"x", "Execute active workflow"},
+		{"Tab / Shift+Tab", "Cycle between workflows"},
+		{"↑/↓", "Navigate workflows"},
+		{"Enter / Esc", "Return to Search Mode"},
 		{"Ctrl+c", "Quit"},
 	}
 
-	r.writeColorln(ui, fmt.Sprintf("%s⌨️  %sWorkflow mode keybinds:%s",
+	r.writeColorln(nil, fmt.Sprintf("%s⌨️  %sWorkflow mode keybinds:%s",
 		r.colors.BrightBlue, r.colors.BrightWhite+r.colors.Bold, r.colors.Reset))
 
-	inputFocusKeys := map[string]bool{
-		"Enter": true,
-	}
-	listFocusKeys := map[string]bool{
-		"Tab": true, "Shift+Tab": true, "n": true, "Ctrl+D": true, "x": true,
-	}
-
 	for _, kb := range keybinds {
-		// Highlight focus-specific keys
-		color := r.colors.BrightGreen
-		// Ctrl+n/p appears twice with different descriptions based on focus
-		if kb.key == "Ctrl+n/p" {
-			if strings.Contains(kb.desc, "input focus") && state.workflowFocus != FocusInput {
-				color = r.colors.BrightBlack
-			}
-			if strings.Contains(kb.desc, "list focus") && state.workflowFocus != FocusWorkflowList {
-				color = r.colors.BrightBlack
-			}
-		} else if inputFocusKeys[kb.key] && state.workflowFocus != FocusInput {
-			color = r.colors.BrightBlack
-		} else if listFocusKeys[kb.key] && state.workflowFocus != FocusWorkflowList {
-			color = r.colors.BrightBlack
-		}
-		r.writeColorln(ui, fmt.Sprintf("   %s%s%s  %s%s%s",
-			color+r.colors.Bold,
+		r.writeColorln(nil, fmt.Sprintf("   %s%s%s  %s%s%s",
+			r.colors.BrightGreen+r.colors.Bold,
 			kb.key,
 			r.colors.Reset,
 			r.colors.BrightBlack,
