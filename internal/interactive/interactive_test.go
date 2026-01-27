@@ -1929,23 +1929,6 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 			t.Fatal("expected workflow to receive a step")
 		}
 	})
-
-	t.Run("Tab cycles workflow in workflow mode", func(t *testing.T) {
-		ui.workflowMgr.CreateWorkflow("")
-		ui.updateWorkflowPointer()
-
-		ui.state.mode = ModeWorkflow
-		ui.state.FocusWorkflowList()
-		initialID := ui.workflowMgr.GetActiveID()
-
-		handled, shouldContinue, result := handler.handleWorkflowKeys('	', nil)
-		if !handled || !shouldContinue || result != nil {
-			t.Fatalf("expected handled cycle without exiting, got handled=%v continue=%v result=%v", handled, shouldContinue, result)
-		}
-		if ui.workflowMgr.GetActiveID() == initialID {
-			t.Fatal("expected active workflow to change after cycle")
-		}
-	})
 }
 
 // TestKeyHandler_AddCommandToWorkflow tests adding commands to workflow
@@ -2122,36 +2105,38 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 	}
 }
 
-func TestWorkflowModeFocusActions(t *testing.T) {
+func TestWorkflowModeActions(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.stdout = &bytes.Buffer{}
 	handler := ui.handler
 
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 
 	initialCount := len(ui.listWorkflows())
 	if initialCount == 0 {
 		t.Fatal("expected at least one workflow")
 	}
 
-	if handled, _, _ := handler.handleControlChar(14, nil, nil); !handled { // Ctrl+N
-		t.Fatal("expected Ctrl+N to be handled in list focus")
+	// 'n' key creates new workflow
+	if handled := handler.handleWorkflowModeShortcut('n', nil); !handled {
+		t.Fatal("expected 'n' to be handled")
 	}
 	if len(ui.listWorkflows()) != initialCount+1 {
 		t.Fatalf("expected workflow count to increase, got %d", len(ui.listWorkflows()))
 	}
 
-	if handled, _, _ := handler.handleControlChar(4, nil, nil); !handled { // Ctrl+D
-		t.Fatal("expected Ctrl+D to be handled in list focus")
+	// 'd' key deletes active workflow
+	if handled := handler.handleWorkflowModeShortcut('d', nil); !handled {
+		t.Fatal("expected 'd' to be handled")
 	}
 	if len(ui.listWorkflows()) != initialCount {
 		t.Fatalf("expected workflow count to decrease, got %d", len(ui.listWorkflows()))
 	}
 
+	// Ctrl+D also deletes active workflow
 	if handled, _, _ := handler.handleControlChar(4, nil, nil); !handled { // Ctrl+D
-		t.Fatal("expected Ctrl+D to be handled for last workflow")
+		t.Fatal("expected Ctrl+D to be handled")
 	}
 	if len(ui.listWorkflows()) != 0 {
 		t.Fatalf("expected all workflows to be deleted, got %d", len(ui.listWorkflows()))
@@ -2159,79 +2144,36 @@ func TestWorkflowModeFocusActions(t *testing.T) {
 	if ui.workflowMgr.GetActiveID() != 0 {
 		t.Fatalf("expected active workflow to be cleared, got %d", ui.workflowMgr.GetActiveID())
 	}
-
-	ui.state.FocusInput()
-	ui.state.input = "add"
-	ui.state.filtered = []CommandInfo{{Command: "add .", Description: "Add all changes"}}
-	ui.state.selected = 0
-	_, _, _ = handler.handleControlChar(14, nil, nil) // Ctrl+N should not create in input focus
-	if len(ui.listWorkflows()) != 0 {
-		t.Fatalf("expected no workflows to be created in input focus, got %d", len(ui.listWorkflows()))
-	}
 }
 
-func TestWorkflowModeShiftTabCyclesBackward(t *testing.T) {
+func TestWorkflowModeNavigation(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	handler := ui.handler
 
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 
-	ui.workflowMgr.CreateWorkflow("")
+	// Create additional workflows for navigation testing
 	ui.workflowMgr.CreateWorkflow("")
 	ui.updateWorkflowPointer()
 
-	if ui.workflowMgr.GetActiveID() != 3 {
-		t.Fatalf("expected active workflow to be 3, got %d", ui.workflowMgr.GetActiveID())
+	summaries := ui.listWorkflows()
+	if len(summaries) < 2 {
+		t.Fatalf("expected at least 2 workflows, got %d", len(summaries))
 	}
 
-	handler.processCSIFinalByte('Z', "")
-	if ui.workflowMgr.GetActiveID() != 2 {
-		t.Fatalf("expected Shift+Tab to move to workflow 2, got %d", ui.workflowMgr.GetActiveID())
-	}
+	ui.state.SetWorkflowListIndex(0, len(summaries))
 
-	ui.workflowMgr.SetActive(1)
-	ui.updateWorkflowPointer()
-	handler.processCSIFinalByte('Z', "")
-	if ui.workflowMgr.GetActiveID() != 3 {
-		t.Fatalf("expected Shift+Tab to wrap to last workflow, got %d", ui.workflowMgr.GetActiveID())
-	}
-}
-
-func TestWorkflowModeMoveFocusAndSelection(t *testing.T) {
-	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
-	handler := ui.handler
-
-	ui.state.mode = ModeWorkflow
-	ui.state.FocusInput()
-	ui.state.input = "add"
-	ui.state.filtered = []CommandInfo{
-		{Command: "add .", Description: "Add all changes"},
-		{Command: "add --patch", Description: "Add patches"},
-	}
-	ui.state.selected = 0
-
+	// Arrow down should navigate workflow list
 	handler.handleMoveDown()
-	if ui.state.workflowFocus != FocusInput {
-		t.Fatal("expected input focus to remain when moving within results")
-	}
-	if ui.state.selected != 1 {
-		t.Fatalf("expected selection to move down, got %d", ui.state.selected)
+	if ui.state.workflowListIdx != 1 {
+		t.Fatalf("expected workflow list index to be 1, got %d", ui.state.workflowListIdx)
 	}
 
-	ui.state.input = ""
-	ui.state.filtered = nil
-	handler.handleMoveDown()
-	if ui.state.workflowFocus != FocusWorkflowList {
-		t.Fatal("expected focus to move to workflow list when results are empty")
-	}
-
-	ui.state.workflowListIdx = 0
+	// Arrow up should navigate workflow list
 	handler.handleMoveUp()
-	if ui.state.workflowFocus != FocusInput {
-		t.Fatal("expected focus to return to input when moving above first workflow")
+	if ui.state.workflowListIdx != 0 {
+		t.Fatalf("expected workflow list index to be 0, got %d", ui.state.workflowListIdx)
 	}
 }
 
@@ -2241,7 +2183,6 @@ func TestWorkflowMoveListUpdatesActive(t *testing.T) {
 	handler := ui.handler
 
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 
 	firstID := ui.workflowMgr.GetActiveID()
 	secondID := ui.workflowMgr.CreateWorkflow("")

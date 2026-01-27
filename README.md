@@ -205,16 +205,17 @@ ggc
 - `Enter`: Execute selected command
 - `Ctrl+c`: Exit interactive mode
 
-**Workflow Operations:**
-- `Tab`: Add selected command to the active workflow (Search Mode)
-- `Ctrl+t`: Switch between Search Mode and Workflow Mode
-- `Enter`: Add selected command to the active workflow (Workflow Mode, input focus)
-- `Tab` (Workflow Mode, list focus): Switch the active workflow
-- `Shift+Tab` (Workflow Mode, list focus): Switch the active workflow (reverse)
-- `Ctrl+n` (Workflow Mode, list focus): Create a new workflow
-- `Ctrl+d` (Workflow Mode, list focus): Delete the active workflow
-- `x` (Workflow Mode, list focus): Execute the active workflow
-- `↑/↓` (Workflow Mode): Move focus between the input/results and workflow list
+**Workflow Operations (Search Mode):**
+- `Tab`: Add selected command to the active workflow
+- `Ctrl+t`: Switch to Workflow Mode
+
+**Workflow Mode Keys:**
+- `n`: Create a new workflow
+- `d` / `Ctrl+d`: Delete the active workflow
+- `x`: Execute the active workflow
+- `Ctrl+n/p`: Navigate workflows
+- `Ctrl+t`: Return to Search Mode
+- `Ctrl+c`: Exit interactive mode
 
 **Command Execution:**
 - If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
