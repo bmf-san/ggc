@@ -251,6 +251,8 @@ type KeyBindingMap struct {
 	AddToWorkflow      []KeyStroke // default: [Tab]
 	ToggleWorkflowView []KeyStroke // default: [Ctrl+T]
 	ClearWorkflow      []KeyStroke // default: [c]
+	WorkflowCreate     []KeyStroke // default: [Ctrl+N]
+	WorkflowDelete     []KeyStroke // default: [Ctrl+D]
 	SoftCancel         []KeyStroke // default: [Ctrl+G, Esc]
 }
 
@@ -269,6 +271,8 @@ func DefaultKeyBindingMap() *KeyBindingMap {
 		AddToWorkflow:      []KeyStroke{NewTabKeyStroke()},
 		ToggleWorkflowView: []KeyStroke{NewCtrlKeyStroke('t')},
 		ClearWorkflow:      []KeyStroke{NewCharKeyStroke('c')},
+		WorkflowCreate:     []KeyStroke{NewCtrlKeyStroke('n')},
+		WorkflowDelete:     []KeyStroke{NewCtrlKeyStroke('d')},
 		SoftCancel:         []KeyStroke{NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
 	}
 }
@@ -352,6 +356,8 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 		"add_to_workflow":      km.AddToWorkflow,
 		"toggle_workflow_view": km.ToggleWorkflowView,
 		"clear_workflow":       km.ClearWorkflow,
+		"workflow_create":      km.WorkflowCreate,
+		"workflow_delete":      km.WorkflowDelete,
 		"soft_cancel":          km.SoftCancel,
 	}
 
@@ -1121,6 +1127,8 @@ func (r *KeyBindingResolver) GetEffectiveKeybindings(profile Profile, context Co
 	result["add_to_workflow"] = clone(keyMap.AddToWorkflow)
 	result["toggle_workflow_view"] = clone(keyMap.ToggleWorkflowView)
 	result["clear_workflow"] = clone(keyMap.ClearWorkflow)
+	result["workflow_create"] = clone(keyMap.WorkflowCreate)
+	result["workflow_delete"] = clone(keyMap.WorkflowDelete)
 
 	return result
 }
@@ -1140,6 +1148,8 @@ func (r *KeyBindingResolver) applyDefaults(keyMap *KeyBindingMap) {
 	keyMap.AddToWorkflow = append(keyMap.AddToWorkflow, defaults.AddToWorkflow...)
 	keyMap.ToggleWorkflowView = append(keyMap.ToggleWorkflowView, defaults.ToggleWorkflowView...)
 	keyMap.ClearWorkflow = append(keyMap.ClearWorkflow, defaults.ClearWorkflow...)
+	keyMap.WorkflowCreate = append(keyMap.WorkflowCreate, defaults.WorkflowCreate...)
+	keyMap.WorkflowDelete = append(keyMap.WorkflowDelete, defaults.WorkflowDelete...)
 	keyMap.SoftCancel = append(keyMap.SoftCancel, defaults.SoftCancel...)
 }
 
@@ -1163,6 +1173,8 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("add_to_workflow", &keyMap.AddToWorkflow)
 	applyBinding("toggle_workflow_view", &keyMap.ToggleWorkflowView)
 	applyBinding("clear_workflow", &keyMap.ClearWorkflow)
+	applyBinding("workflow_create", &keyMap.WorkflowCreate)
+	applyBinding("workflow_delete", &keyMap.WorkflowDelete)
 	applyBinding("soft_cancel", &keyMap.SoftCancel)
 }
 
@@ -1243,18 +1255,17 @@ func (r *KeyBindingResolver) applyNavigationAction(keyMap *KeyBindingMap, action
 
 // applyWorkflowAction applies workflow-related keybinding actions
 func (r *KeyBindingResolver) applyWorkflowAction(keyMap *KeyBindingMap, action string, bindings []KeyStroke) {
-	switch action {
-	case "add_to_workflow":
-		keyMap.AddToWorkflow = bindings
-	case "toggle_workflow_view":
-		keyMap.ToggleWorkflowView = bindings
-	case "clear_workflow":
-		keyMap.ClearWorkflow = bindings
-	case "soft_cancel":
-		keyMap.SoftCancel = bindings
-	// Explicitly ignore unsupported actions
-	default:
-		// Terminal-specific action not supported in this context
+	actionMap := map[string]*[]KeyStroke{
+		"add_to_workflow":      &keyMap.AddToWorkflow,
+		"toggle_workflow_view": &keyMap.ToggleWorkflowView,
+		"clear_workflow":       &keyMap.ClearWorkflow,
+		"workflow_create":      &keyMap.WorkflowCreate,
+		"workflow_delete":      &keyMap.WorkflowDelete,
+		"soft_cancel":          &keyMap.SoftCancel,
+	}
+
+	if target, exists := actionMap[action]; exists {
+		*target = bindings
 	}
 }
 
@@ -1275,6 +1286,8 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 		"add_to_workflow":      userBindings.AddToWorkflow,
 		"toggle_workflow_view": userBindings.ToggleWorkflowView,
 		"clear_workflow":       userBindings.ClearWorkflow,
+		"workflow_create":      userBindings.WorkflowCreate,
+		"workflow_delete":      userBindings.WorkflowDelete,
 		"soft_cancel":          userBindings.SoftCancel,
 	}
 
@@ -1307,6 +1320,10 @@ func (r *KeyBindingResolver) applyUserConfig(keyMap *KeyBindingMap, context Cont
 					keyMap.ToggleWorkflowView = []KeyStroke{ks}
 				case "clear_workflow":
 					keyMap.ClearWorkflow = []KeyStroke{ks}
+				case "workflow_create":
+					keyMap.WorkflowCreate = []KeyStroke{ks}
+				case "workflow_delete":
+					keyMap.WorkflowDelete = []KeyStroke{ks}
 				case "soft_cancel":
 					keyMap.SoftCancel = []KeyStroke{ks}
 				}
@@ -1337,6 +1354,8 @@ func (r *KeyBindingResolver) applyEnvironmentOverrides(keyMap *KeyBindingMap) {
 		"GGC_KEYBIND_ADD_TO_WORKFLOW":      &keyMap.AddToWorkflow,
 		"GGC_KEYBIND_TOGGLE_WORKFLOW_VIEW": &keyMap.ToggleWorkflowView,
 		"GGC_KEYBIND_CLEAR_WORKFLOW":       &keyMap.ClearWorkflow,
+		"GGC_KEYBIND_WORKFLOW_CREATE":      &keyMap.WorkflowCreate,
+		"GGC_KEYBIND_WORKFLOW_DELETE":      &keyMap.WorkflowDelete,
 		"GGC_KEYBIND_SOFT_CANCEL":          &keyMap.SoftCancel,
 	}
 
@@ -1462,18 +1481,17 @@ func (r *KeyBindingResolver) applyUserNavigationAction(keyMap *KeyBindingMap, ac
 
 // applyUserWorkflowAction applies user workflow-related keybinding actions
 func (r *KeyBindingResolver) applyUserWorkflowAction(keyMap *KeyBindingMap, action string, keystrokes []KeyStroke) {
-	switch action {
-	case "add_to_workflow":
-		keyMap.AddToWorkflow = keystrokes
-	case "toggle_workflow_view":
-		keyMap.ToggleWorkflowView = keystrokes
-	case "clear_workflow":
-		keyMap.ClearWorkflow = keystrokes
-	case "soft_cancel":
-		keyMap.SoftCancel = keystrokes
-	// Explicitly ignore unsupported actions
-	default:
-		// User-defined action not supported in this context
+	actionMap := map[string]*[]KeyStroke{
+		"add_to_workflow":      &keyMap.AddToWorkflow,
+		"toggle_workflow_view": &keyMap.ToggleWorkflowView,
+		"clear_workflow":       &keyMap.ClearWorkflow,
+		"workflow_create":      &keyMap.WorkflowCreate,
+		"workflow_delete":      &keyMap.WorkflowDelete,
+		"soft_cancel":          &keyMap.SoftCancel,
+	}
+
+	if target, exists := actionMap[action]; exists {
+		*target = keystrokes
 	}
 }
 
