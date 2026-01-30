@@ -15,13 +15,11 @@ import (
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
-// Interactive mode special return values
-// These constants are used to signal special states when returning from interactive mode
+// Interactive mode command constants.
+// These are used to signal special states when returning from interactive mode.
 const (
-	// InteractiveQuitCommand signals that the user wants to quit the interactive mode
-	InteractiveQuitCommand = interactive.InteractiveQuitCommand
-	// InteractiveWorkflowCommand signals that a workflow has been executed and the interactive mode should restart
-	InteractiveWorkflowCommand = interactive.InteractiveWorkflowCommand
+	interactiveQuitCommand     = "quit"
+	interactiveWorkflowCommand = "workflow-executed"
 )
 
 // Executer is an interface for executing commands.
@@ -279,12 +277,12 @@ func (c *Cmd) Interactive() {
 		}
 
 		// Check for "quit" command
-		if len(args) >= 2 && args[1] == InteractiveQuitCommand {
+		if len(args) >= 2 && args[1] == interactiveQuitCommand {
 			break
 		}
 
 		// Check for workflow execution
-		if len(args) >= 2 && args[1] == InteractiveWorkflowCommand {
+		if len(args) >= 2 && args[1] == interactiveWorkflowCommand {
 			// Workflow was executed, wait for user to continue
 			c.waitForContinue()
 			ui.ResetToSearchMode()
@@ -365,7 +363,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"diff":       func(args []string) { cmd.Diff(args) },
 		"restore":    func(args []string) { cmd.Restore(args) },
 		"debug-keys": func(args []string) { cmd.DebugKeys(args) },
-		InteractiveQuitCommand: func([]string) {
+		interactiveQuitCommand: func([]string) {
 			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
 		},
 	}
