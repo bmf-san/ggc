@@ -1,3 +1,4 @@
+// Package interactive houses interactive UI types and helpers shared across the application.
 package interactive
 
 import (
