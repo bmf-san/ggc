@@ -16,7 +16,7 @@ import (
 type Cleaner struct {
 	gitClient    git.CleanOps
 	outputWriter io.Writer
-	prompter     prompt.Interface
+	prompter     prompt.Prompter
 	helper       *Helper
 }
 

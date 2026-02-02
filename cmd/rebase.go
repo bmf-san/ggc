@@ -17,7 +17,7 @@ type Rebaser struct {
 	gitClient    git.RebaseOps
 	outputWriter io.Writer
 	helper       *Helper
-	prompter     prompt.Interface
+	prompter     prompt.Prompter
 }
 
 // NewRebaser creates a new Rebaser instance.
