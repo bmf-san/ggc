@@ -25,15 +25,16 @@ var (
 	ErrInvalidConfirmation = errors.New("invalid confirmation")
 )
 
-// Interface defines the prompt operations used by the CLI commands.
-type Interface interface {
+// Prompter defines the prompt operations used by the CLI commands.
+type Prompter interface {
 	Input(prompt string) (string, bool, error)
 	Select(title string, items []string, prompt string) (int, bool, error)
 	Confirm(prompt string) (bool, bool, error)
+	WithCancelMessage(message string) Prompter
 }
 
-// Prompter reads from an input stream and writes prompts/results to an output stream.
-type Prompter struct {
+// StandardPrompter is the default implementation of Prompter.
+type StandardPrompter struct {
 	baseReader    io.Reader
 	reader        *bufio.Reader
 	writer        io.Writer
@@ -53,12 +54,12 @@ var (
 )
 
 // NewDefault returns a prompter wired to stdin/stdout.
-func NewDefault() Interface {
+func NewDefault() Prompter {
 	return New(os.Stdin, os.Stdout)
 }
 
 // New creates a prompter backed by the provided reader and writer.
-func New(reader io.Reader, writer io.Writer) Interface {
+func New(reader io.Reader, writer io.Writer) Prompter {
 	if reader == nil {
 		reader = os.Stdin
 	}
@@ -66,7 +67,7 @@ func New(reader io.Reader, writer io.Writer) Interface {
 		writer = os.Stdout
 	}
 
-	p := &Prompter{
+	p := &StandardPrompter{
 		baseReader:    reader,
 		reader:        bufio.NewReader(reader),
 		writer:        writer,
@@ -79,7 +80,7 @@ func New(reader io.Reader, writer io.Writer) Interface {
 }
 
 // WithCancelMessage allows overriding the cancel message used by the prompter.
-func (p *Prompter) WithCancelMessage(message string) *Prompter {
+func (p *StandardPrompter) WithCancelMessage(message string) Prompter {
 	if message != "" {
 		p.cancelMessage = message
 	}
@@ -88,7 +89,7 @@ func (p *Prompter) WithCancelMessage(message string) *Prompter {
 
 // Input prompts the user for free-form input and returns the response.
 // The returned bool is true when the input was canceled via soft cancel.
-func (p *Prompter) Input(prompt string) (string, bool, error) {
+func (p *StandardPrompter) Input(prompt string) (string, bool, error) {
 	if p == nil {
 		return "", true, nil
 	}
@@ -100,7 +101,7 @@ func (p *Prompter) Input(prompt string) (string, bool, error) {
 	return p.inputWithBuffered(prompt)
 }
 
-func (p *Prompter) inputWithBuffered(prompt string) (string, bool, error) {
+func (p *StandardPrompter) inputWithBuffered(prompt string) (string, bool, error) {
 	if _, err := fmt.Fprint(p.writer, prompt); err != nil {
 		return "", false, err
 	}
@@ -130,7 +131,7 @@ func (p *Prompter) inputWithBuffered(prompt string) (string, bool, error) {
 	return trimNewline(line), false, nil
 }
 
-func (p *Prompter) inputWithTerminal(prompt string) (inputOutcome, bool) {
+func (p *StandardPrompter) inputWithTerminal(prompt string) (inputOutcome, bool) {
 	terminal, restore, ok := p.prepareTerminal()
 	if !ok {
 		return inputOutcome{}, false
@@ -156,7 +157,7 @@ func (p *Prompter) inputWithTerminal(prompt string) (inputOutcome, bool) {
 	}
 }
 
-func (p *Prompter) prepareTerminal() (*term.Terminal, func(), bool) {
+func (p *StandardPrompter) prepareTerminal() (*term.Terminal, func(), bool) {
 	if p == nil || p.inputFile == nil {
 		return nil, nil, false
 	}
@@ -189,7 +190,7 @@ func (p *Prompter) prepareTerminal() (*term.Terminal, func(), bool) {
 
 // Select displays a numbered list and prompts the user to choose an item.
 // It returns a zero-based index on success.
-func (p *Prompter) Select(title string, items []string, prompt string) (int, bool, error) {
+func (p *StandardPrompter) Select(title string, items []string, prompt string) (int, bool, error) {
 	if p == nil {
 		return -1, true, nil
 	}
@@ -209,7 +210,7 @@ func (p *Prompter) Select(title string, items []string, prompt string) (int, boo
 	return p.parseSelection(line, len(items))
 }
 
-func (p *Prompter) displaySelection(title string, items []string) error {
+func (p *StandardPrompter) displaySelection(title string, items []string) error {
 	if title != "" {
 		if _, err := fmt.Fprintln(p.writer, title); err != nil {
 			return err
@@ -223,7 +224,7 @@ func (p *Prompter) displaySelection(title string, items []string) error {
 	return nil
 }
 
-func (p *Prompter) parseSelection(line string, itemCount int) (int, bool, error) {
+func (p *StandardPrompter) parseSelection(line string, itemCount int) (int, bool, error) {
 	idx, convErr := strconv.Atoi(strings.TrimSpace(line))
 	if convErr != nil || idx < 1 || idx > itemCount {
 		return -1, false, ErrInvalidSelection
@@ -232,7 +233,7 @@ func (p *Prompter) parseSelection(line string, itemCount int) (int, bool, error)
 }
 
 // Confirm prompts the user for a yes/no answer; defaults to "no" on empty input.
-func (p *Prompter) Confirm(prompt string) (bool, bool, error) {
+func (p *StandardPrompter) Confirm(prompt string) (bool, bool, error) {
 	if p == nil {
 		return false, true, nil
 	}
@@ -253,7 +254,7 @@ func (p *Prompter) Confirm(prompt string) (bool, bool, error) {
 	}
 }
 
-func (p *Prompter) printCancelMessage() {
+func (p *StandardPrompter) printCancelMessage() {
 	if p == nil || p.writer == nil {
 		return
 	}

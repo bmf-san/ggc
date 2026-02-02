@@ -18,7 +18,7 @@ const errMsgBranchNameEmpty = "Error: branch name cannot be empty."
 // Brancher provides functionality for the branch command.
 type Brancher struct {
 	gitClient    git.BranchOps
-	prompter     prompt.Interface
+	prompter     prompt.Prompter
 	outputWriter io.Writer
 	helper       *Helper
 }
