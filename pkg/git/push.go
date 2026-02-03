@@ -11,7 +11,7 @@ import (
 func (c *Client) Push(force bool) error {
 	branch, err := c.GetCurrentBranch()
 	if err != nil {
-		return NewError("push", "get current branch", err)
+		return NewOpError("push", "get current branch", err)
 	}
 	args := []string{"push", "origin", branch}
 	if force {
@@ -21,7 +21,7 @@ func (c *Client) Push(force bool) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("push", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
+		return NewOpError("push", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
 	}
 	return nil
 }

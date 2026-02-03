@@ -598,16 +598,20 @@ func (cm *Manager) syncFromCommandName(command string) {
 	if err != nil || value == "" {
 		return
 	}
-	updaters := map[string]func(string){
-		"core.editor":        func(v string) { cm.config.Default.Editor = v },
-		"merge.tool":         func(v string) { cm.config.Default.MergeTool = v },
-		"init.defaultBranch": func(v string) { cm.config.Default.Branch = v },
-		"color.ui":           func(v string) { cm.config.UI.Color = v == "true" || v == "auto" },
-		"core.pager":         func(v string) { cm.config.UI.Pager = v != "cat" },
-		"fetch.auto":         func(v string) { cm.config.Behavior.AutoFetch = v == "true" },
-	}
-	if f, ok := updaters[command]; ok {
-		f(value)
+
+	switch command {
+	case "core.editor":
+		cm.config.Default.Editor = value
+	case "merge.tool":
+		cm.config.Default.MergeTool = value
+	case "init.defaultBranch":
+		cm.config.Default.Branch = value
+	case "color.ui":
+		cm.config.UI.Color = value == "true" || value == "auto"
+	case "core.pager":
+		cm.config.UI.Pager = value != "cat"
+	case "fetch.auto":
+		cm.config.Behavior.AutoFetch = value == "true"
 	}
 }
 

@@ -13,9 +13,9 @@ func (c *Client) Fetch(prune bool) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if prune {
-			return NewError("fetch with prune", "git fetch --prune", err)
+			return NewOpError("fetch with prune", "git fetch --prune", err)
 		}
-		return NewError("fetch", "git fetch", err)
+		return NewOpError("fetch", "git fetch", err)
 	}
 	return nil
 }
