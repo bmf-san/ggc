@@ -1,16 +1,20 @@
 package interactive
 
-import "testing"
+import (
+	"testing"
+
+	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+)
 
 func TestBuildSearchKeybindEntriesUsesConfiguredBindings(t *testing.T) {
 	renderer := &Renderer{}
 
-	ui := newUIWithKeyMap(&KeyBindingMap{
-		ClearLine:       []KeyStroke{NewCtrlKeyStroke('l')},
-		DeleteWord:      []KeyStroke{NewAltKeyStroke(0, "backspace")},
-		DeleteToEnd:     []KeyStroke{NewCtrlKeyStroke('k')},
-		MoveToBeginning: []KeyStroke{NewCtrlKeyStroke('a')},
-		MoveToEnd:       []KeyStroke{NewCtrlKeyStroke('e')},
+	ui := newUIWithKeyMap(&kb.KeyBindingMap{
+		ClearLine:       []kb.KeyStroke{kb.NewCtrlKeyStroke('l')},
+		DeleteWord:      []kb.KeyStroke{kb.NewAltKeyStroke(0, "backspace")},
+		DeleteToEnd:     []kb.KeyStroke{kb.NewCtrlKeyStroke('k')},
+		MoveToBeginning: []kb.KeyStroke{kb.NewCtrlKeyStroke('a')},
+		MoveToEnd:       []kb.KeyStroke{kb.NewCtrlKeyStroke('e')},
 	})
 
 	entries := renderer.buildSearchKeybindEntries(ui)
@@ -41,10 +45,10 @@ func TestBuildSearchKeybindEntriesFallsBackToDefaults(t *testing.T) {
 func TestBuildSearchKeybindEntriesFormatsMultipleKeys(t *testing.T) {
 	renderer := &Renderer{}
 
-	ui := newUIWithKeyMap(&KeyBindingMap{
-		DeleteWord: []KeyStroke{
-			NewCtrlKeyStroke('w'),
-			NewAltKeyStroke(0, "backspace"),
+	ui := newUIWithKeyMap(&kb.KeyBindingMap{
+		DeleteWord: []kb.KeyStroke{
+			kb.NewCtrlKeyStroke('w'),
+			kb.NewAltKeyStroke(0, "backspace"),
 		},
 	})
 
@@ -55,11 +59,11 @@ func TestBuildSearchKeybindEntriesFormatsMultipleKeys(t *testing.T) {
 	}
 }
 
-func newUIWithKeyMap(km *KeyBindingMap) *UI {
-	state := &UIState{context: ContextSearch}
+func newUIWithKeyMap(km *kb.KeyBindingMap) *UI {
+	state := &UIState{context: kb.ContextSearch}
 	ui := &UI{state: state}
-	contextMap := NewContextualKeyBindingMap(ProfileDefault, "darwin", "iterm")
-	contextMap.SetContext(ContextSearch, km)
+	contextMap := kb.NewContextualKeyBindingMap(kb.ProfileDefault, "darwin", "iterm")
+	contextMap.SetContext(kb.ContextSearch, km)
 	handler := &KeyHandler{contextualMap: contextMap}
 	handler.ui = ui
 	ui.handler = handler

@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/bmf-san/ggc/v7/internal/security"
+	"github.com/bmf-san/ggc/v7/internal/aliasvalidator"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
@@ -321,7 +321,7 @@ func validateAliasSequence(name string, seq []interface{}) error {
 		}
 
 		// Validate command security
-		if err := security.ValidateCommand(cmdStr); err != nil {
+		if err := aliasvalidator.ValidateCommand(cmdStr); err != nil {
 			return &ValidationError{
 				Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
 				Value:   cmdStr,

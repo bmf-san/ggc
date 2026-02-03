@@ -19,10 +19,11 @@ import (
 	"golang.org/x/text/width"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/termio"
+	uiutil "github.com/bmf-san/ggc/v7/internal/ui"
 	"github.com/bmf-san/ggc/v7/pkg/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
-	uiutil "github.com/bmf-san/ggc/v7/pkg/ui"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer
@@ -165,8 +166,8 @@ type UI struct {
 	gitStatus       *GitStatus
 	gitClient       git.StatusInfoReader
 	reader          *bufio.Reader
-	contextMgr      *ContextManager
-	profile         Profile
+	contextMgr      *kb.ContextManager
+	profile         kb.Profile
 	workflowMgr     *WorkflowManager
 	workflow        *Workflow
 	workflowEx      *WorkflowExecutor
@@ -203,9 +204,9 @@ type UIState struct {
 	input           string
 	cursorPos       int // Cursor position in input string
 	filtered        []CommandInfo
-	context         Context   // Current UI context (input/results/search/global)
-	contextStack    []Context // Context stack for nested states
-	onContextChange func(Context, Context)
+	context         kb.Context   // Current UI context (input/results/search/global)
+	contextStack    []kb.Context // Context stack for nested states
+	onContextChange func(kb.Context, kb.Context)
 	mode            UIMode
 	workflowFocus   WorkflowFocus
 	workflowListIdx int
@@ -294,7 +295,7 @@ func (s *UIState) UpdateFiltered() {
 // Context Management Methods
 
 // EnterContext pushes the current context onto the stack and switches to the new context
-func (s *UIState) EnterContext(newContext Context) {
+func (s *UIState) EnterContext(newContext kb.Context) {
 	if s.context == newContext {
 		return
 	}
@@ -311,20 +312,20 @@ func (s *UIState) ExitContext() {
 		s.context = s.contextStack[len(s.contextStack)-1]
 		s.contextStack = s.contextStack[:len(s.contextStack)-1]
 		s.notifyContextChange(old, s.context)
-	} else if s.context != ContextGlobal {
+	} else if s.context != kb.ContextGlobal {
 		old := s.context
-		s.context = ContextGlobal
+		s.context = kb.ContextGlobal
 		s.notifyContextChange(old, s.context)
 	}
 }
 
 // GetCurrentContext returns the current UI context
-func (s *UIState) GetCurrentContext() Context {
+func (s *UIState) GetCurrentContext() kb.Context {
 	return s.context
 }
 
 // SetContext directly sets the context (use with caution)
-func (s *UIState) SetContext(ctx Context) {
+func (s *UIState) SetContext(ctx kb.Context) {
 	if s.context == ctx {
 		return
 	}
@@ -334,7 +335,7 @@ func (s *UIState) SetContext(ctx Context) {
 }
 
 // notifyContextChange triggers the callback when the active context changes
-func (s *UIState) notifyContextChange(oldCtx, newCtx Context) {
+func (s *UIState) notifyContextChange(oldCtx, newCtx kb.Context) {
 	if s.onContextChange != nil && oldCtx != newCtx {
 		s.onContextChange(oldCtx, newCtx)
 	}
@@ -342,17 +343,17 @@ func (s *UIState) notifyContextChange(oldCtx, newCtx Context) {
 
 // IsInInputMode returns true if currently in input context
 func (s *UIState) IsInInputMode() bool {
-	return s.context == ContextInput
+	return s.context == kb.ContextInput
 }
 
 // IsInResultsMode returns true if currently in results context
 func (s *UIState) IsInResultsMode() bool {
-	return s.context == ContextResults
+	return s.context == kb.ContextResults
 }
 
 // IsInSearchMode returns true if currently in search context
 func (s *UIState) IsInSearchMode() bool {
-	return s.context == ContextSearch
+	return s.context == kb.ContextSearch
 }
 
 // fuzzyMatch performs fuzzy matching between text and pattern
@@ -475,8 +476,8 @@ func (m matchScore) less(other matchScore) bool {
 // MoveUp moves selection up
 func (s *UIState) MoveUp() {
 	// Switch to results context when navigating
-	if s.context != ContextResults && s.context != ContextSearch {
-		s.SetContext(ContextResults)
+	if s.context != kb.ContextResults && s.context != kb.ContextSearch {
+		s.SetContext(kb.ContextResults)
 	}
 
 	if s.selected > 0 {
@@ -487,8 +488,8 @@ func (s *UIState) MoveUp() {
 // MoveDown moves selection down
 func (s *UIState) MoveDown() {
 	// Switch to results context when navigating
-	if s.context != ContextResults && s.context != ContextSearch {
-		s.SetContext(ContextResults)
+	if s.context != kb.ContextResults && s.context != kb.ContextSearch {
+		s.SetContext(kb.ContextResults)
 	}
 
 	if s.selected < len(s.filtered)-1 {
@@ -499,8 +500,8 @@ func (s *UIState) MoveDown() {
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
 	// Switch to input context when user starts typing
-	if s.context != ContextInput {
-		s.SetContext(ContextInput)
+	if s.context != kb.ContextInput {
+		s.SetContext(kb.ContextInput)
 	}
 
 	// Convert current input to runes for proper cursor positioning
@@ -517,8 +518,8 @@ func (s *UIState) AddRune(r rune) {
 		s.UpdateFiltered()
 
 		// Switch to search context when actively filtering
-		if s.input != "" && s.context != ContextSearch {
-			s.SetContext(ContextSearch)
+		if s.input != "" && s.context != kb.ContextSearch {
+			s.SetContext(kb.ContextSearch)
 		}
 	}
 }
@@ -677,25 +678,25 @@ type keybindHelpEntry struct {
 // KeyHandler manages keyboard input processing
 type KeyHandler struct {
 	ui            *UI
-	contextualMap *ContextualKeyBindingMap
+	contextualMap *kb.ContextualKeyBindingMap
 }
 
 // GetCurrentKeyMap returns the appropriate keybinding map for the current context
-func (h *KeyHandler) GetCurrentKeyMap() *KeyBindingMap {
+func (h *KeyHandler) GetCurrentKeyMap() *kb.KeyBindingMap {
 	if h == nil {
-		return DefaultKeyBindingMap()
+		return kb.DefaultKeyBindingMap()
 	}
 	if h.contextualMap != nil && h.ui != nil && h.ui.state != nil {
 		currentContext := h.ui.state.GetCurrentContext()
 		if contextMap, exists := h.contextualMap.GetContext(currentContext); exists && contextMap != nil {
 			return contextMap
 		}
-		if contextMap, exists := h.contextualMap.GetContext(ContextGlobal); exists && contextMap != nil {
+		if contextMap, exists := h.contextualMap.GetContext(kb.ContextGlobal); exists && contextMap != nil {
 			return contextMap
 		}
 	}
 
-	return DefaultKeyBindingMap()
+	return kb.DefaultKeyBindingMap()
 }
 
 // HandleKey processes UTF-8 rune input and returns true if should continue
@@ -739,7 +740,7 @@ func (h *KeyHandler) handleWorkflowKeys(r rune, oldState *term.State) (bool, boo
 
 func (h *KeyHandler) handleSearchModeWorkflowKeys(r rune) (bool, bool, []string) {
 	km := h.GetCurrentKeyMap()
-	keyStroke := NewCharKeyStroke(r)
+	keyStroke := kb.NewCharKeyStroke(r)
 
 	if km.MatchesKeyStroke("add_to_workflow", keyStroke) {
 		if h.ui.state.HasInput() {
@@ -779,7 +780,7 @@ func (h *KeyHandler) handleWorkflowModeShortcut(r rune, oldState *term.State) bo
 }
 
 func (h *KeyHandler) handleWorkflowModeBindings(r rune) bool {
-	keyStroke := NewCharKeyStroke(r)
+	keyStroke := kb.NewCharKeyStroke(r)
 
 	if h.handleWorkflowAdd(keyStroke) {
 		return true
@@ -790,7 +791,7 @@ func (h *KeyHandler) handleWorkflowModeBindings(r rune) bool {
 	return false
 }
 
-func (h *KeyHandler) handleWorkflowAdd(keyStroke KeyStroke) bool {
+func (h *KeyHandler) handleWorkflowAdd(keyStroke kb.KeyStroke) bool {
 	if !h.ui.state.IsInputFocused() || !h.ui.state.HasInput() {
 		return false
 	}
@@ -805,7 +806,7 @@ func (h *KeyHandler) handleWorkflowAdd(keyStroke KeyStroke) bool {
 	return true
 }
 
-func (h *KeyHandler) handleWorkflowClear(keyStroke KeyStroke) bool {
+func (h *KeyHandler) handleWorkflowClear(keyStroke kb.KeyStroke) bool {
 	if h.ui.state.IsInputFocused() {
 		return false
 	}
@@ -828,7 +829,7 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 	// Create KeyStroke for this control character
 	if b >= 1 && b <= 26 {
 		// Control character: convert back to letter
-		ctrlStroke := NewCtrlKeyStroke(rune('a' + b - 1))
+		ctrlStroke := kb.NewCtrlKeyStroke(rune('a' + b - 1))
 
 		// Workflow mode: simplified key handling (no input field)
 		if h.ui.state.IsWorkflowMode() {
@@ -981,7 +982,7 @@ func (h *KeyHandler) handleSoftCancel(_ *term.State) {
 
 func (h *KeyHandler) shouldHandleEscapeAsSoftCancel() bool {
 	km := h.GetCurrentKeyMap()
-	if km == nil || !km.MatchesKeyStroke("soft_cancel", NewEscapeKeyStroke()) {
+	if km == nil || !km.MatchesKeyStroke("soft_cancel", kb.NewEscapeKeyStroke()) {
 		return false
 	}
 
@@ -1060,7 +1061,7 @@ func (h *KeyHandler) processCSIFinalByte(final byte, params string) {
 
 	// Build the full escape sequence for keybinding matching
 	seq := h.buildCSISequence(final, params)
-	keyStroke := NewRawKeyStroke(seq)
+	keyStroke := kb.NewRawKeyStroke(seq)
 	km := h.GetCurrentKeyMap()
 
 	// Try keybinding-based handling first
@@ -1082,7 +1083,7 @@ func (h *KeyHandler) buildCSISequence(final byte, params string) []byte {
 }
 
 // tryArrowKeybinding attempts to handle arrow keys via keybindings
-func (h *KeyHandler) tryArrowKeybinding(km *KeyBindingMap, keyStroke KeyStroke) bool {
+func (h *KeyHandler) tryArrowKeybinding(km *kb.KeyBindingMap, keyStroke kb.KeyStroke) bool {
 	if km.MatchesKeyStroke("move_up", keyStroke) {
 		// Arrow keys don't navigate in workflow mode (use Ctrl+N/P)
 		if !h.ui.state.IsWorkflowMode() {
@@ -1142,7 +1143,7 @@ func (h *KeyHandler) handleApplicationCursorMode(reader *bufio.Reader) {
 
 	// Build the full escape sequence: ESC O <final>
 	seq := []byte{27, 'O', nb}
-	keyStroke := NewRawKeyStroke(seq)
+	keyStroke := kb.NewRawKeyStroke(seq)
 	km := h.GetCurrentKeyMap()
 
 	// Try keybinding-based handling first
@@ -1936,8 +1937,8 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 		selected:       0,
 		input:          "",
 		filtered:       []CommandInfo{},
-		context:        ContextGlobal, // Start in global context
-		contextStack:   []Context{},
+		context:        kb.ContextGlobal, // Start in global context
+		contextStack:   []kb.Context{},
 		mode:           ModeSearch,
 		workflowFocus:  FocusInput,
 		workflowOffset: 0,
@@ -1956,16 +1957,16 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 	}
 
 	// Create KeyBinding resolver and register built-in profiles
-	resolver := NewKeyBindingResolver(cfg)
-	RegisterBuiltinProfiles(resolver)
-	contextManager := NewContextManager(resolver)
+	resolver := kb.NewKeyBindingResolver(cfg)
+	kb.RegisterBuiltinProfiles(resolver)
+	contextManager := kb.NewContextManager(resolver)
 
 	// Determine which profile to use (default to "default" profile)
-	profile := ProfileDefault
+	profile := kb.ProfileDefault
 	if cfg.Interactive.Profile != "" {
-		switch Profile(cfg.Interactive.Profile) {
-		case ProfileEmacs, ProfileVi, ProfileReadline:
-			profile = Profile(cfg.Interactive.Profile)
+		switch kb.Profile(cfg.Interactive.Profile) {
+		case kb.ProfileEmacs, kb.ProfileVi, kb.ProfileReadline:
+			profile = kb.Profile(cfg.Interactive.Profile)
 		default:
 			fmt.Fprintf(os.Stderr, "Warning: Unknown profile '%s', using default\n", cfg.Interactive.Profile)
 		}
@@ -1976,16 +1977,16 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to resolve keybindings: %v. Using defaults.\n", err)
 		// Fallback to legacy defaults
-		keyMap := DefaultKeyBindingMap()
-		contextualMap = &ContextualKeyBindingMap{
-			Profile:  ProfileDefault,
-			Platform: DetectPlatform(),
-			Terminal: DetectTerminal(),
-			Contexts: map[Context]*KeyBindingMap{
-				ContextGlobal:  keyMap,
-				ContextInput:   keyMap,
-				ContextResults: keyMap,
-				ContextSearch:  keyMap,
+		keyMap := kb.DefaultKeyBindingMap()
+		contextualMap = &kb.ContextualKeyBindingMap{
+			Profile:  kb.ProfileDefault,
+			Platform: kb.DetectPlatform(),
+			Terminal: kb.DetectTerminal(),
+			Contexts: map[kb.Context]*kb.KeyBindingMap{
+				kb.ContextGlobal:  keyMap,
+				kb.ContextInput:   keyMap,
+				kb.ContextResults: keyMap,
+				kb.ContextSearch:  keyMap,
 			},
 		}
 	}
@@ -2005,7 +2006,7 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 		workflowMgr: NewWorkflowManager(),
 	}
 	ui.updateWorkflowPointer()
-	state.onContextChange = func(_ Context, newCtx Context) {
+	state.onContextChange = func(_ kb.Context, newCtx kb.Context) {
 		contextManager.SetContext(newCtx)
 	}
 
@@ -2041,7 +2042,7 @@ func (ui *UI) enterWorkflowMode() {
 		return
 	}
 	ui.state.SetMode(ModeWorkflow)
-	ui.state.SetContext(ContextGlobal)
+	ui.state.SetContext(kb.ContextGlobal)
 	ui.ensureWorkflowListSelection()
 	ui.updateWorkflowPointer()
 }
@@ -2053,7 +2054,7 @@ func (ui *UI) enterSearchMode() {
 	}
 	ui.state.SetMode(ModeSearch)
 	ui.state.FocusInput()
-	ui.state.SetContext(ContextGlobal)
+	ui.state.SetContext(kb.ContextGlobal)
 }
 
 // AddToWorkflow adds a command to the active workflow.
@@ -2070,7 +2071,7 @@ func (ui *UI) AddToWorkflow(command string, args []string, description string) i
 }
 
 // ApplyContextualKeybindings updates the active keybinding map, satisfying keybindings.ContextualMapApplier.
-func (ui *UI) ApplyContextualKeybindings(contextual *ContextualKeyBindingMap) {
+func (ui *UI) ApplyContextualKeybindings(contextual *kb.ContextualKeyBindingMap) {
 	if ui == nil || ui.handler == nil || contextual == nil {
 		return
 	}
@@ -2083,11 +2084,11 @@ func (ui *UI) resetToSearchMode() bool {
 	}
 
 	state := ui.state
-	active := state.HasInput() || state.IsWorkflowMode() || len(state.contextStack) > 0 || state.GetCurrentContext() != ContextGlobal
+	active := state.HasInput() || state.IsWorkflowMode() || len(state.contextStack) > 0 || state.GetCurrentContext() != kb.ContextGlobal
 	state.ClearInput()
 	state.selected = 0
 	state.contextStack = nil
-	state.SetContext(ContextGlobal)
+	state.SetContext(kb.ContextGlobal)
 	state.SetMode(ModeSearch)
 	state.FocusInput()
 	return active
@@ -2512,17 +2513,17 @@ func (r *Renderer) buildSearchKeybindEntries(ui *UI) []keybindHelpEntry {
 	}
 	// Future: extend this helper for additional contexts such as workflow views.
 
-	var km *KeyBindingMap
+	var km *kb.KeyBindingMap
 	if ui != nil && ui.handler != nil {
 		km = ui.handler.GetCurrentKeyMap()
 	}
 	if km == nil {
-		km = DefaultKeyBindingMap()
+		km = kb.DefaultKeyBindingMap()
 	}
 
-	defaultMap := DefaultKeyBindingMap()
+	defaultMap := kb.DefaultKeyBindingMap()
 
-	appendDynamic := func(primary []KeyStroke, fallback []KeyStroke, desc string) {
+	appendDynamic := func(primary []kb.KeyStroke, fallback []kb.KeyStroke, desc string) {
 		keys := primary
 		if len(keys) == 0 {
 			keys = fallback
@@ -2530,7 +2531,7 @@ func (r *Renderer) buildSearchKeybindEntries(ui *UI) []keybindHelpEntry {
 		if len(keys) == 0 {
 			return
 		}
-		formatted := FormatKeyStrokesForDisplay(keys)
+		formatted := kb.FormatKeyStrokesForDisplay(keys)
 		if formatted == "" || formatted == "none" {
 			return
 		}
