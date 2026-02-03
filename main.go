@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v7/cmd"
-	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 	"github.com/bmf-san/ggc/v7/router"
 )
