@@ -5,15 +5,15 @@ import (
 	"testing"
 )
 
-func TestError_Error(t *testing.T) {
+func TestOpError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		err  *Error
+		err  *OpError
 		want string
 	}{
 		{
 			name: "error_with_command",
-			err: &Error{
+			err: &OpError{
 				Op:      "test operation",
 				Command: "git test",
 				Err:     errors.New("test error"),
@@ -22,7 +22,7 @@ func TestError_Error(t *testing.T) {
 		},
 		{
 			name: "error_without_command",
-			err: &Error{
+			err: &OpError{
 				Op:      "test operation",
 				Command: "",
 				Err:     errors.New("test error"),
@@ -41,16 +41,16 @@ func TestError_Error(t *testing.T) {
 	}
 }
 
-func TestNewError(t *testing.T) {
+func TestNewOpError(t *testing.T) {
 	op := "test operation"
 	command := "git test"
 	err := errors.New("test error")
 
-	result := NewError(op, command, err)
+	result := NewOpError(op, command, err)
 
-	var gitErr *Error
+	var gitErr *OpError
 	if !errors.As(result, &gitErr) {
-		t.Fatalf("NewError should return *Error, got %T", result)
+		t.Fatalf("NewOpError should return *OpError, got %T", result)
 	}
 
 	if gitErr.Op != op {

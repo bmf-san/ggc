@@ -31,7 +31,7 @@ func (c *Client) Restore(paths []string, opts *RestoreOptions) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("restore", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
+		return NewOpError("restore", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
 	}
 	return nil
 }

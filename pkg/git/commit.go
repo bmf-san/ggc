@@ -18,7 +18,7 @@ func (c *Client) Commit(message string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("commit", "git commit -m "+message, err)
+		return NewOpError("commit", "git commit -m "+message, err)
 	}
 	return nil
 }
@@ -30,7 +30,7 @@ func (c *Client) CommitAmend() error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
-		return NewError("commit amend", "git commit --amend", err)
+		return NewOpError("commit amend", "git commit --amend", err)
 	}
 	return nil
 }
@@ -41,7 +41,7 @@ func (c *Client) CommitAmendNoEdit() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("commit amend no-edit", "git commit --amend --no-edit", err)
+		return NewOpError("commit amend no-edit", "git commit --amend --no-edit", err)
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ func (c *Client) CommitAmendWithMessage(message string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("commit amend with message", "git commit --amend -m "+message, err)
+		return NewOpError("commit amend with message", "git commit --amend -m "+message, err)
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (c *Client) CommitAllowEmpty() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("commit allow empty", "git commit --allow-empty -m 'empty commit'", err)
+		return NewOpError("commit allow empty", "git commit --allow-empty -m 'empty commit'", err)
 	}
 	return nil
 }

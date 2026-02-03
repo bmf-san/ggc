@@ -7,16 +7,16 @@ import "os"
 func (c *Client) ResetHardAndClean() error {
 	branch, err := c.GetCurrentBranch()
 	if err != nil {
-		return NewError("reset hard and clean", "get current branch", err)
+		return NewOpError("reset hard and clean", "get current branch", err)
 	}
 	cmd := c.execCommand("git", "reset", "--hard", "origin/"+branch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("reset hard and clean", "git reset --hard origin/"+branch, err)
+		return NewOpError("reset hard and clean", "git reset --hard origin/"+branch, err)
 	}
 	if err := c.CleanDirs(); err != nil {
-		return NewError("reset hard and clean", "clean directories", err)
+		return NewOpError("reset hard and clean", "clean directories", err)
 	}
 	return nil
 }
@@ -27,7 +27,7 @@ func (c *Client) ResetHard(commit string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("reset hard", "git reset --hard "+commit, err)
+		return NewOpError("reset hard", "git reset --hard "+commit, err)
 	}
 	return nil
 }

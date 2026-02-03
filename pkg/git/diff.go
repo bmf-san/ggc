@@ -24,7 +24,7 @@ func (c *Client) DiffWith(args []string) (string, error) {
 	out, err := cmd.Output()
 	if err != nil {
 		command := strings.Join(append([]string{"git"}, cmdArgs...), " ")
-		return "", NewError("get diff", command, err)
+		return "", NewOpError("get diff", command, err)
 	}
 	return string(out), nil
 }

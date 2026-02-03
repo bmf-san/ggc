@@ -10,7 +10,7 @@ func (c *Client) Stash() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("stash", "git stash", err)
+		return NewOpError("stash", "git stash", err)
 	}
 	return nil
 }
@@ -20,7 +20,7 @@ func (c *Client) StashList() (string, error) {
 	cmd := c.execCommand("git", "stash", "list")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", NewError("stash list", "git stash list", err)
+		return "", NewOpError("stash list", "git stash list", err)
 	}
 	return string(out), nil
 }
@@ -39,7 +39,7 @@ func (c *Client) StashShow(stash string) error {
 		if stash != "" {
 			cmdStr = "git stash show " + stash
 		}
-		return NewError("stash show", cmdStr, err)
+		return NewOpError("stash show", cmdStr, err)
 	}
 	return nil
 }
@@ -58,7 +58,7 @@ func (c *Client) StashApply(stash string) error {
 		if stash != "" {
 			cmdStr = "git stash apply " + stash
 		}
-		return NewError("stash apply", cmdStr, err)
+		return NewOpError("stash apply", cmdStr, err)
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (c *Client) StashPop(stash string) error {
 		if stash != "" {
 			cmdStr = "git stash pop " + stash
 		}
-		return NewError("stash pop", cmdStr, err)
+		return NewOpError("stash pop", cmdStr, err)
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func (c *Client) StashPush(message string) error {
 		if message != "" {
 			cmdStr = "git stash push -m " + message
 		}
-		return NewError("stash push", cmdStr, err)
+		return NewOpError("stash push", cmdStr, err)
 	}
 
 	return nil
@@ -117,7 +117,7 @@ func (c *Client) StashDrop(stash string) error {
 		if stash != "" {
 			cmdStr = "git stash drop " + stash
 		}
-		return NewError("stash drop", cmdStr, err)
+		return NewOpError("stash drop", cmdStr, err)
 	}
 	return nil
 }
@@ -128,7 +128,7 @@ func (c *Client) StashClear() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("stash clear", "git stash clear", err)
+		return NewOpError("stash clear", "git stash clear", err)
 	}
 	return nil
 }

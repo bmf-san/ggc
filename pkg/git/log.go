@@ -11,7 +11,7 @@ func (c *Client) LogSimple() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("log simple", "git log --oneline --graph --decorate -10", err)
+		return NewOpError("log simple", "git log --oneline --graph --decorate -10", err)
 	}
 	return nil
 }
@@ -22,7 +22,7 @@ func (c *Client) LogGraph() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("log graph", "git log --graph --oneline --decorate --all", err)
+		return NewOpError("log graph", "git log --graph --oneline --decorate --all", err)
 	}
 	return nil
 }

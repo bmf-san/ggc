@@ -39,7 +39,7 @@ func (c *Client) ListLocalBranches() ([]string, error) {
 	cmd := c.execCommand("git", "branch", "--format", "%(refname:short)")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, NewError("list local branches", "git branch --format %(refname:short)", err)
+		return nil, NewOpError("list local branches", "git branch --format %(refname:short)", err)
 	}
 	lines := splitBranchLines(out)
 	return lines, nil
@@ -50,7 +50,7 @@ func (c *Client) ListRemoteBranches() ([]string, error) {
 	cmd := c.execCommand("git", "branch", "-r", "--format", "%(refname:short)")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, NewError("list remote branches", "git branch -r --format %(refname:short)", err)
+		return nil, NewOpError("list remote branches", "git branch -r --format %(refname:short)", err)
 	}
 	lines := splitBranchLines(out)
 	// Exclude HEAD references such as origin/HEAD -> origin/main
@@ -70,7 +70,7 @@ func (c *Client) CheckoutBranch(name string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("checkout branch", "git checkout "+name, err)
+		return NewOpError("checkout branch", "git checkout "+name, err)
 	}
 	return nil
 }
@@ -86,7 +86,7 @@ func (c *Client) CheckoutNewBranch(name string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("checkout new branch", fmt.Sprintf("git checkout -b %s", normalized), err)
+		return NewOpError("checkout new branch", fmt.Sprintf("git checkout -b %s", normalized), err)
 	}
 	return nil
 }
@@ -102,7 +102,7 @@ func (c *Client) CheckoutNewBranchFromRemote(localBranch, remoteBranch string) e
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("checkout new branch from remote", fmt.Sprintf("git checkout -b %s --track %s", normalizedLocal, remoteBranch), err)
+		return NewOpError("checkout new branch from remote", fmt.Sprintf("git checkout -b %s --track %s", normalizedLocal, remoteBranch), err)
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func (c *Client) DeleteBranch(name string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("delete branch", "git branch -d "+normalized, err)
+		return NewOpError("delete branch", "git branch -d "+normalized, err)
 	}
 	return nil
 }
@@ -128,7 +128,7 @@ func (c *Client) ListMergedBranches() ([]string, error) {
 	cmd := c.execCommand("git", "branch", "--merged")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, NewError("list merged branches", "git branch --merged", err)
+		return nil, NewOpError("list merged branches", "git branch --merged", err)
 	}
 
 	branches := splitBranchLines(out)
@@ -158,7 +158,7 @@ func (c *Client) RenameBranch(old, newName string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rename branch", fmt.Sprintf("git branch -m %s %s", trimmedOld, normalizedNew), err)
+		return NewOpError("rename branch", fmt.Sprintf("git branch -m %s %s", trimmedOld, normalizedNew), err)
 	}
 	return nil
 }
@@ -178,7 +178,7 @@ func (c *Client) MoveBranch(branch, commit string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("move branch", fmt.Sprintf("git branch -f %s %s", normalized, trimmedCommit), err)
+		return NewOpError("move branch", fmt.Sprintf("git branch -f %s %s", normalized, trimmedCommit), err)
 	}
 	return nil
 }
@@ -198,7 +198,7 @@ func (c *Client) SetUpstreamBranch(branch, upstream string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("set upstream branch", fmt.Sprintf("git branch -u %s %s", trimmedUpstream, normalizedBranch), err)
+		return NewOpError("set upstream branch", fmt.Sprintf("git branch -u %s %s", trimmedUpstream, normalizedBranch), err)
 	}
 	return nil
 }
@@ -208,7 +208,7 @@ func (c *Client) ListBranchesVerbose() ([]BranchInfo, error) {
 	cmd := c.execCommand("git", "branch", "-vv")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, NewError("list branches verbose", "git branch -vv", err)
+		return nil, NewOpError("list branches verbose", "git branch -vv", err)
 	}
 	lines := splitBranchLines(out)
 	infos := make([]BranchInfo, 0, len(lines))
@@ -275,7 +275,7 @@ func (c *Client) getBranchSHA(branch string) (string, error) {
 	shaCmd := c.execCommand("git", "rev-parse", "--short", branch)
 	shaOut, shaErr := shaCmd.Output()
 	if shaErr != nil {
-		return "", NewError("get branch info", fmt.Sprintf("git rev-parse --short %s", branch), shaErr)
+		return "", NewOpError("get branch info", fmt.Sprintf("git rev-parse --short %s", branch), shaErr)
 	}
 	return strings.TrimSpace(string(shaOut)), nil
 }
@@ -285,7 +285,7 @@ func (c *Client) getBranchLastCommitMsg(branch string) (string, error) {
 	msgCmd := c.execCommand("git", "log", "-1", "--pretty=%s", branch)
 	msgOut, msgErr := msgCmd.Output()
 	if msgErr != nil {
-		return "", NewError("get branch info", fmt.Sprintf("git log -1 --pretty=%%s %s", branch), msgErr)
+		return "", NewOpError("get branch info", fmt.Sprintf("git log -1 --pretty=%%s %s", branch), msgErr)
 	}
 	return strings.TrimSpace(string(msgOut)), nil
 }
@@ -342,7 +342,7 @@ func (c *Client) SortBranches(by string) ([]string, error) {
 	cmd := c.execCommand("git", "branch", "--sort="+sortKey, "--format", "%(refname:short)")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, NewError("sort branches", fmt.Sprintf("git branch --sort=%s --format %%(refname:short)", sortKey), err)
+		return nil, NewOpError("sort branches", fmt.Sprintf("git branch --sort=%s --format %%(refname:short)", sortKey), err)
 	}
 	return splitBranchLines(out), nil
 }
@@ -352,7 +352,7 @@ func (c *Client) BranchesContaining(commit string) ([]string, error) {
 	cmd := c.execCommand("git", "branch", "--contains", commit)
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, NewError("branches containing commit", "git branch --contains "+commit, err)
+		return nil, NewOpError("branches containing commit", "git branch --contains "+commit, err)
 	}
 	lines := splitBranchLines(out)
 	res := []string{}
