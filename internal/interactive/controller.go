@@ -19,10 +19,10 @@ import (
 	"golang.org/x/text/width"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/termio"
 	uiutil "github.com/bmf-san/ggc/v7/internal/ui"
-	"github.com/bmf-san/ggc/v7/pkg/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 

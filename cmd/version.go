@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
