@@ -1,4 +1,4 @@
-package security
+package aliasvalidator
 
 import (
 	"strings"

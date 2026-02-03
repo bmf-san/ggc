@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"golang.org/x/term"
+
+	"github.com/bmf-san/ggc/v7/internal/keybindings"
 )
 
 // Debugger handles debug operations.
@@ -86,7 +88,7 @@ func (d *Debugger) captureRawKeySequences(outputFile string) {
 		return
 	}
 
-	debugCmd := NewDebugKeysCommand(outputFile)
+	debugCmd := keybindings.NewDebugKeysCommand(outputFile)
 	oldState, err := d.setupTerminalRawMode()
 	if err != nil {
 		_, _ = fmt.Fprintf(d.outputWriter, "Error setting terminal to raw mode: %v\n", err)
@@ -116,7 +118,7 @@ func (d *Debugger) restoreTerminal(oldState *term.State) {
 }
 
 // handleSignals sets up signal handling for graceful shutdown
-func (d *Debugger) handleSignals(debugCmd *DebugKeysCommand, oldState *term.State) {
+func (d *Debugger) handleSignals(debugCmd *keybindings.DebugKeysCommand, oldState *term.State) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
@@ -134,7 +136,7 @@ func (d *Debugger) handleSignals(debugCmd *DebugKeysCommand, oldState *term.Stat
 }
 
 // processInput reads and processes keyboard input
-func (d *Debugger) processInput(debugCmd *DebugKeysCommand) {
+func (d *Debugger) processInput(debugCmd *keybindings.DebugKeysCommand) {
 	buffer := make([]byte, 64)
 	for debugCmd.IsCapturing() {
 		n, err := os.Stdin.Read(buffer)
@@ -154,7 +156,7 @@ func (d *Debugger) processInput(debugCmd *DebugKeysCommand) {
 }
 
 // checkForCtrlC checks if Ctrl+C was pressed and stops capture if so
-func (d *Debugger) checkForCtrlC(sequence []byte, debugCmd *DebugKeysCommand) bool {
+func (d *Debugger) checkForCtrlC(sequence []byte, debugCmd *keybindings.DebugKeysCommand) bool {
 	for _, b := range sequence {
 		if b == 3 { // Ctrl+C
 			_, _ = fmt.Fprintln(d.outputWriter, "\nCapture stopped by user")

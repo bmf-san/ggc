@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 )
 
 func runeIndex(haystack, needle string) int {
@@ -17,54 +19,54 @@ func runeIndex(haystack, needle string) int {
 func TestUIStateContextManagement(t *testing.T) {
 	t.Run("enter and exit context stack", func(t *testing.T) {
 		state := &UIState{
-			context:      ContextGlobal,
-			contextStack: []Context{},
+			context:      kb.ContextGlobal,
+			contextStack: []kb.Context{},
 		}
 
-		var transitions [][2]Context
-		state.onContextChange = func(oldCtx, newCtx Context) {
-			transitions = append(transitions, [2]Context{oldCtx, newCtx})
+		var transitions [][2]kb.Context
+		state.onContextChange = func(oldCtx, newCtx kb.Context) {
+			transitions = append(transitions, [2]kb.Context{oldCtx, newCtx})
 		}
 
-		state.EnterContext(ContextInput)
-		if state.context != ContextInput {
-			t.Fatalf("want context %v, got %v", ContextInput, state.context)
+		state.EnterContext(kb.ContextInput)
+		if state.context != kb.ContextInput {
+			t.Fatalf("want context %v, got %v", kb.ContextInput, state.context)
 		}
-		if len(state.contextStack) != 1 || state.contextStack[0] != ContextGlobal {
+		if len(state.contextStack) != 1 || state.contextStack[0] != kb.ContextGlobal {
 			t.Fatalf("unexpected stack contents: %#v", state.contextStack)
 		}
 
-		state.EnterContext(ContextInput)
+		state.EnterContext(kb.ContextInput)
 		if len(state.contextStack) != 1 {
 			t.Fatalf("expected stack to remain unchanged, got %d", len(state.contextStack))
 		}
 
-		state.EnterContext(ContextResults)
-		if got := state.GetCurrentContext(); got != ContextResults {
-			t.Fatalf("want current context %v, got %v", ContextResults, got)
+		state.EnterContext(kb.ContextResults)
+		if got := state.GetCurrentContext(); got != kb.ContextResults {
+			t.Fatalf("want current context %v, got %v", kb.ContextResults, got)
 		}
 		if len(state.contextStack) != 2 {
 			t.Fatalf("want stack size 2, got %d", len(state.contextStack))
 		}
 
 		state.ExitContext()
-		if state.context != ContextInput {
-			t.Fatalf("want context %v after exit, got %v", ContextInput, state.context)
+		if state.context != kb.ContextInput {
+			t.Fatalf("want context %v after exit, got %v", kb.ContextInput, state.context)
 		}
 		state.ExitContext()
-		if state.context != ContextGlobal {
-			t.Fatalf("want context %v after exit, got %v", ContextGlobal, state.context)
+		if state.context != kb.ContextGlobal {
+			t.Fatalf("want context %v after exit, got %v", kb.ContextGlobal, state.context)
 		}
 		state.ExitContext()
-		if state.context != ContextGlobal {
-			t.Fatalf("context should remain %v when stack empty, got %v", ContextGlobal, state.context)
+		if state.context != kb.ContextGlobal {
+			t.Fatalf("context should remain %v when stack empty, got %v", kb.ContextGlobal, state.context)
 		}
 
-		wantTransitions := [][2]Context{
-			{ContextGlobal, ContextInput},
-			{ContextInput, ContextResults},
-			{ContextResults, ContextInput},
-			{ContextInput, ContextGlobal},
+		wantTransitions := [][2]kb.Context{
+			{kb.ContextGlobal, kb.ContextInput},
+			{kb.ContextInput, kb.ContextResults},
+			{kb.ContextResults, kb.ContextInput},
+			{kb.ContextInput, kb.ContextGlobal},
 		}
 		if len(transitions) != len(wantTransitions) {
 			t.Fatalf("want %d transitions, got %d", len(wantTransitions), len(transitions))
@@ -78,21 +80,21 @@ func TestUIStateContextManagement(t *testing.T) {
 
 	t.Run("fallback to global when stack empty", func(t *testing.T) {
 		state := &UIState{
-			context:      ContextSearch,
+			context:      kb.ContextSearch,
 			contextStack: nil,
 		}
 
 		transitioned := false
-		state.onContextChange = func(oldCtx, newCtx Context) {
+		state.onContextChange = func(oldCtx, newCtx kb.Context) {
 			transitioned = true
-			if oldCtx != ContextSearch || newCtx != ContextGlobal {
+			if oldCtx != kb.ContextSearch || newCtx != kb.ContextGlobal {
 				t.Fatalf("unexpected transition %v -> %v", oldCtx, newCtx)
 			}
 		}
 
 		state.ExitContext()
-		if state.context != ContextGlobal {
-			t.Fatalf("want context %v, got %v", ContextGlobal, state.context)
+		if state.context != kb.ContextGlobal {
+			t.Fatalf("want context %v, got %v", kb.ContextGlobal, state.context)
 		}
 		if !transitioned {
 			t.Fatalf("expected transition callback to run")
@@ -101,15 +103,15 @@ func TestUIStateContextManagement(t *testing.T) {
 }
 
 func TestUIStateModeHelpers(t *testing.T) {
-	state := &UIState{context: ContextInput}
+	state := &UIState{context: kb.ContextInput}
 	if !state.IsInInputMode() {
 		t.Fatalf("expected input mode")
 	}
-	state.context = ContextResults
+	state.context = kb.ContextResults
 	if !state.IsInResultsMode() {
 		t.Fatalf("expected results mode")
 	}
-	state.context = ContextSearch
+	state.context = kb.ContextSearch
 	if !state.IsInSearchMode() {
 		t.Fatalf("expected search mode")
 	}

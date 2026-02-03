@@ -1,5 +1,5 @@
-// Package security provides security validation utilities for ggc.
-package security
+// Package aliasvalidator provides alias command validation utilities for ggc.
+package aliasvalidator
 
 import (
 	"fmt"

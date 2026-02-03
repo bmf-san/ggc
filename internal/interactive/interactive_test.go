@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/term"
 
+	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/termio"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
@@ -149,8 +150,8 @@ func TestUIResetToSearchModeClearsState(t *testing.T) {
 		input:        "status",
 		cursorPos:    6,
 		filtered:     []CommandInfo{{Command: "status"}},
-		context:      ContextSearch,
-		contextStack: []Context{ContextInput},
+		context:      kb.ContextSearch,
+		contextStack: []kb.Context{kb.ContextInput},
 		mode:         ModeWorkflow,
 	}
 
@@ -172,8 +173,8 @@ func TestUIResetToSearchModeClearsState(t *testing.T) {
 	if len(state.contextStack) != 0 {
 		t.Errorf("context stack should be empty after reset, got %v", state.contextStack)
 	}
-	if gotCtx := state.GetCurrentContext(); gotCtx != ContextGlobal {
-		t.Errorf("want context %v, got %v", ContextGlobal, gotCtx)
+	if gotCtx := state.GetCurrentContext(); gotCtx != kb.ContextGlobal {
+		t.Errorf("want context %v, got %v", kb.ContextGlobal, gotCtx)
 	}
 	if state.mode != ModeSearch {
 		t.Errorf("expected mode to reset to ModeSearch, got %v", state.mode)
@@ -1230,17 +1231,17 @@ func TestNewUI_WiresContextualResolver(t *testing.T) {
 		t.Fatal("expected contextual keybinding map to be set")
 	}
 
-	globalMap, exists := contextual.GetContext(ContextGlobal)
+	globalMap, exists := contextual.GetContext(kb.ContextGlobal)
 	if !exists || globalMap == nil {
 		t.Fatalf("expected global context keymap, got exists=%v map=%v", exists, globalMap)
 	}
 
-	if !globalMap.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('q')) {
+	if !globalMap.MatchesKeyStroke("delete_word", kb.NewCtrlKeyStroke('q')) {
 		t.Fatal("environment override should be reflected in global keymap")
 	}
 
 	currentMap := ui.handler.GetCurrentKeyMap()
-	if !currentMap.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('q')) {
+	if !currentMap.MatchesKeyStroke("delete_word", kb.NewCtrlKeyStroke('q')) {
 		t.Error("handler current map should resolve overrides via contextual map")
 	}
 }
@@ -1321,8 +1322,8 @@ func TestKeyHandler_HandleSoftCancelResetsState(t *testing.T) {
 		colors: colors,
 		state: &UIState{
 			input:        "status",
-			context:      ContextSearch,
-			contextStack: []Context{ContextInput},
+			context:      kb.ContextSearch,
+			contextStack: []kb.Context{kb.ContextInput},
 			mode:         ModeWorkflow,
 			selected:     2,
 		},
@@ -1339,7 +1340,7 @@ func TestKeyHandler_HandleSoftCancelResetsState(t *testing.T) {
 	if ui.state.mode != ModeSearch {
 		t.Error("expected workflow mode to be cleared after soft cancel")
 	}
-	if ui.state.GetCurrentContext() != ContextGlobal {
+	if ui.state.GetCurrentContext() != kb.ContextGlobal {
 		t.Errorf("expected context to reset to global, got %s", ui.state.GetCurrentContext())
 	}
 	if !ui.consumeSoftCancelFlash() {
@@ -1359,7 +1360,7 @@ func TestShouldHandleEscapeAsSoftCancel(t *testing.T) {
 		stdout: &bytes.Buffer{},
 		colors: NewANSIColors(),
 		state: &UIState{
-			context: ContextGlobal,
+			context: kb.ContextGlobal,
 		},
 	}
 
@@ -1398,7 +1399,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 			stdout: &bytes.Buffer{},
 			colors: NewANSIColors(),
 			state: &UIState{
-				context:  ContextGlobal,
+				context:  kb.ContextGlobal,
 				input:    "test",
 				filtered: []CommandInfo{},
 			},
@@ -1428,7 +1429,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 			stdout: &bytes.Buffer{},
 			colors: NewANSIColors(),
 			state: &UIState{
-				context:   ContextGlobal,
+				context:   kb.ContextGlobal,
 				input:     "test",
 				cursorPos: 4,
 				filtered:  []CommandInfo{},
@@ -1467,7 +1468,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 			stdout: &bytes.Buffer{},
 			colors: NewANSIColors(),
 			state: &UIState{
-				context:   ContextGlobal,
+				context:   kb.ContextGlobal,
 				input:     "test",
 				cursorPos: 0,
 				filtered:  []CommandInfo{},
