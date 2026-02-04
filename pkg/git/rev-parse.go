@@ -6,9 +6,6 @@ import (
 
 // GetCurrentBranch gets the current branch name.
 func (c *Client) GetCurrentBranch() (string, error) {
-	if c.GetCurrentBranchFunc != nil {
-		return c.GetCurrentBranchFunc()
-	}
 	cmd := c.execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	out, err := cmd.Output()
 	if err != nil {
