@@ -133,7 +133,7 @@ type CommandInfo struct {
 
 func buildInteractiveCommands() []CommandInfo {
 	var list []CommandInfo
-	allCommands := commandregistry.All()
+	allCommands := commandregistry.DefaultRegistry.All()
 	for i := range allCommands {
 		cmd := &allCommands[i]
 		if cmd.Hidden {

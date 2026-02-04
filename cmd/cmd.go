@@ -337,7 +337,7 @@ func mustNewCommandRouter(cmd *Cmd) *commandRouter {
 }
 
 func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
-	if err := commandregistry.ValidateAll(); err != nil {
+	if err := commandregistry.DefaultRegistry.Validate(); err != nil {
 		return nil, fmt.Errorf("command registry validation failed: %w", err)
 	}
 
@@ -383,7 +383,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 }
 
 func (r *commandRouter) route(cmd string, args []string) bool {
-	info, ok := commandregistry.Find(cmd)
+	info, ok := commandregistry.DefaultRegistry.Find(cmd)
 	if !ok {
 		return false
 	}
@@ -401,7 +401,7 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 
 func missingHandlers(available map[string]struct{}) []string {
 	var missing []string
-	allCommands := commandregistry.All()
+	allCommands := commandregistry.DefaultRegistry.All()
 	for i := range allCommands {
 		info := &allCommands[i]
 		id := strings.TrimSpace(info.HandlerID)

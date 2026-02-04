@@ -48,7 +48,7 @@ func (h *Helper) renderCommandFromRegistry(name string, usageOverride []string, 
 }
 
 func (h *Helper) renderCommandFromRegistryWithFilter(name string, usageOverride []string, descriptionOverride string, filter func(commandregistry.SubcommandInfo) bool) {
-	info, ok := commandregistry.Find(name)
+	info, ok := commandregistry.DefaultRegistry.Find(name)
 	if !ok {
 		usage := usageOverride
 		if len(usage) == 0 {

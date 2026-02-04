@@ -37,7 +37,7 @@ func NewValidator() *Validator {
 func (v *Validator) initCommands() {
 	v.once.Do(func() {
 		v.validCommands = make(map[string]struct{})
-		allCommands := command.All()
+		allCommands := command.DefaultRegistry.All()
 		for i := range allCommands {
 			v.validCommands[allCommands[i].Name] = struct{}{}
 		}

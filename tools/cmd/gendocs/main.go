@@ -132,7 +132,7 @@ func writeUpdatedREADME(lines []string, tableStartIdx, tableEndIdx int, newTable
 }
 
 func generateCommandTable() []string {
-	commands := command.VisibleCommands()
+	commands := command.DefaultRegistry.VisibleCommands()
 
 	// Sort commands by category, then by name
 	sort.Slice(commands, func(i, j int) bool {

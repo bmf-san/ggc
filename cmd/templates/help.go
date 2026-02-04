@@ -164,7 +164,7 @@ func buildMainHelpCategories() []helpCategory {
 
 	categoryCommands := make(map[commandregistry.Category][]helpCommand)
 
-	visibleCommands := commandregistry.VisibleCommands()
+	visibleCommands := commandregistry.DefaultRegistry.VisibleCommands()
 	for i := range visibleCommands {
 		cmd := &visibleCommands[i]
 		categoryCommands[cmd.Category] = append(categoryCommands[cmd.Category], helpCommandsFor(cmd)...)
