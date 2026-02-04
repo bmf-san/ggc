@@ -666,7 +666,7 @@ func TestRouter_WithAliases(t *testing.T) {
 			// Create a real config manager and manually set aliases
 			mockClient := testutil.NewMockGitClient()
 			configManager := config.NewConfigManager(mockClient)
-			configManager.LoadConfig()
+			_ = configManager.LoadConfig()
 
 			// Manually set aliases in the config
 			cfg := configManager.GetConfig()
@@ -699,7 +699,7 @@ func TestRouter_WithAliases(t *testing.T) {
 func TestRouter_SequenceAliasRejectsArguments(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
 	configManager := config.NewConfigManager(mockClient)
-	configManager.LoadConfig()
+	_ = configManager.LoadConfig()
 
 	cfg := configManager.GetConfig()
 	cfg.Aliases = map[string]interface{}{
@@ -775,7 +775,7 @@ func TestRouter_AliasErrors(t *testing.T) {
 			// Create a real config manager and manually set aliases
 			mockClient := testutil.NewMockGitClient()
 			configManager := config.NewConfigManager(mockClient)
-			configManager.LoadConfig()
+			_ = configManager.LoadConfig()
 
 			// Manually set aliases in the config
 			cfg := configManager.GetConfig()
@@ -883,7 +883,7 @@ func TestRouter_AliasSequenceExecution(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			configManager := config.NewConfigManager(mockClient)
-			configManager.LoadConfig()
+			_ = configManager.LoadConfig()
 
 			cfg := configManager.GetConfig()
 			cfg.Aliases = tc.aliases

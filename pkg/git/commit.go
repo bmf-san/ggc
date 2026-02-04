@@ -8,6 +8,15 @@ import (
 	"unicode/utf8"
 )
 
+// CommitWriter provides write operations for commits.
+type CommitWriter interface {
+	Commit(message string) error
+	CommitAmend() error
+	CommitAmendNoEdit() error
+	CommitAmendWithMessage(message string) error
+	CommitAllowEmpty() error
+}
+
 // Commit commits with the given message.
 func (c *Client) Commit(message string) error {
 	if err := validateCommitMessage(message); err != nil {

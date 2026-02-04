@@ -52,7 +52,10 @@ func GetVersionInfo() (string, string) {
 // This function initializes all components and routes the provided arguments.
 func RunApp(args []string) {
 	cm := config.NewConfigManager(git.NewClient())
-	cm.LoadConfig()
+	if err := cm.LoadConfig(); err != nil {
+		// Continue with default config on error
+		_, _ = os.Stderr.WriteString("Warning: " + err.Error() + "\n")
+	}
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd(git.NewClient())
 	// Cache default remote in tagger to avoid repeated config loads.

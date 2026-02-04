@@ -2,6 +2,15 @@ package git
 
 import "strings"
 
+// DiffReader provides read-only diff operations.
+// Implemented by Client and any compatible mock in tests.
+type DiffReader interface {
+	Diff() (string, error)
+	DiffStaged() (string, error)
+	DiffHead() (string, error)
+	DiffWith(args []string) (string, error)
+}
+
 // Diff gets git diff output.
 func (c *Client) Diff() (string, error) {
 	return c.DiffWith(nil)

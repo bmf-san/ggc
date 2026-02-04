@@ -5,6 +5,12 @@ import (
 	"os"
 )
 
+// LogReader provides read-only access to git log output.
+type LogReader interface {
+	LogSimple() error
+	LogGraph() error
+}
+
 // LogSimple shows simple log.
 func (c *Client) LogSimple() error {
 	cmd := c.execCommand("git", "log", "--oneline", "--graph", "--decorate", "-10")

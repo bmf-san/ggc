@@ -5,6 +5,24 @@ import (
 	"strings"
 )
 
+// TagOps provides operations used by the tag command.
+type TagOps interface {
+	// list/show
+	TagList(pattern []string) error
+	TagShow(name string) error
+	// create/delete
+	TagCreate(name string, commit string) error
+	TagCreateAnnotated(name, message string) error
+	TagDelete(names []string) error
+	// push
+	TagPush(remote, name string) error
+	TagPushAll(remote string) error
+	// query
+	GetLatestTag() (string, error)
+	TagExists(name string) bool
+	GetTagCommit(name string) (string, error)
+}
+
 // TagList lists tags, optionally filtered by pattern.
 func (c *Client) TagList(pattern []string) error {
 	var cmd = c.execCommand("git", "tag", "--sort=-version:refname")

@@ -286,7 +286,7 @@ func TestMain_Components(t *testing.T) {
 				}
 
 				// Test config loading (safe with mock)
-				cm.LoadConfig()
+				_ = cm.LoadConfig()
 				cfg := cm.GetConfig()
 				if cfg == nil {
 					t.Error("config should be loaded")
@@ -339,7 +339,7 @@ func TestMain_Components(t *testing.T) {
 
 				// Initialize components like main() does
 				cm := config.NewConfigManager(mockClient)
-				cm.LoadConfig()
+				_ = cm.LoadConfig()
 				cmd.SetVersionGetter(GetVersionInfo)
 				c := cmd.NewCmd(mockClient)
 				r := router.NewRouter(c, cm)
@@ -391,7 +391,7 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			// Test argument handling with mock components
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
-			cm.LoadConfig()
+			_ = cm.LoadConfig()
 			c := cmd.NewCmd(mockClient)
 			r := router.NewRouter(c, cm)
 
@@ -441,7 +441,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 			// Create mock client and set up config
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
-			cm.LoadConfig()
+			_ = cm.LoadConfig()
 
 			// Set up the mock config to return our test value
 			cfg := cm.GetConfig()
@@ -505,7 +505,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 
 			// Step 1: Create config manager and load config
 			cm := config.NewConfigManager(mockClient)
-			cm.LoadConfig()
+			_ = cm.LoadConfig()
 
 			// Set up test config
 			cfg := cm.GetConfig()
@@ -554,7 +554,7 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			// Test with mock components
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
-			cm.LoadConfig()
+			_ = cm.LoadConfig()
 			cmd.SetVersionGetter(GetVersionInfo)
 			c := cmd.NewCmd(mockClient)
 			r := router.NewRouter(c, cm)
@@ -663,7 +663,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		if cm == nil {
 			t.Fatal("Config manager creation failed")
 		}
-		cm.LoadConfig()
+		_ = cm.LoadConfig()
 
 		// Step 2: Version getter setup
 		cmd.SetVersionGetter(GetVersionInfo)

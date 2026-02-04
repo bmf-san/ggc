@@ -5,6 +5,14 @@ import (
 	"strings"
 )
 
+// ConfigOps provides git config get/set operations used by config.Manager and Configurer.
+type ConfigOps interface {
+	ConfigGetGlobal(key string) (string, error)
+	ConfigSetGlobal(key, value string) error
+	GetVersion() (string, error)
+	GetCommitHash() (string, error)
+}
+
 // ConfigGet retrieves a git configuration value from local repository
 func (c *Client) ConfigGet(key string) (string, error) {
 	cmd := c.execCommand("git", "config", key)

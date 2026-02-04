@@ -642,7 +642,7 @@ func TestLoadConfig(t *testing.T) {
 	cm := NewConfigManager(testutil.NewMockGitClient())
 	// Use mock git client to avoid real git config operations
 	cm.gitClient = testutil.NewMockGitClient()
-	cm.LoadConfig()
+	_ = cm.LoadConfig()
 
 	if cm.config == nil {
 		t.Error("Expected config to be loaded")
@@ -1796,7 +1796,7 @@ func TestManagerLoadConfig(t *testing.T) {
 			}
 		}()
 
-		cm.LoadConfig()
+		_ = cm.LoadConfig()
 
 		// Verify that config is still accessible (default config should be loaded)
 		config := cm.GetConfig()
@@ -1812,7 +1812,7 @@ func TestManagerLoadConfig(t *testing.T) {
 		cm.configPath = "/definitely/nonexistent/path/config.yaml"
 
 		// Should not panic or crash
-		cm.LoadConfig()
+		_ = cm.LoadConfig()
 
 		// Should still have a valid config object
 		if cm.GetConfig() == nil {
@@ -2027,7 +2027,7 @@ func TestLoadConfigErrorHandling(t *testing.T) {
 	cm := newTestConfigManager()
 
 	// This should not panic and should handle errors gracefully
-	cm.LoadConfig()
+	_ = cm.LoadConfig()
 
 	// Config should still be accessible
 	cfg := cm.GetConfig()

@@ -2,6 +2,11 @@ package git
 
 import "os"
 
+// FetchOps provides fetch operation(s).
+type FetchOps interface {
+	Fetch(prune bool) error
+}
+
 // Fetch fetches from remote repository.
 func (c *Client) Fetch(prune bool) error {
 	var cmd = c.execCommand("git", "fetch")

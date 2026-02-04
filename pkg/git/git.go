@@ -16,15 +16,3 @@ func NewClient() *Client {
 		execCommand: exec.Command,
 	}
 }
-
-// === Repository Information ===
-
-// BranchInfo contains rich information about a branch.
-type BranchInfo struct {
-	Name            string
-	IsCurrentBranch bool
-	Upstream        string
-	AheadBehind     string // e.g. "ahead 2, behind 1"
-	LastCommitSHA   string
-	LastCommitMsg   string
-}
