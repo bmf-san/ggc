@@ -1916,7 +1916,6 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 
 	t.Run("Tab adds command to workflow in search mode", func(t *testing.T) {
 		ui.state.mode = ModeSearch
-		ui.state.FocusInput()
 		ui.state.input = "add"
 		ui.state.filtered = []CommandInfo{{Command: "add .", Description: "Add all changes"}}
 		ui.state.selected = 0
