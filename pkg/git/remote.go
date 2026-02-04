@@ -4,6 +4,14 @@ import (
 	"os"
 )
 
+// RemoteManager provides remote repository management operations.
+type RemoteManager interface {
+	RemoteList() error
+	RemoteAdd(name, url string) error
+	RemoteRemove(name string) error
+	RemoteSetURL(name, url string) error
+}
+
 // RemoteList lists all remotes.
 func (c *Client) RemoteList() error {
 	cmd := c.execCommand("git", "remote", "-v")

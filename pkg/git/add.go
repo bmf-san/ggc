@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// Stager provides add operations for staging changes.
+type Stager interface {
+	Add(files ...string) error
+	AddInteractive() error
+}
+
 // Add adds files to the staging area.
 func (c *Client) Add(files ...string) error {
 	if len(files) == 0 {

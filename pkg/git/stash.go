@@ -4,6 +4,18 @@ import (
 	"os"
 )
 
+// StashOps provides operations used by the stash command.
+type StashOps interface {
+	Stash() error
+	StashList() (string, error)
+	StashShow(stash string) error
+	StashApply(stash string) error
+	StashPop(stash string) error
+	StashPush(stash string) error
+	StashDrop(stash string) error
+	StashClear() error
+}
+
 // Stash creates a new stash.
 func (c *Client) Stash() error {
 	cmd := c.execCommand("git", "stash")

@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// Pusher provides push operation.
+type Pusher interface {
+	Push(force bool) error
+}
+
 // Push pushes to a remote.
 func (c *Client) Push(force bool) error {
 	branch, err := c.GetCurrentBranch()

@@ -1,5 +1,25 @@
 package git
 
+// StatusReader provides read-only status output with color support.
+type StatusReader interface {
+	StatusWithColor() (string, error)
+	StatusShortWithColor() (string, error)
+}
+
+// BranchUpstreamReader provides information about the current branch and its upstream.
+type BranchUpstreamReader interface {
+	GetCurrentBranch() (string, error)
+	GetUpstreamBranchName(branch string) (string, error)
+	GetAheadBehindCount(branch, upstream string) (string, error)
+}
+
+// StatusInfoReader is a pragmatic composite for the status command dependencies.
+// It avoids pulling in an overly broad client surface area.
+type StatusInfoReader interface {
+	StatusReader
+	BranchUpstreamReader
+}
+
 // Status gets git status output.
 func (c *Client) Status() (string, error) {
 	cmd := c.execCommand("git", "status")

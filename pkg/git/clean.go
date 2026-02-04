@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+// CleanOps provides operations used by the clean command.
+type CleanOps interface {
+	CleanFiles() error
+	CleanDirs() error
+	CleanDryRun() (string, error)
+	CleanFilesForce(files []string) error
+}
+
 // CleanFiles cleans untracked files.
 func (c *Client) CleanFiles() error {
 	cmd := c.execCommand("git", "clean", "-fd")

@@ -6,6 +6,21 @@ import (
 	"strings"
 )
 
+// RebaseOps provides operations used by the rebase command.
+type RebaseOps interface {
+	// sequence operations
+	RebaseInteractive(commitCount int) error
+	Rebase(upstream string) error
+	RebaseContinue() error
+	RebaseAbort() error
+	RebaseSkip() error
+	// discovery
+	GetCurrentBranch() (string, error)
+	GetUpstreamBranch(branch string) (string, error)
+	LogOneline(from, to string) (string, error)
+	RevParseVerify(ref string) bool
+}
+
 // LogOneline gets git log output in oneline format between commits.
 func (c *Client) LogOneline(from, to string) (string, error) {
 	cmd := c.execCommand("git", "log", "--oneline", "--reverse", fmt.Sprintf("%s..%s", from, to))

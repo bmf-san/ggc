@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+// RestoreOps provides operations used by the restore command.
+type RestoreOps interface {
+	RestoreWorkingDir(paths ...string) error
+	RestoreStaged(paths ...string) error
+	RestoreFromCommit(commit string, paths ...string) error
+	RevParseVerify(ref string) bool
+}
+
 // RestoreOptions holds options for git restore command
 type RestoreOptions struct {
 	Staged bool   //  (from HEAD to index)

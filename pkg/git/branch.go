@@ -8,6 +8,51 @@ import (
 	"strings"
 )
 
+// LocalBranchLister provides only local branch listing.
+type LocalBranchLister interface {
+	ListLocalBranches() ([]string, error)
+}
+
+// BranchReader provides read-only branch queries.
+type BranchReader interface {
+	GetCurrentBranch() (string, error)
+	ListLocalBranches() ([]string, error)
+	ListMergedBranches() ([]string, error)
+	ListBranchesVerbose() ([]BranchInfo, error)
+	SortBranches(by string) ([]string, error)
+	BranchesContaining(commit string) ([]string, error)
+	GetBranchInfo(branch string) (*BranchInfo, error)
+	ListRemoteBranches() ([]string, error)
+	RevParseVerify(ref string) bool
+}
+
+// BranchWriter provides branch mutation operations.
+type BranchWriter interface {
+	CheckoutNewBranch(name string) error
+	CheckoutBranch(name string) error
+	CheckoutNewBranchFromRemote(localBranch, remoteBranch string) error
+	DeleteBranch(name string) error
+	RenameBranch(old, newName string) error
+	MoveBranch(branch, commit string) error
+	SetUpstreamBranch(branch, upstream string) error
+}
+
+// BranchOps is a pragmatic composite for the branch command dependencies.
+type BranchOps interface {
+	BranchReader
+	BranchWriter
+}
+
+// BranchInfo contains rich information about a branch.
+type BranchInfo struct {
+	Name            string
+	IsCurrentBranch bool
+	Upstream        string
+	AheadBehind     string // e.g. "ahead 2, behind 1"
+	LastCommitSHA   string
+	LastCommitMsg   string
+}
+
 func splitBranchLines(out []byte) []string {
 	trimmed := strings.TrimSpace(string(out))
 	if trimmed == "" {

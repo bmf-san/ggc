@@ -3,6 +3,13 @@ package git
 
 import "os"
 
+// ResetOps provides operations used by the reset command.
+type ResetOps interface {
+	GetCurrentBranch() (string, error)
+	ResetHardAndClean() error
+	ResetHard(commit string) error
+}
+
 // ResetHardAndClean resets the current branch to the state of origin and cleans the working directory.
 func (c *Client) ResetHardAndClean() error {
 	branch, err := c.GetCurrentBranch()
