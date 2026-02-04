@@ -356,29 +356,21 @@ func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 	for i, step := range steps {
 		fmt.Printf("📋 Step %d/%d: %s\n", i+1, len(steps), step.String())
 
-		// Resolve placeholders in the description (which contains the original template)
-		finalCmd := step.Description
-		placeholders := extractPlaceholders(finalCmd)
-
-		if len(placeholders) > 0 {
-			inputs, canceled := interactiveInputForWorkflow(we.ui, placeholders)
-			if canceled {
-				return ErrWorkflowCanceled
-			}
-
-			// Placeholder replacement
-			for ph, val := range inputs {
-				finalCmd = strings.ReplaceAll(finalCmd, "<"+ph+">", val)
-			}
-
-			fmt.Printf("   → Resolved to: %s\n", finalCmd)
+		// Resolve placeholders in each argument individually to preserve multiword values
+		resolvedArgs, canceled := resolveStepPlaceholders(we.ui, step)
+		if canceled {
+			return ErrWorkflowCanceled
 		}
 
-		// Parse resolved command
-		parts := strings.Fields(finalCmd)
-		if len(parts) == 0 {
+		// Build parts array: command + resolved args
+		parts := append([]string{step.Command}, resolvedArgs...)
+
+		if len(parts) == 0 || parts[0] == "" {
 			continue
 		}
+
+		// Show resolved command
+		fmt.Printf("   → Resolved to: %s\n", strings.Join(parts, " "))
 
 		// Execute the resolved command using existing Route mechanism
 		we.router.Route(parts)
@@ -393,6 +385,68 @@ func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 
 	fmt.Printf("\n🎉 Workflow completed successfully! (%d steps executed)\n", len(steps))
 	return nil
+}
+
+// deriveArgsFromDescription extracts arguments from a description string.
+// Returns the args portion (everything after the command name).
+func deriveArgsFromDescription(description string) []string {
+	parts := strings.Fields(description)
+	if len(parts) > 1 {
+		return parts[1:]
+	}
+	return nil
+}
+
+// collectPlaceholders extracts unique placeholders from a list of arguments.
+func collectPlaceholders(args []string) []string {
+	var placeholders []string
+	seen := make(map[string]bool)
+	for _, arg := range args {
+		for _, ph := range extractPlaceholders(arg) {
+			if !seen[ph] {
+				seen[ph] = true
+				placeholders = append(placeholders, ph)
+			}
+		}
+	}
+	return placeholders
+}
+
+// replacePlaceholdersInArgs replaces placeholders in each argument with their values.
+func replacePlaceholdersInArgs(args []string, inputs map[string]string) []string {
+	resolvedArgs := make([]string, len(args))
+	for i, arg := range args {
+		resolved := arg
+		for ph, val := range inputs {
+			resolved = strings.ReplaceAll(resolved, "<"+ph+">", val)
+		}
+		resolvedArgs[i] = resolved
+	}
+	return resolvedArgs
+}
+
+// resolveStepPlaceholders resolves placeholders in a workflow step's arguments.
+// Each argument is processed individually, preserving multiword placeholder values as single arguments.
+func resolveStepPlaceholders(ui *UI, step WorkflowStep) ([]string, bool) {
+	// If Args is empty, derive from Description
+	args := step.Args
+	if len(args) == 0 {
+		args = deriveArgsFromDescription(step.Description)
+	}
+
+	// Extract unique placeholders from all args
+	placeholders := collectPlaceholders(args)
+	if len(placeholders) == 0 {
+		return args, false
+	}
+
+	// Get user input for each placeholder
+	inputs, canceled := interactiveInputForWorkflow(ui, placeholders)
+	if canceled {
+		return nil, true
+	}
+
+	return replacePlaceholdersInArgs(args, inputs), false
 }
 
 // interactiveInputForWorkflow provides interactive input for placeholders during workflow execution
