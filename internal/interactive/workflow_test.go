@@ -214,6 +214,56 @@ func TestInteractiveInputForWorkflowScannerCanceled(t *testing.T) {
 	_ = r.Close()
 }
 
+// TestWorkflowExecutor_MultiwordPlaceholder tests that multiword placeholder values are preserved as single arguments
+func TestWorkflowExecutor_MultiwordPlaceholder(t *testing.T) {
+	// Setup stdin with multiword input
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	// User enters "my commit message" for the <message> placeholder
+	_, _ = w.WriteString("my commit message\n")
+	_ = w.Close()
+	os.Stdin = r
+
+	mock := &mockWorkflowRouter{}
+	executor := NewWorkflowExecutor(mock, nil)
+	workflow := NewWorkflow()
+
+	// Add step with placeholder in Args - this is the proper way to preserve multiword values
+	workflow.AddStep("commit", []string{"-m", "<message>"}, "commit -m <message>")
+
+	err = executor.Execute(workflow)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Check that "my commit message" was preserved as a single argument
+	if len(mock.executedCommands) != 1 {
+		t.Fatalf("expected 1 command, got %d", len(mock.executedCommands))
+	}
+
+	cmd := mock.executedCommands[0]
+	// Expected: ["commit", "-m", "my commit message"]
+	if len(cmd) != 3 {
+		t.Fatalf("expected 3 args, got %d: %v", len(cmd), cmd)
+	}
+	if cmd[0] != "commit" {
+		t.Errorf("expected command 'commit', got '%s'", cmd[0])
+	}
+	if cmd[1] != "-m" {
+		t.Errorf("expected arg 1 '-m', got '%s'", cmd[1])
+	}
+	if cmd[2] != "my commit message" {
+		t.Errorf("expected arg 2 'my commit message', got '%s'", cmd[2])
+	}
+
+	_ = r.Close()
+}
+
 // TestWorkflowExecutor_ExecuteEmptyWorkflow tests executing an empty workflow
 func TestWorkflowExecutor_ExecuteEmptyWorkflow(t *testing.T) {
 	// Setup
