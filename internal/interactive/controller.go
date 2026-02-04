@@ -756,9 +756,6 @@ func (h *KeyHandler) handleWorkflowModeKeys(r rune, oldState *term.State) (bool,
 	if handled := h.handleWorkflowModeShortcut(r, oldState); handled {
 		return true, true, nil
 	}
-	if handled := h.handleWorkflowModeBindings(r); handled {
-		return true, true, nil
-	}
 	return false, true, nil
 }
 
@@ -778,45 +775,6 @@ func (h *KeyHandler) handleWorkflowModeShortcut(r rune, oldState *term.State) bo
 		return true
 	}
 	return false
-}
-
-func (h *KeyHandler) handleWorkflowModeBindings(r rune) bool {
-	keyStroke := NewCharKeyStroke(r)
-
-	if h.handleWorkflowAdd(keyStroke) {
-		return true
-	}
-	if h.handleWorkflowClear(keyStroke) {
-		return true
-	}
-	return false
-}
-
-func (h *KeyHandler) handleWorkflowAdd(keyStroke KeyStroke) bool {
-	if !h.ui.state.IsInputFocused() || !h.ui.state.HasInput() {
-		return false
-	}
-	km := h.GetCurrentKeyMap()
-	if !km.MatchesKeyStroke("add_to_workflow", keyStroke) {
-		return false
-	}
-	if cmd := h.ui.state.GetSelectedCommand(); cmd != nil {
-		h.addCommandToWorkflow(cmd.Command)
-		h.ui.state.ClearInput()
-	}
-	return true
-}
-
-func (h *KeyHandler) handleWorkflowClear(keyStroke KeyStroke) bool {
-	if h.ui.state.IsInputFocused() {
-		return false
-	}
-	km := h.GetCurrentKeyMap()
-	if !km.MatchesKeyStroke("clear_workflow", keyStroke) {
-		return false
-	}
-	h.clearWorkflow()
-	return true
 }
 
 // handleControlChar processes control characters and returns (handled, shouldContinue, result)
@@ -1104,13 +1062,13 @@ func (h *KeyHandler) tryArrowKeybinding(km *KeyBindingMap, keyStroke KeyStroke) 
 		return true
 	}
 	if km.MatchesKeyStroke("move_left", keyStroke) {
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveLeft()
 		}
 		return true
 	}
 	if km.MatchesKeyStroke("move_right", keyStroke) {
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveRight()
 		}
 		return true
@@ -1120,7 +1078,7 @@ func (h *KeyHandler) tryArrowKeybinding(km *KeyBindingMap, keyStroke KeyStroke) 
 
 // handleDefaultArrowMovement handles default arrow key behavior
 func (h *KeyHandler) handleDefaultArrowMovement(final byte, isWord bool) {
-	if !h.ui.state.IsInputFocused() {
+	if h.ui.state.IsWorkflowMode() {
 		return
 	}
 	switch final {
@@ -1168,11 +1126,11 @@ func (h *KeyHandler) handleDefaultAppCursorMovement(nb byte) {
 	case 'B':
 		h.handleMoveDown()
 	case 'C':
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveRight()
 		}
 	case 'D':
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveLeft()
 		}
 	}

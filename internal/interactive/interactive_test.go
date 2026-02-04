@@ -1935,7 +1935,6 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 		ui.updateWorkflowPointer()
 
 		ui.state.mode = ModeWorkflow
-		ui.state.FocusInput() // Tab only works in Input focus
 		initialID := ui.workflowMgr.GetActiveID()
 
 		handled, shouldContinue, result := handler.handleWorkflowKeys('	', nil)
@@ -2268,7 +2267,6 @@ func TestWorkflowRendererActiveList(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
 
 	active := ui.workflowMgr.GetActiveID()
@@ -2312,7 +2310,6 @@ func TestWorkflowListScrollOffset(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
 
 	for _, summary := range ui.listWorkflows() {
@@ -2351,7 +2348,6 @@ func TestWorkflowRendererEmptyState(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
 
 	active := ui.workflowMgr.GetActiveID()
