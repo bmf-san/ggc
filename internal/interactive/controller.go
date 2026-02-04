@@ -188,16 +188,6 @@ const (
 	ModeWorkflow
 )
 
-// WorkflowFocus indicates which pane in workflow mode has focus.
-type WorkflowFocus int
-
-const (
-	// FocusInput targets the command input/results pane.
-	FocusInput WorkflowFocus = iota
-	// FocusWorkflowList targets the workflow list pane.
-	FocusWorkflowList
-)
-
 // UIState holds the current state of the interactive UI
 type UIState struct {
 	selected        int
@@ -208,7 +198,6 @@ type UIState struct {
 	contextStack    []kb.Context // Context stack for nested states
 	onContextChange func(kb.Context, kb.Context)
 	mode            UIMode
-	workflowFocus   WorkflowFocus
 	workflowListIdx int
 	workflowOffset  int
 }
@@ -224,21 +213,6 @@ func (s *UIState) SetMode(mode UIMode) {
 // IsWorkflowMode reports whether the UI is currently in workflow mode.
 func (s *UIState) IsWorkflowMode() bool {
 	return s.mode == ModeWorkflow
-}
-
-// FocusInput moves focus to the command input/results pane.
-func (s *UIState) FocusInput() {
-	s.workflowFocus = FocusInput
-}
-
-// FocusWorkflowList moves focus to the workflow list pane.
-func (s *UIState) FocusWorkflowList() {
-	s.workflowFocus = FocusWorkflowList
-}
-
-// IsInputFocused reports whether the command input/results pane has focus.
-func (s *UIState) IsInputFocused() bool {
-	return s.workflowFocus == FocusInput
 }
 
 // SetWorkflowListIndex sets and clamps the workflow list selection.
@@ -758,14 +732,14 @@ func (h *KeyHandler) handleWorkflowModeKeys(r rune, oldState *term.State) (bool,
 	if handled := h.handleWorkflowModeShortcut(r, oldState); handled {
 		return true, true, nil
 	}
-	if handled := h.handleWorkflowModeBindings(r); handled {
-		return true, true, nil
-	}
 	return false, true, nil
 }
 
 func (h *KeyHandler) handleWorkflowModeShortcut(r rune, oldState *term.State) bool {
 	switch r {
+	case '\t':
+		h.cycleActiveWorkflow(1)
+		return true
 	case 'x':
 		h.executeWorkflow(oldState)
 		return true
@@ -777,45 +751,6 @@ func (h *KeyHandler) handleWorkflowModeShortcut(r rune, oldState *term.State) bo
 		return true
 	}
 	return false
-}
-
-func (h *KeyHandler) handleWorkflowModeBindings(r rune) bool {
-	keyStroke := kb.NewCharKeyStroke(r)
-
-	if h.handleWorkflowAdd(keyStroke) {
-		return true
-	}
-	if h.handleWorkflowClear(keyStroke) {
-		return true
-	}
-	return false
-}
-
-func (h *KeyHandler) handleWorkflowAdd(keyStroke kb.KeyStroke) bool {
-	if !h.ui.state.IsInputFocused() || !h.ui.state.HasInput() {
-		return false
-	}
-	km := h.GetCurrentKeyMap()
-	if !km.MatchesKeyStroke("add_to_workflow", keyStroke) {
-		return false
-	}
-	if cmd := h.ui.state.GetSelectedCommand(); cmd != nil {
-		h.addCommandToWorkflow(cmd.Command)
-		h.ui.state.ClearInput()
-	}
-	return true
-}
-
-func (h *KeyHandler) handleWorkflowClear(keyStroke kb.KeyStroke) bool {
-	if h.ui.state.IsInputFocused() {
-		return false
-	}
-	km := h.GetCurrentKeyMap()
-	if !km.MatchesKeyStroke("clear_workflow", keyStroke) {
-		return false
-	}
-	h.clearWorkflow()
-	return true
 }
 
 // handleControlChar processes control characters and returns (handled, shouldContinue, result)
@@ -1099,13 +1034,13 @@ func (h *KeyHandler) tryArrowKeybinding(km *kb.KeyBindingMap, keyStroke kb.KeySt
 		return true
 	}
 	if km.MatchesKeyStroke("move_left", keyStroke) {
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveLeft()
 		}
 		return true
 	}
 	if km.MatchesKeyStroke("move_right", keyStroke) {
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveRight()
 		}
 		return true
@@ -1115,7 +1050,7 @@ func (h *KeyHandler) tryArrowKeybinding(km *kb.KeyBindingMap, keyStroke kb.KeySt
 
 // handleDefaultArrowMovement handles default arrow key behavior
 func (h *KeyHandler) handleDefaultArrowMovement(final byte, isWord bool) {
-	if !h.ui.state.IsInputFocused() {
+	if h.ui.state.IsWorkflowMode() {
 		return
 	}
 	switch final {
@@ -1169,11 +1104,11 @@ func (h *KeyHandler) handleDefaultAppCursorMovement(nb byte) {
 			h.handleMoveDown()
 		}
 	case 'C':
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveRight()
 		}
 	case 'D':
-		if h.ui.state.IsInputFocused() {
+		if !h.ui.state.IsWorkflowMode() {
 			h.ui.state.MoveLeft()
 		}
 	}
@@ -1192,6 +1127,22 @@ func (h *KeyHandler) moveWorkflowList(delta int) {
 	selected := summaries[idx]
 	if h.ui.workflowMgr.SetActive(selected.ID) {
 		h.ui.updateWorkflowPointer()
+	}
+}
+
+func (h *KeyHandler) cycleActiveWorkflow(delta int) {
+	if h.ui.workflowMgr == nil {
+		return
+	}
+	h.ui.workflowMgr.CycleActive(delta)
+	h.ui.updateWorkflowPointer()
+	// Update list index to match active workflow
+	summaries := h.ui.listWorkflows()
+	for i, summary := range summaries {
+		if summary.IsActive {
+			h.ui.state.SetWorkflowListIndex(i, len(summaries))
+			break
+		}
 	}
 }
 
@@ -1940,7 +1891,6 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 		context:        kb.ContextGlobal, // Start in global context
 		contextStack:   []kb.Context{},
 		mode:           ModeSearch,
-		workflowFocus:  FocusInput,
 		workflowOffset: 0,
 	}
 
@@ -2053,7 +2003,6 @@ func (ui *UI) enterSearchMode() {
 		return
 	}
 	ui.state.SetMode(ModeSearch)
-	ui.state.FocusInput()
 	ui.state.SetContext(kb.ContextGlobal)
 }
 
@@ -2090,7 +2039,6 @@ func (ui *UI) resetToSearchMode() bool {
 	state.contextStack = nil
 	state.SetContext(kb.ContextGlobal)
 	state.SetMode(ModeSearch)
-	state.FocusInput()
 	return active
 }
 

@@ -1917,7 +1917,6 @@ func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 
 	t.Run("Tab adds command to workflow in search mode", func(t *testing.T) {
 		ui.state.mode = ModeSearch
-		ui.state.FocusInput()
 		ui.state.input = "add"
 		ui.state.filtered = []CommandInfo{{Command: "add .", Description: "Add all changes"}}
 		ui.state.selected = 0
@@ -2224,7 +2223,6 @@ func TestWorkflowRendererActiveList(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
 
 	active := ui.workflowMgr.GetActiveID()
@@ -2268,7 +2266,6 @@ func TestWorkflowListScrollOffset(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
 
 	for _, summary := range ui.listWorkflows() {
@@ -2307,7 +2304,6 @@ func TestWorkflowRendererEmptyState(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 	ui.state.mode = ModeWorkflow
-	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
 
 	active := ui.workflowMgr.GetActiveID()

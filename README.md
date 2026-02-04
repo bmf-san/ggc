@@ -213,8 +213,9 @@ ggc
 - `n`: Create a new workflow
 - `d` / `Ctrl+d`: Delete the active workflow
 - `x`: Execute the active workflow
-- `Ctrl+n/p`: Navigate workflows
-- `Ctrl+t`: Return to Search Mode
+- `Tab` / `Shift+Tab`: Cycle between workflows
+- `↑/↓` / `Ctrl+n/p`: Navigate workflow list
+- `Enter` / `Esc`: Return to Search Mode
 - `Ctrl+c`: Exit interactive mode
 
 **Command Execution:**
