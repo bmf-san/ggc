@@ -186,16 +186,6 @@ const (
 	ModeWorkflow
 )
 
-// WorkflowFocus indicates which pane in workflow mode has focus.
-type WorkflowFocus int
-
-const (
-	// FocusInput targets the command input/results pane.
-	FocusInput WorkflowFocus = iota
-	// FocusWorkflowList targets the workflow list pane.
-	FocusWorkflowList
-)
-
 // UIState holds the current state of the interactive UI
 type UIState struct {
 	selected        int
@@ -206,7 +196,6 @@ type UIState struct {
 	contextStack    []Context // Context stack for nested states
 	onContextChange func(Context, Context)
 	mode            UIMode
-	workflowFocus   WorkflowFocus
 	workflowListIdx int
 	workflowOffset  int
 }
@@ -222,21 +211,6 @@ func (s *UIState) SetMode(mode UIMode) {
 // IsWorkflowMode reports whether the UI is currently in workflow mode.
 func (s *UIState) IsWorkflowMode() bool {
 	return s.mode == ModeWorkflow
-}
-
-// FocusInput moves focus to the command input/results pane.
-func (s *UIState) FocusInput() {
-	s.workflowFocus = FocusInput
-}
-
-// FocusWorkflowList moves focus to the workflow list pane.
-func (s *UIState) FocusWorkflowList() {
-	s.workflowFocus = FocusWorkflowList
-}
-
-// IsInputFocused reports whether the command input/results pane has focus.
-func (s *UIState) IsInputFocused() bool {
-	return s.workflowFocus == FocusInput
 }
 
 // SetWorkflowListIndex sets and clamps the workflow list selection.
@@ -1919,7 +1893,6 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 		context:        ContextGlobal, // Start in global context
 		contextStack:   []Context{},
 		mode:           ModeSearch,
-		workflowFocus:  FocusInput,
 		workflowOffset: 0,
 	}
 
@@ -2032,7 +2005,6 @@ func (ui *UI) enterSearchMode() {
 		return
 	}
 	ui.state.SetMode(ModeSearch)
-	ui.state.FocusInput()
 	ui.state.SetContext(ContextGlobal)
 }
 
@@ -2069,7 +2041,6 @@ func (ui *UI) resetToSearchMode() bool {
 	state.contextStack = nil
 	state.SetContext(ContextGlobal)
 	state.SetMode(ModeSearch)
-	state.FocusInput()
 	return active
 }
 
