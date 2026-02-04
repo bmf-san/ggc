@@ -20,95 +20,6 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func TestClient_GetGitStatus(t *testing.T) {
-	tests := []struct {
-		name    string
-		output  string
-		err     error
-		want    string
-		wantErr bool
-	}{
-		{
-			name:    "success_no_changes",
-			output:  "",
-			err:     nil,
-			want:    "",
-			wantErr: false,
-		},
-		{
-			name:    "success_with_changes",
-			output:  " M file.go\n?? new.go\n",
-			err:     nil,
-			want:    " M file.go\n?? new.go\n",
-			wantErr: false,
-		},
-		{
-			name:    "success_multiple_change_types",
-			output:  " M modified.go\n A added.go\n D deleted.go\n?? untracked.go\nR  renamed.go -> new_name.go\n",
-			err:     nil,
-			want:    " M modified.go\n A added.go\n D deleted.go\n?? untracked.go\nR  renamed.go -> new_name.go\n",
-			wantErr: false,
-		},
-		{
-			name:    "error_git_command_failure",
-			output:  "",
-			err:     errors.New("not a git repository"),
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name:    "error_permission_denied",
-			output:  "",
-			err:     errors.New("permission denied"),
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name:    "success_staging_area_changes",
-			output:  "M  staged.go\n M unstaged.go\n",
-			err:     nil,
-			want:    "M  staged.go\n M unstaged.go\n",
-			wantErr: false,
-		},
-		{
-			name:    "success_empty_repository",
-			output:  "",
-			err:     nil,
-			want:    "",
-			wantErr: false,
-		},
-		{
-			name:    "error_repository_corruption",
-			output:  "",
-			err:     errors.New("fatal: bad object refs/heads/main"),
-			want:    "",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Client{
-				execCommand: func(name string, arg ...string) *exec.Cmd {
-					if name != "git" || !strings.Contains(strings.Join(arg, " "), "status --porcelain") {
-						t.Errorf("unexpected command: %s %v", name, arg)
-					}
-					return helperCommand(t, tt.output, tt.err)
-				},
-			}
-
-			got, err := c.GetGitStatus()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetGitStatus() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("GetGitStatus() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestClient_GetBranchName(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -288,13 +199,11 @@ func TestClient_CheckoutNewBranch(t *testing.T) {
 
 func TestClient_GetCurrentBranch(t *testing.T) {
 	tests := []struct {
-		name        string
-		output      string
-		err         error
-		mockFunc    func() (string, error)
-		want        string
-		wantErr     bool
-		useMockFunc bool
+		name    string
+		output  string
+		err     error
+		want    string
+		wantErr bool
 	}{
 		{
 			name:    "success_main_branch",
@@ -332,20 +241,6 @@ func TestClient_GetCurrentBranch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "success_with_mock_function",
-			mockFunc:    func() (string, error) { return "mocked-branch", nil },
-			want:        "mocked-branch",
-			wantErr:     false,
-			useMockFunc: true,
-		},
-		{
-			name:        "error_mock_function_failure",
-			mockFunc:    func() (string, error) { return "", errors.New("mock error") },
-			want:        "",
-			wantErr:     true,
-			useMockFunc: true,
-		},
-		{
 			name:    "success_release_branch",
 			output:  "release/v2.1.0\n",
 			err:     nil,
@@ -370,10 +265,6 @@ func TestClient_GetCurrentBranch(t *testing.T) {
 					}
 					return helperCommand(t, tt.output, tt.err)
 				},
-			}
-
-			if tt.useMockFunc {
-				c.GetCurrentBranchFunc = tt.mockFunc
 			}
 
 			got, err := c.GetCurrentBranch()
@@ -453,12 +344,6 @@ func TestClient_ErrorHandling(t *testing.T) {
 		errorType   string
 	}{
 		{
-			name:        "GetGitStatus_with_command_failure",
-			method:      "GetGitStatus",
-			expectError: true,
-			errorType:   "repository_error",
-		},
-		{
 			name:        "GetBranchName_with_command_failure",
 			method:      "GetBranchName",
 			expectError: true,
@@ -494,8 +379,6 @@ func TestClient_ErrorHandling(t *testing.T) {
 
 			var err error
 			switch tt.method {
-			case "GetGitStatus":
-				_, err = c.GetGitStatus()
 			case "GetBranchName":
 				_, err = c.GetBranchName()
 			case "GetCurrentBranch":
@@ -524,11 +407,6 @@ func TestClient_CommandValidation(t *testing.T) {
 		args            []any
 		expectedCommand string
 	}{
-		{
-			name:            "GetGitStatus_command_validation",
-			method:          "GetGitStatus",
-			expectedCommand: "git status --porcelain",
-		},
 		{
 			name:            "GetBranchName_command_validation",
 			method:          "GetBranchName",
@@ -563,8 +441,6 @@ func TestClient_CommandValidation(t *testing.T) {
 			}
 
 			switch tt.method {
-			case "GetGitStatus":
-				_, _ = c.GetGitStatus()
 			case "GetBranchName":
 				_, _ = c.GetBranchName()
 			case "GetCurrentBranch":
@@ -649,46 +525,6 @@ func TestClient_EdgeCases(t *testing.T) {
 		}
 		if branch != "" {
 			t.Errorf("Expected empty string after trimming whitespace, got: %q", branch)
-		}
-	})
-}
-
-// TestClient_MockFunctionBehavior tests the behavior of mock functions
-func TestClient_MockFunctionBehavior(t *testing.T) {
-	t.Run("mock_function_overrides_command", func(t *testing.T) {
-		c := &Client{
-			execCommand: func(_ string, _ ...string) *exec.Cmd {
-				t.Error("execCommand should not be called when mock function is set")
-				return helperCommand(t, "", errors.New("should not be called"))
-			},
-			GetCurrentBranchFunc: func() (string, error) {
-				return "mocked-branch", nil
-			},
-		}
-
-		branch, err := c.GetCurrentBranch()
-		if err != nil {
-			t.Errorf("GetCurrentBranch with mock failed: %v", err)
-		}
-		if branch != "mocked-branch" {
-			t.Errorf("Expected 'mocked-branch', got: %q", branch)
-		}
-	})
-
-	t.Run("mock_function_nil_check", func(t *testing.T) {
-		c := &Client{
-			execCommand: func(_ string, _ ...string) *exec.Cmd {
-				return helperCommand(t, "real-branch", nil)
-			},
-			GetCurrentBranchFunc: nil,
-		}
-
-		branch, err := c.GetCurrentBranch()
-		if err != nil {
-			t.Errorf("GetCurrentBranch without mock failed: %v", err)
-		}
-		if branch != "real-branch" {
-			t.Errorf("Expected 'real-branch', got: %q", branch)
 		}
 	})
 }

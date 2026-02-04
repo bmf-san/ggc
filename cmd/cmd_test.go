@@ -99,7 +99,6 @@ func (m *mockGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
 
 // Repository Information methods
 func (m *mockGitClient) GetBranchName() (string, error) { return "main", nil }
-func (m *mockGitClient) GetGitStatus() (string, error)  { return "", nil }
 
 // Status Operations methods
 func (m *mockGitClient) Status() (string, error)               { return "", nil }
