@@ -503,9 +503,6 @@ func defaultCommands() []Info {
 	}
 }
 
-// DefaultRegistry is the singleton registry containing all built-in commands.
-var DefaultRegistry = NewRegistry()
-
 // Validate ensures the provided command metadata is internally consistent.
 func Validate(commands []Info) error {
 	seen := make(map[string]struct{})

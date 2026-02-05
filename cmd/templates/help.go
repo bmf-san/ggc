@@ -136,7 +136,13 @@ func selectLogo() string {
 }
 
 // RenderMainHelp renders the main help message.
-func RenderMainHelp() (string, error) {
+func RenderMainHelp(registry ...*commandregistry.Registry) (string, error) {
+	var reg *commandregistry.Registry
+	if len(registry) > 0 && registry[0] != nil {
+		reg = registry[0]
+	} else {
+		reg = commandregistry.NewRegistry()
+	}
 	tmpl, err := template.New("mainHelp").Parse(mainHelpTemplate)
 	if err != nil {
 		return "", err
@@ -145,7 +151,7 @@ func RenderMainHelp() (string, error) {
 	var buf bytes.Buffer
 	data := MainHelpData{
 		Logo:       selectLogo(),
-		Categories: buildMainHelpCategories(),
+		Categories: buildMainHelpCategories(reg),
 		Notes: []string{
 			"Unified syntax: no option flags (-/--) — use subcommands and words.",
 			"To pass a literal that starts with '-', use the '--' separator: ggc commit -- - fix leading dash",
@@ -159,12 +165,12 @@ func RenderMainHelp() (string, error) {
 	return buf.String(), nil
 }
 
-func buildMainHelpCategories() []helpCategory {
+func buildMainHelpCategories(registry *commandregistry.Registry) []helpCategory {
 	orderedCats := commandregistry.OrderedCategories()
 
 	categoryCommands := make(map[commandregistry.Category][]helpCommand)
 
-	visibleCommands := commandregistry.DefaultRegistry.VisibleCommands()
+	visibleCommands := registry.VisibleCommands()
 	for i := range visibleCommands {
 		cmd := &visibleCommands[i]
 		categoryCommands[cmd.Category] = append(categoryCommands[cmd.Category], helpCommandsFor(cmd)...)

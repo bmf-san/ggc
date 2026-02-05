@@ -10,9 +10,8 @@ import (
 
 func TestHelper_ShowHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowHelp()
 
@@ -23,9 +22,8 @@ func TestHelper_ShowHelp(t *testing.T) {
 
 func TestHelper_ShowLogHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowLogHelp()
 
@@ -36,9 +34,8 @@ func TestHelper_ShowLogHelp(t *testing.T) {
 
 func TestHelper_ShowPushHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowPushHelp()
 
@@ -49,9 +46,8 @@ func TestHelper_ShowPushHelp(t *testing.T) {
 
 func TestHelper_ShowRemoteHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowRemoteHelp()
 
@@ -62,9 +58,8 @@ func TestHelper_ShowRemoteHelp(t *testing.T) {
 
 func TestHelper_ShowCommitHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowCommitHelp()
 
@@ -75,9 +70,8 @@ func TestHelper_ShowCommitHelp(t *testing.T) {
 
 func TestHelper_ShowStashHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowStashHelp()
 
@@ -88,9 +82,8 @@ func TestHelper_ShowStashHelp(t *testing.T) {
 
 func TestHelper_ShowResetHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowResetHelp()
 
@@ -101,9 +94,8 @@ func TestHelper_ShowResetHelp(t *testing.T) {
 
 func TestHelper_ShowPullHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowPullHelp()
 
@@ -114,9 +106,8 @@ func TestHelper_ShowPullHelp(t *testing.T) {
 
 func TestHelper_ShowCleanHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowCleanHelp()
 
@@ -127,9 +118,8 @@ func TestHelper_ShowCleanHelp(t *testing.T) {
 
 func TestHelper_ShowRebaseHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowRebaseHelp()
 
@@ -140,9 +130,8 @@ func TestHelper_ShowRebaseHelp(t *testing.T) {
 
 func TestShowAddHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowAddHelp()
 
@@ -153,9 +142,8 @@ func TestShowAddHelp(t *testing.T) {
 
 func TestShowListBranchesHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowListBranchesHelp()
 
@@ -166,9 +154,8 @@ func TestShowListBranchesHelp(t *testing.T) {
 
 func TestShowDeleteBranchHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowDeleteBranchHelp()
 
@@ -179,9 +166,8 @@ func TestShowDeleteBranchHelp(t *testing.T) {
 
 func TestShowDeleteMergedBranchHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowDeleteMergedBranchHelp()
 
@@ -192,9 +178,8 @@ func TestShowDeleteMergedBranchHelp(t *testing.T) {
 
 func TestHelper_ShowCommandHelp_Error(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	// Use invalid template data to trigger an error
 	helper.ShowCommandHelp(templates.HelpData{
@@ -213,9 +198,8 @@ func TestHelper_ShowCommandHelp_Error(t *testing.T) {
 
 func TestHelper_ShowFetchHelp(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	helper.ShowFetchHelp()
 
@@ -226,9 +210,8 @@ func TestHelper_ShowFetchHelp(t *testing.T) {
 
 func TestHelper_ShowCommandHelp_WithExamples(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	// Test with multiple examples
 	helper.ShowCommandHelp(templates.HelpData{
@@ -257,9 +240,8 @@ func TestHelper_ShowCommandHelp_WithExamples(t *testing.T) {
 
 func TestHelper_ShowCommandHelp_EmptyExamples(t *testing.T) {
 	var buf bytes.Buffer
-	helper := &Helper{
-		outputWriter: &buf,
-	}
+	helper := NewHelper()
+	helper.outputWriter = &buf
 
 	// Test with empty examples
 	helper.ShowCommandHelp(templates.HelpData{

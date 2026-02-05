@@ -5,10 +5,11 @@ import (
 	"testing"
 )
 
-func TestDefaultRegistry_Validate(t *testing.T) {
+func TestNewRegistry_Validate(t *testing.T) {
 	t.Parallel()
-	if err := DefaultRegistry.Validate(); err != nil {
-		t.Fatalf("DefaultRegistry.Validate() returned error: %v", err)
+	reg := NewRegistry()
+	if err := reg.Validate(); err != nil {
+		t.Fatalf("NewRegistry().Validate() returned error: %v", err)
 	}
 }
 
@@ -127,50 +128,53 @@ func TestRegistry_Validate(t *testing.T) {
 	}
 }
 
-func TestDefaultRegistry_All_ReturnsCopy(t *testing.T) {
+func TestNewRegistry_All_ReturnsCopy(t *testing.T) {
 	t.Parallel()
-	cmds := DefaultRegistry.All()
+	reg := NewRegistry()
+	cmds := reg.All()
 	if len(cmds) == 0 {
 		t.Fatal("expected registry to contain commands")
 	}
 
-	original := DefaultRegistry.All()
+	original := reg.All()
 	cmds[0].Name = "mutated"
 	if original[0].Name == "mutated" {
 		t.Fatalf("mutating All() result modified registry")
 	}
 
 	if len(cmds[0].Subcommands) > 0 {
-		origSub := DefaultRegistry.All()[0].Subcommands[0].Name
+		origSub := reg.All()[0].Subcommands[0].Name
 		cmds[0].Subcommands[0].Name = "changed"
-		if DefaultRegistry.All()[0].Subcommands[0].Name != origSub {
+		if reg.All()[0].Subcommands[0].Name != origSub {
 			t.Fatalf("mutating subcommands altered registry")
 		}
 	}
 }
 
-func TestDefaultRegistry_Find(t *testing.T) {
+func TestNewRegistry_Find(t *testing.T) {
 	t.Parallel()
-	if _, ok := DefaultRegistry.Find("help"); !ok {
+	reg := NewRegistry()
+	if _, ok := reg.Find("help"); !ok {
 		t.Fatalf("expected to find help command")
 	}
 
-	if _, ok := DefaultRegistry.Find("debug-keys"); !ok {
+	if _, ok := reg.Find("debug-keys"); !ok {
 		t.Fatalf("expected to find debug-keys command")
 	}
 
-	if _, ok := DefaultRegistry.Find("HELP"); !ok {
+	if _, ok := reg.Find("HELP"); !ok {
 		t.Fatalf("expected case-insensitive find")
 	}
 
-	if _, ok := DefaultRegistry.Find("does-not-exist"); ok {
+	if _, ok := reg.Find("does-not-exist"); ok {
 		t.Fatalf("expected lookup miss")
 	}
 }
 
-func TestDefaultRegistry_VisibleCommands(t *testing.T) {
+func TestNewRegistry_VisibleCommands(t *testing.T) {
 	t.Parallel()
-	cmds := DefaultRegistry.VisibleCommands()
+	reg := NewRegistry()
+	cmds := reg.VisibleCommands()
 	if len(cmds) == 0 {
 		t.Fatal("expected visible commands to be returned")
 	}
@@ -181,16 +185,16 @@ func TestDefaultRegistry_VisibleCommands(t *testing.T) {
 		}
 	}
 
-	original := DefaultRegistry.VisibleCommands()
+	original := reg.VisibleCommands()
 	cmds[0].Name = "mutated"
 	if original[0].Name == "mutated" {
 		t.Fatalf("modifying VisibleCommands result mutated registry")
 	}
 
 	if len(cmds[0].Subcommands) > 0 {
-		origSub := DefaultRegistry.VisibleCommands()[0].Subcommands[0].Name
+		origSub := reg.VisibleCommands()[0].Subcommands[0].Name
 		cmds[0].Subcommands[0].Name = "changed"
-		if DefaultRegistry.VisibleCommands()[0].Subcommands[0].Name != origSub {
+		if reg.VisibleCommands()[0].Subcommands[0].Name != origSub {
 			t.Fatalf("modifying subcommands in VisibleCommands result mutated registry")
 		}
 	}
