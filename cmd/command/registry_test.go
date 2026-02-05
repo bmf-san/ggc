@@ -136,10 +136,14 @@ func TestNewRegistry_All_ReturnsCopy(t *testing.T) {
 		t.Fatal("expected registry to contain commands")
 	}
 
-	original := reg.All()
+	originalName := cmds[0].Name
 	cmds[0].Name = "mutated"
-	if original[0].Name == "mutated" {
+	fresh := reg.All()
+	if fresh[0].Name == "mutated" {
 		t.Fatalf("mutating All() result modified registry")
+	}
+	if fresh[0].Name != originalName {
+		t.Fatalf("expected original name %q, got %q", originalName, fresh[0].Name)
 	}
 
 	if len(cmds[0].Subcommands) > 0 {
@@ -185,10 +189,14 @@ func TestNewRegistry_VisibleCommands(t *testing.T) {
 		}
 	}
 
-	original := reg.VisibleCommands()
+	originalName := cmds[0].Name
 	cmds[0].Name = "mutated"
-	if original[0].Name == "mutated" {
+	fresh := reg.VisibleCommands()
+	if fresh[0].Name == "mutated" {
 		t.Fatalf("modifying VisibleCommands result mutated registry")
+	}
+	if fresh[0].Name != originalName {
+		t.Fatalf("expected original name %q, got %q", originalName, fresh[0].Name)
 	}
 
 	if len(cmds[0].Subcommands) > 0 {
