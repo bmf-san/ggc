@@ -9,6 +9,13 @@ import (
 
 // Execute executes the command with alias resolution.
 // This is the main entry point that handles both aliases and regular commands.
+//
+// It returns a non-nil error if executing an alias fails, such as when alias parsing
+// or placeholder processing encounters an error; interactive mode and regular commands
+// do not cause Execute to return an error.
+//
+// Known limitation: Alias command parsing uses strings.Split which may incorrectly
+// split quoted arguments (e.g., "commit -m 'fix bug'" becomes ["commit", "-m", "'fix", "bug'"]).
 func (c *Cmd) Execute(args []string) error {
 	if len(args) == 0 {
 		c.Interactive()
@@ -27,6 +34,9 @@ func (c *Cmd) Execute(args []string) error {
 	return nil
 }
 
+// executeAlias resolves and executes an alias command identified by name.
+// It returns an error if the alias cannot be parsed or if placeholder
+// processing fails (e.g., insufficient arguments for placeholders).
 func (c *Cmd) executeAlias(name string, args []string) error {
 	cfg := c.configManager.GetConfig()
 	alias, err := cfg.ParseAlias(name)
@@ -72,7 +82,14 @@ func (c *Cmd) executeAlias(name string, args []string) error {
 	return nil
 }
 
-// processPlaceholders processes placeholder replacement in alias commands
+// processPlaceholders resolves placeholders in the given alias commands using the
+// supplied args and returns a slice of fully-expanded command strings.
+//
+// When an alias defines no placeholders, simple aliases return their configured
+// commands as-is, while sequence aliases reject any provided arguments and
+// return an error. When placeholders are present, this function validates that
+// enough arguments have been supplied for the highest positional placeholder
+// index in use and returns an error if the requirements are not met.
 func (c *Cmd) processPlaceholders(alias *config.ParsedAlias, args []string, aliasName string) ([]string, error) {
 	// If no placeholders are used, handle arguments appropriately
 	if len(alias.Placeholders) == 0 {
