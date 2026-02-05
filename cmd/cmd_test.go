@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
 	"github.com/bmf-san/ggc/v7/internal/prompt"
 	"github.com/bmf-san/ggc/v7/pkg/git"
@@ -505,6 +506,7 @@ func TestCmd_Route(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: io.Discard,
 		helper:       helper,
+		registry:     commandregistry.NewRegistry(),
 		// Initialize all components with mock clients to avoid side effects
 		adder:      &Adder{gitClient: mockClient, outputWriter: io.Discard},
 		brancher:   &Brancher{gitClient: mockClient, prompter: prompt.New(strings.NewReader(""), io.Discard), outputWriter: io.Discard, helper: helper},
@@ -581,6 +583,7 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf, // capture legacy-like error output if any
 		helper:       helper,
+		registry:     commandregistry.NewRegistry(),
 		adder:        &Adder{gitClient: mockClient, outputWriter: io.Discard},
 		brancher:     &Brancher{gitClient: mockClient, prompter: prompt.New(strings.NewReader(""), io.Discard), outputWriter: io.Discard, helper: helper},
 		committer:    &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},

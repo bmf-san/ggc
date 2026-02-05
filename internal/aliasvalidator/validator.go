@@ -37,11 +37,25 @@ func NewValidator() *Validator {
 func (v *Validator) initCommands() {
 	v.once.Do(func() {
 		v.validCommands = make(map[string]struct{})
-		allCommands := command.All()
+		registry := command.NewRegistry()
+		allCommands := registry.All()
 		for i := range allCommands {
 			v.validCommands[allCommands[i].Name] = struct{}{}
 		}
 	})
+}
+
+// defaultValidator is the package-level validator instance.
+var defaultValidator = NewValidator()
+
+// ValidateCommand validates a command using the default validator.
+func ValidateCommand(cmd string) error {
+	return defaultValidator.ValidateCommand(cmd)
+}
+
+// IsValidCommand checks if a command name is valid using the default validator.
+func IsValidCommand(cmdName string) bool {
+	return defaultValidator.IsValidCommand(cmdName)
 }
 
 // ValidateCommand validates a single alias command string for security.
@@ -76,19 +90,4 @@ func (v *Validator) IsValidCommand(cmdName string) bool {
 	v.initCommands()
 	_, valid := v.validCommands[cmdName]
 	return valid
-}
-
-// defaultValidator is the package-level validator instance.
-var defaultValidator = NewValidator()
-
-// ValidateCommand validates a command using the default validator.
-// This is a convenience function for one-off validations.
-func ValidateCommand(cmd string) error {
-	return defaultValidator.ValidateCommand(cmd)
-}
-
-// IsValidCommand checks if a command is valid using the default validator.
-// This is a convenience function for one-off checks.
-func IsValidCommand(cmdName string) bool {
-	return defaultValidator.IsValidCommand(cmdName)
 }

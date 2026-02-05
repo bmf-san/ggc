@@ -51,6 +51,7 @@ type Executer interface {
 
 // Cmd represents the command-line interface.
 type Cmd struct {
+	registry     *commandregistry.Registry
 	gitClient    git.StatusInfoReader
 	outputWriter io.Writer
 	helper       *Helper
@@ -104,10 +105,12 @@ type GitDeps interface {
 
 // NewCmd creates a new Cmd with the provided git client.
 func NewCmd(client GitDeps) *Cmd {
+	registry := commandregistry.NewRegistry()
 	cmd := &Cmd{
+		registry:     registry,
 		gitClient:    client,
 		outputWriter: os.Stdout,
-		helper:       NewHelper(),
+		helper:       NewHelper(registry),
 		brancher:     NewBrancher(client),
 		committer:    NewCommitter(client),
 		logger:       NewLogger(client),
@@ -325,6 +328,7 @@ func (c *Cmd) routeCommand(cmd string, args []string) {
 }
 
 type commandRouter struct {
+	registry *commandregistry.Registry
 	handlers map[string]func([]string)
 }
 
@@ -337,7 +341,7 @@ func mustNewCommandRouter(cmd *Cmd) *commandRouter {
 }
 
 func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
-	if err := commandregistry.ValidateAll(); err != nil {
+	if err := cmd.registry.Validate(); err != nil {
 		return nil, fmt.Errorf("command registry validation failed: %w", err)
 	}
 
@@ -373,17 +377,17 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		available[key] = struct{}{}
 	}
 
-	missing := missingHandlers(available)
+	missing := missingHandlers(cmd.registry, available)
 	if len(missing) > 0 {
 		sort.Strings(missing)
 		return nil, fmt.Errorf("no handler registered for commands: %s", strings.Join(missing, ", "))
 	}
 
-	return &commandRouter{handlers: handlers}, nil
+	return &commandRouter{registry: cmd.registry, handlers: handlers}, nil
 }
 
 func (r *commandRouter) route(cmd string, args []string) bool {
-	info, ok := commandregistry.Find(cmd)
+	info, ok := r.registry.Find(cmd)
 	if !ok {
 		return false
 	}
@@ -399,9 +403,9 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 	return true
 }
 
-func missingHandlers(available map[string]struct{}) []string {
+func missingHandlers(registry *commandregistry.Registry, available map[string]struct{}) []string {
 	var missing []string
-	allCommands := commandregistry.All()
+	allCommands := registry.All()
 	for i := range allCommands {
 		info := &allCommands[i]
 		id := strings.TrimSpace(info.HandlerID)
