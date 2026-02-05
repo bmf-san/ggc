@@ -103,7 +103,7 @@ func (cm *Manager) syncToGitConfig() error {
 		return err
 	}
 
-	return cm.syncAliasesToGit(config)
+	return cm.syncAliasSettings(config)
 }
 
 // syncDefaultSettings syncs default editor, merge tool, and branch settings
@@ -160,8 +160,8 @@ func (cm *Manager) syncBehaviorSettings(config *Config) error {
 	return nil
 }
 
-// syncAliasesToGit syncs alias settings to git config
-func (cm *Manager) syncAliasesToGit(config *Config) error {
+// syncAliasSettings syncs alias settings to git config
+func (cm *Manager) syncAliasSettings(config *Config) error {
 	for alias, value := range config.Aliases {
 		if cmdStr, ok := value.(string); ok {
 			if err := cm.gitClient.ConfigSetGlobal(fmt.Sprintf("alias.%s", alias), cmdStr); err != nil {
