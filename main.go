@@ -9,7 +9,6 @@ import (
 	"github.com/bmf-san/ggc/v7/cmd"
 	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
-	"github.com/bmf-san/ggc/v7/router"
 )
 
 var (
@@ -62,8 +61,7 @@ func RunApp(args []string) error {
 	if r := strings.TrimSpace(cm.GetConfig().Git.DefaultRemote); r != "" {
 		c.SetDefaultRemote(r)
 	}
-	r := router.NewRouter(c, cm)
-	return r.Route(args)
+	return c.Execute(args, cm)
 }
 
 func main() {
