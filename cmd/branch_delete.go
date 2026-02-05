@@ -229,7 +229,7 @@ func (b *Brancher) handleMergedBranchSpecialCommands(input string, branches []st
 
 // handleMergedBranchSelection processes numeric merged branch selection
 func (b *Brancher) handleMergedBranchSelection(input string, branches []string) bool {
-	selectedBranches, valid := b.parseMergedBranchIndices(input, branches)
+	selectedBranches, valid := b.parseBranchIndices(input, branches)
 	if !valid {
 		return false // Continue loop
 	}
@@ -241,13 +241,4 @@ func (b *Brancher) handleMergedBranchSelection(input string, branches []string) 
 	}
 	_, _ = fmt.Fprintln(b.outputWriter, "Selected merged branches deleted.")
 	return true
-}
-
-// parseMergedBranchIndices parses user input into selected merged branches
-func (b *Brancher) parseMergedBranchIndices(input string, branches []string) ([]string, bool) {
-	selected, ok := b.parseBranchIndices(input, branches)
-	if !ok {
-		return nil, false
-	}
-	return selected, true
 }
