@@ -460,6 +460,9 @@ func (r *Renderer) renderWorkflowStepPreview(ui *UI, steps []WorkflowStep, maxSt
 
 // renderWorkflowModeKeybinds renders keybinds available in workflow mode.
 // Simplified: no focus-based dimming since there's no input field.
+// The *UI and *UIState parameters are accepted for API consistency with other
+// renderer methods and reserved for potential future use; they are
+// intentionally ignored in this implementation.
 func (r *Renderer) renderWorkflowModeKeybinds(_ *UI, _ *UIState) {
 	keybinds := []struct{ key, desc string }{
 		{"n", "Create new workflow"},

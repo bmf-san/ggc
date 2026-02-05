@@ -94,7 +94,10 @@ func pluralize(n int) string {
 	return "s"
 }
 
-// writeColorln writes a colored line to the terminal
+// writeColorln writes a colored line to the terminal.
+// The *UI parameter is intentionally unused but kept in the signature
+// to stay consistent with other rendering helpers and to allow future
+// UI-dependent styling without changing the public API.
 func (r *Renderer) writeColorln(_ *UI, text string) {
 	// Move to line start, clear line, write content, then CRLF
 	_, _ = fmt.Fprint(r.writer, "\r\x1b[K")
