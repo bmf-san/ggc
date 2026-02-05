@@ -177,7 +177,8 @@ func TestMain_Components(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// Test cmd creation with mock client (safe, no real git commands)
 				mockClient := testutil.NewMockGitClient()
-				c := cmd.NewCmd(mockClient)
+				cm := config.NewConfigManager(mockClient)
+				c := cmd.NewCmd(mockClient, cm)
 				if c == nil {
 					t.Error("cmd should be created")
 				}
@@ -194,10 +195,10 @@ func TestMain_Components(t *testing.T) {
 				cm := config.NewConfigManager(mockClient)
 				_ = cm.LoadConfig()
 				cmd.SetVersionGetter(GetVersionInfo)
-				c := cmd.NewCmd(mockClient)
+				c := cmd.NewCmd(mockClient, cm)
 
 				// Test safe routing (help command)
-				_ = c.Execute([]string{"help"}, cm)
+				_ = c.Execute([]string{"help"})
 				t.Log("Integration test completed successfully")
 			},
 		},
@@ -244,10 +245,10 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
-			c := cmd.NewCmd(mockClient)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Test routing with different arguments (safe with mock)
-			_ = c.Execute(tt.args, cm)
+			_ = c.Execute(tt.args)
 			t.Logf("%s: Successfully routed args %v", tt.desc, tt.args)
 		})
 	}
@@ -300,7 +301,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 
 			// Initialize cmd and check default remote setting logic
 			cmd.SetVersionGetter(GetVersionInfo)
-			c := cmd.NewCmd(mockClient)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Test the logic from main: if r := strings.TrimSpace(...); r != ""
 			trimmedRemote := strings.TrimSpace(tt.mockDefaultRemote)
@@ -312,7 +313,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 			}
 
 			// Test safe routing to complete the main() simulation
-			_ = c.Execute([]string{"help"}, cm)
+			_ = c.Execute([]string{"help"})
 			t.Logf("Successfully completed main() simulation")
 		})
 	}
@@ -363,7 +364,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 			cmd.SetVersionGetter(GetVersionInfo)
 
 			// Step 3: Create cmd
-			c := cmd.NewCmd(mockClient)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Step 4: Cache default remote logic (lines 57-59 in main.go)
 			if r := strings.TrimSpace(tt.defaultRemote); r != "" {
@@ -372,7 +373,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 			}
 
 			// Step 5: Execute arguments (simulating os.Args[1:])
-			_ = c.Execute(tt.args, cm)
+			_ = c.Execute(tt.args)
 
 			t.Logf("%s: Successfully completed with args %v", tt.description, tt.args)
 		})
@@ -401,10 +402,10 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
 			cmd.SetVersionGetter(GetVersionInfo)
-			c := cmd.NewCmd(mockClient)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Route the arguments (safe with mock)
-			_ = c.Execute(routeArgs, cm)
+			_ = c.Execute(routeArgs)
 			t.Logf("Successfully simulated main() with args: %v -> route args: %v", args, routeArgs)
 		})
 	}
@@ -519,7 +520,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		cmd.SetVersionGetter(GetVersionInfo)
 
 		// Step 3: Cmd creation (requires version getter to be set)
-		c := cmd.NewCmd(mockClient)
+		c := cmd.NewCmd(mockClient, cm)
 		if c == nil {
 			t.Fatal("Cmd creation failed")
 		}
@@ -534,7 +535,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		}
 
 		// Step 5: Execute command (using cmd with config manager)
-		_ = c.Execute([]string{"help"}, cm)
+		_ = c.Execute([]string{"help"})
 
 		t.Log("Initialization order test completed successfully")
 	})

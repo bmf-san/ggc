@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
@@ -51,31 +52,32 @@ type Executer interface {
 
 // Cmd represents the command-line interface.
 type Cmd struct {
-	registry     *commandregistry.Registry
-	gitClient    git.StatusInfoReader
-	outputWriter io.Writer
-	helper       *Helper
-	brancher     *Brancher
-	committer    *Committer
-	logger       *Logger
-	puller       *Puller
-	pusher       *Pusher
-	resetter     *Resetter
-	cleaner      *Cleaner
-	adder        *Adder
-	remoter      *Remoter
-	rebaser      *Rebaser
-	stasher      *Stasher
-	configurer   *Configurer
-	hooker       *Hooker
-	tagger       *Tagger
-	statuser     *Statuser
-	versioner    *Versioner
-	differ       *Differ
-	restorer     *Restorer
-	fetcher      *Fetcher
-	cmdRouter    *commandRouter
-	debugger     *Debugger
+	registry      *commandregistry.Registry
+	configManager *config.Manager
+	gitClient     git.StatusInfoReader
+	outputWriter  io.Writer
+	helper        *Helper
+	brancher      *Brancher
+	committer     *Committer
+	logger        *Logger
+	puller        *Puller
+	pusher        *Pusher
+	resetter      *Resetter
+	cleaner       *Cleaner
+	adder         *Adder
+	remoter       *Remoter
+	rebaser       *Rebaser
+	stasher       *Stasher
+	configurer    *Configurer
+	hooker        *Hooker
+	tagger        *Tagger
+	statuser      *Statuser
+	versioner     *Versioner
+	differ        *Differ
+	restorer      *Restorer
+	fetcher       *Fetcher
+	cmdRouter     *commandRouter
+	debugger      *Debugger
 }
 
 // GitDeps is a composite for wiring commands that depend on git operations.
@@ -103,34 +105,36 @@ type GitDeps interface {
 	git.FileLister
 }
 
-// NewCmd creates a new Cmd with the provided git client.
-func NewCmd(client GitDeps) *Cmd {
+// NewCmd creates a new Cmd with the provided git client and config manager.
+// The config manager is required for alias resolution and other configuration features.
+func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 	registry := commandregistry.NewRegistry()
 	cmd := &Cmd{
-		registry:     registry,
-		gitClient:    client,
-		outputWriter: os.Stdout,
-		helper:       NewHelper(registry),
-		brancher:     NewBrancher(client),
-		committer:    NewCommitter(client),
-		logger:       NewLogger(client),
-		puller:       NewPuller(client),
-		pusher:       NewPusher(client),
-		resetter:     NewResetter(client),
-		cleaner:      NewCleaner(client),
-		adder:        NewAdder(client),
-		remoter:      NewRemoter(client),
-		rebaser:      NewRebaser(client),
-		stasher:      NewStasher(client),
-		configurer:   NewConfigurer(client),
-		hooker:       NewHooker(client),
-		tagger:       NewTagger(client),
-		statuser:     NewStatuser(client),
-		versioner:    NewVersioner(client),
-		differ:       NewDiffer(client),
-		restorer:     NewRestorer(client),
-		fetcher:      NewFetcher(client),
-		debugger:     NewDebugger(),
+		registry:      registry,
+		configManager: cm,
+		gitClient:     client,
+		outputWriter:  os.Stdout,
+		helper:        NewHelper(registry),
+		brancher:      NewBrancher(client),
+		committer:     NewCommitter(client),
+		logger:        NewLogger(client),
+		puller:        NewPuller(client),
+		pusher:        NewPusher(client),
+		resetter:      NewResetter(client),
+		cleaner:       NewCleaner(client),
+		adder:         NewAdder(client),
+		remoter:       NewRemoter(client),
+		rebaser:       NewRebaser(client),
+		stasher:       NewStasher(client),
+		configurer:    NewConfigurer(client),
+		hooker:        NewHooker(client),
+		tagger:        NewTagger(client),
+		statuser:      NewStatuser(client),
+		versioner:     NewVersioner(client),
+		differ:        NewDiffer(client),
+		restorer:      NewRestorer(client),
+		fetcher:       NewFetcher(client),
+		debugger:      NewDebugger(),
 	}
 	cmd.cmdRouter = mustNewCommandRouter(cmd)
 	return cmd

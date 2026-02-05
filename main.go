@@ -50,18 +50,19 @@ func GetVersionInfo() (string, string) {
 // RunApp contains the main application logic, separated for testability.
 // This function initializes all components and routes the provided arguments.
 func RunApp(args []string) error {
-	cm := config.NewConfigManager(git.NewClient())
+	client := git.NewClient()
+	cm := config.NewConfigManager(client)
 	if err := cm.LoadConfig(); err != nil {
 		// Continue with default config on error
 		_, _ = os.Stderr.WriteString("Warning: " + err.Error() + "\n")
 	}
 	cmd.SetVersionGetter(GetVersionInfo)
-	c := cmd.NewCmd(git.NewClient())
+	c := cmd.NewCmd(client, cm)
 	// Cache default remote in tagger to avoid repeated config loads.
 	if r := strings.TrimSpace(cm.GetConfig().Git.DefaultRemote); r != "" {
 		c.SetDefaultRemote(r)
 	}
-	return c.Execute(args, cm)
+	return c.Execute(args)
 }
 
 func main() {

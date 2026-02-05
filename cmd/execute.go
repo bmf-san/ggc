@@ -9,7 +9,7 @@ import (
 
 // Execute executes the command with alias resolution.
 // This is the main entry point that handles both aliases and regular commands.
-func (c *Cmd) Execute(args []string, cm *config.Manager) error {
+func (c *Cmd) Execute(args []string) error {
 	if len(args) == 0 {
 		c.Interactive()
 		return nil
@@ -18,8 +18,8 @@ func (c *Cmd) Execute(args []string, cm *config.Manager) error {
 	cmdName, cmdArgs := args[0], args[1:]
 
 	// Check if this is an alias
-	if cm != nil && cm.GetConfig().IsAlias(cmdName) {
-		return c.executeAlias(cmdName, cmdArgs, cm)
+	if c.configManager != nil && c.configManager.GetConfig().IsAlias(cmdName) {
+		return c.executeAlias(cmdName, cmdArgs)
 	}
 
 	// Regular command
@@ -27,8 +27,8 @@ func (c *Cmd) Execute(args []string, cm *config.Manager) error {
 	return nil
 }
 
-func (c *Cmd) executeAlias(name string, args []string, cm *config.Manager) error {
-	cfg := cm.GetConfig()
+func (c *Cmd) executeAlias(name string, args []string) error {
+	cfg := c.configManager.GetConfig()
 	alias, err := cfg.ParseAlias(name)
 	if err != nil {
 		return fmt.Errorf("error parsing alias: %w", err)
