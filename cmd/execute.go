@@ -1,72 +1,55 @@
-// Package router provides routing functionality for the ggc CLI tool with alias support.
-package router
+package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/cmd"
 	"github.com/bmf-san/ggc/v7/internal/config"
 )
 
-// Router represents the command router with config support.
-type Router struct {
-	Executer      cmd.Executer
-	ConfigManager *config.Manager
-	exitFunc      func(int)
-}
-
-// NewRouter creates a new Router with a config manager.
-func NewRouter(e cmd.Executer, cm *config.Manager) *Router {
-	return &Router{
-		Executer:      e,
-		ConfigManager: cm,
-		exitFunc:      os.Exit,
-	}
-}
-
-// SetExitFunc overrides the default exit behavior (mainly for testing).
-func (r *Router) SetExitFunc(f func(int)) {
-	if f == nil {
-		r.exitFunc = os.Exit
-		return
-	}
-	r.exitFunc = f
-}
-
-// Route routes the command to the appropriate handler
-func (r *Router) Route(args []string) {
+// Execute executes the command with alias resolution.
+// This is the main entry point that handles both aliases and regular commands.
+//
+// It returns a non-nil error if executing an alias fails, such as when alias parsing
+// or placeholder processing encounters an error; interactive mode and regular commands
+// do not cause Execute to return an error.
+//
+// Known limitation: Alias command parsing uses strings.Split which may incorrectly
+// split quoted arguments (e.g., "commit -m 'fix bug'" becomes ["commit", "-m", "'fix", "bug'"]).
+func (c *Cmd) Execute(args []string) error {
 	if len(args) == 0 {
-		r.Executer.Interactive()
-		return
+		c.Interactive()
+		return nil
 	}
 
 	cmdName, cmdArgs := args[0], args[1:]
 
-	if r.ConfigManager != nil && r.ConfigManager.GetConfig().IsAlias(cmdName) {
-		r.executeAlias(cmdName, cmdArgs)
-	} else {
-		r.executeCommand(cmdName, cmdArgs)
+	// Check if this is an alias
+	if c.configManager != nil && c.configManager.GetConfig().IsAlias(cmdName) {
+		return c.executeAlias(cmdName, cmdArgs)
 	}
+
+	// Regular command
+	c.Route(args)
+	return nil
 }
 
-func (r *Router) executeAlias(name string, args []string) {
-	cfg := r.ConfigManager.GetConfig()
+// executeAlias resolves and executes an alias command identified by name.
+// It returns an error if the alias cannot be parsed or if placeholder
+// processing fails (e.g., insufficient arguments for placeholders).
+func (c *Cmd) executeAlias(name string, args []string) error {
+	cfg := c.configManager.GetConfig()
 	alias, err := cfg.ParseAlias(name)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error parsing alias: %v\n", err)
-		return
+		return fmt.Errorf("error parsing alias: %w", err)
 	}
 
 	switch alias.Type {
 	case config.SimpleAlias:
 		// For simple aliases, process placeholders if any exist
-		processedCommands, err := r.processPlaceholders(alias, args, name)
+		processedCommands, err := c.processPlaceholders(alias, args, name)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			r.exitFunc(1)
-			return
+			return err
 		}
 
 		// Note: Using strings.Split may incorrectly split quoted arguments.
@@ -75,33 +58,39 @@ func (r *Router) executeAlias(name string, args []string) {
 		command := strings.Split(processedCommands[0], " ")
 		if len(alias.Placeholders) == 0 {
 			// No placeholders, forward user arguments
-			r.executeCommand(command[0], args)
+			c.Route(append([]string{command[0]}, args...))
 		} else {
 			// Placeholders were processed, use the processed command
-			r.executeCommand(command[0], command[1:])
+			c.Route(command)
 		}
 
 	case config.SequenceAlias:
 		// Process placeholders for sequence aliases
-		processedCommands, err := r.processPlaceholders(alias, args, name)
+		processedCommands, err := c.processPlaceholders(alias, args, name)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			r.exitFunc(1)
-			return
+			return err
 		}
 
-		for _, c := range processedCommands {
-			fmt.Printf("Executing: %s\n", c)
+		for _, cmd := range processedCommands {
+			fmt.Printf("Executing: %s\n", cmd)
 			// Note: Using strings.Split may incorrectly split quoted arguments.
 			// This is a known limitation that affects commands with quoted parameters.
-			command := strings.Split(c, " ")
-			r.executeCommand(command[0], command[1:])
+			command := strings.Split(cmd, " ")
+			c.Route(command)
 		}
 	}
+	return nil
 }
 
-// processPlaceholders processes placeholder replacement in alias commands
-func (r *Router) processPlaceholders(alias *config.ParsedAlias, args []string, aliasName string) ([]string, error) {
+// processPlaceholders resolves placeholders in the given alias commands using the
+// supplied args and returns a slice of fully-expanded command strings.
+//
+// When an alias defines no placeholders, simple aliases return their configured
+// commands as-is, while sequence aliases reject any provided arguments and
+// return an error. When placeholders are present, this function validates that
+// enough arguments have been supplied for the highest positional placeholder
+// index in use and returns an error if the requirements are not met.
+func (c *Cmd) processPlaceholders(alias *config.ParsedAlias, args []string, aliasName string) ([]string, error) {
 	// If no placeholders are used, handle arguments appropriately
 	if len(alias.Placeholders) == 0 {
 		if alias.Type == config.SequenceAlias && len(args) > 0 {
@@ -141,9 +130,4 @@ func (r *Router) processPlaceholders(alias *config.ParsedAlias, args []string, a
 	}
 
 	return processedCommands, nil
-}
-
-func (r *Router) executeCommand(name string, args []string) {
-	allArgs := append([]string{name}, args...)
-	r.Executer.Route(allArgs)
 }

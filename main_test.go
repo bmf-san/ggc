@@ -8,7 +8,6 @@ import (
 	"github.com/bmf-san/ggc/v7/cmd"
 	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
-	"github.com/bmf-san/ggc/v7/router"
 )
 
 func TestGetVersionInfo(t *testing.T) {
@@ -178,25 +177,12 @@ func TestMain_Components(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// Test cmd creation with mock client (safe, no real git commands)
 				mockClient := testutil.NewMockGitClient()
-				c := cmd.NewCmd(mockClient)
+				cm := config.NewConfigManager(mockClient)
+				c := cmd.NewCmd(mockClient, cm)
 				if c == nil {
 					t.Error("cmd should be created")
 				}
 				t.Log("Cmd created successfully with mock client")
-			},
-		},
-		{
-			name: "router creation",
-			testFunc: func(t *testing.T) {
-				// Test router creation with mock components
-				mockClient := testutil.NewMockGitClient()
-				cm := config.NewConfigManager(mockClient)
-				c := cmd.NewCmd(mockClient)
-				r := router.NewRouter(c, cm)
-				if r == nil {
-					t.Error("router should be created")
-				}
-				t.Log("Router created successfully")
 			},
 		},
 		{
@@ -209,11 +195,10 @@ func TestMain_Components(t *testing.T) {
 				cm := config.NewConfigManager(mockClient)
 				_ = cm.LoadConfig()
 				cmd.SetVersionGetter(GetVersionInfo)
-				c := cmd.NewCmd(mockClient)
-				r := router.NewRouter(c, cm)
+				c := cmd.NewCmd(mockClient, cm)
 
 				// Test safe routing (help command)
-				r.Route([]string{"help"})
+				_ = c.Execute([]string{"help"})
 				t.Log("Integration test completed successfully")
 			},
 		},
@@ -260,11 +245,10 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
-			c := cmd.NewCmd(mockClient)
-			r := router.NewRouter(c, cm)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Test routing with different arguments (safe with mock)
-			r.Route(tt.args)
+			_ = c.Execute(tt.args)
 			t.Logf("%s: Successfully routed args %v", tt.desc, tt.args)
 		})
 	}
@@ -317,7 +301,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 
 			// Initialize cmd and check default remote setting logic
 			cmd.SetVersionGetter(GetVersionInfo)
-			c := cmd.NewCmd(mockClient)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Test the logic from main: if r := strings.TrimSpace(...); r != ""
 			trimmedRemote := strings.TrimSpace(tt.mockDefaultRemote)
@@ -328,11 +312,8 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 				t.Logf("%s: Did not set default remote (empty after trim from '%s')", tt.description, tt.mockDefaultRemote)
 			}
 
-			// Create router to complete the main() simulation
-			r := router.NewRouter(c, cm)
-
-			// Test safe routing
-			r.Route([]string{"help"})
+			// Test safe routing to complete the main() simulation
+			_ = c.Execute([]string{"help"})
 			t.Logf("Successfully completed main() simulation")
 		})
 	}
@@ -383,7 +364,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 			cmd.SetVersionGetter(GetVersionInfo)
 
 			// Step 3: Create cmd
-			c := cmd.NewCmd(mockClient)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Step 4: Cache default remote logic (lines 57-59 in main.go)
 			if r := strings.TrimSpace(tt.defaultRemote); r != "" {
@@ -391,11 +372,8 @@ func TestMain_CompleteFlow(t *testing.T) {
 				t.Logf("Set default remote to: %s", r)
 			}
 
-			// Step 5: Create router
-			router := router.NewRouter(c, cm)
-
-			// Step 6: Route arguments (simulating os.Args[1:])
-			router.Route(tt.args)
+			// Step 5: Execute arguments (simulating os.Args[1:])
+			_ = c.Execute(tt.args)
 
 			t.Logf("%s: Successfully completed with args %v", tt.description, tt.args)
 		})
@@ -424,11 +402,10 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
 			cmd.SetVersionGetter(GetVersionInfo)
-			c := cmd.NewCmd(mockClient)
-			r := router.NewRouter(c, cm)
+			c := cmd.NewCmd(mockClient, cm)
 
 			// Route the arguments (safe with mock)
-			r.Route(routeArgs)
+			_ = c.Execute(routeArgs)
 			t.Logf("Successfully simulated main() with args: %v -> route args: %v", args, routeArgs)
 		})
 	}
@@ -473,9 +450,12 @@ func TestRunApp(t *testing.T) {
 
 			// Execute RunApp with test arguments
 			// This should not panic and should execute the same logic as main()
-			RunApp(tt.args)
-
-			t.Logf("%s: RunApp executed successfully with args %v", tt.description, tt.args)
+			err := RunApp(tt.args)
+			if err != nil {
+				t.Logf("%s: RunApp returned error (may be expected): %v", tt.description, err)
+			} else {
+				t.Logf("%s: RunApp executed successfully with args %v", tt.description, tt.args)
+			}
 		})
 	}
 }
@@ -500,8 +480,11 @@ func TestRunApp_WithMockSetup(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// This tests the actual RunApp function which contains main's logic
 			// It's safe because we're using well-defined commands that don't modify state
-			RunApp(tt.args)
-			t.Logf("%s: RunApp internal flow test completed", tt.description)
+			if err := RunApp(tt.args); err != nil {
+				t.Logf("%s: RunApp returned error: %v", tt.description, err)
+			} else {
+				t.Logf("%s: RunApp internal flow test completed", tt.description)
+			}
 		})
 	}
 }
@@ -537,7 +520,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		cmd.SetVersionGetter(GetVersionInfo)
 
 		// Step 3: Cmd creation (requires version getter to be set)
-		c := cmd.NewCmd(mockClient)
+		c := cmd.NewCmd(mockClient, cm)
 		if c == nil {
 			t.Fatal("Cmd creation failed")
 		}
@@ -551,14 +534,8 @@ func TestMain_InitializationOrder(t *testing.T) {
 			}
 		}
 
-		// Step 5: Router creation (requires both cmd and config manager)
-		router := router.NewRouter(c, cm)
-		if router == nil {
-			t.Fatal("Router creation failed")
-		}
-
-		// Step 6: Route execution
-		router.Route([]string{"help"})
+		// Step 5: Execute command (using cmd with config manager)
+		_ = c.Execute([]string{"help"})
 
 		t.Log("Initialization order test completed successfully")
 	})
