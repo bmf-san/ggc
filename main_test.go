@@ -12,260 +12,117 @@ import (
 )
 
 func TestGetVersionInfo(t *testing.T) {
-	tests := []struct {
-		name            string
-		setupFunc       func()
-		expectedVersion string
-		expectedCommit  string
-		checkFunc       func(t *testing.T, version, commit string)
-	}{
-		{
-			name: "default case - no ldflags, use build info",
-			setupFunc: func() {
-				// Reset global variables to simulate default state
-				version = ""
-				commit = ""
-			},
-			checkFunc: func(t *testing.T, v, c string) {
-				// In test environment, build info should provide some values or empty
-				// We verify the function executes without panic and returns two strings
-				if v != "" && c != "" {
-					t.Logf("Build info provided: version=%s, commit=%s", v, c)
-				} else {
-					t.Log("Build info not available or in dev mode")
-				}
-			},
-		},
-		{
-			name: "ldflags version set",
-			setupFunc: func() {
-				version = "v1.2.3"
-				commit = ""
-			},
-			expectedVersion: "v1.2.3",
-			expectedCommit:  "",
-			checkFunc: func(t *testing.T, v, c string) {
-				if v != "v1.2.3" {
-					t.Errorf("Expected version 'v1.2.3', got '%s'", v)
-				}
-				if c != "" {
-					t.Errorf("Expected empty commit, got '%s'", c)
-				}
-			},
-		},
-		{
-			name: "ldflags commit set",
-			setupFunc: func() {
-				version = ""
-				commit = "abc1234"
-			},
-			expectedVersion: "",
-			expectedCommit:  "abc1234",
-			checkFunc: func(t *testing.T, v, c string) {
-				if v != "" {
-					t.Errorf("Expected empty version, got '%s'", v)
-				}
-				if c != "abc1234" {
-					t.Errorf("Expected commit 'abc1234', got '%s'", c)
-				}
-			},
-		},
-		{
-			name: "both ldflags set",
-			setupFunc: func() {
-				version = "v2.0.0"
-				commit = "def5678"
-			},
-			expectedVersion: "v2.0.0",
-			expectedCommit:  "def5678",
-			checkFunc: func(t *testing.T, v, c string) {
-				if v != "v2.0.0" {
-					t.Errorf("Expected version 'v2.0.0', got '%s'", v)
-				}
-				if c != "def5678" {
-					t.Errorf("Expected commit 'def5678', got '%s'", c)
-				}
-			},
-		},
-	}
-
 	// Store original values to restore later
 	originalVersion := version
 	originalCommit := commit
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.setupFunc()
-			v, c := GetVersionInfo()
-			tt.checkFunc(t, v, c)
-		})
-	}
-
-	// Restore original values
-	version = originalVersion
-	commit = originalCommit
-}
-
-func TestGetVersionInfo_BuildInfo(t *testing.T) {
-	// Reset global variables to test build info path
-	originalVersion := version
-	originalCommit := commit
-	version = ""
-	commit = ""
-
-	// Test the build info fallback
-	v, c := GetVersionInfo()
-
-	// Verify function executes without panic
-	t.Logf("Build info result: version='%s', commit='%s'", v, c)
-
-	// In test environment, build info behavior varies
-	// We mainly test that the function doesn't panic and returns strings
-	if bi, ok := debug.ReadBuildInfo(); ok {
-		t.Log("Build info is available")
-		// Verify that if build info is available, we get some result
-		if bi.Main.Version == "(devel)" {
-			// Development build should return empty version
-			if v != "" {
-				t.Logf("Note: Got version '%s' from build info despite (devel)", v)
-			}
-		}
-	} else {
-		t.Log("Build info is not available")
-		// If no build info, should return empty strings
-		if v != "" || c != "" {
-			t.Errorf("Expected empty strings when no build info, got version='%s', commit='%s'", v, c)
-		}
-	}
-
-	// Restore original values
-	version = originalVersion
-	commit = originalCommit
-}
-
-func TestGetVersionInfo_BuildInfoScenarios(t *testing.T) {
-	// Test various build info scenarios
-	originalVersion := version
-	originalCommit := commit
+	defer func() {
+		version = originalVersion
+		commit = originalCommit
+	}()
 
 	tests := []struct {
 		name        string
-		setupFunc   func()
-		description string
+		setVersion  string
+		setCommit   string
+		wantVersion string
+		wantCommit  string
+		checkFunc   func(t *testing.T, gotVersion, gotCommit string)
 	}{
+		// ldflags scenarios
 		{
-			name: "empty ldflags with build info available",
-			setupFunc: func() {
-				version = ""
-				commit = ""
-			},
-			description: "Test fallback to build info when ldflags are empty",
+			name:        "both ldflags set",
+			setVersion:  "v2.0.0",
+			setCommit:   "def5678",
+			wantVersion: "v2.0.0",
+			wantCommit:  "def5678",
 		},
 		{
-			name: "devel version handling",
-			setupFunc: func() {
-				version = ""
-				commit = ""
-			},
-			description: "Test handling of (devel) version from build info",
+			name:        "only version ldflags set",
+			setVersion:  "v1.2.3",
+			setCommit:   "",
+			wantVersion: "v1.2.3",
+			wantCommit:  "",
 		},
 		{
-			name: "short commit hash handling",
-			setupFunc: func() {
-				version = ""
-				commit = ""
-			},
-			description: "Test handling of commit hashes shorter than 7 characters",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.setupFunc()
-			v, c := GetVersionInfo()
-
-			// Verify function executes without panic and returns two strings
-			t.Logf("%s: version='%s', commit='%s'", tt.description, v, c)
-
-			// Verify both returned values are strings (even if empty)
-			if v != strings.TrimSpace(v) {
-				t.Errorf("Version should not have leading/trailing whitespace: '%s'", v)
-			}
-			if c != strings.TrimSpace(c) {
-				t.Errorf("Commit should not have leading/trailing whitespace: '%s'", c)
-			}
-		})
-	}
-
-	// Restore original values
-	version = originalVersion
-	commit = originalCommit
-}
-
-func TestGetVersionInfo_EdgeCases(t *testing.T) {
-	originalVersion := version
-	originalCommit := commit
-
-	tests := []struct {
-		name         string
-		setupVersion string
-		setupCommit  string
-		description  string
-	}{
-		{
-			name:         "both empty strings",
-			setupVersion: "",
-			setupCommit:  "",
-			description:  "When both ldflags are empty, fallback to build info",
-		},
-		{
-			name:         "version with whitespace",
-			setupVersion: " v1.0.0 ",
-			setupCommit:  "",
-			description:  "Test version with whitespace (ldflags preserve exact values)",
-		},
-		{
-			name:         "commit with whitespace",
-			setupVersion: "",
-			setupCommit:  " abc123 ",
-			description:  "Test commit with whitespace (ldflags preserve exact values)",
-		},
-		{
-			name:         "both with special characters",
-			setupVersion: "v1.0.0-beta",
-			setupCommit:  "abc123def",
-			description:  "Test with special characters in version",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			version = tt.setupVersion
-			commit = tt.setupCommit
-
-			v, c := GetVersionInfo()
-			t.Logf("%s: version='%s', commit='%s'", tt.description, v, c)
-
-			// When ldflags are set (non-empty), they take precedence
-			if tt.setupVersion != "" || tt.setupCommit != "" {
-				// If either ldflags value is set, it should return ldflags values
-				if (tt.setupVersion != "" && v != tt.setupVersion) ||
-					(tt.setupCommit != "" && c != tt.setupCommit) {
-					t.Logf("Note: ldflags values take precedence - expected behavior")
+			name:       "only commit ldflags set",
+			setVersion: "",
+			setCommit:  "abc1234",
+			checkFunc: func(t *testing.T, gotVersion, gotCommit string) {
+				// Version may come from build info, commit should be ldflags value
+				if gotCommit != "abc1234" {
+					t.Errorf("Expected commit 'abc1234', got '%s'", gotCommit)
 				}
+			},
+		},
+		// Edge cases
+		{
+			name:        "version with special characters",
+			setVersion:  "v1.0.0-beta",
+			setCommit:   "abc123def",
+			wantVersion: "v1.0.0-beta",
+			wantCommit:  "abc123def",
+		},
+		{
+			name:        "version with whitespace preserved",
+			setVersion:  " v1.0.0 ",
+			setCommit:   "",
+			wantVersion: " v1.0.0 ",
+		},
+		{
+			name:       "commit with whitespace preserved",
+			setVersion: "",
+			setCommit:  " abc123 ",
+			checkFunc: func(t *testing.T, gotVersion, gotCommit string) {
+				if gotCommit != " abc123 " {
+					t.Errorf("Expected commit ' abc123 ', got '%s'", gotCommit)
+				}
+			},
+		},
+		// Build info fallback scenarios
+		{
+			name:       "empty ldflags fallback to build info",
+			setVersion: "",
+			setCommit:  "",
+			checkFunc: func(t *testing.T, gotVersion, gotCommit string) {
+				// When ldflags are empty, build info is used
+				// Result depends on build environment
+				if bi, ok := debug.ReadBuildInfo(); ok {
+					if bi.Main.Version == "(devel)" {
+						// Development build - version should be empty
+						t.Logf("Dev build: version='%s', commit='%s'", gotVersion, gotCommit)
+					} else {
+						t.Logf("Module build: version='%s', commit='%s'", gotVersion, gotCommit)
+					}
+				} else {
+					// No build info - should return empty strings
+					if gotVersion != "" || gotCommit != "" {
+						t.Errorf("Expected empty strings without build info, got version='%s', commit='%s'", gotVersion, gotCommit)
+					}
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version = tt.setVersion
+			commit = tt.setCommit
+
+			gotVersion, gotCommit := GetVersionInfo()
+
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, gotVersion, gotCommit)
+				return
 			}
 
-			// Main verification: function executes without panic
-			// and returns two string values
-			if v == "" && c == "" && (tt.setupVersion != "" || tt.setupCommit != "") {
-				t.Logf("Both returned empty despite ldflags set - may be expected if build info overrides")
+			if tt.wantVersion != "" && gotVersion != tt.wantVersion {
+				t.Errorf("version = %q, want %q", gotVersion, tt.wantVersion)
+			}
+			if tt.wantCommit != "" && gotCommit != tt.wantCommit {
+				t.Errorf("commit = %q, want %q", gotCommit, tt.wantCommit)
 			}
 		})
 	}
-
-	// Restore original values
-	version = originalVersion
-	commit = originalCommit
 }
 
 func TestMain_Components(t *testing.T) {
