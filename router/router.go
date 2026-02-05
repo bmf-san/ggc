@@ -3,7 +3,6 @@ package router
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/bmf-san/ggc/v7/cmd"
@@ -14,7 +13,6 @@ import (
 type Router struct {
 	Executer      cmd.Executer
 	ConfigManager *config.Manager
-	exitFunc      func(int)
 }
 
 // NewRouter creates a new Router with a config manager.
@@ -22,41 +20,30 @@ func NewRouter(e cmd.Executer, cm *config.Manager) *Router {
 	return &Router{
 		Executer:      e,
 		ConfigManager: cm,
-		exitFunc:      os.Exit,
 	}
-}
-
-// SetExitFunc overrides the default exit behavior (mainly for testing).
-func (r *Router) SetExitFunc(f func(int)) {
-	if f == nil {
-		r.exitFunc = os.Exit
-		return
-	}
-	r.exitFunc = f
 }
 
 // Route routes the command to the appropriate handler
-func (r *Router) Route(args []string) {
+func (r *Router) Route(args []string) error {
 	if len(args) == 0 {
 		r.Executer.Interactive()
-		return
+		return nil
 	}
 
 	cmdName, cmdArgs := args[0], args[1:]
 
 	if r.ConfigManager != nil && r.ConfigManager.GetConfig().IsAlias(cmdName) {
-		r.executeAlias(cmdName, cmdArgs)
-	} else {
-		r.executeCommand(cmdName, cmdArgs)
+		return r.executeAlias(cmdName, cmdArgs)
 	}
+	r.executeCommand(cmdName, cmdArgs)
+	return nil
 }
 
-func (r *Router) executeAlias(name string, args []string) {
+func (r *Router) executeAlias(name string, args []string) error {
 	cfg := r.ConfigManager.GetConfig()
 	alias, err := cfg.ParseAlias(name)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error parsing alias: %v\n", err)
-		return
+		return fmt.Errorf("error parsing alias: %w", err)
 	}
 
 	switch alias.Type {
@@ -64,9 +51,7 @@ func (r *Router) executeAlias(name string, args []string) {
 		// For simple aliases, process placeholders if any exist
 		processedCommands, err := r.processPlaceholders(alias, args, name)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			r.exitFunc(1)
-			return
+			return err
 		}
 
 		// Note: Using strings.Split may incorrectly split quoted arguments.
@@ -85,9 +70,7 @@ func (r *Router) executeAlias(name string, args []string) {
 		// Process placeholders for sequence aliases
 		processedCommands, err := r.processPlaceholders(alias, args, name)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			r.exitFunc(1)
-			return
+			return err
 		}
 
 		for _, c := range processedCommands {
@@ -98,6 +81,7 @@ func (r *Router) executeAlias(name string, args []string) {
 			r.executeCommand(command[0], command[1:])
 		}
 	}
+	return nil
 }
 
 // processPlaceholders processes placeholder replacement in alias commands

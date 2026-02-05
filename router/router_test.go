@@ -1,9 +1,6 @@
 package router
 
 import (
-	"bytes"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
@@ -222,34 +219,6 @@ func (m *mockExecuter) Route(args []string) {
 	default:
 		m.Help(nil)
 	}
-}
-
-func captureStderr(t *testing.T, fn func()) string {
-	t.Helper()
-
-	orig := os.Stderr
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("failed to create pipe: %v", err)
-	}
-
-	os.Stderr = w
-
-	var buf bytes.Buffer
-	done := make(chan struct{})
-	go func() {
-		_, _ = io.Copy(&buf, r)
-		close(done)
-	}()
-
-	fn()
-
-	_ = w.Close()
-	os.Stderr = orig
-	<-done
-	_ = r.Close()
-
-	return buf.String()
 }
 
 func TestRouter(t *testing.T) {
@@ -573,7 +542,7 @@ func TestRouter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &mockExecuter{}
 			r := NewRouter(m, config.NewConfigManager(testutil.NewMockGitClient()))
-			r.Route(tc.args)
+			_ = r.Route(tc.args)
 			tc.validate(t, m)
 		})
 	}
@@ -581,12 +550,11 @@ func TestRouter(t *testing.T) {
 
 func TestRouter_WithAliases(t *testing.T) {
 	cases := []struct {
-		name             string
-		aliases          map[string]interface{}
-		args             []string
-		expectExit       bool
-		expectedExitCode int
-		validate         func(t *testing.T, m *mockExecuter)
+		name        string
+		aliases     map[string]interface{}
+		args        []string
+		expectError bool
+		validate    func(t *testing.T, m *mockExecuter)
 	}{
 		{
 			name: "simple alias",
@@ -631,13 +599,12 @@ func TestRouter_WithAliases(t *testing.T) {
 			},
 		},
 		{
-			name: "sequence alias with args (should be ignored)",
+			name: "sequence alias with args (should error)",
 			aliases: map[string]interface{}{
 				"sync": []interface{}{"pull current", "push current"},
 			},
-			args:             []string{"sync", "ignored"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"sync", "ignored"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.pullCalled || m.pushCalled {
 					t.Error("Sequence alias should not run when arguments are provided")
@@ -674,23 +641,14 @@ func TestRouter_WithAliases(t *testing.T) {
 
 			m := &mockExecuter{}
 			r := NewRouter(m, configManager)
-			exitCalled := false
-			exitCode := 0
-			r.SetExitFunc(func(code int) {
-				exitCalled = true
-				exitCode = code
-			})
-			r.Route(tc.args)
+			err := r.Route(tc.args)
 			tc.validate(t, m)
-			if tc.expectExit {
-				if !exitCalled {
-					t.Fatal("expected router to exit but it did not")
+			if tc.expectError {
+				if err == nil {
+					t.Fatal("expected router to return error but it did not")
 				}
-				if exitCode != tc.expectedExitCode {
-					t.Fatalf("expected exit code %d, got %d", tc.expectedExitCode, exitCode)
-				}
-			} else if exitCalled {
-				t.Fatalf("unexpected exit with code %d", exitCode)
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 		})
 	}
@@ -708,31 +666,20 @@ func TestRouter_SequenceAliasRejectsArguments(t *testing.T) {
 
 	m := &mockExecuter{}
 	r := NewRouter(m, configManager)
-	exitCalled := false
-	exitCode := 0
-	r.SetExitFunc(func(code int) {
-		exitCalled = true
-		exitCode = code
-	})
 
-	output := captureStderr(t, func() {
-		r.Route([]string{"deploy", "production"})
-	})
+	err := r.Route([]string{"deploy", "production"})
 
-	if !exitCalled {
-		t.Fatal("sequence alias should exit when arguments are provided")
-	}
-	if exitCode != 1 {
-		t.Fatalf("expected exit code 1, got %d", exitCode)
+	if err == nil {
+		t.Fatal("sequence alias should return error when arguments are provided")
 	}
 	if m.statusCalled {
 		t.Fatal("sequence commands should not execute when arguments are rejected")
 	}
-	if !strings.Contains(output, "sequence alias 'deploy' does not accept arguments") {
-		t.Fatalf("expected rejection message, got %q", output)
+	if !strings.Contains(err.Error(), "sequence alias 'deploy' does not accept arguments") {
+		t.Fatalf("expected rejection message, got %q", err.Error())
 	}
-	if !strings.Contains(output, "production") {
-		t.Fatalf("expected error to list offending arguments, got %q", output)
+	if !strings.Contains(err.Error(), "production") {
+		t.Fatalf("expected error to list offending arguments, got %q", err.Error())
 	}
 }
 
@@ -741,8 +688,11 @@ func TestRouter_ConfigManagerNil(t *testing.T) {
 	r := NewRouter(m, nil)
 
 	// Should not panic and should execute normal command
-	r.Route([]string{"status"})
+	err := r.Route([]string{"status"})
 
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	if !m.statusCalled {
 		t.Error("Status should be called when ConfigManager is nil")
 	}
@@ -783,7 +733,7 @@ func TestRouter_AliasErrors(t *testing.T) {
 
 			m := &mockExecuter{}
 			r := NewRouter(m, configManager)
-			r.Route(tc.args)
+			_ = r.Route(tc.args)
 			tc.validate(t, m)
 		})
 	}
@@ -890,7 +840,7 @@ func TestRouter_AliasSequenceExecution(t *testing.T) {
 
 			m := &mockExecuter{}
 			r := NewRouter(m, configManager)
-			r.Route(tc.args)
+			_ = r.Route(tc.args)
 			tc.validate(t, m)
 		})
 	}
@@ -898,12 +848,11 @@ func TestRouter_AliasSequenceExecution(t *testing.T) {
 
 func TestRouter_PlaceholderProcessing(t *testing.T) {
 	tests := []struct {
-		name             string
-		aliases          map[string]interface{}
-		args             []string
-		expectExit       bool
-		expectedExitCode int
-		validate         func(t *testing.T, m *mockExecuter)
+		name        string
+		aliases     map[string]interface{}
+		args        []string
+		expectError bool
+		validate    func(t *testing.T, m *mockExecuter)
 	}{
 		{
 			name: "simple alias with placeholder",
@@ -988,9 +937,8 @@ func TestRouter_PlaceholderProcessing(t *testing.T) {
 			aliases: map[string]interface{}{
 				"commit-msg": "commit -m '{0}'",
 			},
-			args:             []string{"commit-msg"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"commit-msg"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.commitCalled {
 					t.Error("Commit should not be called when placeholder argument is missing")
@@ -1002,9 +950,8 @@ func TestRouter_PlaceholderProcessing(t *testing.T) {
 			aliases: map[string]interface{}{
 				"deploy": []interface{}{"branch checkout {0}", "push {0}"},
 			},
-			args:             []string{"deploy"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"deploy"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.branchCalled || m.pushCalled {
 					t.Error("No commands should be called when placeholder arguments are missing")
@@ -1016,9 +963,8 @@ func TestRouter_PlaceholderProcessing(t *testing.T) {
 			aliases: map[string]interface{}{
 				"feature": []interface{}{"branch checkout-from {0} feature/{1}", "commit -m 'Start {1} from {0}'"},
 			},
-			args:             []string{"feature", "main"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"feature", "main"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.branchCalled || m.commitCalled {
 					t.Error("No commands should be called when not all placeholder arguments are provided")
@@ -1045,9 +991,8 @@ func TestRouter_PlaceholderProcessing(t *testing.T) {
 			aliases: map[string]interface{}{
 				"sync": []interface{}{"pull current", "push current"},
 			},
-			args:             []string{"sync", "unwanted"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"sync", "unwanted"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.pullCalled || m.pushCalled {
 					t.Error("No commands should be called when sequence alias without placeholders receives arguments")
@@ -1068,24 +1013,14 @@ func TestRouter_PlaceholderProcessing(t *testing.T) {
 			mockExec := &mockExecuter{}
 			router := NewRouter(mockExec, configManager)
 
-			exitCalled := false
-			var exitCode int
-			router.SetExitFunc(func(code int) {
-				exitCalled = true
-				exitCode = code
-			})
+			err := router.Route(tt.args)
 
-			router.Route(tt.args)
-
-			if tt.expectExit {
-				if !exitCalled {
-					t.Fatal("expected router to exit but it did not")
+			if tt.expectError {
+				if err == nil {
+					t.Fatal("expected router to return error but it did not")
 				}
-				if exitCode != tt.expectedExitCode {
-					t.Fatalf("expected exit code %d, got %d", tt.expectedExitCode, exitCode)
-				}
-			} else if exitCalled {
-				t.Fatalf("unexpected exit with code %d", exitCode)
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 
 			tt.validate(t, mockExec)
@@ -1095,12 +1030,11 @@ func TestRouter_PlaceholderProcessing(t *testing.T) {
 
 func TestRouter_PlaceholderEdgeCases(t *testing.T) {
 	tests := []struct {
-		name             string
-		aliases          map[string]interface{}
-		args             []string
-		expectExit       bool
-		expectedExitCode int
-		validate         func(t *testing.T, m *mockExecuter)
+		name        string
+		aliases     map[string]interface{}
+		args        []string
+		expectError bool
+		validate    func(t *testing.T, m *mockExecuter)
 	}{
 		{
 			name: "duplicate placeholders in same command",
@@ -1231,9 +1165,8 @@ func TestRouter_PlaceholderEdgeCases(t *testing.T) {
 			aliases: map[string]interface{}{
 				"no-placeholders-seq": []interface{}{"status", "branch current"},
 			},
-			args:             []string{"no-placeholders-seq", "unwanted"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"no-placeholders-seq", "unwanted"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.statusCalled || m.branchCalled {
 					t.Error("No commands should execute when sequence alias without placeholders gets args")
@@ -1245,9 +1178,8 @@ func TestRouter_PlaceholderEdgeCases(t *testing.T) {
 			aliases: map[string]interface{}{
 				"needs-arg": "commit -m '{0}'",
 			},
-			args:             []string{"needs-arg"},
-			expectExit:       true,
-			expectedExitCode: 1,
+			args:        []string{"needs-arg"},
+			expectError: true,
 			validate: func(t *testing.T, m *mockExecuter) {
 				if m.commitCalled {
 					t.Error("Commit should not be called when required placeholder arg is missing")
@@ -1284,24 +1216,14 @@ func TestRouter_PlaceholderEdgeCases(t *testing.T) {
 			mockExec := &mockExecuter{}
 			router := NewRouter(mockExec, configManager)
 
-			exitCalled := false
-			var exitCode int
-			router.SetExitFunc(func(code int) {
-				exitCalled = true
-				exitCode = code
-			})
+			err := router.Route(tt.args)
 
-			router.Route(tt.args)
-
-			if tt.expectExit {
-				if !exitCalled {
-					t.Fatal("expected router to exit but it did not")
+			if tt.expectError {
+				if err == nil {
+					t.Fatal("expected router to return error but it did not")
 				}
-				if exitCode != tt.expectedExitCode {
-					t.Fatalf("expected exit code %d, got %d", tt.expectedExitCode, exitCode)
-				}
-			} else if exitCalled {
-				t.Fatalf("unexpected exit with code %d", exitCode)
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 
 			tt.validate(t, mockExec)

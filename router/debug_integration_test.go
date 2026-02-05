@@ -37,7 +37,7 @@ func TestRouter_DebugKeysIntegration(t *testing.T) {
 			m := &mockExecuter{}
 			r := NewRouter(m, nil)
 
-			r.Route(tc.args)
+			_ = r.Route(tc.args)
 
 			if !m.debugKeysCalled {
 				t.Error("Expected DebugKeys to be called")
@@ -62,7 +62,7 @@ func TestRouter_DebugKeysDelegatesToRoute(t *testing.T) {
 	m := &mockExecuter{}
 	r := NewRouter(m, nil)
 
-	r.Route([]string{"debug-keys", "raw"})
+	_ = r.Route([]string{"debug-keys", "raw"})
 
 	if len(m.routeCalls) != 1 {
 		t.Fatalf("expected Route to be called once, got %d", len(m.routeCalls))
@@ -88,7 +88,7 @@ func TestRouter_DebugKeysWithNilConfig(t *testing.T) {
 	r := NewRouter(m, nil)
 
 	// Test that routing works with nil config manager
-	r.Route([]string{"debug-keys", "help"})
+	_ = r.Route([]string{"debug-keys", "help"})
 
 	if !m.debugKeysCalled {
 		t.Error("Expected DebugKeys to be called with nil config")
@@ -129,7 +129,7 @@ func TestRouter_DebugKeysErrorHandling(t *testing.T) {
 			m := &mockExecuter{}
 			r := NewRouter(m, nil)
 
-			r.Route(tc.args)
+			_ = r.Route(tc.args)
 
 			if tc.expectDebugKeysCalled && !m.debugKeysCalled {
 				t.Error("Expected DebugKeys to be called")
@@ -147,7 +147,7 @@ func BenchmarkRouter_DebugKeysRouting(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Route([]string{"debug-keys"})
+		_ = r.Route([]string{"debug-keys"})
 	}
 }
 
@@ -157,6 +157,6 @@ func BenchmarkRouter_DebugKeysWithArgs(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Route([]string{"debug-keys", "raw", "output.txt"})
+		_ = r.Route([]string{"debug-keys", "raw", "output.txt"})
 	}
 }

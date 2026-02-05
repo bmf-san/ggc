@@ -50,7 +50,7 @@ func GetVersionInfo() (string, string) {
 
 // RunApp contains the main application logic, separated for testability.
 // This function initializes all components and routes the provided arguments.
-func RunApp(args []string) {
+func RunApp(args []string) error {
 	cm := config.NewConfigManager(git.NewClient())
 	if err := cm.LoadConfig(); err != nil {
 		// Continue with default config on error
@@ -63,9 +63,12 @@ func RunApp(args []string) {
 		c.SetDefaultRemote(r)
 	}
 	r := router.NewRouter(c, cm)
-	r.Route(args)
+	return r.Route(args)
 }
 
 func main() {
-	RunApp(os.Args[1:])
+	if err := RunApp(os.Args[1:]); err != nil {
+		_, _ = os.Stderr.WriteString("Error: " + err.Error() + "\n")
+		os.Exit(1)
+	}
 }

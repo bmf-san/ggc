@@ -213,7 +213,7 @@ func TestMain_Components(t *testing.T) {
 				r := router.NewRouter(c, cm)
 
 				// Test safe routing (help command)
-				r.Route([]string{"help"})
+				_ = r.Route([]string{"help"})
 				t.Log("Integration test completed successfully")
 			},
 		},
@@ -264,7 +264,7 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			r := router.NewRouter(c, cm)
 
 			// Test routing with different arguments (safe with mock)
-			r.Route(tt.args)
+			_ = r.Route(tt.args)
 			t.Logf("%s: Successfully routed args %v", tt.desc, tt.args)
 		})
 	}
@@ -332,7 +332,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 			r := router.NewRouter(c, cm)
 
 			// Test safe routing
-			r.Route([]string{"help"})
+			_ = r.Route([]string{"help"})
 			t.Logf("Successfully completed main() simulation")
 		})
 	}
@@ -395,7 +395,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 			router := router.NewRouter(c, cm)
 
 			// Step 6: Route arguments (simulating os.Args[1:])
-			router.Route(tt.args)
+			_ = router.Route(tt.args)
 
 			t.Logf("%s: Successfully completed with args %v", tt.description, tt.args)
 		})
@@ -428,7 +428,7 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			r := router.NewRouter(c, cm)
 
 			// Route the arguments (safe with mock)
-			r.Route(routeArgs)
+			_ = r.Route(routeArgs)
 			t.Logf("Successfully simulated main() with args: %v -> route args: %v", args, routeArgs)
 		})
 	}
@@ -473,9 +473,12 @@ func TestRunApp(t *testing.T) {
 
 			// Execute RunApp with test arguments
 			// This should not panic and should execute the same logic as main()
-			RunApp(tt.args)
-
-			t.Logf("%s: RunApp executed successfully with args %v", tt.description, tt.args)
+			err := RunApp(tt.args)
+			if err != nil {
+				t.Logf("%s: RunApp returned error (may be expected): %v", tt.description, err)
+			} else {
+				t.Logf("%s: RunApp executed successfully with args %v", tt.description, tt.args)
+			}
 		})
 	}
 }
@@ -500,8 +503,11 @@ func TestRunApp_WithMockSetup(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// This tests the actual RunApp function which contains main's logic
 			// It's safe because we're using well-defined commands that don't modify state
-			RunApp(tt.args)
-			t.Logf("%s: RunApp internal flow test completed", tt.description)
+			if err := RunApp(tt.args); err != nil {
+				t.Logf("%s: RunApp returned error: %v", tt.description, err)
+			} else {
+				t.Logf("%s: RunApp internal flow test completed", tt.description)
+			}
 		})
 	}
 }
@@ -558,7 +564,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		}
 
 		// Step 6: Route execution
-		router.Route([]string{"help"})
+		_ = router.Route([]string{"help"})
 
 		t.Log("Initialization order test completed successfully")
 	})
