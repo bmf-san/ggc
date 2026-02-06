@@ -1,6 +1,3 @@
-// Package keybindings provides a configurable keybinding system for interactive mode.
-// It supports profile-based configuration, platform-specific bindings, context-aware
-// key mapping, and runtime profile switching.
 package keybindings
 
 import (
