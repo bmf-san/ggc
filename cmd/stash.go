@@ -70,7 +70,7 @@ func (s *Stasher) stashList() {
 		WriteLine(s.outputWriter, "No stashes found")
 		return
 	}
-	WriteLinef(s.outputWriter, "%s", strings.TrimSuffix(output, "\n"))
+	_, _ = io.WriteString(s.outputWriter, output)
 }
 
 // stashShow shows the changes recorded in the stash

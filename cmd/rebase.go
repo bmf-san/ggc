@@ -143,7 +143,7 @@ func (r *Rebaser) prepareRebaseContext() (rebaseCtx, bool) {
 	}
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {
-		WriteLine(r.outputWriter, "Error: no commit history found")
+		WriteErrorf(r.outputWriter, "no commit history found")
 		return rebaseCtx{}, false
 	}
 	return rebaseCtx{currentBranch: currentBranch, upstream: upstream, lines: lines}, true
@@ -160,12 +160,12 @@ func (r *Rebaser) printCommitChoices(currentBranch string, lines []string) {
 func (r *Rebaser) promptRebaseCount(max int) (int, bool) {
 	input, ok := ReadLine(r.prompter, r.outputWriter, "> ")
 	if !ok || strings.TrimSpace(input) == "" {
-		WriteLine(r.outputWriter, "Error: operation canceled")
+		WriteErrorf(r.outputWriter, "operation canceled")
 		return 0, false
 	}
 	num, err := strconv.Atoi(strings.TrimSpace(input))
 	if err != nil || num < 1 || num > max {
-		WriteLine(r.outputWriter, "Error: invalid number")
+		WriteErrorf(r.outputWriter, "invalid number")
 		return 0, false
 	}
 	return num, true
