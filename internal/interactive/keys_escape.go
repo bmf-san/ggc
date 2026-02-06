@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"os"
 
+	"golang.org/x/term"
+
 	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/termio"
-	"golang.org/x/term"
 )
 
 func (h *KeyHandler) handleEscapeSequence(reader *bufio.Reader) {
