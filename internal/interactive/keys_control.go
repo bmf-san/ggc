@@ -8,89 +8,132 @@ import (
 	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 )
 
-//nolint:revive // cyclomatic complexity acceptable for control character dispatch
 func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
-	// Get the appropriate keybinding map for current context
-	km := h.GetCurrentKeyMap()
-
-	// Create KeyStroke for this control character
+	// Handle Ctrl+letter keys (ASCII 1-26)
 	if b >= 1 && b <= 26 {
-		// Control character: convert back to letter
-		ctrlStroke := kb.NewCtrlKeyStroke(rune('a' + b - 1))
-
-		// Workflow mode: simplified key handling (no input field)
-		if h.ui.state.IsWorkflowMode() {
-			if km.MatchesKeyStroke("workflow_delete", ctrlStroke) {
-				h.deleteActiveWorkflow()
-				return true, true, nil
-			}
-			// Ctrl+n/p navigate workflow list
-			if km.MatchesKeyStroke("move_down", ctrlStroke) {
-				h.moveWorkflowList(1)
-				return true, true, nil
-			}
-			if km.MatchesKeyStroke("move_up", ctrlStroke) {
-				h.moveWorkflowList(-1)
-				return true, true, nil
-			}
-			// Ctrl+t toggles back to search mode
-			if km.MatchesKeyStroke("toggle_workflow_view", ctrlStroke) {
-				h.ui.ToggleWorkflowView()
-				return true, true, nil
-			}
-			if km.MatchesKeyStroke("soft_cancel", ctrlStroke) {
-				h.handleSoftCancel(oldState)
-				return true, true, nil
-			}
-			// Ctrl+C must still work in workflow mode - fall through to switch
-			if b != 3 {
-				// Ignore other input-related Ctrl keys in workflow mode
-				return false, true, nil
-			}
-		}
-
-		// Search mode: full key handling
-		if km.MatchesKeyStroke("move_up", ctrlStroke) {
-			h.handleMoveUp()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("move_down", ctrlStroke) {
-			h.handleMoveDown()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("clear_line", ctrlStroke) {
-			h.ui.state.ClearInput()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("delete_word", ctrlStroke) {
-			h.ui.state.DeleteWord()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("delete_to_end", ctrlStroke) {
-			h.ui.state.DeleteToEnd()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("move_to_beginning", ctrlStroke) {
-			h.ui.state.MoveToBeginning()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("move_to_end", ctrlStroke) {
-			h.ui.state.MoveToEnd()
-			return true, true, nil
-		}
-
-		// Check for workflow toggle
-		if km.MatchesKeyStroke("toggle_workflow_view", ctrlStroke) && h.ui.state.input == "" {
-			h.ui.ToggleWorkflowView()
-			return true, true, nil
-		}
-		if km.MatchesKeyStroke("soft_cancel", ctrlStroke) {
-			h.handleSoftCancel(oldState)
-			return true, true, nil
+		handled, cont, result := h.handleCtrlLetterKeys(b, oldState)
+		if handled {
+			return handled, cont, result
 		}
 	}
 
-	// Handle special cases that are not Ctrl+letter
+	// Handle special control characters
+	return h.handleSpecialCtrlChars(b, oldState, reader)
+}
+
+// handleCtrlLetterKeys processes Ctrl+A through Ctrl+Z
+func (h *KeyHandler) handleCtrlLetterKeys(b byte, oldState *term.State) (bool, bool, []string) {
+	km := h.GetCurrentKeyMap()
+	ctrlStroke := kb.NewCtrlKeyStroke(rune('a' + b - 1))
+
+	// Workflow mode has different key handling
+	if h.ui.state.IsWorkflowMode() {
+		if h.handleWorkflowCtrlKeys(km, ctrlStroke, b, oldState) {
+			return true, true, nil
+		}
+		// Ctrl+C needs to fall through to special handler
+		if b != 3 {
+			return false, true, nil
+		}
+		return false, false, nil
+	}
+
+	// Search mode: full key handling
+	return h.handleSearchCtrlKeys(km, ctrlStroke, oldState)
+}
+
+// handleWorkflowCtrlKeys handles Ctrl+letter in workflow mode
+func (h *KeyHandler) handleWorkflowCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke, _ byte, oldState *term.State) bool {
+	switch {
+	case km.MatchesKeyStroke("workflow_delete", stroke):
+		h.deleteActiveWorkflow()
+		return true
+	case km.MatchesKeyStroke("move_down", stroke):
+		h.moveWorkflowList(1)
+		return true
+	case km.MatchesKeyStroke("move_up", stroke):
+		h.moveWorkflowList(-1)
+		return true
+	case km.MatchesKeyStroke("toggle_workflow_view", stroke):
+		h.ui.ToggleWorkflowView()
+		return true
+	case km.MatchesKeyStroke("soft_cancel", stroke):
+		h.handleSoftCancel(oldState)
+		return true
+	}
+	return false
+}
+
+// handleSearchCtrlKeys handles Ctrl+letter in search mode
+func (h *KeyHandler) handleSearchCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke, oldState *term.State) (bool, bool, []string) {
+	// Navigation keys
+	if h.handleSearchNavKeys(km, stroke) {
+		return true, true, nil
+	}
+
+	// Editing keys
+	if h.handleSearchEditKeys(km, stroke) {
+		return true, true, nil
+	}
+
+	// Mode toggle and cancel
+	if h.handleSearchModeKeys(km, stroke, oldState) {
+		return true, true, nil
+	}
+
+	return false, true, nil
+}
+
+// handleSearchNavKeys handles navigation Ctrl+keys in search mode
+func (h *KeyHandler) handleSearchNavKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke) bool {
+	switch {
+	case km.MatchesKeyStroke("move_up", stroke):
+		h.handleMoveUp()
+		return true
+	case km.MatchesKeyStroke("move_down", stroke):
+		h.handleMoveDown()
+		return true
+	case km.MatchesKeyStroke("move_to_beginning", stroke):
+		h.ui.state.MoveToBeginning()
+		return true
+	case km.MatchesKeyStroke("move_to_end", stroke):
+		h.ui.state.MoveToEnd()
+		return true
+	}
+	return false
+}
+
+// handleSearchEditKeys handles editing Ctrl+keys in search mode
+func (h *KeyHandler) handleSearchEditKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke) bool {
+	switch {
+	case km.MatchesKeyStroke("clear_line", stroke):
+		h.ui.state.ClearInput()
+		return true
+	case km.MatchesKeyStroke("delete_word", stroke):
+		h.ui.state.DeleteWord()
+		return true
+	case km.MatchesKeyStroke("delete_to_end", stroke):
+		h.ui.state.DeleteToEnd()
+		return true
+	}
+	return false
+}
+
+// handleSearchModeKeys handles mode-related Ctrl+keys in search mode
+func (h *KeyHandler) handleSearchModeKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke, oldState *term.State) bool {
+	switch {
+	case km.MatchesKeyStroke("toggle_workflow_view", stroke) && h.ui.state.input == "":
+		h.ui.ToggleWorkflowView()
+		return true
+	case km.MatchesKeyStroke("soft_cancel", stroke):
+		h.handleSoftCancel(oldState)
+		return true
+	}
+	return false
+}
+
+// handleSpecialCtrlChars handles non-letter control characters
+func (h *KeyHandler) handleSpecialCtrlChars(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	switch b {
 	case 3: // Ctrl+C
 		h.handleCtrlC(oldState)
@@ -101,7 +144,7 @@ func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *buf
 	case 127, 8: // Backspace
 		h.ui.state.RemoveChar()
 		return true, true, nil
-	case 27: // ESC: arrow keys and Option/Alt modifiers
+	case 27: // ESC
 		if h.shouldHandleEscapeAsSoftCancel() {
 			h.handleSoftCancel(oldState)
 			return true, true, nil
