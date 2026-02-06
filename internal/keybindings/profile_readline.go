@@ -212,4 +212,3 @@ func CreateReadlineProfile() *KeyBindingProfile {
 		},
 	}
 }
-

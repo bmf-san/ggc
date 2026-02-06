@@ -172,4 +172,3 @@ func CreateViProfile() *KeyBindingProfile {
 		},
 	}
 }
-

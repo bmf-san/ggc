@@ -28,4 +28,3 @@ func GetProfileDescription(profile Profile) string {
 		return "Unknown profile"
 	}
 }
-
