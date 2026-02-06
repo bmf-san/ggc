@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -56,26 +55,26 @@ func (r *Rebaser) Rebase(args []string) {
 
 func (r *Rebaser) handleRebaseContinue() {
 	if err := r.gitClient.RebaseContinue(); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
-	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+	WriteLine(r.outputWriter, "Rebase successful")
 }
 
 func (r *Rebaser) handleRebaseAbort() {
 	if err := r.gitClient.RebaseAbort(); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
-	_, _ = fmt.Fprintf(r.outputWriter, "Rebase aborted\n")
+	WriteLine(r.outputWriter, "Rebase aborted")
 }
 
 func (r *Rebaser) handleRebaseSkip() {
 	if err := r.gitClient.RebaseSkip(); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
-	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+	WriteLine(r.outputWriter, "Rebase successful")
 }
 
 func (r *Rebaser) handleStandardRebase(ref string) {
@@ -84,10 +83,10 @@ func (r *Rebaser) handleStandardRebase(ref string) {
 		return
 	}
 	if err := r.gitClient.Rebase(upstream); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
-	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+	WriteLine(r.outputWriter, "Rebase successful")
 }
 
 func (r *Rebaser) resolveUpstream(ref string) string {
@@ -98,7 +97,7 @@ func (r *Rebaser) resolveUpstream(ref string) string {
 	if r.gitClient.RevParseVerify(try) {
 		return try
 	}
-	_, _ = fmt.Fprintf(r.outputWriter, "Error: unknown ref '%s'\n", ref)
+	WriteErrorf(r.outputWriter, "unknown ref '%s'", ref)
 	return ""
 }
 
@@ -114,10 +113,10 @@ func (r *Rebaser) RebaseInteractive() {
 		return
 	}
 	if err := r.gitClient.RebaseInteractive(num); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
-	_, _ = fmt.Fprintf(r.outputWriter, "Rebase successful\n")
+	WriteLine(r.outputWriter, "Rebase successful")
 }
 
 type rebaseCtx struct {
@@ -129,60 +128,45 @@ type rebaseCtx struct {
 func (r *Rebaser) prepareRebaseContext() (rebaseCtx, bool) {
 	currentBranch, err := r.gitClient.GetCurrentBranch()
 	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return rebaseCtx{}, false
 	}
 	upstream, err := r.gitClient.GetUpstreamBranch(currentBranch)
 	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return rebaseCtx{}, false
 	}
 	output, err := r.gitClient.LogOneline(upstream, "HEAD")
 	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return rebaseCtx{}, false
 	}
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: no commit history found\n")
+		WriteErrorf(r.outputWriter, "no commit history found")
 		return rebaseCtx{}, false
 	}
 	return rebaseCtx{currentBranch: currentBranch, upstream: upstream, lines: lines}, true
 }
 
 func (r *Rebaser) printCommitChoices(currentBranch string, lines []string) {
-	_, _ = fmt.Fprintf(r.outputWriter, "Current branch: %s\n", currentBranch)
-	_, _ = fmt.Fprintln(r.outputWriter, "Select number of commits to rebase (commits are shown from oldest to newest):")
+	WriteLinef(r.outputWriter, "Current branch: %s", currentBranch)
+	WriteLine(r.outputWriter, "Select number of commits to rebase (commits are shown from oldest to newest):")
 	for i, line := range lines {
-		_, _ = fmt.Fprintf(r.outputWriter, "  [%d] %s\n", i+1, line)
+		WriteLinef(r.outputWriter, "  [%d] %s", i+1, line)
 	}
 }
 
 func (r *Rebaser) promptRebaseCount(max int) (int, bool) {
-	input, ok := r.readLine("> ")
+	input, ok := ReadLine(r.prompter, r.outputWriter, "> ")
 	if !ok || strings.TrimSpace(input) == "" {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: operation canceled\n")
+		WriteErrorf(r.outputWriter, "operation canceled")
 		return 0, false
 	}
 	num, err := strconv.Atoi(strings.TrimSpace(input))
 	if err != nil || num < 1 || num > max {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: invalid number\n")
+		WriteErrorf(r.outputWriter, "invalid number")
 		return 0, false
 	}
 	return num, true
-}
-
-func (r *Rebaser) readLine(promptText string) (string, bool) {
-	if r.prompter == nil {
-		return "", false
-	}
-	line, canceled, err := r.prompter.Input(promptText)
-	if canceled {
-		return "", false
-	}
-	if err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
-		return "", false
-	}
-	return line, true
 }

@@ -43,11 +43,11 @@ func (c *Cleaner) Clean(args []string) {
 	switch args[0] {
 	case "files":
 		if err := c.gitClient.CleanFiles(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			WriteError(c.outputWriter, err)
 		}
 	case "dirs":
 		if err := c.gitClient.CleanDirs(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			WriteError(c.outputWriter, err)
 		}
 	case "interactive":
 		c.CleanInteractive()
@@ -60,11 +60,11 @@ func (c *Cleaner) Clean(args []string) {
 func (c *Cleaner) CleanInteractive() {
 	files, err := c.getCleanableFiles()
 	if err != nil {
-		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		WriteError(c.outputWriter, err)
 		return
 	}
 	if len(files) == 0 {
-		_, _ = fmt.Fprintln(c.outputWriter, "No files to clean.")
+		WriteLine(c.outputWriter, "No files to clean.")
 		return
 	}
 
@@ -99,7 +99,7 @@ func (c *Cleaner) runInteractiveCleanLoop(files []string) {
 		input = strings.TrimSpace(input)
 
 		if input == "" {
-			_, _ = fmt.Fprintln(c.outputWriter, "Canceled.")
+			WriteLine(c.outputWriter, "Canceled.")
 			return
 		}
 		if c.handleSpecialCommands(input, files) {
@@ -120,7 +120,7 @@ func (c *Cleaner) readLine(promptText string) (string, bool) {
 		return "", false
 	}
 	if err != nil {
-		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		WriteError(c.outputWriter, err)
 		return "", false
 	}
 	return line, true
@@ -128,9 +128,9 @@ func (c *Cleaner) readLine(promptText string) (string, bool) {
 
 // displayFileSelection shows the file selection interface
 func (c *Cleaner) displayFileSelection(files []string) {
-	_, _ = fmt.Fprintln(c.outputWriter, "\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
+	WriteLine(c.outputWriter, "\033[1;36mSelect files to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 	for i, f := range files {
-		_, _ = fmt.Fprintf(c.outputWriter, "  [\033[1;33m%d\033[0m] %s\n", i+1, f)
+		WriteLinef(c.outputWriter, "  [\033[1;33m%d\033[0m] %s", i+1, f)
 	}
 	_, _ = fmt.Fprint(c.outputWriter, "> ")
 }
@@ -154,7 +154,7 @@ func (c *Cleaner) handleFileSelection(input string, files []string) bool {
 		return false // Continue loop
 	}
 	if len(selectedFiles) == 0 {
-		_, _ = fmt.Fprintln(c.outputWriter, "\033[1;33mNothing selected.\033[0m")
+		WriteLine(c.outputWriter, "\033[1;33mNothing selected.\033[0m")
 		return false // Continue loop
 	}
 
@@ -169,7 +169,7 @@ func (c *Cleaner) parseFileIndices(input string, files []string) ([]string, bool
 	for _, idx := range indices {
 		n, err := strconv.Atoi(idx)
 		if err != nil || n < 1 || n > len(files) {
-			_, _ = fmt.Fprintf(c.outputWriter, "\033[1;31mInvalid number: %s\033[0m\n", idx)
+			WriteLinef(c.outputWriter, "\033[1;31mInvalid number: %s\033[0m", idx)
 			return nil, false
 		}
 		selectedFiles = append(selectedFiles, files[n-1])
@@ -179,22 +179,22 @@ func (c *Cleaner) parseFileIndices(input string, files []string) ([]string, bool
 
 // confirmAndDelete confirms deletion and executes it
 func (c *Cleaner) confirmAndDelete(selectedFiles []string) bool {
-	_, _ = fmt.Fprintf(c.outputWriter, "\033[1;32mSelected files: %v\033[0m\n", selectedFiles)
+	WriteLinef(c.outputWriter, "\033[1;32mSelected files: %v\033[0m", selectedFiles)
 	for {
 		confirm, canceled, err := c.prompter.Confirm("Delete these files? (y/n): ")
 		if canceled {
 			return true
 		}
 		if err != nil {
-			_, _ = fmt.Fprintln(c.outputWriter, "\033[1;31mInvalid choice.\033[0m")
+			WriteLine(c.outputWriter, "\033[1;31mInvalid choice.\033[0m")
 			continue
 		}
 		if confirm {
 			if err := c.gitClient.CleanFilesForce(selectedFiles); err != nil {
-				_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+				WriteError(c.outputWriter, err)
 				return true
 			}
-			_, _ = fmt.Fprintln(c.outputWriter, "Selected files deleted.")
+			WriteLine(c.outputWriter, "Selected files deleted.")
 			return true
 		}
 		return false
