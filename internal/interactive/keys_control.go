@@ -8,6 +8,7 @@ import (
 	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 )
 
+//nolint:revive // cyclomatic complexity acceptable for control character dispatch
 func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	// Get the appropriate keybinding map for current context
 	km := h.GetCurrentKeyMap()
