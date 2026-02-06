@@ -70,7 +70,7 @@ func (b *Brancher) handleBranchCommand(cmd string, args []string) {
 func (b *Brancher) handleCurrentBranch() {
 	branch, err := b.gitClient.GetCurrentBranch()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprintln(b.outputWriter, branch)

@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -49,7 +48,7 @@ func (c *Committer) Commit(args []string) {
 func (c *Committer) handleAllowCommand(args []string) {
 	if len(args) >= 1 && args[0] == "empty" {
 		if err := c.gitClient.CommitAllowEmpty(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			WriteError(c.outputWriter, err)
 		}
 		return
 	}
@@ -61,16 +60,16 @@ func (c *Committer) handleAmendCommand(args []string) {
 	switch {
 	case len(args) == 0:
 		if err := c.gitClient.CommitAmend(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			WriteError(c.outputWriter, err)
 		}
 	case args[0] == "no-edit":
 		if err := c.gitClient.CommitAmendNoEdit(); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			WriteError(c.outputWriter, err)
 		}
 	default:
 		msg := strings.Join(args, " ")
 		if err := c.gitClient.CommitAmendWithMessage(msg); err != nil {
-			_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+			WriteError(c.outputWriter, err)
 		}
 	}
 }
@@ -79,6 +78,6 @@ func (c *Committer) handleAmendCommand(args []string) {
 func (c *Committer) handleDefaultCommit(args []string) {
 	msg := strings.Join(args, " ")
 	if err := c.gitClient.Commit(msg); err != nil {
-		_, _ = fmt.Fprintf(c.outputWriter, "Error: %v\n", err)
+		WriteError(c.outputWriter, err)
 	}
 }

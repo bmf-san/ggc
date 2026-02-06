@@ -62,13 +62,13 @@ func (r *Remoter) Remote(args []string) {
 
 func (r *Remoter) remoteList() {
 	if err := r.gitClient.RemoteList(); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 	}
 }
 
 func (r *Remoter) remoteAdd(name, url string) {
 	if err := r.gitClient.RemoteAdd(name, url); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprintf(r.outputWriter, "Remote '%s' added\n", name)
@@ -76,7 +76,7 @@ func (r *Remoter) remoteAdd(name, url string) {
 
 func (r *Remoter) remoteRemove(name string) {
 	if err := r.gitClient.RemoteRemove(name); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprintf(r.outputWriter, "Remote '%s' removed\n", name)
@@ -84,7 +84,7 @@ func (r *Remoter) remoteRemove(name string) {
 
 func (r *Remoter) remoteSetURL(name, url string) {
 	if err := r.gitClient.RemoteSetURL(name, url); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprintf(r.outputWriter, "Remote '%s' URL updated\n", name)

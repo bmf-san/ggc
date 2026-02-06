@@ -80,20 +80,20 @@ func (d *Differ) Diff(args []string) {
 		var usageErr *diffUsageError
 		if errors.As(err, &usageErr) {
 			if usageErr.message != "" {
-				_, _ = fmt.Fprintf(d.outputWriter, "Error: %s\n", usageErr.message)
+				WriteErrorf(d.outputWriter, "%s", usageErr.message)
 			}
 			d.helper.ShowDiffHelp()
 			return
 		}
 
-		_, _ = fmt.Fprintf(d.outputWriter, "Error: %v\n", err)
+		WriteError(d.outputWriter, err)
 		return
 	}
 
 	gitArgs := buildDiffArgs(opts)
 	output, err := d.gitClient.DiffWith(gitArgs)
 	if err != nil {
-		_, _ = fmt.Fprintf(d.outputWriter, "Error: %v\n", err)
+		WriteError(d.outputWriter, err)
 		return
 	}
 

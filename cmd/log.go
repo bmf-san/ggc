@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -40,11 +39,11 @@ func (l *Logger) Log(args []string) {
 	switch args[0] {
 	case "simple":
 		if err := l.gitClient.LogSimple(); err != nil {
-			_, _ = fmt.Fprintf(l.outputWriter, "Error: %v\n", err)
+			WriteError(l.outputWriter, err)
 		}
 	case "graph":
 		if err := l.gitClient.LogGraph(); err != nil {
-			_, _ = fmt.Fprintf(l.outputWriter, "Error: %v\n", err)
+			WriteError(l.outputWriter, err)
 		}
 	default:
 		l.helper.ShowLogHelp()

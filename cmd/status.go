@@ -87,7 +87,7 @@ func (s *Statuser) Status(args []string) {
 		_, _ = fmt.Fprintf(s.outputWriter, "\n")
 
 		if output, err := s.gitClient.StatusWithColor(); err != nil {
-			_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+			WriteError(s.outputWriter, err)
 		} else {
 			_, _ = fmt.Fprint(s.outputWriter, output)
 		}
@@ -97,7 +97,7 @@ func (s *Statuser) Status(args []string) {
 	switch args[0] {
 	case "short":
 		if output, err := s.gitClient.StatusShortWithColor(); err != nil {
-			_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+			WriteError(s.outputWriter, err)
 		} else {
 			_, _ = fmt.Fprint(s.outputWriter, output)
 		}
