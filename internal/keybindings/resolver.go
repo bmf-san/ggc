@@ -12,6 +12,7 @@ import (
 
 // ContextualKeyBindingMap holds resolved keybindings for all contexts
 
+// KeyBindingResolver resolves keybindings from profiles, user config, and environment
 type KeyBindingResolver struct {
 	profiles   map[Profile]*KeyBindingProfile      // Built-in profiles
 	platform   string                              // Detected platform
