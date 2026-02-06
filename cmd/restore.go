@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -52,7 +51,7 @@ func (r *Restorer) restoreStaged(paths []string) {
 		return
 	}
 	if err := r.gitClient.RestoreStaged(paths...); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 	}
 }
 
@@ -61,12 +60,12 @@ func (r *Restorer) restoreCommitOrWorking(args []string) {
 		commit := args[0]
 		paths := args[1:]
 		if err := r.gitClient.RestoreFromCommit(commit, paths...); err != nil {
-			_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+			WriteError(r.outputWriter, err)
 		}
 		return
 	}
 	if err := r.gitClient.RestoreWorkingDir(args...); err != nil {
-		_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+		WriteError(r.outputWriter, err)
 	}
 }
 

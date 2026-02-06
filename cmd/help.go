@@ -36,7 +36,7 @@ func NewHelper(registry ...*commandregistry.Registry) *Helper {
 func (h *Helper) ShowHelp() {
 	helpMsg, err := templates.RenderMainHelp(h.registry)
 	if err != nil {
-		_, _ = fmt.Fprintf(h.outputWriter, "Error: %v\n", err)
+		WriteError(h.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprint(h.outputWriter, helpMsg)
@@ -46,7 +46,7 @@ func (h *Helper) ShowHelp() {
 func (h *Helper) ShowCommandHelp(data templates.HelpData) {
 	helpMsg, err := templates.RenderCommandHelp(data)
 	if err != nil {
-		_, _ = fmt.Fprintf(h.outputWriter, "Error: %v\n", err)
+		WriteError(h.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprint(h.outputWriter, helpMsg)
