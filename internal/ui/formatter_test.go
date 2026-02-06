@@ -122,7 +122,7 @@ func TestFormatter_Colors(t *testing.T) {
 
 	colors := f.Colors()
 	if colors == nil {
-		t.Error("Colors() should not return nil")
+		t.Fatal("Colors() should not return nil")
 	}
 	if colors.Reset != "\033[0m" {
 		t.Errorf("Colors().Reset = %q, want %q", colors.Reset, "\033[0m")

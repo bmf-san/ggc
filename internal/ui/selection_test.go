@@ -8,10 +8,10 @@ import (
 
 func TestParseSelectionInput(t *testing.T) {
 	tests := []struct {
-		name       string
-		input      string
-		maxIndex   int
-		wantResult SelectionResult
+		name        string
+		input       string
+		maxIndex    int
+		wantResult  SelectionResult
 		wantIndices []int
 		wantInvalid string
 	}{
