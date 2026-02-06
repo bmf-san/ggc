@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -19,17 +18,17 @@ func (b *Brancher) branchCreate(args []string) {
 		}
 		branchName = strings.TrimSpace(input)
 		if branchName == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+			WriteLine(b.outputWriter, "Canceled.")
 			return
 		}
 	}
 	if err := git.ValidateBranchName(branchName); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
+		WriteErrorf(b.outputWriter, "invalid branch name: %v", err)
 		return
 	}
 
 	if err := b.gitClient.CheckoutNewBranch(branchName); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: failed to create and checkout branch: %v\n", err)
+		WriteErrorf(b.outputWriter, "failed to create and checkout branch: %v", err)
 		return
 	}
 }
@@ -39,19 +38,19 @@ func (b *Brancher) branchRename(args []string) {
 		oldName := strings.TrimSpace(args[0])
 		newName := strings.TrimSpace(args[1])
 		if oldName == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			WriteLine(b.outputWriter, errMsgBranchNameEmpty)
 			return
 		}
 		if newName == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, "Error: new branch name cannot be empty.")
+			WriteLine(b.outputWriter, "Error: new branch name cannot be empty.")
 			return
 		}
 		if err := git.ValidateBranchName(newName); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
+			WriteErrorf(b.outputWriter, "invalid branch name: %v", err)
 			return
 		}
 		if err := b.gitClient.RenameBranch(oldName, newName); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 		return
 	}
@@ -62,11 +61,11 @@ func (b *Brancher) branchRename(args []string) {
 func (b *Brancher) branchRenameInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		WriteLine(b.outputWriter, "No local branches found.")
 		return
 	}
 	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number of the branch to rename: ")
@@ -80,15 +79,15 @@ func (b *Brancher) branchRenameInteractive() {
 	}
 	newName := strings.TrimSpace(newInput)
 	if newName == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+		WriteLine(b.outputWriter, "Canceled.")
 		return
 	}
 	if err := git.ValidateBranchName(newName); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid branch name: %v\n", err)
+		WriteErrorf(b.outputWriter, "invalid branch name: %v", err)
 		return
 	}
 	if err := b.gitClient.RenameBranch(oldName, newName); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 }
@@ -98,19 +97,19 @@ func (b *Brancher) branchMove(args []string) {
 		branch := strings.TrimSpace(args[0])
 		commit := strings.TrimSpace(args[1])
 		if branch == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			WriteLine(b.outputWriter, errMsgBranchNameEmpty)
 			return
 		}
 		if commit == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, "Error: commit or ref cannot be empty.")
+			WriteLine(b.outputWriter, "Error: commit or ref cannot be empty.")
 			return
 		}
 		if !b.gitClient.RevParseVerify(commit) {
-			_, _ = fmt.Fprintln(b.outputWriter, "Invalid commit or ref.")
+			WriteLine(b.outputWriter, "Invalid commit or ref.")
 			return
 		}
 		if err := b.gitClient.MoveBranch(branch, commit); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 		return
 	}
@@ -121,11 +120,11 @@ func (b *Brancher) branchMove(args []string) {
 func (b *Brancher) branchMoveInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		WriteLine(b.outputWriter, "No local branches found.")
 		return
 	}
 	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number of the branch to move: ")
@@ -139,15 +138,15 @@ func (b *Brancher) branchMoveInteractive() {
 	}
 	commit := strings.TrimSpace(commitInput)
 	if commit == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+		WriteLine(b.outputWriter, "Canceled.")
 		return
 	}
 	if !b.gitClient.RevParseVerify(commit) {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid commit or ref.")
+		WriteLine(b.outputWriter, "Invalid commit or ref.")
 		return
 	}
 	if err := b.gitClient.MoveBranch(branch, commit); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 }
@@ -159,7 +158,7 @@ func (b *Brancher) branchSetUpstream(args []string) {
 	case 2:
 		branch := strings.TrimSpace(args[0])
 		if branch == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, errMsgBranchNameEmpty)
+			WriteLine(b.outputWriter, errMsgBranchNameEmpty)
 			return
 		}
 		upstream, ok := b.resolveUpstreamArgument(strings.TrimSpace(args[1]))
@@ -167,21 +166,21 @@ func (b *Brancher) branchSetUpstream(args []string) {
 			return
 		}
 		if err := b.gitClient.SetUpstreamBranch(branch, upstream); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 	default:
-		_, _ = fmt.Fprintln(b.outputWriter, "Error: branch set upstream expects <branch> <upstream>.")
+		WriteLine(b.outputWriter, "Error: branch set upstream expects <branch> <upstream>.")
 	}
 }
 
 func (b *Brancher) branchSetUpstreamInteractive() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		WriteLine(b.outputWriter, "No local branches found.")
 		return
 	}
 
@@ -196,24 +195,24 @@ func (b *Brancher) branchSetUpstreamInteractive() {
 	}
 
 	if err := b.gitClient.SetUpstreamBranch(branch, upstream); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 	}
 }
 
 func (b *Brancher) resolveUpstreamArgument(input string) (string, bool) {
 	if input == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Error: upstream cannot be empty.")
+		WriteLine(b.outputWriter, "Error: upstream cannot be empty.")
 		return "", false
 	}
 
 	if idx, err := strconv.Atoi(input); err == nil {
 		remotes, listErr := b.gitClient.ListRemoteBranches()
 		if listErr != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", listErr)
+			WriteError(b.outputWriter, listErr)
 			return "", false
 		}
 		if idx < 1 || idx > len(remotes) {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: invalid remote selection: %d\n", idx)
+			WriteErrorf(b.outputWriter, "invalid remote selection: %d", idx)
 			return "", false
 		}
 		return remotes[idx-1], true
@@ -235,12 +234,12 @@ func (b *Brancher) selectLocalBranch(branches []string) string {
 func (b *Brancher) selectUpstreamBranch() string {
 	remotes, err := b.getValidRemoteBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error listing remote branches: %v\n", err)
+		WriteLinef(b.outputWriter, "Error listing remote branches: %v", err)
 		return ""
 	}
 
 	if len(remotes) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No remote branches found.")
+		WriteLine(b.outputWriter, "No remote branches found.")
 	}
 	b.displayRemoteBranches(remotes)
 
@@ -250,7 +249,7 @@ func (b *Brancher) selectUpstreamBranch() string {
 	}
 	upIn = strings.TrimSpace(upIn)
 	if upIn == "" {
-		_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+		WriteLine(b.outputWriter, "Canceled.")
 		return ""
 	}
 	return b.resolveUpstreamInput(upIn, remotes)
@@ -275,9 +274,9 @@ func (b *Brancher) getValidRemoteBranches() ([]string, error) {
 // displayRemoteBranches shows the list of remote branches
 func (b *Brancher) displayRemoteBranches(remotes []string) {
 	if len(remotes) > 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "Remote branches:")
+		WriteLine(b.outputWriter, "Remote branches:")
 		for i, rb := range remotes {
-			_, _ = fmt.Fprintf(b.outputWriter, "[%d] %s\n", i+1, rb)
+			WriteLinef(b.outputWriter, "[%d] %s", i+1, rb)
 		}
 	}
 }

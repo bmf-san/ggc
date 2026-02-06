@@ -18,7 +18,7 @@ func (b *Brancher) branchDeleteArgs(args []string) {
 	}
 
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		WriteLine(b.outputWriter, "No local branches found.")
 		return
 	}
 
@@ -33,11 +33,11 @@ func (b *Brancher) deleteBranchesFromArgs(args []string) {
 			continue
 		}
 		if current != "" && br == current {
-			_, _ = fmt.Fprintf(b.outputWriter, "Skipping current branch: %s\n", br)
+			WriteLinef(b.outputWriter, "Skipping current branch: %s", br)
 			continue
 		}
 		if err := b.gitClient.DeleteBranch(br); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 	}
 }
@@ -45,7 +45,7 @@ func (b *Brancher) deleteBranchesFromArgs(args []string) {
 func (b *Brancher) collectDeletableBranches() ([]string, bool) {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return nil, false
 	}
 
@@ -73,7 +73,7 @@ func (b *Brancher) runBranchDeleteLoop(branches []string) {
 		input = strings.TrimSpace(input)
 
 		if input == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+			WriteLine(b.outputWriter, "Canceled.")
 			return
 		}
 		if b.handleBranchSpecialCommands(input, branches) {
@@ -87,9 +87,9 @@ func (b *Brancher) runBranchDeleteLoop(branches []string) {
 
 // displayBranchSelection shows the branch selection interface
 func (b *Brancher) displayBranchSelection(branches []string) {
-	_, _ = fmt.Fprintln(b.outputWriter, "\033[1;36mSelect local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
+	WriteLine(b.outputWriter, "\033[1;36mSelect local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 	for i, br := range branches {
-		_, _ = fmt.Fprintf(b.outputWriter, "  [\033[1;33m%d\033[0m] %s\n", i+1, br)
+		WriteLinef(b.outputWriter, "  [\033[1;33m%d\033[0m] %s", i+1, br)
 	}
 	_, _ = fmt.Fprint(b.outputWriter, "> ")
 }
@@ -99,10 +99,10 @@ func (b *Brancher) handleBranchSpecialCommands(input string, branches []string) 
 	if input == "all" {
 		for _, br := range branches {
 			if err := b.gitClient.DeleteBranch(br); err != nil {
-				_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+				WriteError(b.outputWriter, err)
 			}
 		}
-		_, _ = fmt.Fprintln(b.outputWriter, "All branches deleted.")
+		WriteLine(b.outputWriter, "All branches deleted.")
 		return true
 	}
 	if input == "none" {
@@ -120,10 +120,10 @@ func (b *Brancher) handleBranchSelection(input string, branches []string) bool {
 
 	for _, br := range selectedBranches {
 		if err := b.gitClient.DeleteBranch(br); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 	}
-	_, _ = fmt.Fprintln(b.outputWriter, "Selected branches deleted.")
+	WriteLine(b.outputWriter, "Selected branches deleted.")
 	return true
 }
 
@@ -135,7 +135,7 @@ func (b *Brancher) parseBranchIndices(input string, branches []string) ([]string
 	for _, idx := range indices {
 		n, err := strconv.Atoi(idx)
 		if err != nil || n < 1 || n > len(branches) {
-			_, _ = fmt.Fprintf(b.outputWriter, "\033[1;31mInvalid number: %s\033[0m\n", idx)
+			WriteLinef(b.outputWriter, "\033[1;31mInvalid number: %s\033[0m", idx)
 			return nil, false
 		}
 		selectedBranches = append(selectedBranches, branches[n-1])
@@ -146,11 +146,11 @@ func (b *Brancher) parseBranchIndices(input string, branches []string) ([]string
 func (b *Brancher) branchDeleteMerged() {
 	branches, err := b.getMergedBranchesForDeletion()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No merged local branches.")
+		WriteLine(b.outputWriter, "No merged local branches.")
 		return
 	}
 
@@ -189,7 +189,7 @@ func (b *Brancher) runMergedBranchDeleteLoop(branches []string) {
 		input = strings.TrimSpace(input)
 
 		if input == "" {
-			_, _ = fmt.Fprintln(b.outputWriter, "Canceled.")
+			WriteLine(b.outputWriter, "Canceled.")
 			return
 		}
 		if b.handleMergedBranchSpecialCommands(input, branches) {
@@ -203,9 +203,9 @@ func (b *Brancher) runMergedBranchDeleteLoop(branches []string) {
 
 // displayMergedBranchSelection shows the merged branch selection interface
 func (b *Brancher) displayMergedBranchSelection(branches []string) {
-	_, _ = fmt.Fprintln(b.outputWriter, "\033[1;36mSelect merged local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
+	WriteLine(b.outputWriter, "\033[1;36mSelect merged local branches to delete by number (space separated, all: select all, none: deselect all, e.g. 1 3 5):\033[0m")
 	for i, br := range branches {
-		_, _ = fmt.Fprintf(b.outputWriter, "  [\033[1;33m%d\033[0m] %s\n", i+1, br)
+		WriteLinef(b.outputWriter, "  [\033[1;33m%d\033[0m] %s", i+1, br)
 	}
 	_, _ = fmt.Fprint(b.outputWriter, "> ")
 }
@@ -215,10 +215,10 @@ func (b *Brancher) handleMergedBranchSpecialCommands(input string, branches []st
 	if input == "all" {
 		for _, br := range branches {
 			if err := b.gitClient.DeleteBranch(br); err != nil {
-				_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+				WriteError(b.outputWriter, err)
 			}
 		}
-		_, _ = fmt.Fprintln(b.outputWriter, "All merged branches deleted.")
+		WriteLine(b.outputWriter, "All merged branches deleted.")
 		return true
 	}
 	if input == "none" {
@@ -236,9 +236,9 @@ func (b *Brancher) handleMergedBranchSelection(input string, branches []string) 
 
 	for _, br := range selectedBranches {
 		if err := b.gitClient.DeleteBranch(br); err != nil {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 	}
-	_, _ = fmt.Fprintln(b.outputWriter, "Selected merged branches deleted.")
+	WriteLine(b.outputWriter, "Selected merged branches deleted.")
 	return true
 }

@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -56,7 +55,7 @@ func (s *Stasher) Stash(args []string) {
 // stashDefault performs default stash operation - stash current changes
 func (s *Stasher) stashDefault() {
 	if err := s.gitClient.Stash(); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }
 
@@ -64,14 +63,14 @@ func (s *Stasher) stashDefault() {
 func (s *Stasher) stashList() {
 	output, err := s.gitClient.StashList()
 	if err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 		return
 	}
 	if strings.TrimSpace(output) == "" {
-		_, _ = fmt.Fprintf(s.outputWriter, "No stashes found\n")
+		WriteLine(s.outputWriter, "No stashes found")
 		return
 	}
-	_, _ = fmt.Fprintf(s.outputWriter, "%s", output)
+	WriteLinef(s.outputWriter, "%s", strings.TrimSuffix(output, "\n"))
 }
 
 // stashShow shows the changes recorded in the stash
@@ -81,7 +80,7 @@ func (s *Stasher) stashShow(args []string) {
 		stash = args[1]
 	}
 	if err := s.gitClient.StashShow(stash); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }
 
@@ -92,7 +91,7 @@ func (s *Stasher) stashApply(args []string) {
 		stash = args[1]
 	}
 	if err := s.gitClient.StashApply(stash); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }
 
@@ -103,7 +102,7 @@ func (s *Stasher) stashPop(args []string) {
 		stash = args[1]
 	}
 	if err := s.gitClient.StashPop(stash); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }
 
@@ -114,7 +113,7 @@ func (s *Stasher) stashPush(args []string) {
 		message = strings.Join(args[1:], " ")
 	}
 	if err := s.gitClient.StashPush(message); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }
 
@@ -125,13 +124,13 @@ func (s *Stasher) stashDrop(args []string) {
 		stash = args[1]
 	}
 	if err := s.gitClient.StashDrop(stash); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }
 
 // stashClear removes all stashes
 func (s *Stasher) stashClear() {
 	if err := s.gitClient.StashClear(); err != nil {
-		_, _ = fmt.Fprintf(s.outputWriter, "Error: %v\n", err)
+		WriteError(s.outputWriter, err)
 	}
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/bmf-san/ggc/v7/internal/prompt"
@@ -12,11 +11,11 @@ import (
 func (b *Brancher) branchCheckout() {
 	branches, err := b.gitClient.ListLocalBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No local branches found.")
+		WriteLine(b.outputWriter, "No local branches found.")
 		return
 	}
 	idx, ok := b.promptSelectIndex("Local branches:", branches, "Enter the number to checkout: ")
@@ -25,18 +24,18 @@ func (b *Brancher) branchCheckout() {
 	}
 	branch := branches[idx]
 	if err := b.gitClient.CheckoutBranch(branch); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 	}
 }
 
 func (b *Brancher) branchCheckoutRemote() {
 	branches, err := b.gitClient.ListRemoteBranches()
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return
 	}
 	if len(branches) == 0 {
-		_, _ = fmt.Fprintln(b.outputWriter, "No remote branches found.")
+		WriteLine(b.outputWriter, "No remote branches found.")
 		return
 	}
 	idx, ok := b.promptSelectIndex("Remote branches:", branches, "Enter the number to checkout: ")
@@ -46,11 +45,11 @@ func (b *Brancher) branchCheckoutRemote() {
 	remoteBranch := branches[idx]
 	localBranch, valid := deriveLocalFromRemote(remoteBranch)
 	if !valid || git.ValidateBranchName(localBranch) != nil {
-		_, _ = fmt.Fprintln(b.outputWriter, "Invalid remote branch name.")
+		WriteLine(b.outputWriter, "Invalid remote branch name.")
 		return
 	}
 	if err := b.gitClient.CheckoutNewBranchFromRemote(localBranch, remoteBranch); err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 	}
 }
 
@@ -65,9 +64,9 @@ func (b *Brancher) promptSelectIndex(title string, items []string, promptText st
 	}
 	if err != nil {
 		if errors.Is(err, prompt.ErrInvalidSelection) {
-			_, _ = fmt.Fprintln(b.outputWriter, "Invalid number.")
+			WriteLine(b.outputWriter, "Invalid number.")
 		} else {
-			_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+			WriteError(b.outputWriter, err)
 		}
 		return 0, false
 	}
@@ -96,7 +95,7 @@ func (b *Brancher) readLine(promptText string) (string, bool) {
 		return "", false
 	}
 	if err != nil {
-		_, _ = fmt.Fprintf(b.outputWriter, "Error: %v\n", err)
+		WriteError(b.outputWriter, err)
 		return "", false
 	}
 	return line, true
