@@ -173,5 +173,3 @@ func CreateViProfile() *KeyBindingProfile {
 	}
 }
 
-// CreateReadlineProfile returns the GNU Readline compatible keybinding profile
-// Based on GNU Readline library defaults providing bash-like experience

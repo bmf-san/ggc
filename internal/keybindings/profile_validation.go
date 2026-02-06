@@ -82,4 +82,3 @@ func ValidateAllBuiltinProfiles() error {
 	return nil
 }
 
-// GetProfileStatistics returns statistics about a profile's keybinding coverage

@@ -29,4 +29,3 @@ func GetProfileDescription(profile Profile) string {
 	}
 }
 
-// ValidateProfile validates a keybinding profile for consistency and completeness

@@ -213,4 +213,3 @@ func CreateReadlineProfile() *KeyBindingProfile {
 	}
 }
 
-// RegisterBuiltinProfiles registers all built-in profiles with the resolver
