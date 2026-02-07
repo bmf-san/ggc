@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
 	"github.com/bmf-san/ggc/v7/internal/prompt"
 	"github.com/bmf-san/ggc/v7/pkg/git"
@@ -99,7 +101,6 @@ func (m *mockGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
 
 // Repository Information methods
 func (m *mockGitClient) GetBranchName() (string, error) { return "main", nil }
-func (m *mockGitClient) GetGitStatus() (string, error)  { return "", nil }
 
 // Status Operations methods
 func (m *mockGitClient) Status() (string, error)               { return "", nil }
@@ -396,8 +397,9 @@ func TestCmd_Clean(t *testing.T) {
 func TestNewCmd(t *testing.T) {
 	// Test structure creation using NewCmdWithClient to inject mock
 	mockClient := &mockGitClient{}
+	cm := config.NewConfigManager(mockClient)
 
-	cmd := NewCmd(mockClient)
+	cmd := NewCmd(mockClient, cm)
 
 	// Check if all fields are properly initialized
 	if cmd.adder == nil {
@@ -506,6 +508,7 @@ func TestCmd_Route(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: io.Discard,
 		helper:       helper,
+		registry:     commandregistry.NewRegistry(),
 		// Initialize all components with mock clients to avoid side effects
 		adder:      &Adder{gitClient: mockClient, outputWriter: io.Discard},
 		brancher:   &Brancher{gitClient: mockClient, prompter: prompt.New(strings.NewReader(""), io.Discard), outputWriter: io.Discard, helper: helper},
@@ -582,6 +585,7 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		gitClient:    mockClient,
 		outputWriter: &buf, // capture legacy-like error output if any
 		helper:       helper,
+		registry:     commandregistry.NewRegistry(),
 		adder:        &Adder{gitClient: mockClient, outputWriter: io.Discard},
 		brancher:     &Brancher{gitClient: mockClient, prompter: prompt.New(strings.NewReader(""), io.Discard), outputWriter: io.Discard, helper: helper},
 		committer:    &Committer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
@@ -831,7 +835,8 @@ func TestCmd_waitForContinue(t *testing.T) {
 func TestCmd_InteractiveWorkflowIntegration(t *testing.T) {
 	// Setup
 	mockClient := &mockGitClient{}
-	cmd := NewCmd(mockClient)
+	cm := config.NewConfigManager(mockClient)
+	cmd := NewCmd(mockClient, cm)
 
 	ui := interactive.NewUI(mockClient, cmd)
 	if ui == nil {

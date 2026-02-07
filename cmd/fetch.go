@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -34,7 +33,7 @@ func (f *Fetcher) Fetch(args []string) {
 	switch args[0] {
 	case "prune":
 		if err := f.gitClient.Fetch(true); err != nil {
-			_, _ = fmt.Fprintf(f.outputWriter, "Error: %v\n", err)
+			WriteError(f.outputWriter, err)
 		}
 	default:
 		f.helper.ShowFetchHelp()

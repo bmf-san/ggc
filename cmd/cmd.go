@@ -11,17 +11,16 @@ import (
 	"syscall"
 
 	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/internal/interactive"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
-// Interactive mode special return values
-// These constants are used to signal special states when returning from interactive mode
+// Interactive mode command constants.
+// These are used to signal special states when returning from interactive mode.
 const (
-	// InteractiveQuitCommand signals that the user wants to quit the interactive mode
-	InteractiveQuitCommand = interactive.InteractiveQuitCommand
-	// InteractiveWorkflowCommand signals that a workflow has been executed and the interactive mode should restart
-	InteractiveWorkflowCommand = interactive.InteractiveWorkflowCommand
+	interactiveQuitCommand     = "quit"
+	interactiveWorkflowCommand = "workflow-executed"
 )
 
 // Executer is an interface for executing commands.
@@ -53,30 +52,32 @@ type Executer interface {
 
 // Cmd represents the command-line interface.
 type Cmd struct {
-	gitClient    git.StatusInfoReader
-	outputWriter io.Writer
-	helper       *Helper
-	brancher     *Brancher
-	committer    *Committer
-	logger       *Logger
-	puller       *Puller
-	pusher       *Pusher
-	resetter     *Resetter
-	cleaner      *Cleaner
-	adder        *Adder
-	remoter      *Remoter
-	rebaser      *Rebaser
-	stasher      *Stasher
-	configurer   *Configurer
-	hooker       *Hooker
-	tagger       *Tagger
-	statuser     *Statuser
-	versioner    *Versioner
-	differ       *Differ
-	restorer     *Restorer
-	fetcher      *Fetcher
-	cmdRouter    *commandRouter
-	debugger     *Debugger
+	registry      *commandregistry.Registry
+	configManager *config.Manager
+	gitClient     git.StatusInfoReader
+	outputWriter  io.Writer
+	helper        *Helper
+	brancher      *Brancher
+	committer     *Committer
+	logger        *Logger
+	puller        *Puller
+	pusher        *Pusher
+	resetter      *Resetter
+	cleaner       *Cleaner
+	adder         *Adder
+	remoter       *Remoter
+	rebaser       *Rebaser
+	stasher       *Stasher
+	configurer    *Configurer
+	hooker        *Hooker
+	tagger        *Tagger
+	statuser      *Statuser
+	versioner     *Versioner
+	differ        *Differ
+	restorer      *Restorer
+	fetcher       *Fetcher
+	cmdRouter     *commandRouter
+	debugger      *Debugger
 }
 
 // GitDeps is a composite for wiring commands that depend on git operations.
@@ -104,32 +105,36 @@ type GitDeps interface {
 	git.FileLister
 }
 
-// NewCmd creates a new Cmd with the provided git client.
-func NewCmd(client GitDeps) *Cmd {
+// NewCmd creates a new Cmd with the provided git client and config manager.
+// The config manager is required for alias resolution and other configuration features.
+func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
+	registry := commandregistry.NewRegistry()
 	cmd := &Cmd{
-		gitClient:    client,
-		outputWriter: os.Stdout,
-		helper:       NewHelper(),
-		brancher:     NewBrancher(client),
-		committer:    NewCommitter(client),
-		logger:       NewLogger(client),
-		puller:       NewPuller(client),
-		pusher:       NewPusher(client),
-		resetter:     NewResetter(client),
-		cleaner:      NewCleaner(client),
-		adder:        NewAdder(client),
-		remoter:      NewRemoter(client),
-		rebaser:      NewRebaser(client),
-		stasher:      NewStasher(client),
-		configurer:   NewConfigurer(client),
-		hooker:       NewHooker(client),
-		tagger:       NewTagger(client),
-		statuser:     NewStatuser(client),
-		versioner:    NewVersioner(client),
-		differ:       NewDiffer(client),
-		restorer:     NewRestorer(client),
-		fetcher:      NewFetcher(client),
-		debugger:     NewDebugger(),
+		registry:      registry,
+		configManager: cm,
+		gitClient:     client,
+		outputWriter:  os.Stdout,
+		helper:        NewHelper(registry),
+		brancher:      NewBrancher(client),
+		committer:     NewCommitter(client),
+		logger:        NewLogger(client),
+		puller:        NewPuller(client),
+		pusher:        NewPusher(client),
+		resetter:      NewResetter(client),
+		cleaner:       NewCleaner(client),
+		adder:         NewAdder(client),
+		remoter:       NewRemoter(client),
+		rebaser:       NewRebaser(client),
+		stasher:       NewStasher(client),
+		configurer:    NewConfigurer(client),
+		hooker:        NewHooker(client),
+		tagger:        NewTagger(client),
+		statuser:      NewStatuser(client),
+		versioner:     NewVersioner(client),
+		differ:        NewDiffer(client),
+		restorer:      NewRestorer(client),
+		fetcher:       NewFetcher(client),
+		debugger:      NewDebugger(),
 	}
 	cmd.cmdRouter = mustNewCommandRouter(cmd)
 	return cmd
@@ -279,12 +284,12 @@ func (c *Cmd) Interactive() {
 		}
 
 		// Check for "quit" command
-		if len(args) >= 2 && args[1] == InteractiveQuitCommand {
+		if len(args) >= 2 && args[1] == interactiveQuitCommand {
 			break
 		}
 
 		// Check for workflow execution
-		if len(args) >= 2 && args[1] == InteractiveWorkflowCommand {
+		if len(args) >= 2 && args[1] == interactiveWorkflowCommand {
 			// Workflow was executed, wait for user to continue
 			c.waitForContinue()
 			ui.ResetToSearchMode()
@@ -327,6 +332,7 @@ func (c *Cmd) routeCommand(cmd string, args []string) {
 }
 
 type commandRouter struct {
+	registry *commandregistry.Registry
 	handlers map[string]func([]string)
 }
 
@@ -339,7 +345,7 @@ func mustNewCommandRouter(cmd *Cmd) *commandRouter {
 }
 
 func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
-	if err := commandregistry.ValidateAll(); err != nil {
+	if err := cmd.registry.Validate(); err != nil {
 		return nil, fmt.Errorf("command registry validation failed: %w", err)
 	}
 
@@ -365,7 +371,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"diff":       func(args []string) { cmd.Diff(args) },
 		"restore":    func(args []string) { cmd.Restore(args) },
 		"debug-keys": func(args []string) { cmd.DebugKeys(args) },
-		InteractiveQuitCommand: func([]string) {
+		interactiveQuitCommand: func([]string) {
 			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
 		},
 	}
@@ -375,17 +381,17 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		available[key] = struct{}{}
 	}
 
-	missing := missingHandlers(available)
+	missing := missingHandlers(cmd.registry, available)
 	if len(missing) > 0 {
 		sort.Strings(missing)
 		return nil, fmt.Errorf("no handler registered for commands: %s", strings.Join(missing, ", "))
 	}
 
-	return &commandRouter{handlers: handlers}, nil
+	return &commandRouter{registry: cmd.registry, handlers: handlers}, nil
 }
 
 func (r *commandRouter) route(cmd string, args []string) bool {
-	info, ok := commandregistry.Find(cmd)
+	info, ok := r.registry.Find(cmd)
 	if !ok {
 		return false
 	}
@@ -401,9 +407,9 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 	return true
 }
 
-func missingHandlers(available map[string]struct{}) []string {
+func missingHandlers(registry *commandregistry.Registry, available map[string]struct{}) []string {
 	var missing []string
-	allCommands := commandregistry.All()
+	allCommands := registry.All()
 	for i := range allCommands {
 		info := &allCommands[i]
 		id := strings.TrimSpace(info.HandlerID)

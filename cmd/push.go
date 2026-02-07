@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -37,11 +36,11 @@ func (p *Pusher) Push(args []string) {
 	switch args[0] {
 	case "current":
 		if err := p.gitClient.Push(false); err != nil {
-			_, _ = fmt.Fprintf(p.outputWriter, "Error: %v\n", err)
+			WriteError(p.outputWriter, err)
 		}
 	case "force":
 		if err := p.gitClient.Push(true); err != nil {
-			_, _ = fmt.Fprintf(p.outputWriter, "Error: %v\n", err)
+			WriteError(p.outputWriter, err)
 		}
 	default:
 		p.helper.ShowPushHelp()

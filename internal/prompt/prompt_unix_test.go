@@ -25,7 +25,7 @@ func TestInputCtrlCCancelsWithoutEnter(t *testing.T) {
 		_ = slave.Close()
 	})
 
-	prompter := New(slave, slave).(*Prompter)
+	prompter := New(slave, slave).(*StandardPrompter)
 
 	type result struct {
 		line     string

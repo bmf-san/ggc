@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
 
@@ -28,8 +28,8 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
 	ui := NewUI(gitClient)
 
-	if ui.profile != ProfileEmacs {
-		t.Fatalf("profile = %v, want %v", ui.profile, ProfileEmacs)
+	if ui.profile != kb.ProfileEmacs {
+		t.Fatalf("profile = %v, want %v", ui.profile, kb.ProfileEmacs)
 	}
 
 	contextual := ui.handler.contextualMap
@@ -37,7 +37,7 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 		t.Fatal("expected contextual keybinding map to be initialized")
 	}
 
-	resultsMap, exists := contextual.GetContext(ContextResults)
+	resultsMap, exists := contextual.GetContext(kb.ContextResults)
 	if !exists || resultsMap == nil {
 		t.Fatal("expected results context map")
 	}
@@ -46,7 +46,7 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 		t.Fatalf("config override not applied: %#v", resultsMap.MoveDown)
 	}
 	stroke := resultsMap.MoveDown[0]
-	if stroke.Kind != keybindings.KeyStrokeCtrl || stroke.Rune != 'j' {
+	if stroke.Kind != kb.KeyStrokeCtrl || stroke.Rune != 'j' {
 		t.Fatalf("config override not applied: %#v", resultsMap.MoveDown)
 	}
 }

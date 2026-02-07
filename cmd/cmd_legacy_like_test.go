@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/bmf-san/ggc/v7/internal/config"
 )
 
 func TestCmd_Route_LegacyLikeError_Extended(t *testing.T) {
@@ -28,7 +30,8 @@ func TestCmd_Route_LegacyLikeError_Extended(t *testing.T) {
 			t.Parallel()
 
 			mockClient := &mockGitClient{}
-			cmd := NewCmd(mockClient)
+			cm := config.NewConfigManager(mockClient)
+			cmd := NewCmd(mockClient, cm)
 
 			var buf bytes.Buffer
 			cmd.outputWriter = &buf // capture legacy-like error output

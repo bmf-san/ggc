@@ -32,12 +32,12 @@ func (a *Adder) Add(args []string) {
 
 	if len(args) == 1 && (args[0] == "interactive" || args[0] == "patch") {
 		if err := a.gitClient.AddInteractive(); err != nil {
-			_, _ = fmt.Fprintf(a.outputWriter, "Error: %v\n", err)
+			WriteError(a.outputWriter, err)
 		}
 		return
 	}
 
 	if err := a.gitClient.Add(args...); err != nil {
-		_, _ = fmt.Fprintf(a.outputWriter, "Error: %v\n", err)
+		WriteError(a.outputWriter, err)
 	}
 }

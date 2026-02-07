@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
@@ -55,7 +55,7 @@ func (h *Hooker) Hook(args []string) {
 func (h *Hooker) withName(f func(string)) func([]string) {
 	return func(rest []string) {
 		if len(rest) < 1 {
-			_, _ = fmt.Fprintf(h.outputWriter, "Error: hook name required\n")
+			WriteErrorf(h.outputWriter, "hook name required")
 			h.helper.ShowHookHelp()
 			return
 		}

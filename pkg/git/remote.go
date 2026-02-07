@@ -4,13 +4,21 @@ import (
 	"os"
 )
 
+// RemoteManager provides remote repository management operations.
+type RemoteManager interface {
+	RemoteList() error
+	RemoteAdd(name, url string) error
+	RemoteRemove(name string) error
+	RemoteSetURL(name, url string) error
+}
+
 // RemoteList lists all remotes.
 func (c *Client) RemoteList() error {
 	cmd := c.execCommand("git", "remote", "-v")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("remote list", "git remote -v", err)
+		return NewOpError("remote list", "git remote -v", err)
 	}
 	return nil
 }
@@ -21,7 +29,7 @@ func (c *Client) RemoteAdd(name, url string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("remote add", "git remote add "+name+" "+url, err)
+		return NewOpError("remote add", "git remote add "+name+" "+url, err)
 	}
 	return nil
 }
@@ -32,7 +40,7 @@ func (c *Client) RemoteRemove(name string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("remote remove", "git remote remove "+name, err)
+		return NewOpError("remote remove", "git remote remove "+name, err)
 	}
 	return nil
 }
@@ -43,7 +51,7 @@ func (c *Client) RemoteSetURL(name, url string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("remote set-url", "git remote set-url "+name+" "+url, err)
+		return NewOpError("remote set-url", "git remote set-url "+name+" "+url, err)
 	}
 	return nil
 }

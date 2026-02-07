@@ -6,12 +6,27 @@ import (
 	"strings"
 )
 
+// RebaseOps provides operations used by the rebase command.
+type RebaseOps interface {
+	// sequence operations
+	RebaseInteractive(commitCount int) error
+	Rebase(upstream string) error
+	RebaseContinue() error
+	RebaseAbort() error
+	RebaseSkip() error
+	// discovery
+	GetCurrentBranch() (string, error)
+	GetUpstreamBranch(branch string) (string, error)
+	LogOneline(from, to string) (string, error)
+	RevParseVerify(ref string) bool
+}
+
 // LogOneline gets git log output in oneline format between commits.
 func (c *Client) LogOneline(from, to string) (string, error) {
 	cmd := c.execCommand("git", "log", "--oneline", "--reverse", fmt.Sprintf("%s..%s", from, to))
 	out, err := cmd.Output()
 	if err != nil {
-		return "", NewError("log oneline", fmt.Sprintf("git log --oneline --reverse %s..%s", from, to), err)
+		return "", NewOpError("log oneline", fmt.Sprintf("git log --oneline --reverse %s..%s", from, to), err)
 	}
 	return string(out), nil
 }
@@ -23,7 +38,7 @@ func (c *Client) RebaseInteractive(commitCount int) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rebase interactive", fmt.Sprintf("git rebase -i HEAD~%d", commitCount), err)
+		return NewOpError("rebase interactive", fmt.Sprintf("git rebase -i HEAD~%d", commitCount), err)
 	}
 	return nil
 }
@@ -35,7 +50,7 @@ func (c *Client) Rebase(upstream string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rebase", fmt.Sprintf("git rebase %s", upstream), err)
+		return NewOpError("rebase", fmt.Sprintf("git rebase %s", upstream), err)
 	}
 	return nil
 }
@@ -47,7 +62,7 @@ func (c *Client) RebaseContinue() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rebase continue", "git rebase --continue", err)
+		return NewOpError("rebase continue", "git rebase --continue", err)
 	}
 	return nil
 }
@@ -59,7 +74,7 @@ func (c *Client) RebaseAbort() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rebase abort", "git rebase --abort", err)
+		return NewOpError("rebase abort", "git rebase --abort", err)
 	}
 	return nil
 }
@@ -71,7 +86,7 @@ func (c *Client) RebaseSkip() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("rebase skip", "git rebase --skip", err)
+		return NewOpError("rebase skip", "git rebase --skip", err)
 	}
 	return nil
 }

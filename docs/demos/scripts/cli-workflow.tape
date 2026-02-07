@@ -17,39 +17,39 @@ Sleep 350ms
 
 Type "ls"
 Enter
-Sleep 700ms
+Sleep 1500ms
 
 Type "ggc status"
 Enter
-Sleep 1200ms
+Sleep 1500ms
 
 Type "ggc add README.md"
 Enter
-Sleep 900ms
+Sleep 1500ms
 
 Type "ggc status"
 Enter
-Sleep 1200ms
+Sleep 1500ms
 
 Type "ggc commit 'docs: polish readme'"
 Enter
-Sleep 1200ms
+Sleep 1500ms
 
 Type "ggc log simple"
 Enter
-Sleep 1800ms
+Sleep 1500ms
 
 Type ":q"
 Enter
-Sleep 400ms
+Sleep 1500ms
 
 Type "ggc status"
 Enter
-Sleep 1200ms
+Sleep 1500ms
 
 Type "ggc version"
 Enter
-Sleep 800ms
+Sleep 1500ms
 
 # Pause before ending
-Sleep 400ms
+Sleep 1500ms

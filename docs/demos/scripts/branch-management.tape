@@ -25,20 +25,20 @@ Sleep 1500ms
 
 Type "ggc branch list local"
 Enter
-Sleep 1400ms
+Sleep 1500ms
 
 Type "ggc branch info"
 Enter
-Sleep 100ms
+Sleep 1500ms
 Type "3"
 Enter
-Sleep 2000ms
+Sleep 1500ms
 
 Type "ggc branch checkout feature/docs-demo"
 Enter
-Sleep 100ms
+Sleep 1500ms
 Type "3"
 Enter
-Sleep 1400ms
+Sleep 1500ms
 
-Sleep 400ms
+Sleep 1500ms

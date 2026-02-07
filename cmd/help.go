@@ -13,21 +13,30 @@ import (
 
 // Helper provides help message functionality.
 type Helper struct {
+	registry     *commandregistry.Registry
 	outputWriter io.Writer
 }
 
 // NewHelper creates a new Helper.
-func NewHelper() *Helper {
+// If registry is nil, a new default registry is created.
+func NewHelper(registry ...*commandregistry.Registry) *Helper {
+	var reg *commandregistry.Registry
+	if len(registry) > 0 && registry[0] != nil {
+		reg = registry[0]
+	} else {
+		reg = commandregistry.NewRegistry()
+	}
 	return &Helper{
+		registry:     reg,
 		outputWriter: os.Stdout,
 	}
 }
 
 // ShowHelp shows the main help message.
 func (h *Helper) ShowHelp() {
-	helpMsg, err := templates.RenderMainHelp()
+	helpMsg, err := templates.RenderMainHelp(h.registry)
 	if err != nil {
-		_, _ = fmt.Fprintf(h.outputWriter, "Error: %v\n", err)
+		WriteError(h.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprint(h.outputWriter, helpMsg)
@@ -37,7 +46,7 @@ func (h *Helper) ShowHelp() {
 func (h *Helper) ShowCommandHelp(data templates.HelpData) {
 	helpMsg, err := templates.RenderCommandHelp(data)
 	if err != nil {
-		_, _ = fmt.Fprintf(h.outputWriter, "Error: %v\n", err)
+		WriteError(h.outputWriter, err)
 		return
 	}
 	_, _ = fmt.Fprint(h.outputWriter, helpMsg)
@@ -48,7 +57,7 @@ func (h *Helper) renderCommandFromRegistry(name string, usageOverride []string, 
 }
 
 func (h *Helper) renderCommandFromRegistryWithFilter(name string, usageOverride []string, descriptionOverride string, filter func(commandregistry.SubcommandInfo) bool) {
-	info, ok := commandregistry.Find(name)
+	info, ok := h.registry.Find(name)
 	if !ok {
 		usage := usageOverride
 		if len(usage) == 0 {

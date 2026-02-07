@@ -15,7 +15,8 @@ import (
 var templateFS embed.FS
 
 func main() {
-	data := buildTemplateData(command.VisibleCommands())
+	registry := command.NewRegistry()
+	data := buildTemplateData(registry.VisibleCommands())
 
 	templates := map[string]string{
 		"bash": "templates/bash.tmpl",

@@ -66,7 +66,6 @@ func (m *mockAddGitClient) GetCurrentBranch() (string, error) {
 	return "feature/test", nil
 }
 func (m *mockAddGitClient) GetBranchName() (string, error) { return "main", nil }
-func (m *mockAddGitClient) GetGitStatus() (string, error)  { return "", nil }
 
 // Status Operations methods
 func (m *mockAddGitClient) Status() (string, error)               { return "", nil }

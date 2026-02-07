@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
+// Stager provides add operations for staging changes.
+type Stager interface {
+	Add(files ...string) error
+	AddInteractive() error
+}
+
 // Add adds files to the staging area.
 func (c *Client) Add(files ...string) error {
 	if len(files) == 0 {
-		return NewError("add files", "git add", nil)
+		return NewOpError("add files", "git add", nil)
 	}
 
 	args := append([]string{"add"}, files...)
@@ -16,7 +22,7 @@ func (c *Client) Add(files ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("add files", "git "+strings.Join(args, " "), err)
+		return NewOpError("add files", "git "+strings.Join(args, " "), err)
 	}
 	return nil
 }
@@ -28,7 +34,7 @@ func (c *Client) AddInteractive() error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
-		return NewError("interactive add", "git add -p", err)
+		return NewOpError("interactive add", "git add -p", err)
 	}
 	return nil
 }

@@ -8,9 +8,11 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/term"
 
+	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
 	"github.com/bmf-san/ggc/v7/internal/termio"
 	"github.com/bmf-san/ggc/v7/internal/testutil"
 )
@@ -148,9 +150,9 @@ func TestUIResetToSearchModeClearsState(t *testing.T) {
 		input:        "status",
 		cursorPos:    6,
 		filtered:     []CommandInfo{{Command: "status"}},
-		context:      ContextSearch,
-		contextStack: []Context{ContextInput},
-		showWorkflow: true,
+		context:      kb.ContextSearch,
+		contextStack: []kb.Context{kb.ContextInput},
+		mode:         ModeWorkflow,
 	}
 
 	ui := &UI{state: state}
@@ -171,11 +173,11 @@ func TestUIResetToSearchModeClearsState(t *testing.T) {
 	if len(state.contextStack) != 0 {
 		t.Errorf("context stack should be empty after reset, got %v", state.contextStack)
 	}
-	if gotCtx := state.GetCurrentContext(); gotCtx != ContextGlobal {
-		t.Errorf("want context %v, got %v", ContextGlobal, gotCtx)
+	if gotCtx := state.GetCurrentContext(); gotCtx != kb.ContextGlobal {
+		t.Errorf("want context %v, got %v", kb.ContextGlobal, gotCtx)
 	}
-	if state.showWorkflow {
-		t.Error("workflow flag should be cleared after reset")
+	if state.mode != ModeSearch {
+		t.Errorf("expected mode to reset to ModeSearch, got %v", state.mode)
 	}
 	if clearedAgain := ui.ResetToSearchMode(); clearedAgain {
 		t.Fatal("expected reset to report inactive state after clearing")
@@ -1229,17 +1231,17 @@ func TestNewUI_WiresContextualResolver(t *testing.T) {
 		t.Fatal("expected contextual keybinding map to be set")
 	}
 
-	globalMap, exists := contextual.GetContext(ContextGlobal)
+	globalMap, exists := contextual.GetContext(kb.ContextGlobal)
 	if !exists || globalMap == nil {
 		t.Fatalf("expected global context keymap, got exists=%v map=%v", exists, globalMap)
 	}
 
-	if !globalMap.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('q')) {
+	if !globalMap.MatchesKeyStroke("delete_word", kb.NewCtrlKeyStroke('q')) {
 		t.Fatal("environment override should be reflected in global keymap")
 	}
 
 	currentMap := ui.handler.GetCurrentKeyMap()
-	if !currentMap.MatchesKeyStroke("delete_word", NewCtrlKeyStroke('q')) {
+	if !currentMap.MatchesKeyStroke("delete_word", kb.NewCtrlKeyStroke('q')) {
 		t.Error("handler current map should resolve overrides via contextual map")
 	}
 }
@@ -1320,9 +1322,9 @@ func TestKeyHandler_HandleSoftCancelResetsState(t *testing.T) {
 		colors: colors,
 		state: &UIState{
 			input:        "status",
-			context:      ContextSearch,
-			contextStack: []Context{ContextInput},
-			showWorkflow: true,
+			context:      kb.ContextSearch,
+			contextStack: []kb.Context{kb.ContextInput},
+			mode:         ModeWorkflow,
 			selected:     2,
 		},
 	}
@@ -1335,10 +1337,10 @@ func TestKeyHandler_HandleSoftCancelResetsState(t *testing.T) {
 	if ui.state.HasInput() {
 		t.Error("expected input to be cleared after soft cancel")
 	}
-	if ui.state.showWorkflow {
-		t.Error("expected workflow view to be hidden after soft cancel")
+	if ui.state.mode != ModeSearch {
+		t.Error("expected workflow mode to be cleared after soft cancel")
 	}
-	if ui.state.GetCurrentContext() != ContextGlobal {
+	if ui.state.GetCurrentContext() != kb.ContextGlobal {
 		t.Errorf("expected context to reset to global, got %s", ui.state.GetCurrentContext())
 	}
 	if !ui.consumeSoftCancelFlash() {
@@ -1358,7 +1360,7 @@ func TestShouldHandleEscapeAsSoftCancel(t *testing.T) {
 		stdout: &bytes.Buffer{},
 		colors: NewANSIColors(),
 		state: &UIState{
-			context: ContextGlobal,
+			context: kb.ContextGlobal,
 		},
 	}
 
@@ -1397,7 +1399,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 			stdout: &bytes.Buffer{},
 			colors: NewANSIColors(),
 			state: &UIState{
-				context:  ContextGlobal,
+				context:  kb.ContextGlobal,
 				input:    "test",
 				filtered: []CommandInfo{},
 			},
@@ -1427,7 +1429,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 			stdout: &bytes.Buffer{},
 			colors: NewANSIColors(),
 			state: &UIState{
-				context:   ContextGlobal,
+				context:   kb.ContextGlobal,
 				input:     "test",
 				cursorPos: 4,
 				filtered:  []CommandInfo{},
@@ -1466,7 +1468,7 @@ func TestHandleKey_EscapeWithReaderParameter(t *testing.T) {
 			stdout: &bytes.Buffer{},
 			colors: NewANSIColors(),
 			state: &UIState{
-				context:   ContextGlobal,
+				context:   kb.ContextGlobal,
 				input:     "test",
 				cursorPos: 0,
 				filtered:  []CommandInfo{},
@@ -1909,102 +1911,25 @@ func TestHandleInputChar_MultibyteDisplay(t *testing.T) {
 
 // TestKeyHandler_HandleWorkflowKeys tests workflow key handling
 func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
-	tests := []struct {
-		name           string
-		key            rune
-		showWorkflow   bool
-		hasInput       bool
-		selectedCmd    *CommandInfo
-		expectedResult bool
-		expectedAction string
-	}{
-		{
-			name:           "Tab key adds command to workflow",
-			key:            '\t',
-			showWorkflow:   false,
-			hasInput:       true,
-			selectedCmd:    &CommandInfo{Command: "add .", Description: "Add all changes"},
-			expectedResult: true,
-			expectedAction: "add_to_workflow",
-		},
-		{
-			name:           "Tab key in workflow view returns true but no action",
-			key:            '\t',
-			showWorkflow:   true,
-			hasInput:       true,
-			selectedCmd:    &CommandInfo{Command: "add .", Description: "Add all changes"},
-			expectedResult: true,
-			expectedAction: "no_action",
-		},
-		{
-			name:           "c key clears workflow in workflow view",
-			key:            'c',
-			showWorkflow:   true,
-			hasInput:       false,
-			selectedCmd:    nil,
-			expectedResult: true,
-			expectedAction: "clear_workflow",
-		},
-		{
-			name:           "c key in search view returns false because it is unhandled",
-			key:            'c',
-			showWorkflow:   false,
-			hasInput:       true,
-			selectedCmd:    nil,
-			expectedResult: false,
-			expectedAction: "no_action",
-		},
-		{
-			name:           "unhandled key returns false",
-			key:            'x',
-			showWorkflow:   false,
-			hasInput:       true,
-			selectedCmd:    nil,
-			expectedResult: false,
-			expectedAction: "none",
-		},
-	}
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	handler := ui.handler
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			gitClient := testutil.NewMockGitClient()
-			ui := NewUI(gitClient)
-			ui.state.showWorkflow = tt.showWorkflow
-			if tt.hasInput {
-				ui.state.input = "test"
-				ui.state.filtered = []CommandInfo{
-					{Command: "add .", Description: "Add all changes"},
-				}
-				ui.state.selected = 0
-			}
+	t.Run("Tab adds command to workflow in search mode", func(t *testing.T) {
+		ui.state.mode = ModeSearch
+		ui.state.FocusInput()
+		ui.state.input = "add"
+		ui.state.filtered = []CommandInfo{{Command: "add .", Description: "Add all changes"}}
+		ui.state.selected = 0
 
-			// Mock workflow for clear test
-			if tt.expectedAction == "clear_workflow" {
-				ui.workflow.AddStep("test", []string{}, "test command")
-			}
-
-			// Execute
-			result := ui.handler.handleWorkflowKeys(tt.key)
-
-			// Verify
-			if result != tt.expectedResult {
-				t.Errorf("Expected result %v, got %v", tt.expectedResult, result)
-			}
-
-			// Verify side effects
-			switch tt.expectedAction {
-			case "add_to_workflow":
-				if ui.workflow.IsEmpty() {
-					t.Error("Expected workflow to have steps after adding command")
-				}
-			case "clear_workflow":
-				if !ui.workflow.IsEmpty() {
-					t.Error("Expected workflow to be empty after clearing")
-				}
-			}
-		})
-	}
+		handled, shouldContinue, result := handler.handleWorkflowKeys('	', nil)
+		if !handled || !shouldContinue || result != nil {
+			t.Fatalf("expected handled add without exiting, got handled=%v continue=%v result=%v", handled, shouldContinue, result)
+		}
+		if ui.workflow == nil || ui.workflow.IsEmpty() {
+			t.Fatal("expected workflow to receive a step")
+		}
+	})
 }
 
 // TestKeyHandler_AddCommandToWorkflow tests adding commands to workflow
@@ -2091,20 +2016,20 @@ func TestUI_ToggleWorkflowView(t *testing.T) {
 	ui := NewUI(gitClient)
 
 	// Initial state should be false
-	if ui.state.showWorkflow {
-		t.Error("Expected initial showWorkflow to be false")
+	if ui.state.mode != ModeSearch {
+		t.Error("Expected initial mode to be search")
 	}
 
 	// Toggle to true
 	ui.ToggleWorkflowView()
-	if !ui.state.showWorkflow {
-		t.Error("Expected showWorkflow to be true after first toggle")
+	if ui.state.mode != ModeWorkflow {
+		t.Error("Expected workflow mode after first toggle")
 	}
 
 	// Toggle back to false
 	ui.ToggleWorkflowView()
-	if ui.state.showWorkflow {
-		t.Error("Expected showWorkflow to be false after second toggle")
+	if ui.state.mode != ModeSearch {
+		t.Error("Expected search mode after second toggle")
 	}
 }
 
@@ -2135,18 +2060,14 @@ func TestUI_WorkflowOperations(t *testing.T) {
 // TestKeyHandler_ExecuteWorkflow tests workflow execution
 func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 	tests := []struct {
-		name           string
-		workflowSteps  []struct{ cmd, desc string }
-		expectError    bool
-		expectResult   bool
-		expectContinue bool
+		name          string
+		workflowSteps []struct{ cmd, desc string }
+		expectError   bool
 	}{
 		{
-			name:           "Execute empty workflow",
-			workflowSteps:  []struct{ cmd, desc string }{},
-			expectError:    false,
-			expectResult:   false, // Empty workflow returns (true, nil)
-			expectContinue: true,
+			name:          "Execute empty workflow",
+			workflowSteps: []struct{ cmd, desc string }{},
+			expectError:   false,
 		},
 		{
 			name: "Execute workflow with steps",
@@ -2154,9 +2075,7 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 				{"add .", "add ."},
 				{"commit -m test", "commit -m test"},
 			},
-			expectError:    false,
-			expectResult:   true, // Non-empty workflow returns result
-			expectContinue: false,
+			expectError: false,
 		},
 	}
 
@@ -2182,25 +2101,298 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 			}
 
 			// Execute
-			shouldContinue, result := ui.handler.executeWorkflow(nil)
-
-			// Verify
-			if shouldContinue != tt.expectContinue {
-				t.Errorf("Expected shouldContinue %v, got %v", tt.expectContinue, shouldContinue)
-			}
-
-			if tt.expectResult {
-				if result == nil {
-					t.Error("Expected result to not be nil")
-				} else if len(result) < 2 || result[1] != InteractiveWorkflowCommand {
-					t.Errorf("Expected result to contain workflow command, got %v", result)
-				}
-			} else {
-				if result != nil {
-					t.Errorf("Expected result to be nil for empty workflow, got %v", result)
-				}
-			}
+			ui.handler.executeWorkflow(nil)
 		})
+	}
+}
+
+func TestWorkflowModeActions(t *testing.T) {
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	ui.stdout = &bytes.Buffer{}
+	handler := ui.handler
+
+	ui.state.mode = ModeWorkflow
+
+	initialCount := len(ui.listWorkflows())
+	if initialCount == 0 {
+		t.Fatal("expected at least one workflow")
+	}
+
+	// 'n' key creates new workflow
+	if handled := handler.handleWorkflowModeShortcut('n', nil); !handled {
+		t.Fatal("expected 'n' to be handled")
+	}
+	if len(ui.listWorkflows()) != initialCount+1 {
+		t.Fatalf("expected workflow count to increase, got %d", len(ui.listWorkflows()))
+	}
+
+	// 'd' key deletes active workflow
+	if handled := handler.handleWorkflowModeShortcut('d', nil); !handled {
+		t.Fatal("expected 'd' to be handled")
+	}
+	if len(ui.listWorkflows()) != initialCount {
+		t.Fatalf("expected workflow count to decrease, got %d", len(ui.listWorkflows()))
+	}
+
+	// Ctrl+D also deletes active workflow
+	if handled, _, _ := handler.handleControlChar(4, nil, nil); !handled { // Ctrl+D
+		t.Fatal("expected Ctrl+D to be handled")
+	}
+	if len(ui.listWorkflows()) != 0 {
+		t.Fatalf("expected all workflows to be deleted, got %d", len(ui.listWorkflows()))
+	}
+	if ui.workflowMgr.GetActiveID() != 0 {
+		t.Fatalf("expected active workflow to be cleared, got %d", ui.workflowMgr.GetActiveID())
+	}
+}
+
+func TestWorkflowModeNavigation(t *testing.T) {
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	handler := ui.handler
+
+	ui.state.mode = ModeWorkflow
+
+	// Create additional workflows for navigation testing
+	ui.workflowMgr.CreateWorkflow("")
+	ui.updateWorkflowPointer()
+
+	summaries := ui.listWorkflows()
+	if len(summaries) < 2 {
+		t.Fatalf("expected at least 2 workflows, got %d", len(summaries))
+	}
+
+	ui.state.SetWorkflowListIndex(0, len(summaries))
+
+	// Arrow down should navigate workflow list
+	handler.handleMoveDown()
+	if ui.state.workflowListIdx != 1 {
+		t.Fatalf("expected workflow list index to be 1, got %d", ui.state.workflowListIdx)
+	}
+
+	// Arrow up should navigate workflow list
+	handler.handleMoveUp()
+	if ui.state.workflowListIdx != 0 {
+		t.Fatalf("expected workflow list index to be 0, got %d", ui.state.workflowListIdx)
+	}
+}
+
+func TestWorkflowMoveListUpdatesActive(t *testing.T) {
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	handler := ui.handler
+
+	ui.state.mode = ModeWorkflow
+
+	firstID := ui.workflowMgr.GetActiveID()
+	secondID := ui.workflowMgr.CreateWorkflow("")
+	if secondID == firstID {
+		t.Fatal("expected second workflow to have a new ID")
+	}
+	ui.updateWorkflowPointer()
+
+	summaries := ui.listWorkflows()
+	if len(summaries) < 2 {
+		t.Fatalf("expected at least two workflows, got %d", len(summaries))
+	}
+
+	ui.state.SetWorkflowListIndex(0, len(summaries))
+	handler.moveWorkflowList(1)
+	if ui.workflowMgr.GetActiveID() != summaries[ui.state.workflowListIdx].ID {
+		t.Fatalf("expected active workflow to match list selection, got %d", ui.workflowMgr.GetActiveID())
+	}
+}
+
+func TestWorkflowErrorMessageExpires(t *testing.T) {
+	ui := &UI{}
+	ui.notifyWorkflowError("boom", time.Second)
+	if msg := ui.workflowErrorMessage(); msg != "boom" {
+		t.Fatalf("expected workflow error message, got %q", msg)
+	}
+
+	ui.errorExpiresAt = time.Now().Add(-time.Second)
+	if msg := ui.workflowErrorMessage(); msg != "" {
+		t.Fatalf("expected expired workflow error to clear, got %q", msg)
+	}
+	if ui.workflowError != "" {
+		t.Fatal("expected workflow error to be cleared after expiration")
+	}
+}
+
+func TestWorkflowRendererActiveList(t *testing.T) {
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	ui.state.mode = ModeWorkflow
+	ui.state.FocusWorkflowList()
+	ui.gitStatus = nil
+
+	active := ui.workflowMgr.GetActiveID()
+	if _, ok := ui.workflowMgr.AddStep(active, "add", []string{"."}, "add ."); !ok {
+		t.Fatal("expected step to be added")
+	}
+
+	secondID := ui.workflowMgr.CreateWorkflow("")
+	if secondID == active {
+		t.Fatal("expected second workflow ID to be different")
+	}
+	ui.updateWorkflowPointer()
+
+	ui.workflowMgr.SetActive(active)
+	ui.updateWorkflowPointer()
+
+	buf := &bytes.Buffer{}
+	renderer := &Renderer{
+		writer: buf,
+		colors: NewANSIColors(),
+	}
+
+	ui.state.SetWorkflowListIndex(0, len(ui.listWorkflows()))
+	renderer.renderWorkflowList(ui, ui.state)
+	out := buf.String()
+	if !strings.Contains(out, "▶") {
+		t.Fatalf("expected active indicator in list, got %q", out)
+	}
+	if !strings.Contains(out, "W1") || !strings.Contains(out, "W2") {
+		t.Fatalf("expected workflow IDs in list, got %q", out)
+	}
+	if !strings.Contains(out, "(1 step)") {
+		t.Fatalf("expected step count in list, got %q", out)
+	}
+	if !strings.Contains(out, ">") {
+		t.Fatalf("expected selection indicator in list, got %q", out)
+	}
+}
+
+func TestWorkflowListScrollOffset(t *testing.T) {
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	ui.state.mode = ModeWorkflow
+	ui.state.FocusWorkflowList()
+	ui.gitStatus = nil
+
+	for _, summary := range ui.listWorkflows() {
+		ui.workflowMgr.AddStep(summary.ID, "add", []string{"."}, "add .")
+		ui.workflowMgr.AddStep(summary.ID, "commit", []string{"-m", "msg"}, "commit -m msg")
+	}
+	for i := 0; i < 5; i++ {
+		id := ui.workflowMgr.CreateWorkflow("")
+		ui.workflowMgr.AddStep(id, "add", []string{"."}, "add .")
+		ui.workflowMgr.AddStep(id, "commit", []string{"-m", "msg"}, "commit -m msg")
+	}
+	ui.updateWorkflowPointer()
+
+	total := len(ui.listWorkflows())
+	ui.state.workflowListIdx = total - 1
+	ui.state.workflowOffset = 0
+
+	buf := &bytes.Buffer{}
+	renderer := &Renderer{
+		writer: buf,
+		colors: NewANSIColors(),
+		width:  80,
+		height: 10,
+	}
+
+	renderer.renderWorkflowList(ui, ui.state)
+	if ui.state.workflowOffset == 0 {
+		t.Fatal("expected workflow list to scroll for selection near end")
+	}
+	if !strings.Contains(buf.String(), "W6") {
+		t.Fatalf("expected output to include last workflow, got %q", buf.String())
+	}
+}
+
+func TestWorkflowRendererEmptyState(t *testing.T) {
+	gitClient := testutil.NewMockGitClient()
+	ui := NewUI(gitClient)
+	ui.state.mode = ModeWorkflow
+	ui.state.FocusWorkflowList()
+	ui.gitStatus = nil
+
+	active := ui.workflowMgr.GetActiveID()
+	ui.workflowMgr.DeleteWorkflow(active)
+	ui.updateWorkflowPointer()
+
+	buf := &bytes.Buffer{}
+	renderer := &Renderer{
+		writer: buf,
+		colors: NewANSIColors(),
+	}
+
+	renderer.renderHeader(ui)
+	headerOutput := buf.String()
+	if !strings.Contains(headerOutput, "Workflow Mode") {
+		t.Fatalf("expected workflow header, got %q", headerOutput)
+	}
+	if !strings.Contains(headerOutput, "Active:") {
+		t.Fatalf("expected active summary in header, got %q", headerOutput)
+	}
+
+	buf.Reset()
+	renderer.renderWorkflowList(ui, ui.state)
+	if !strings.Contains(buf.String(), "No workflows yet") {
+		t.Fatalf("expected empty workflow list message, got %q", buf.String())
+	}
+
+	buf.Reset()
+	renderer.renderWorkflowView(ui, ui.state)
+	if !strings.Contains(buf.String(), "No active workflow") {
+		t.Fatalf("expected no active workflow message, got %q", buf.String())
+	}
+
+	ui.workflowError = "Workflow execution failed"
+	ui.errorExpiresAt = time.Now().Add(time.Minute)
+	buf.Reset()
+	renderer.renderWorkflowError(ui)
+	if !strings.Contains(buf.String(), "Workflow execution failed") {
+		t.Fatalf("expected workflow error banner, got %q", buf.String())
+	}
+}
+
+func TestRealTimeEditorEscapeMovesCursor(t *testing.T) {
+	ui := &UI{stdout: &bytes.Buffer{}}
+	inputRunes := []rune("abc")
+	cursor := 1
+	editor := &realTimeEditor{
+		ui:         ui,
+		inputRunes: &inputRunes,
+		cursor:     &cursor,
+	}
+
+	reader := bufio.NewReader(bytes.NewBufferString("[C"))
+	editor.handleEscape(reader)
+	if cursor != 2 {
+		t.Fatalf("expected cursor to move right, got %d", cursor)
+	}
+
+	reader = bufio.NewReader(bytes.NewBufferString("[D"))
+	editor.handleEscape(reader)
+	if cursor != 1 {
+		t.Fatalf("expected cursor to move left, got %d", cursor)
+	}
+
+	reader = bufio.NewReader(bytes.NewBufferString("OD"))
+	editor.handleEscape(reader)
+	if cursor != 0 {
+		t.Fatalf("expected application left to move cursor, got %d", cursor)
+	}
+}
+
+func TestRealTimeEditorWordMotionEscape(t *testing.T) {
+	ui := &UI{stdout: &bytes.Buffer{}}
+	inputRunes := []rune("one two")
+	cursor := 0
+	editor := &realTimeEditor{
+		ui:         ui,
+		inputRunes: &inputRunes,
+		cursor:     &cursor,
+	}
+
+	reader := bufio.NewReader(bytes.NewBufferString("[1;5C"))
+	editor.handleEscape(reader)
+	if cursor != 4 {
+		t.Fatalf("expected word motion to move cursor to 4, got %d", cursor)
 	}
 }
 

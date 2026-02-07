@@ -31,12 +31,12 @@ func (r *Resetter) Reset(args []string) {
 		// Default: reset to origin
 		branch, err := r.gitClient.GetCurrentBranch()
 		if err != nil {
-			_, _ = fmt.Fprintf(r.outputWriter, "Error: failed to get current branch: %v\n", err)
+			WriteErrorf(r.outputWriter, "failed to get current branch: %v", err)
 			return
 		}
 
 		if err := r.gitClient.ResetHardAndClean(); err != nil {
-			_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+			WriteError(r.outputWriter, err)
 			return
 		}
 		_, _ = fmt.Fprintf(r.outputWriter, "Reset to origin/%s successful\n", branch)
@@ -46,14 +46,14 @@ func (r *Resetter) Reset(args []string) {
 	switch args[0] {
 	case "hard":
 		if len(args) < 2 {
-			_, _ = fmt.Fprintf(r.outputWriter, "Error: commit hash required for hard reset\n")
+			WriteErrorf(r.outputWriter, "commit hash required for hard reset")
 			r.helper.ShowResetHelp()
 			return
 		}
 
 		commit := args[1]
 		if err := r.gitClient.ResetHard(commit); err != nil {
-			_, _ = fmt.Fprintf(r.outputWriter, "Error: %v\n", err)
+			WriteError(r.outputWriter, err)
 			return
 		}
 		_, _ = fmt.Fprintf(r.outputWriter, "Reset to %s successful\n", commit)

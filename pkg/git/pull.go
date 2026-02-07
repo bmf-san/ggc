@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// Puller provides pull operation.
+type Puller interface {
+	Pull(rebase bool) error
+}
+
 // Pull pulls from a remote.
 func (c *Client) Pull(rebase bool) error {
 	args := []string{"pull"}
@@ -17,7 +22,7 @@ func (c *Client) Pull(rebase bool) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("pull", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
+		return NewOpError("pull", fmt.Sprintf("git %s", strings.Join(args, " ")), err)
 	}
 	return nil
 }

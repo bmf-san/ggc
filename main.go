@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v7/cmd"
-	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
-	"github.com/bmf-san/ggc/v7/router"
 )
 
 var (
@@ -50,19 +49,25 @@ func GetVersionInfo() (string, string) {
 
 // RunApp contains the main application logic, separated for testability.
 // This function initializes all components and routes the provided arguments.
-func RunApp(args []string) {
-	cm := config.NewConfigManager(git.NewClient())
-	cm.LoadConfig()
+func RunApp(args []string) error {
+	client := git.NewClient()
+	cm := config.NewConfigManager(client)
+	if err := cm.LoadConfig(); err != nil {
+		// Continue with default config on error
+		_, _ = os.Stderr.WriteString("Warning: " + err.Error() + "\n")
+	}
 	cmd.SetVersionGetter(GetVersionInfo)
-	c := cmd.NewCmd(git.NewClient())
+	c := cmd.NewCmd(client, cm)
 	// Cache default remote in tagger to avoid repeated config loads.
-	if r := strings.TrimSpace(cm.GetConfig().Integration.Github.DefaultRemote); r != "" {
+	if r := strings.TrimSpace(cm.GetConfig().Git.DefaultRemote); r != "" {
 		c.SetDefaultRemote(r)
 	}
-	r := router.NewRouter(c, cm)
-	r.Route(args)
+	return c.Execute(args)
 }
 
 func main() {
-	RunApp(os.Args[1:])
+	if err := RunApp(os.Args[1:]); err != nil {
+		_, _ = os.Stderr.WriteString("Error: " + err.Error() + "\n")
+		os.Exit(1)
+	}
 }

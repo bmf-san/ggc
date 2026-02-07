@@ -5,6 +5,24 @@ import (
 	"strings"
 )
 
+// TagOps provides operations used by the tag command.
+type TagOps interface {
+	// list/show
+	TagList(pattern []string) error
+	TagShow(name string) error
+	// create/delete
+	TagCreate(name string, commit string) error
+	TagCreateAnnotated(name, message string) error
+	TagDelete(names []string) error
+	// push
+	TagPush(remote, name string) error
+	TagPushAll(remote string) error
+	// query
+	GetLatestTag() (string, error)
+	TagExists(name string) bool
+	GetTagCommit(name string) (string, error)
+}
+
 // TagList lists tags, optionally filtered by pattern.
 func (c *Client) TagList(pattern []string) error {
 	var cmd = c.execCommand("git", "tag", "--sort=-version:refname")
@@ -16,7 +34,7 @@ func (c *Client) TagList(pattern []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("tag list", "git tag --sort=-version:refname", err)
+		return NewOpError("tag list", "git tag --sort=-version:refname", err)
 	}
 	return nil
 }
@@ -31,7 +49,7 @@ func (c *Client) TagCreate(name string, commit string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("tag create", "git tag "+name, err)
+		return NewOpError("tag create", "git tag "+name, err)
 	}
 	return nil
 }
@@ -47,7 +65,7 @@ func (c *Client) TagCreateAnnotated(name, message string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("tag create annotated", "git tag -a "+name, err)
+		return NewOpError("tag create annotated", "git tag -a "+name, err)
 	}
 	return nil
 }
@@ -59,7 +77,7 @@ func (c *Client) TagDelete(names []string) error {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			return NewError("tag delete", "git tag -d "+name, err)
+			return NewOpError("tag delete", "git tag -d "+name, err)
 		}
 	}
 	return nil
@@ -71,7 +89,7 @@ func (c *Client) TagPush(remote, name string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("tag push", "git push "+remote+" "+name, err)
+		return NewOpError("tag push", "git push "+remote+" "+name, err)
 	}
 	return nil
 }
@@ -82,7 +100,7 @@ func (c *Client) TagPushAll(remote string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("tag push all", "git push "+remote+" --tags", err)
+		return NewOpError("tag push all", "git push "+remote+" --tags", err)
 	}
 	return nil
 }
@@ -93,7 +111,7 @@ func (c *Client) TagShow(name string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return NewError("tag show", "git show "+name, err)
+		return NewOpError("tag show", "git show "+name, err)
 	}
 	return nil
 }
@@ -103,7 +121,7 @@ func (c *Client) GetLatestTag() (string, error) {
 	cmd := c.execCommand("git", "describe", "--tags", "--abbrev=0")
 	output, err := cmd.Output()
 	if err != nil {
-		return "", NewError("get latest tag", "git describe --tags --abbrev=0", err)
+		return "", NewOpError("get latest tag", "git describe --tags --abbrev=0", err)
 	}
 	return strings.TrimSpace(string(output)), nil
 }

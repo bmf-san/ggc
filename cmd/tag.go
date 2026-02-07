@@ -39,7 +39,7 @@ func NewTagger(client interface {
 func (t *Tagger) Tag(args []string) {
 	if len(args) == 0 {
 		if err := t.gitClient.TagList(nil); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 		}
 		return
 	}
@@ -69,14 +69,14 @@ func (t *Tagger) Tag(args []string) {
 // listTags lists tags with optional pattern matching
 func (t *Tagger) listTags(args []string) {
 	if err := t.gitClient.TagList(args); err != nil {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+		WriteError(t.outputWriter, err)
 	}
 }
 
 // createTag creates a new tag
 func (t *Tagger) createTag(args []string) {
 	if len(args) == 0 {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name is required\n")
+		WriteErrorf(t.outputWriter, "tag name is required")
 		return
 	}
 
@@ -85,13 +85,13 @@ func (t *Tagger) createTag(args []string) {
 	if len(args) == 1 {
 		// tag current commit
 		if err := t.gitClient.TagCreate(tagName, ""); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 			return
 		}
 	} else {
 		// tag specific commit
 		if err := t.gitClient.TagCreate(tagName, args[1]); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 			return
 		}
 	}
@@ -102,12 +102,12 @@ func (t *Tagger) createTag(args []string) {
 // deleteTags deletes one or more tags
 func (t *Tagger) deleteTags(args []string) {
 	if len(args) == 0 {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: at least one tag name is required\n")
+		WriteErrorf(t.outputWriter, "at least one tag name is required")
 		return
 	}
 
 	if err := t.gitClient.TagDelete(args); err != nil {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+		WriteError(t.outputWriter, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (t *Tagger) pushTags(args []string) {
 	if len(args) == 0 {
 		// push all tags
 		if err := t.gitClient.TagPushAll(remote); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 			return
 		}
 		_, _ = fmt.Fprintf(t.outputWriter, "All tags pushed to %s\n", remote)
@@ -141,14 +141,14 @@ func (t *Tagger) pushTags(args []string) {
 			// git-compatible ordering: remote first, tag second
 			candidate := strings.TrimSpace(args[0])
 			if candidate == "" {
-				_, _ = fmt.Fprintf(t.outputWriter, "Error: remote name cannot be empty or whitespace\n")
+				WriteErrorf(t.outputWriter, "remote name cannot be empty or whitespace")
 				return
 			}
 			remote = candidate
 			tagName = args[1]
 		}
 		if err := t.gitClient.TagPush(remote, tagName); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 			return
 		}
 		_, _ = fmt.Fprintf(t.outputWriter, "Tag '%s' pushed to %s\n", tagName, remote)
@@ -158,13 +158,13 @@ func (t *Tagger) pushTags(args []string) {
 // showTag shows information about a tag
 func (t *Tagger) showTag(args []string) {
 	if len(args) == 0 {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name is required\n")
+		WriteErrorf(t.outputWriter, "tag name is required")
 		return
 	}
 
 	tagName := args[0]
 	if err := t.gitClient.TagShow(tagName); err != nil {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+		WriteError(t.outputWriter, err)
 	}
 }
 
@@ -186,7 +186,7 @@ func (t *Tagger) GetTagCommit(tagName string) (string, error) {
 // CreateAnnotatedTag creates an annotated tag
 func (t *Tagger) CreateAnnotatedTag(args []string) {
 	if len(args) == 0 {
-		_, _ = fmt.Fprintf(t.outputWriter, "Error: tag name is required\n")
+		WriteErrorf(t.outputWriter, "tag name is required")
 		return
 	}
 
@@ -195,13 +195,13 @@ func (t *Tagger) CreateAnnotatedTag(args []string) {
 		// Use provided message
 		message := strings.Join(args[1:], " ")
 		if err := t.gitClient.TagCreateAnnotated(tagName, message); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 			return
 		}
 	} else {
 		// Open editor for message
 		if err := t.gitClient.TagCreateAnnotated(tagName, ""); err != nil {
-			_, _ = fmt.Fprintf(t.outputWriter, "Error: %v\n", err)
+			WriteError(t.outputWriter, err)
 			return
 		}
 	}

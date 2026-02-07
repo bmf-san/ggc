@@ -26,7 +26,6 @@ type testMockGitClient struct {
 
 func (m *testMockGitClient) GetCurrentBranch() (string, error) { return m.currentBranch, nil }
 func (m *testMockGitClient) GetBranchName() (string, error)    { return m.currentBranch, nil }
-func (m *testMockGitClient) GetGitStatus() (string, error)     { return m.gitStatus, nil }
 
 // Status Operations
 func (m *testMockGitClient) Status() (string, error)               { return m.gitStatus, nil }

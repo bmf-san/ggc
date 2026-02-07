@@ -205,11 +205,17 @@ ggc
 - `Enter`: Execute selected command
 - `Ctrl+c`: Exit interactive mode
 
-**Workflow Operations:**
-- `Tab`: Add selected command to workflow
-- `Ctrl+t`: Toggle workflow detail view
-- `c`: Clear workflow (in workflow view)
-- `Enter`: Execute entire workflow (in workflow view)
+**Workflow Operations (Search Mode):**
+- `Tab`: Add selected command to the active workflow
+- `Ctrl+t`: Switch to Workflow Mode
+
+**Workflow Mode Keys:**
+- `n`: Create a new workflow
+- `d` / `Ctrl+d`: Delete the active workflow
+- `x`: Execute the active workflow
+- `Ctrl+n/p`: Navigate workflows
+- `Ctrl+t`: Return to Search Mode
+- `Ctrl+c`: Exit interactive mode
 
 **Command Execution:**
 - If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
@@ -220,7 +226,9 @@ ggc
 
 **Workflow Feature:**
 - Build multi-command workflows by adding commands with `Tab`
-- Commands are executed sequentially when you run the workflow
+- Manage and execute workflows in a dedicated Workflow Mode
+- Create, delete, and cycle through multiple workflows
+- Commands are executed sequentially when you run the active workflow
 - Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
 - Workflows persist after execution for reuse
 - Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
@@ -521,7 +529,7 @@ Here are some common keybinding action names you can customize:
 - **Editing**: `delete_word`, `clear_line`, `delete_to_end`
 - **Cursor Movement**: `move_to_beginning`, `move_to_end`, `move_word_left`, `move_word_right`
 - **Control**: `execute`, `cancel`, `quit`
-- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `clear_workflow`
+- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `workflow_create`, `workflow_delete`
 
 #### Special Key Support
 

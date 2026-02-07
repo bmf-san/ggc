@@ -4,7 +4,7 @@
 #   GGC_DEMO_INTERACTIVE_WORKDIR - prepared fixture path
 #
 # This script illustrates launching interactive mode, refining search,
-# building a workflow, and executing it.
+# building a workflow, and managing workflows in Workflow Mode.
 
 Output docs/demos/generated/interactive-overview.gif
 Set Shell "bash"
@@ -21,47 +21,59 @@ Sleep 350ms
 # Launch interactive mode
 Type "ggc"
 Enter
-Sleep 1400ms
+Sleep 1500ms
 
 # Search for status command and execute
 Type "status"
-Sleep 400ms
+Sleep 1500ms
 Enter
-Sleep 1600ms
+Sleep 1500ms
 
 # Exit back to shell
 Ctrl+C
-Sleep 500ms
+Sleep 1500ms
 
 # Re-open interactive mode
 Type "ggc"
 Enter
-Sleep 1400ms
+Sleep 1500ms
 
-# Build workflow: add -> commit -> push
+# Build workflow: add -> commit -> push (using Tab in Search Mode)
 Type "add"
-Sleep 400ms
+Sleep 1500ms
 Tab
-Sleep 400ms
+Sleep 1500ms
 Type "commit "
-Sleep 400ms
+Sleep 1500ms
 Tab
-Sleep 400ms
+Sleep 1500ms
 Type "push"
-Sleep 400ms
+Sleep 1500ms
 Tab
-Sleep 400ms
+Sleep 1500ms
 
-# Toggle workflow view and execute
+# Toggle to Workflow Mode (Ctrl+T)
 Ctrl+T
-Sleep 1200ms
-Enter
-Sleep 2600ms
+Sleep 1500ms
 
-Type "README.md"
-Enter
-Sleep 900ms
+# Create a new workflow with 'n'
+Type "n"
+Sleep 1500ms
+
+# Navigate workflow list with Ctrl+N/P
+Ctrl+P
+Sleep 1500ms
+Ctrl+N
+Sleep 1500ms
+
+# Delete a workflow with 'd'
+Type "d"
+Sleep 1500ms
+
+# Execute a workflow with 'x'
+Type "x"
+Sleep 1500ms
 
 # Exit interactive mode
 Ctrl+C
-Sleep 400ms
+Sleep 1500ms

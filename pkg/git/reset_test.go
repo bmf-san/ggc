@@ -9,13 +9,17 @@ import (
 
 func TestClient_ResetHardAndClean(t *testing.T) {
 	var gotArgs [][]string
+	callCount := 0
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
+			callCount++
+			if callCount == 1 {
+				// First call is GetCurrentBranch (rev-parse)
+				return exec.Command("echo", "-n", "main")
+			}
+			// Subsequent calls are reset and clean
 			gotArgs = append(gotArgs, append([]string{name}, args...))
 			return exec.Command("echo")
-		},
-		GetCurrentBranchFunc: func() (string, error) {
-			return "main", nil
 		},
 	}
 

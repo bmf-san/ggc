@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmf-san/ggc/v7/pkg/config"
+	"github.com/bmf-san/ggc/v7/internal/config"
 	"github.com/bmf-san/ggc/v7/pkg/git"
 )
 
@@ -54,7 +54,7 @@ func (v *Versioner) Version(args []string) {
 // displayVersionInfo displays the version information
 func (v *Versioner) displayVersionInfo() {
 	configManager := config.NewConfigManager(v.gitClient)
-	configManager.LoadConfig()
+	_ = configManager.LoadConfig() // Ignore error, use default config
 	loadedConfig := configManager.GetConfig()
 
 	v.ensureCreatedAtSet(configManager, loadedConfig)
