@@ -1,12 +1,9 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/bmf-san/ggc/v7/internal/aliasvalidator"
 )
 
 func (c *Config) validateBranch() error {
@@ -87,65 +84,6 @@ func (c *Config) validateGitDefaultRemote() error {
 		}
 	}
 
-	return nil
-}
-
-func (c *Config) validateAliases() error {
-	for name, value := range c.Aliases {
-		if err := validateAliasName(name); err != nil {
-			return err
-		}
-		if err := validateAliasValue(name, value); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func validateAliasName(name string) error {
-	if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
-		return &ValidationError{"aliases." + name, name, "alias names must not contain spaces"}
-	}
-	return nil
-}
-
-func validateAliasValue(name string, value interface{}) error {
-	switch v := value.(type) {
-	case string:
-		if strings.TrimSpace(v) == "" {
-			return &ValidationError{"aliases." + name, v, "alias command cannot be empty"}
-		}
-		return nil
-	case []interface{}:
-		return validateAliasSequence(name, v)
-	default:
-		return &ValidationError{Field: "aliases." + name, Value: value, Message: "alias must be either a string or array of strings"}
-	}
-}
-
-func validateAliasSequence(name string, seq []interface{}) error {
-	if len(seq) == 0 {
-		return &ValidationError{"aliases." + name, seq, "alias sequence cannot be empty"}
-	}
-
-	for i, cmd := range seq {
-		cmdStr, ok := cmd.(string)
-		if !ok {
-			return &ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmd, Message: "sequence commands must be strings"}
-		}
-		if strings.TrimSpace(cmdStr) == "" {
-			return &ValidationError{Field: fmt.Sprintf("aliases.%s[%d]", name, i), Value: cmdStr, Message: "command in sequence cannot be empty"}
-		}
-
-		// Validate command security
-		if err := aliasvalidator.ValidateCommand(cmdStr); err != nil {
-			return &ValidationError{
-				Field:   fmt.Sprintf("aliases.%s[%d]", name, i),
-				Value:   cmdStr,
-				Message: err.Error(),
-			}
-		}
-	}
 	return nil
 }
 
