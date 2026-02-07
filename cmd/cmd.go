@@ -435,8 +435,15 @@ func isLegacyLike(args []string) bool {
 	if len(args) == 0 {
 		return false
 	}
-	// Top-level command should never be hyphenated in unified syntax
+	// A hyphenated top-level command is only legacy-like when it is not
+	// a registered first-class command (e.g. "debug-keys").
 	if strings.Contains(args[0], "-") {
+		if _, ok := commandregistry.Find(args[0]); !ok {
+			return true
+		}
+	}
+	// A standalone flag token as the top-level command is always legacy-like.
+	if strings.HasPrefix(args[0], "-") {
 		return true
 	}
 	// Any flag-style argument (starts with '-' or '--') is considered legacy-like

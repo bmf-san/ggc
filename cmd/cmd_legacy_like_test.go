@@ -48,3 +48,26 @@ func TestCmd_Route_LegacyLikeError_Extended(t *testing.T) {
 		})
 	}
 }
+
+func TestCmd_Route_LegacyLike_AllowsRegisteredHyphenatedCommand(t *testing.T) {
+	t.Parallel()
+
+	mockClient := &mockGitClient{}
+	cmd := NewCmd(mockClient)
+
+	var buf bytes.Buffer
+	cmd.outputWriter = &buf
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Route() should not panic for debug-keys, but got: %v", r)
+		}
+	}()
+
+	cmd.Route([]string{"debug-keys"})
+
+	out := buf.String()
+	if strings.Contains(out, "legacy-like syntax is not supported") {
+		t.Fatalf("did not expect legacy-like error for debug-keys, got: %q", out)
+	}
+}
