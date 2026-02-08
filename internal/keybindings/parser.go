@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"go.yaml.in/yaml/v3"
@@ -3651,6 +3652,7 @@ func FormatKeyStrokeForDisplay(ks KeyStroke) string { //nolint:revive // handles
 
 // DebugKeysCommand captures and displays raw key sequences
 type DebugKeysCommand struct {
+	mu         sync.RWMutex
 	capturing  bool
 	sequences  [][]byte
 	outputFile string
@@ -3667,8 +3669,10 @@ func NewDebugKeysCommand(outputFile string) *DebugKeysCommand {
 
 // StartCapture begins capturing raw key sequences
 func (dkc *DebugKeysCommand) StartCapture() {
+	dkc.mu.Lock()
 	dkc.capturing = true
 	dkc.sequences = make([][]byte, 0)
+	dkc.mu.Unlock()
 
 	fmt.Printf("=== Debug Keys Mode ===\n")
 	fmt.Printf("Raw key sequence capture started.\n")
@@ -3678,7 +3682,9 @@ func (dkc *DebugKeysCommand) StartCapture() {
 
 // CaptureSequence captures a raw key sequence
 func (dkc *DebugKeysCommand) CaptureSequence(seq []byte) {
+	dkc.mu.Lock()
 	if !dkc.capturing {
+		dkc.mu.Unlock()
 		return
 	}
 
@@ -3686,6 +3692,7 @@ func (dkc *DebugKeysCommand) CaptureSequence(seq []byte) {
 	captured := make([]byte, len(seq))
 	copy(captured, seq)
 	dkc.sequences = append(dkc.sequences, captured)
+	dkc.mu.Unlock()
 
 	// Display immediately
 	fmt.Printf("Captured: %v (hex: %x) (chars: %q)\n", seq, seq, seq)
@@ -3693,22 +3700,26 @@ func (dkc *DebugKeysCommand) CaptureSequence(seq []byte) {
 
 // StopCapture stops capturing and shows results
 func (dkc *DebugKeysCommand) StopCapture() error {
+	dkc.mu.Lock()
 	if !dkc.capturing {
+		dkc.mu.Unlock()
 		return nil
 	}
 
 	dkc.capturing = false
+	sequences := append([][]byte(nil), dkc.sequences...)
+	dkc.mu.Unlock()
 
 	fmt.Printf("\n=== Capture Results ===\n")
-	fmt.Printf("Total sequences captured: %d\n\n", len(dkc.sequences))
+	fmt.Printf("Total sequences captured: %d\n\n", len(sequences))
 
-	if len(dkc.sequences) == 0 {
+	if len(sequences) == 0 {
 		fmt.Printf("No sequences captured.\n")
 		return nil
 	}
 
 	// Display all captured sequences
-	for i, seq := range dkc.sequences {
+	for i, seq := range sequences {
 		fmt.Printf("%d. %v (hex: %x)\n", i+1, seq, seq)
 
 		// Try to identify common sequences
@@ -3722,7 +3733,7 @@ func (dkc *DebugKeysCommand) StopCapture() error {
 
 	// Save to file if requested
 	if dkc.outputFile != "" {
-		if err := dkc.saveToFile(); err != nil {
+		if err := dkc.saveToFile(sequences); err != nil {
 			return fmt.Errorf("failed to save to file: %w", err)
 		}
 		fmt.Printf("\nSequences saved to: %s\n", dkc.outputFile)
@@ -3830,14 +3841,14 @@ func (dkc *DebugKeysCommand) identifySequence(seq []byte) string { //nolint:revi
 }
 
 // saveToFile saves captured sequences to a file
-func (dkc *DebugKeysCommand) saveToFile() error {
+func (dkc *DebugKeysCommand) saveToFile(sequences [][]byte) error {
 	var content strings.Builder
 
 	content.WriteString("# Raw Key Sequences Captured by ggc debug-keys\n")
 	content.WriteString(fmt.Sprintf("# Captured on: %s\n", time.Now().Format("2006-01-02 15:04:05")))
-	content.WriteString(fmt.Sprintf("# Total sequences: %d\n\n", len(dkc.sequences)))
+	content.WriteString(fmt.Sprintf("# Total sequences: %d\n\n", len(sequences)))
 
-	for i, seq := range dkc.sequences {
+	for i, seq := range sequences {
 		content.WriteString(fmt.Sprintf("# Sequence %d\n", i+1))
 		content.WriteString(fmt.Sprintf("# Raw: %v\n", seq))
 		content.WriteString(fmt.Sprintf("# Hex: %x\n", seq))
@@ -3858,5 +3869,7 @@ func (dkc *DebugKeysCommand) saveToFile() error {
 
 // IsCapturing returns whether debug capture is active
 func (dkc *DebugKeysCommand) IsCapturing() bool {
+	dkc.mu.RLock()
+	defer dkc.mu.RUnlock()
 	return dkc.capturing
 }
