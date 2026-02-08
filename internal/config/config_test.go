@@ -724,8 +724,13 @@ func TestLoadConfigDoesNotOverwriteMalformedFile(t *testing.T) {
 	}()
 
 	cm := NewConfigManager(testutil.NewMockGitClient())
-	cm.gitClient = testutil.NewMockGitClient()
-	cm.LoadConfig()
+	err := cm.LoadConfig()
+	if err == nil {
+		t.Fatal("expected LoadConfig to fail for malformed YAML")
+	}
+	if cm.configPath != configPath {
+		t.Fatalf("expected configPath %q, got %q", configPath, cm.configPath)
+	}
 
 	got, err := os.ReadFile(configPath)
 	if err != nil {

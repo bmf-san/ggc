@@ -60,6 +60,8 @@ func (v *Versioner) displayVersionInfo() {
 	if loadErr == nil {
 		v.ensureCreatedAtSet(configManager, loadedConfig)
 		v.updateVersionInfoFromBuild(configManager, loadedConfig)
+	} else {
+		_, _ = fmt.Fprintf(v.outputWriter, "failed to load config: %v\n", loadErr)
 	}
 	v.printVersionInfo(loadedConfig)
 }
