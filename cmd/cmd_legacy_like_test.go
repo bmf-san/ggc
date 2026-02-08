@@ -56,10 +56,12 @@ func TestCmd_Route_LegacyLike_AllowsRegisteredHyphenatedCommand(t *testing.T) {
 	t.Parallel()
 
 	mockClient := &mockGitClient{}
-	cmd := NewCmd(mockClient)
+	cm := config.NewConfigManager(mockClient)
+	cmd := NewCmd(mockClient, cm)
 
 	var buf bytes.Buffer
 	cmd.outputWriter = &buf
+	cmd.debugger.outputWriter = &buf
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -72,5 +74,30 @@ func TestCmd_Route_LegacyLike_AllowsRegisteredHyphenatedCommand(t *testing.T) {
 	out := buf.String()
 	if strings.Contains(out, "legacy-like syntax is not supported") {
 		t.Fatalf("did not expect legacy-like error for debug-keys, got: %q", out)
+	}
+	if !strings.Contains(out, "=== Active Key Bindings ===") {
+		t.Fatalf("expected debug-keys output, got: %q", out)
+	}
+}
+
+func TestCmd_Route_LegacyLike_AllowsDebugKeysHelpFlags(t *testing.T) {
+	t.Parallel()
+
+	mockClient := &mockGitClient{}
+	cm := config.NewConfigManager(mockClient)
+	cmd := NewCmd(mockClient, cm)
+
+	var buf bytes.Buffer
+	cmd.outputWriter = &buf
+	cmd.debugger.outputWriter = &buf
+
+	cmd.Route([]string{"debug-keys", "--help"})
+
+	out := buf.String()
+	if strings.Contains(out, "legacy-like syntax is not supported") {
+		t.Fatalf("did not expect legacy-like error for debug-keys --help, got: %q", out)
+	}
+	if !strings.Contains(out, "debug-keys - Debug keybinding issues and capture raw key sequences") {
+		t.Fatalf("expected debug-keys help output, got: %q", out)
 	}
 }
