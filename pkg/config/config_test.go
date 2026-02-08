@@ -709,6 +709,37 @@ ui:
 	}
 }
 
+func TestLoadConfigDoesNotOverwriteMalformedFile(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".ggcconfig.yaml")
+	invalidYAML := "broken: [yaml\n"
+	if err := os.WriteFile(configPath, []byte(invalidYAML), 0644); err != nil {
+		t.Fatalf("failed to write malformed config: %v", err)
+	}
+
+	originalHome := os.Getenv("HOME")
+	if err := os.Setenv("HOME", tempDir); err != nil {
+		t.Fatalf("failed to set HOME: %v", err)
+	}
+	defer func() {
+		if err := os.Setenv("HOME", originalHome); err != nil {
+			t.Fatalf("failed to restore HOME: %v", err)
+		}
+	}()
+
+	cm := NewConfigManager(testutil.NewMockGitClient())
+	cm.gitClient = testutil.NewMockGitClient()
+	cm.LoadConfig()
+
+	got, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config after LoadConfig: %v", err)
+	}
+	if string(got) != invalidYAML {
+		t.Fatalf("malformed config was overwritten.\nwant: %q\ngot:  %q", invalidYAML, string(got))
+	}
+}
+
 // TestTypeConversion tests type conversion in setValueByPath
 func TestTypeConversion(t *testing.T) {
 	cm := newTestConfigManager()

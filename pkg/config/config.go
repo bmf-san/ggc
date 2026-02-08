@@ -1093,13 +1093,16 @@ func (cm *Manager) flattenMap(value reflect.Value, prefix string, result map[str
 }
 
 // LoadConfig loads and saves the configuration file.
-func (cm *Manager) LoadConfig() {
+func (cm *Manager) LoadConfig() error {
 	if err := cm.Load(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		return err
 	}
 	if err := cm.Save(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to save config: %v\n", err)
+		return err
 	}
+	return nil
 }
 
 // GetConfig returns the current configuration
