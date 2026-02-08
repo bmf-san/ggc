@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -77,6 +79,59 @@ func TestVersioner_Version(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestVersioner_VersionDoesNotOverwriteMalformedConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".ggcconfig.yaml")
+	invalidYAML := "broken: [yaml\n"
+	if err := os.WriteFile(configPath, []byte(invalidYAML), 0644); err != nil {
+		t.Fatalf("failed to write malformed config: %v", err)
+	}
+
+	originalHome := os.Getenv("HOME")
+	if err := os.Setenv("HOME", tempDir); err != nil {
+		t.Fatalf("failed to set HOME: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Setenv("HOME", originalHome); err != nil {
+			t.Fatalf("failed to restore HOME: %v", err)
+		}
+	})
+
+	originalGetter := getVersionInfo
+	SetVersionGetter(func() (string, string) {
+		return "v1.0.0", "abc123"
+	})
+	t.Cleanup(func() {
+		getVersionInfo = originalGetter
+	})
+
+	var buf bytes.Buffer
+	v := &Versioner{
+		gitClient:    testutil.NewMockGitClient(),
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+
+	v.Version([]string{})
+
+	got, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config after Version: %v", err)
+	}
+	if string(got) != invalidYAML {
+		t.Fatalf("malformed config was overwritten.\nwant: %q\ngot:  %q", invalidYAML, string(got))
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "failed to load config:") {
+		t.Fatalf("expected warning about config load failure, got: %q", output)
+	}
+	if !strings.Contains(output, "ggc version") {
+		t.Fatalf("expected version output, got: %q", output)
 	}
 }
 
