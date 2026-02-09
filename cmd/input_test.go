@@ -14,19 +14,19 @@ type mockPrompter struct {
 	err      error
 }
 
-func (m *mockPrompter) Input(prompt string) (string, bool, error) {
+func (m *mockPrompter) Input(_ string) (string, bool, error) {
 	return m.input, m.canceled, m.err
 }
 
-func (m *mockPrompter) Select(title string, items []string, prompt string) (int, bool, error) {
+func (m *mockPrompter) Select(_ string, _ []string, _ string) (int, bool, error) {
 	return 0, false, nil
 }
 
-func (m *mockPrompter) Confirm(prompt string) (bool, bool, error) {
+func (m *mockPrompter) Confirm(_ string) (bool, bool, error) {
 	return false, false, nil
 }
 
-func (m *mockPrompter) WithCancelMessage(message string) prompt.Prompter {
+func (m *mockPrompter) WithCancelMessage(_ string) prompt.Prompter {
 	return m
 }
 
@@ -40,6 +40,9 @@ func TestReadLine_Success(t *testing.T) {
 	}
 	if result != "test input" {
 		t.Errorf("ReadLine() = %q, want %q", result, "test input")
+	}
+	if buf.Len() != 0 {
+		t.Errorf("ReadLine() wrote output %q, want empty", buf.String())
 	}
 }
 
