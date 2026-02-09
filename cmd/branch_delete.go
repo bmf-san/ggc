@@ -66,7 +66,7 @@ func (b *Brancher) collectDeletableBranches() ([]string, bool) {
 func (b *Brancher) runBranchDeleteLoop(branches []string) {
 	for {
 		b.displayBranchSelection(branches)
-		input, ok := b.readLine("")
+		input, ok := ReadLine(b.prompter, b.outputWriter, "")
 		if !ok {
 			return
 		}
@@ -182,7 +182,7 @@ func (b *Brancher) getMergedBranchesForDeletion() ([]string, error) {
 func (b *Brancher) runMergedBranchDeleteLoop(branches []string) {
 	for {
 		b.displayMergedBranchSelection(branches)
-		input, ok := b.readLine("")
+		input, ok := ReadLine(b.prompter, b.outputWriter, "")
 		if !ok {
 			return
 		}

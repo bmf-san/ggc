@@ -186,7 +186,7 @@ func (b *Brancher) branchContains(args []string) {
 }
 
 func (b *Brancher) branchContainsInteractive() {
-	input, ok := b.readLine("Enter commit or ref: ")
+	input, ok := ReadLine(b.prompter, b.outputWriter, "Enter commit or ref: ")
 	if !ok {
 		return
 	}
