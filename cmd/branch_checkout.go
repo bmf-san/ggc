@@ -85,18 +85,3 @@ func deriveLocalFromRemote(remoteBranch string) (string, bool) {
 	}
 	return local, true
 }
-
-func (b *Brancher) readLine(promptText string) (string, bool) {
-	if b.prompter == nil {
-		return "", false
-	}
-	line, canceled, err := b.prompter.Input(promptText)
-	if canceled {
-		return "", false
-	}
-	if err != nil {
-		WriteError(b.outputWriter, err)
-		return "", false
-	}
-	return line, true
-}

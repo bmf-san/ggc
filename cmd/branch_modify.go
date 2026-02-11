@@ -12,7 +12,7 @@ func (b *Brancher) branchCreate(args []string) {
 	if len(args) > 0 {
 		branchName = strings.TrimSpace(args[0])
 	} else {
-		input, ok := b.readLine("Enter new branch name: ")
+		input, ok := ReadLine(b.prompter, b.outputWriter, "Enter new branch name: ")
 		if !ok {
 			return
 		}
@@ -73,7 +73,7 @@ func (b *Brancher) branchRenameInteractive() {
 		return
 	}
 	oldName := branches[idx]
-	newInput, ok := b.readLine("Enter new branch name: ")
+	newInput, ok := ReadLine(b.prompter, b.outputWriter, "Enter new branch name: ")
 	if !ok {
 		return
 	}
@@ -132,7 +132,7 @@ func (b *Brancher) branchMoveInteractive() {
 		return
 	}
 	branch := branches[idx]
-	commitInput, ok := b.readLine("Enter commit or ref to move to: ")
+	commitInput, ok := ReadLine(b.prompter, b.outputWriter, "Enter commit or ref to move to: ")
 	if !ok {
 		return
 	}
@@ -243,7 +243,7 @@ func (b *Brancher) selectUpstreamBranch() string {
 	}
 	b.displayRemoteBranches(remotes)
 
-	upIn, ok := b.readLine("Enter upstream (name or number): ")
+	upIn, ok := ReadLine(b.prompter, b.outputWriter, "Enter upstream (name or number): ")
 	if !ok {
 		return ""
 	}
