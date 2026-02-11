@@ -311,13 +311,6 @@ func (c *Cmd) Route(args []string) {
 		return
 	}
 
-	// Treat legacy-like syntax as a hard error (no heuristics/suggestions)
-	if isLegacyLike(args, c.registry) {
-		_, _ = fmt.Fprintln(c.outputWriter, "Error: legacy-like syntax is not supported.")
-		_, _ = fmt.Fprintln(c.outputWriter, "Use unified subcommands. See: ggc help <command>")
-		return
-	}
-
 	c.routeCommand(args[0], args[1:])
 }
 
@@ -421,68 +414,6 @@ func missingHandlers(registry *commandregistry.Registry, available map[string]st
 		}
 	}
 	return missing
-}
-
-// isLegacyLike reports whether args resemble the pre-v6, flag-driven CLI surface
-// instead of the unified subcommand style introduced in v6.
-// Definition of "legacy-like":
-//   - Hyphenated top-level commands (e.g., "clean-interactive") that used to exist
-//     as separate entry points.
-//   - Flag-style modifiers (e.g., "-i", "--prune") passed to top-level commands to
-//     toggle modes or behaviors.
-//
-// Why this matters: post-v6 the CLI avoids guessing user intent to keep routing
-// predictable, safe, and testable. When legacy-like usage is detected, we fail fast
-// with a clear error to nudge users toward the unified subcommands (see: "ggc help <command>").
-// Detection is intentionally conservative: we flag top-level flag tokens, unknown
-// hyphenated top-level commands, or leading "-" arguments up to a literal "--"
-// separator; everything after "--" is treated as data.
-func isLegacyLike(args []string, registry *commandregistry.Registry) bool {
-	if len(args) == 0 {
-		return false
-	}
-	topLevel := args[0]
-	if isFlagToken(topLevel) {
-		return true
-	}
-	if isUnknownHyphenatedCommand(topLevel, registry) {
-		return true
-	}
-	return hasLegacyLikeModifier(topLevel, args[1:])
-}
-
-func isUnknownHyphenatedCommand(name string, registry *commandregistry.Registry) bool {
-	if !strings.Contains(name, "-") {
-		return false
-	}
-	if registry == nil {
-		return true
-	}
-	_, ok := registry.Find(name)
-	return !ok
-}
-
-func hasLegacyLikeModifier(topLevel string, args []string) bool {
-	for _, arg := range args {
-		if arg == "--" { // treat everything after "--" as data
-			break
-		}
-		if allowsHelpAlias(topLevel, arg) {
-			continue
-		}
-		if isFlagToken(arg) {
-			return true
-		}
-	}
-	return false
-}
-
-func allowsHelpAlias(topLevel, arg string) bool {
-	return topLevel == "debug-keys" && (arg == "-h" || arg == "--help")
-}
-
-func isFlagToken(token string) bool {
-	return strings.HasPrefix(token, "-")
 }
 
 // waitForContinue waits for user input to continue
