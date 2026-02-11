@@ -54,11 +54,15 @@ func (v *Versioner) Version(args []string) {
 // displayVersionInfo displays the version information
 func (v *Versioner) displayVersionInfo() {
 	configManager := config.NewConfigManager(v.gitClient)
-	_ = configManager.LoadConfig() // Ignore error, use default config
+	loadErr := configManager.LoadConfig()
 	loadedConfig := configManager.GetConfig()
 
-	v.ensureCreatedAtSet(configManager, loadedConfig)
-	v.updateVersionInfoFromBuild(configManager, loadedConfig)
+	if loadErr == nil {
+		v.ensureCreatedAtSet(configManager, loadedConfig)
+		v.updateVersionInfoFromBuild(configManager, loadedConfig)
+	} else {
+		_, _ = fmt.Fprintf(v.outputWriter, "failed to load config: %v\n", loadErr)
+	}
 	v.printVersionInfo(loadedConfig)
 }
 
