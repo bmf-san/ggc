@@ -92,7 +92,7 @@ func (c *Cleaner) getCleanableFiles() ([]string, error) {
 func (c *Cleaner) runInteractiveCleanLoop(files []string) {
 	for {
 		c.displayFileSelection(files)
-		input, ok := c.readLine("")
+		input, ok := ReadLine(c.prompter, c.outputWriter, "")
 		if !ok {
 			return
 		}
@@ -109,21 +109,6 @@ func (c *Cleaner) runInteractiveCleanLoop(files []string) {
 			return
 		}
 	}
-}
-
-func (c *Cleaner) readLine(promptText string) (string, bool) {
-	if c.prompter == nil {
-		return "", false
-	}
-	line, canceled, err := c.prompter.Input(promptText)
-	if canceled {
-		return "", false
-	}
-	if err != nil {
-		WriteError(c.outputWriter, err)
-		return "", false
-	}
-	return line, true
 }
 
 // displayFileSelection shows the file selection interface

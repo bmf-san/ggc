@@ -9,13 +9,13 @@ import (
 )
 
 type mockPrompter struct {
-	inputLine     string
-	inputCanceled bool
-	inputErr      error
+	input    string
+	canceled bool
+	err      error
 }
 
 func (m *mockPrompter) Input(_ string) (string, bool, error) {
-	return m.inputLine, m.inputCanceled, m.inputErr
+	return m.input, m.canceled, m.err
 }
 
 func (m *mockPrompter) Select(_ string, _ []string, _ string) (int, bool, error) {
@@ -32,15 +32,14 @@ func (m *mockPrompter) WithCancelMessage(_ string) prompt.Prompter {
 
 func TestReadLine_Success(t *testing.T) {
 	var buf bytes.Buffer
-	p := &mockPrompter{inputLine: "test input"}
+	p := &mockPrompter{input: "test input"}
 
-	line, ok := ReadLine(p, &buf, "prompt: ")
-
+	result, ok := ReadLine(p, &buf, "Enter:")
 	if !ok {
 		t.Error("ReadLine() ok = false, want true")
 	}
-	if line != "test input" {
-		t.Errorf("ReadLine() line = %q, want %q", line, "test input")
+	if result != "test input" {
+		t.Errorf("ReadLine() = %q, want %q", result, "test input")
 	}
 	if buf.Len() != 0 {
 		t.Errorf("ReadLine() wrote output %q, want empty", buf.String())
@@ -49,44 +48,42 @@ func TestReadLine_Success(t *testing.T) {
 
 func TestReadLine_Canceled(t *testing.T) {
 	var buf bytes.Buffer
-	p := &mockPrompter{inputCanceled: true}
+	p := &mockPrompter{canceled: true}
 
-	line, ok := ReadLine(p, &buf, "prompt: ")
-
+	result, ok := ReadLine(p, &buf, "Enter:")
 	if ok {
 		t.Error("ReadLine() ok = true, want false")
 	}
-	if line != "" {
-		t.Errorf("ReadLine() line = %q, want empty", line)
+	if result != "" {
+		t.Errorf("ReadLine() = %q, want empty string", result)
 	}
 }
 
 func TestReadLine_Error(t *testing.T) {
 	var buf bytes.Buffer
-	p := &mockPrompter{inputErr: errors.New("read error")}
+	p := &mockPrompter{err: errors.New("input error")}
 
-	line, ok := ReadLine(p, &buf, "prompt: ")
-
+	result, ok := ReadLine(p, &buf, "Enter:")
 	if ok {
 		t.Error("ReadLine() ok = true, want false")
 	}
-	if line != "" {
-		t.Errorf("ReadLine() line = %q, want empty", line)
+	if result != "" {
+		t.Errorf("ReadLine() = %q, want empty string", result)
 	}
-	if got := buf.String(); got != "Error: read error\n" {
-		t.Errorf("ReadLine() output = %q, want %q", got, "Error: read error\n")
+	// Verify error was written
+	if buf.String() != "Error: input error\n" {
+		t.Errorf("Error output = %q, want %q", buf.String(), "Error: input error\n")
 	}
 }
 
 func TestReadLine_NilPrompter(t *testing.T) {
 	var buf bytes.Buffer
 
-	line, ok := ReadLine(nil, &buf, "prompt: ")
-
+	result, ok := ReadLine(nil, &buf, "Enter:")
 	if ok {
 		t.Error("ReadLine() ok = true, want false")
 	}
-	if line != "" {
-		t.Errorf("ReadLine() line = %q, want empty", line)
+	if result != "" {
+		t.Errorf("ReadLine() = %q, want empty string", result)
 	}
 }
