@@ -8,7 +8,7 @@ import (
 
 // CommandRouter represents an interface for routing commands
 type CommandRouter interface {
-	Route(args []string)
+	Route(args []string) error
 }
 
 // WorkflowExecutor executes workflow steps sequentially using existing Route mechanism
@@ -28,6 +28,16 @@ func NewWorkflowExecutor(router CommandRouter, ui *UI) *WorkflowExecutor {
 	}
 }
 
+// uiWrite writes to the UI stdout when the UI is available; otherwise falls back to fmt.Printf.
+// This allows WorkflowExecutor to work correctly in tests where the UI may be nil.
+func (we *WorkflowExecutor) uiWrite(format string, a ...interface{}) {
+	if we.ui != nil {
+		we.ui.write(format, a...)
+		return
+	}
+	_, _ = fmt.Printf(format, a...)
+}
+
 // Execute runs all steps in the workflow sequentially
 func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 	steps := workflow.GetSteps()
@@ -36,10 +46,10 @@ func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 		return fmt.Errorf("workflow is empty")
 	}
 
-	fmt.Printf("🚀 Starting workflow execution (%d steps)\n\n", len(steps))
+	we.uiWrite("🚀 Starting workflow execution (%d steps)\n\n", len(steps))
 
 	for i, step := range steps {
-		fmt.Printf("📋 Step %d/%d: %s\n", i+1, len(steps), step.String())
+		we.uiWrite("📋 Step %d/%d: %s\n", i+1, len(steps), step.String())
 
 		// Resolve placeholders in each argument individually to preserve multiword values
 		resolvedArgs, canceled := resolveStepPlaceholders(we.ui, step)
@@ -55,19 +65,21 @@ func (we *WorkflowExecutor) Execute(workflow *Workflow) error {
 		}
 
 		// Show resolved command
-		fmt.Printf("   → Resolved to: %s\n", strings.Join(parts, " "))
+		we.uiWrite("   → Resolved to: %s\n", strings.Join(parts, " "))
 
-		// Execute the resolved command using existing Route mechanism
-		we.router.Route(parts)
+		// Execute the resolved command and propagate any routing error
+		if err := we.router.Route(parts); err != nil {
+			return fmt.Errorf("step %d/%d failed: %w", i+1, len(steps), err)
+		}
 
-		fmt.Printf("✅ Step %d completed successfully\n", i+1)
+		we.uiWrite("✅ Step %d completed successfully\n", i+1)
 
 		// Add separator between steps (except for the last one)
 		if i < len(steps)-1 {
-			fmt.Println("─────────────────────────────────────")
+			we.uiWrite("─────────────────────────────────────\n")
 		}
 	}
 
-	fmt.Printf("\n🎉 Workflow completed successfully! (%d steps executed)\n", len(steps))
+	we.uiWrite("\n🎉 Workflow completed successfully! (%d steps executed)\n", len(steps))
 	return nil
 }
