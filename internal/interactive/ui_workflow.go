@@ -11,7 +11,6 @@ func (ui *UI) AddToWorkflow(command string, args []string, description string) i
 	}
 	activeID := ui.workflowMgr.GetActiveID()
 	if id, ok := ui.workflowMgr.AddStep(activeID, command, args, description); ok {
-		ui.updateWorkflowPointer()
 		return id
 	}
 	return 0
@@ -23,7 +22,6 @@ func (ui *UI) ClearWorkflow() {
 		return
 	}
 	ui.workflowMgr.ClearWorkflow(ui.workflowMgr.GetActiveID())
-	ui.updateWorkflowPointer()
 }
 
 // ExecuteWorkflow executes the current workflow
@@ -32,24 +30,26 @@ func (ui *UI) ExecuteWorkflow() error {
 		return fmt.Errorf("workflow executor not initialized")
 	}
 
-	if ui.workflow == nil || ui.workflow.IsEmpty() {
+	wf := ui.activeWorkflow()
+	if wf == nil || wf.IsEmpty() {
 		return fmt.Errorf("workflow is empty")
 	}
 
-	return ui.workflowEx.Execute(ui.workflow)
+	return ui.workflowEx.Execute(wf)
 }
 
-// updateWorkflowPointer updates the workflow pointer from the workflow manager
-func (ui *UI) updateWorkflowPointer() {
-	if ui == nil || ui.workflowMgr == nil {
-		return
+// activeWorkflow returns the currently active workflow, or nil if none exists.
+// It derives the result from workflowMgr dynamically, eliminating the need
+// for a cached workflow field on UI (Problem J fix).
+func (ui *UI) activeWorkflow() *Workflow {
+	if ui.workflowMgr == nil {
+		return nil
 	}
 	wf, ok := ui.workflowMgr.GetWorkflow(ui.workflowMgr.GetActiveID())
 	if ok {
-		ui.workflow = wf
-		return
+		return wf
 	}
-	ui.workflow = nil
+	return nil
 }
 
 // listWorkflows returns a list of all workflows

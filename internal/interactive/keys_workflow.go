@@ -117,9 +117,7 @@ func (h *KeyHandler) moveWorkflowList(delta int) {
 		return
 	}
 	selected := summaries[idx]
-	if h.ui.workflowMgr.SetActive(selected.ID) {
-		h.ui.updateWorkflowPointer()
-	}
+	h.ui.workflowMgr.SetActive(selected.ID)
 }
 
 func (h *KeyHandler) createWorkflow() {
@@ -134,7 +132,6 @@ func (h *KeyHandler) createWorkflow() {
 			break
 		}
 	}
-	h.ui.updateWorkflowPointer()
 	h.ui.write("%s✨ Created workflow #%d%s\n", h.ui.colors.BrightGreen, newID, h.ui.colors.Reset)
 }
 
@@ -163,7 +160,6 @@ func (h *KeyHandler) deleteActiveWorkflow() {
 			}
 		}
 	}
-	h.ui.updateWorkflowPointer()
 	h.ui.write("%s🗑  Deleted workflow #%d%s\n", h.ui.colors.BrightYellow, activeID, h.ui.colors.Reset)
 }
 
@@ -210,11 +206,12 @@ func (h *KeyHandler) clearWorkflow() {
 
 // executeWorkflow executes the current workflow
 func (h *KeyHandler) executeWorkflow(oldState *term.State) {
-	if h.ui.workflow == nil {
+	wf := h.ui.activeWorkflow()
+	if wf == nil {
 		h.ui.notifyWorkflowError("No active workflow. Press Ctrl+N to create one.", 3*time.Second)
 		return
 	}
-	if h.ui.workflow.IsEmpty() {
+	if wf.IsEmpty() {
 		h.ui.notifyWorkflowError("Workflow is empty. Add some steps first!", 3*time.Second)
 		return
 	}

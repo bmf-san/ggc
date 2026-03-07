@@ -33,10 +33,8 @@ type UI struct {
 	gitStatus       *GitStatus
 	gitClient       git.StatusInfoReader
 	reader          *bufio.Reader
-	contextMgr      *kb.ContextManager
 	profile         kb.Profile
 	workflowMgr     *WorkflowManager
-	workflow        *Workflow
 	workflowEx      *WorkflowExecutor
 	softCancelFlash atomic.Bool
 	workflowError   string
@@ -45,10 +43,12 @@ type UI struct {
 	noticeExpiresAt time.Time
 }
 
-// NewUI creates a new UI with the provided git client, command list, and optional
-// command router. commands is the list of entries shown in interactive search;
-// pass nil to start with an empty list.
-func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, router ...CommandRouter) *UI {
+// NewUI creates a new UI with the provided git client, command list, optional
+// pre-loaded config, and optional command router. commands is the list of
+// entries shown in interactive search; pass nil to start with an empty list.
+// Pass cfg=nil to have NewUI load configuration from gitClient (fallback path
+// used by the standalone Run helper).
+func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, cfg *config.Config, router ...CommandRouter) *UI {
 	colors := NewANSIColors()
 
 	renderer := &Renderer{
@@ -72,16 +72,18 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, router ...Com
 		workflowOffset: 0,
 	}
 
-	// Load config and create resolver
-	var cfg *config.Config
-	if ops, ok := gitClient.(git.ConfigOps); ok {
-		configManager := config.NewConfigManager(ops)
-		// Load config - if it fails, we'll use defaults from manager
-		_ = configManager.Load()
-		cfg = configManager.GetConfig()
-	} else {
-		// Fallback to empty config (built-in defaults and profiles will be used)
-		cfg = &config.Config{}
+	// Use the provided config or load from gitClient when not supplied
+	// (fallback for the standalone Run() helper and tests without a ConfigManager).
+	if cfg == nil {
+		if ops, ok := gitClient.(git.ConfigOps); ok {
+			configManager := config.NewConfigManager(ops)
+			// Load config - if it fails, we'll use defaults from manager
+			_ = configManager.Load()
+			cfg = configManager.GetConfig()
+		} else {
+			// Fallback to empty config (built-in defaults and profiles will be used)
+			cfg = &config.Config{}
+		}
 	}
 
 	// Create KeyBinding resolver and register built-in profiles
@@ -129,11 +131,11 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, router ...Com
 		colors:      colors,
 		gitClient:   gitClient,
 		gitStatus:   getGitStatus(gitClient),
-		contextMgr:  contextManager,
 		profile:     profile,
 		workflowMgr: NewWorkflowManager(),
 	}
-	ui.updateWorkflowPointer()
+	// Keep ContextManager alive via the onContextChange callback so it stays
+	// in sync with UIState; the field was removed from UI (Problem I fix).
 	state.onContextChange = func(_ kb.Context, newCtx kb.Context) {
 		contextManager.SetContext(newCtx)
 	}
@@ -154,6 +156,6 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, router ...Com
 // Run executes the incremental search interactive UI with the provided custom git client,
 // and returns the selected command as []string (or nil if nothing is selected).
 func Run(gitClient git.StatusInfoReader) []string {
-	ui := NewUI(gitClient, nil)
+	ui := NewUI(gitClient, nil, nil)
 	return ui.Run()
 }

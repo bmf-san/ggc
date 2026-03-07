@@ -280,7 +280,7 @@ func (r *Renderer) renderCommandItem(ui *UI, cmd CommandInfo, index, selected, m
 
 // renderWorkflowView renders the detailed workflow view
 func (r *Renderer) renderWorkflowView(ui *UI, _ *UIState) {
-	if ui == nil || ui.workflow == nil {
+	if ui == nil {
 		r.writeColorln(ui, fmt.Sprintf("%s📋 Workflow Details (0 steps)%s",
 			r.colors.BrightYellow+r.colors.Bold,
 			r.colors.Reset))
@@ -290,7 +290,18 @@ func (r *Renderer) renderWorkflowView(ui *UI, _ *UIState) {
 		r.writeColorln(ui, "")
 		return
 	}
-	steps := ui.workflow.GetSteps()
+	wf := ui.activeWorkflow()
+	if wf == nil {
+		r.writeColorln(ui, fmt.Sprintf("%s📋 Workflow Details (0 steps)%s",
+			r.colors.BrightYellow+r.colors.Bold,
+			r.colors.Reset))
+		r.writeColorln(ui, fmt.Sprintf("%s  No active workflow%s",
+			r.colors.BrightBlack,
+			r.colors.Reset))
+		r.writeColorln(ui, "")
+		return
+	}
+	steps := wf.GetSteps()
 
 	// Detailed workflow header
 	r.writeColorln(ui, fmt.Sprintf("%s📋 Workflow Details (%d steps)%s",
