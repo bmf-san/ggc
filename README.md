@@ -573,16 +573,24 @@ set -g xterm-keys on
 ```
 main.go                  # Entry point
 main_test.go             # Main package tests
-cmd/                     # Command entry handlers
-config/                  # Configuration management
-docs/                    # Documentation and assets
-git/                     # Git operation wrappers
-internal/                # Internal packages
-  testutil/              # Test utilities
-router/                  # Command routing logic
+cmd/                     # Command handlers and routing
+  command/               # Centralized command registry and categories
+docs/                    # Documentation and demo assets
+internal/                # All private packages (not exported)
+  config/                # Configuration loading, validation, keybindings
+  git/                   # Git operation wrappers (Client + interface types)
+  interactive/           # TUI: rendering, state, keybinding dispatch
+  keybindings/           # Keybinding profiles (default, vi, emacs, readline)
+  prompt/                # Input prompt utilities
+  templates/             # Help message templates
+  termio/                # Terminal I/O abstraction
+  testutil/              # Shared test utilities (mock git client)
+  ui/                    # UI model types
 test/                    # BATS integration tests
-tools/                   # Development and build tools
-  completions/           # Shell completion scripts
+tools/                   # Development and build tooling
+  completions/           # Auto-generated shell completion scripts
+  cmd/                   # Generator binaries (gencompletions, gendocs)
+  demos/                 # VHS scripts for animated demo generation
 ```
 
 ## Shell Completion

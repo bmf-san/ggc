@@ -105,7 +105,7 @@ The animated demos in `docs/demos/generated` are recorded with VHS. Install `vhs
 To reduce mock surface area and improve maintainability, the `git` package defines small, focused interfaces that represent cohesive slices of functionality. For example:
 
 ```
-// git/interfaces.go
+// internal/git/*.go
 type DiffReader interface {
     Diff() (string, error)
     DiffStaged() (string, error)
@@ -116,7 +116,7 @@ type DiffReader interface {
 
 Guidelines:
 - Commands in `cmd/` should depend on the smallest interface they need (e.g., `git.DiffReader` for `cmd/diff.go`).
-- The concrete `git.Client` implements the full set of operations and automatically satisfies these smaller interfaces.
+- The concrete `git.Client` in `internal/git/` implements the full set of operations and automatically satisfies these smaller interfaces.
 - In tests, prefer defining minimal mocks that satisfy only the required small interface instead of a large, catch‑all client surface.
 
 This approach follows the Interface Segregation Principle and helps avoid updating large mock types when unrelated functionality changes.
@@ -138,7 +138,7 @@ type StatusInfoReader interface {
 }
 ```
 
-- Define interfaces in `git/interfaces.go`; implement behavior in `git/*.go` on `git.Client`.
+- Define interfaces in `internal/git/*.go`; implement behavior on `git.Client` in the same package.
 - Constructors in `cmd/*` should accept the smallest interface required, for example:
 
 ```
@@ -152,6 +152,22 @@ func NewCommitter(c git.CommitWriter) *Committer { /* ... */ }
 ```
 
 - Tests should create minimal mocks that satisfy only the specific interface required by the command being tested.
+
+## Package Layout Policy
+
+`ggc` is a CLI tool, not a library. All implementation packages live under `internal/` and are not exported to external consumers:
+
+- `internal/git/` — Git operation wrappers and interface types
+- `internal/config/` — Configuration loading, validation, and keybindings
+- `internal/interactive/` — TUI rendering, state machine, and keybinding dispatch
+- `internal/keybindings/` — Keybinding profiles (default, vi, emacs, readline)
+- `internal/prompt/` — Input prompt utilities
+- `internal/templates/` — Help message templates
+- `internal/termio/` — Terminal I/O abstraction
+- `internal/testutil/` — Shared test utilities (mock git client)
+- `internal/ui/` — UI model types
+
+Do not add packages under `pkg/`; use `internal/` for all new packages.
 
 ## Command Design Guidelines
 
