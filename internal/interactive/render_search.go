@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {

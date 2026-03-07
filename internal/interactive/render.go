@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	uiutil "github.com/bmf-san/ggc/v7/internal/ui"
+	uiutil "github.com/bmf-san/ggc/v8/internal/ui"
 )
 
 // Renderer handles all terminal rendering operations

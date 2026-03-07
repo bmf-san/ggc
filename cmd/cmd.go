@@ -8,12 +8,11 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
-	"syscall"
 
-	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
-	"github.com/bmf-san/ggc/v7/internal/config"
-	"github.com/bmf-san/ggc/v7/internal/interactive"
-	"github.com/bmf-san/ggc/v7/pkg/git"
+	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
+	"github.com/bmf-san/ggc/v8/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/interactive"
+	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // Interactive mode command constants.
@@ -265,12 +264,13 @@ func (c *Cmd) DebugKeys(args []string) {
 func (c *Cmd) Interactive() {
 	// Set up global Ctrl+C handling without introducing a reset window
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt)
 	defer signal.Stop(sigChan)
 	go func() {
 		<-sigChan
-		fmt.Println("\nExiting...")
+		_, _ = fmt.Fprintln(c.outputWriter, "\nExiting...")
 		signal.Stop(sigChan)
+		signal.Reset(os.Interrupt)
 		os.Exit(0)
 	}()
 

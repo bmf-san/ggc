@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 // UIMode describes the high-level mode of the interactive UI.

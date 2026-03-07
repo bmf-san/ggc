@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/config"
 )
 
 // ContextualKeyBindingMap holds resolved keybindings for all contexts

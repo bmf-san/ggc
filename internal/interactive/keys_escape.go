@@ -6,8 +6,8 @@ import (
 
 	"golang.org/x/term"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
-	"github.com/bmf-san/ggc/v7/internal/termio"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
+	"github.com/bmf-san/ggc/v8/internal/termio"
 )
 
 func (h *KeyHandler) handleEscapeSequence(reader *bufio.Reader) {

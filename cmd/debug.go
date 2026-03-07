@@ -5,11 +5,10 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"golang.org/x/term"
 
-	"github.com/bmf-san/ggc/v7/internal/keybindings"
+	"github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 // Debugger handles debug operations.
@@ -105,13 +104,13 @@ func (d *Debugger) captureRawKeySequences(outputFile string) {
 // setupTerminalRawMode configures the terminal for raw input
 func (d *Debugger) setupTerminalRawMode() (*term.State, error) {
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt)
 	return term.MakeRaw(int(os.Stdin.Fd()))
 }
 
 // restoreTerminal restores the terminal to its original state
 func (d *Debugger) restoreTerminal(oldState *term.State) {
-	signal.Reset(os.Interrupt, syscall.SIGTERM)
+	signal.Reset(os.Interrupt)
 	if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
 		_, _ = fmt.Fprintf(d.outputWriter, "Error restoring terminal: %v\n", err)
 	}
@@ -120,7 +119,7 @@ func (d *Debugger) restoreTerminal(oldState *term.State) {
 // handleSignals sets up signal handling for graceful shutdown
 func (d *Debugger) handleSignals(debugCmd *keybindings.DebugKeysCommand, oldState *term.State) {
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt)
 
 	go func() {
 		<-sigChan
@@ -131,6 +130,8 @@ func (d *Debugger) handleSignals(debugCmd *keybindings.DebugKeysCommand, oldStat
 		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
 			_, _ = fmt.Fprintf(d.outputWriter, "Error restoring terminal: %v\n", err)
 		}
+		signal.Stop(sigChan)
+		signal.Reset(os.Interrupt)
 		os.Exit(0)
 	}()
 }

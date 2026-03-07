@@ -4,7 +4,7 @@ package cmd
 import (
 	"io"
 
-	"github.com/bmf-san/ggc/v7/internal/prompt"
+	"github.com/bmf-san/ggc/v8/internal/prompt"
 )
 
 // ReadLine prompts for and reads a single line of input.

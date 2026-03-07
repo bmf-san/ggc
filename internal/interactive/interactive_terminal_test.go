@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/bmf-san/ggc/v7/internal/termio"
+	"github.com/bmf-san/ggc/v8/internal/termio"
 )
 
 func TestUISetupTerminalNonFile(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v7/pkg/git"
+	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // Fetcher handles git fetch operations.

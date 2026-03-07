@@ -1,7 +1,7 @@
 package interactive
 
 import (
-	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
 )
 
 // CommandInfo contains the name and description of the command

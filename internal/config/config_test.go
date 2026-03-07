@@ -11,7 +11,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
 
 // MockFileOps implements FileOps for testing
@@ -1792,7 +1792,7 @@ func stringifyAnyMap(m map[string]any) string {
 			b.WriteString(" ")
 		}
 		first = false
-		b.WriteString(fmt.Sprintf("%s: %s", key, stringifyValue(val)))
+		fmt.Fprintf(&b, "%s: %s", key, stringifyValue(val))
 	}
 	b.WriteString("}")
 	return b.String()

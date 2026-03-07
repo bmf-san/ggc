@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/term"
 
-	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
+	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
 )
 
 // HelpData contains data for help message templates.

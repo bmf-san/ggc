@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/bmf-san/ggc/v7/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/config"
 )
 
 // HotConfigReloader enables reloading configuration without restart
