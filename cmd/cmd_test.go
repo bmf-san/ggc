@@ -8,9 +8,9 @@ import (
 
 	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
 	"github.com/bmf-san/ggc/v8/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/git"
 	"github.com/bmf-san/ggc/v8/internal/interactive"
 	"github.com/bmf-san/ggc/v8/internal/prompt"
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // mockGitClient is a mock of git.Client.

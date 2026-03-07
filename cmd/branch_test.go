@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bmf-san/ggc/v8/internal/git"
 	"github.com/bmf-san/ggc/v8/internal/prompt"
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // mockBranchGitClient is a mock implementation focused on branch operations for tests

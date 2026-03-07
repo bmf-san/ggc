@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v8/cmd/templates"
+	"github.com/bmf-san/ggc/v8/internal/templates"
 )
 
 func TestHelper_ShowHelp(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/bmf-san/ggc/v8/cmd"
 	"github.com/bmf-san/ggc/v8/internal/config"
-	"github.com/bmf-san/ggc/v8/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/git"
 )
 
 var (

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bmf-san/ggc/v8/internal/git"
 	uiutil "github.com/bmf-san/ggc/v8/internal/ui"
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // GitStatus represents the current Git repository status

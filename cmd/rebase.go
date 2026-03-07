@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bmf-san/ggc/v8/internal/git"
 	"github.com/bmf-san/ggc/v8/internal/prompt"
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // Rebaser handles rebase operations.
