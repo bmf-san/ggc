@@ -30,8 +30,7 @@ func (c *Cmd) Execute(args []string) error {
 	}
 
 	// Regular command
-	c.Route(args)
-	return nil
+	return c.Route(args)
 }
 
 // executeAlias resolves and executes an alias command identified by name.
@@ -46,37 +45,46 @@ func (c *Cmd) executeAlias(name string, args []string) error {
 
 	switch alias.Type {
 	case config.SimpleAlias:
-		// For simple aliases, process placeholders if any exist
-		processedCommands, err := c.processPlaceholders(alias, args, name)
-		if err != nil {
-			return err
-		}
-
-		// Note: Using strings.Split may incorrectly split quoted arguments.
-		// For example, "commit -m 'fix bug'" becomes ["commit", "-m", "'fix", "bug'"]
-		// instead of ["commit", "-m", "'fix bug'"]. This is a known limitation.
-		command := strings.Split(processedCommands[0], " ")
-		if len(alias.Placeholders) == 0 {
-			// No placeholders, forward user arguments
-			c.Route(append([]string{command[0]}, args...))
-		} else {
-			// Placeholders were processed, use the processed command
-			c.Route(command)
-		}
-
+		return c.executeSimpleAlias(alias, args, name)
 	case config.SequenceAlias:
-		// Process placeholders for sequence aliases
-		processedCommands, err := c.processPlaceholders(alias, args, name)
-		if err != nil {
-			return err
-		}
+		return c.executeSequenceAlias(alias, args, name)
+	}
+	return nil
+}
 
-		for _, cmd := range processedCommands {
-			fmt.Printf("Executing: %s\n", cmd)
-			// Note: Using strings.Split may incorrectly split quoted arguments.
-			// This is a known limitation that affects commands with quoted parameters.
-			command := strings.Split(cmd, " ")
-			c.Route(command)
+// executeSimpleAlias executes a simple (single-command) alias.
+func (c *Cmd) executeSimpleAlias(alias *config.ParsedAlias, args []string, name string) error {
+	processedCommands, err := c.processPlaceholders(alias, args, name)
+	if err != nil {
+		return err
+	}
+
+	// Note: Using strings.Split may incorrectly split quoted arguments.
+	// For example, "commit -m 'fix bug'" becomes ["commit", "-m", "'fix", "bug'"]
+	// instead of ["commit", "-m", "'fix bug'"]. This is a known limitation.
+	command := strings.Split(processedCommands[0], " ")
+	if len(alias.Placeholders) == 0 {
+		// No placeholders, forward user arguments
+		return c.Route(append([]string{command[0]}, args...))
+	}
+	// Placeholders were processed, use the processed command
+	return c.Route(command)
+}
+
+// executeSequenceAlias executes a sequence alias (multiple commands in order).
+func (c *Cmd) executeSequenceAlias(alias *config.ParsedAlias, args []string, name string) error {
+	processedCommands, err := c.processPlaceholders(alias, args, name)
+	if err != nil {
+		return err
+	}
+
+	for _, cmd := range processedCommands {
+		_, _ = fmt.Fprintf(c.outputWriter, "Executing: %s\n", cmd)
+		// Note: Using strings.Split may incorrectly split quoted arguments.
+		// This is a known limitation that affects commands with quoted parameters.
+		command := strings.Split(cmd, " ")
+		if err := c.Route(command); err != nil {
+			return err
 		}
 	}
 	return nil

@@ -569,7 +569,7 @@ func TestCmd_Route(t *testing.T) {
 				}
 			}()
 
-			cmd.Route(tc.args)
+			_ = cmd.Route(tc.args)
 		})
 	}
 }
@@ -618,7 +618,7 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		}
 	}()
 
-	cmd.Route(args)
+	_ = cmd.Route(args)
 
 	if strings.Contains(buf.String(), "legacy-like syntax is not supported") {
 		t.Fatalf("did not expect legacy-like error when using '--' separator, got: %q", buf.String())

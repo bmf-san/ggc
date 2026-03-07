@@ -94,8 +94,9 @@ type mockWorkflowRouter struct {
 	executedCommands [][]string
 }
 
-func (m *mockWorkflowRouter) Route(args []string) {
+func (m *mockWorkflowRouter) Route(args []string) error {
 	m.executedCommands = append(m.executedCommands, args)
+	return nil
 }
 
 func TestWorkflowExecutor_Execute(t *testing.T) {
@@ -313,9 +314,10 @@ type mockRouterNew struct {
 	routedCommands [][]string
 }
 
-func (m *mockRouterNew) Route(args []string) {
+func (m *mockRouterNew) Route(args []string) error {
 	if m.routedCommands == nil {
 		m.routedCommands = make([][]string, 0)
 	}
 	m.routedCommands = append(m.routedCommands, args)
+	return nil
 }
