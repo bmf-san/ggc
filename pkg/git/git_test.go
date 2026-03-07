@@ -183,6 +183,9 @@ func TestClient_CheckoutNewBranch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
 				execCommand: func(name string, arg ...string) *exec.Cmd {
+					if len(arg) > 0 && arg[0] == "check-ref-format" {
+						return exec.Command("true")
+					}
 					if name != "git" || !strings.Contains(strings.Join(arg, " "), "checkout -b "+tt.branch) {
 						t.Errorf("unexpected command: %s %v", name, arg)
 					}

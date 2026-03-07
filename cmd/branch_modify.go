@@ -3,8 +3,6 @@ package cmd
 import (
 	"strconv"
 	"strings"
-
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 func (b *Brancher) branchCreate(args []string) {
@@ -22,7 +20,7 @@ func (b *Brancher) branchCreate(args []string) {
 			return
 		}
 	}
-	if err := git.ValidateBranchName(branchName); err != nil {
+	if err := b.gitClient.ValidateBranchName(branchName); err != nil {
 		WriteErrorf(b.outputWriter, "invalid branch name: %v", err)
 		return
 	}
@@ -45,7 +43,7 @@ func (b *Brancher) branchRename(args []string) {
 			WriteLine(b.outputWriter, "Error: new branch name cannot be empty.")
 			return
 		}
-		if err := git.ValidateBranchName(newName); err != nil {
+		if err := b.gitClient.ValidateBranchName(newName); err != nil {
 			WriteErrorf(b.outputWriter, "invalid branch name: %v", err)
 			return
 		}
@@ -82,7 +80,7 @@ func (b *Brancher) branchRenameInteractive() {
 		WriteLine(b.outputWriter, "Canceled.")
 		return
 	}
-	if err := git.ValidateBranchName(newName); err != nil {
+	if err := b.gitClient.ValidateBranchName(newName); err != nil {
 		WriteErrorf(b.outputWriter, "invalid branch name: %v", err)
 		return
 	}
