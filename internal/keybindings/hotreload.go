@@ -14,6 +14,7 @@ type HotConfigReloader struct {
 	resolver        *KeyBindingResolver
 	lastModified    time.Time
 	watching        bool
+	done            chan struct{}
 	reloadCallbacks []func(*config.Config)
 }
 
@@ -38,6 +39,7 @@ func (hcr *HotConfigReloader) StartWatching() error {
 		hcr.lastModified = stat.ModTime()
 	}
 
+	hcr.done = make(chan struct{})
 	hcr.watching = true
 
 	// Start watching in a goroutine
@@ -48,7 +50,10 @@ func (hcr *HotConfigReloader) StartWatching() error {
 
 // StopWatching stops watching the config file
 func (hcr *HotConfigReloader) StopWatching() {
-	hcr.watching = false
+	if hcr.watching {
+		hcr.watching = false
+		close(hcr.done)
+	}
 }
 
 // watchLoop continuously checks for config file changes
@@ -56,12 +61,16 @@ func (hcr *HotConfigReloader) watchLoop() {
 	ticker := time.NewTicker(1 * time.Second) // Check every second
 	defer ticker.Stop()
 
-	for hcr.watching {
-		<-ticker.C
-		if stat, err := os.Stat(hcr.configPath); err == nil {
-			if stat.ModTime().After(hcr.lastModified) {
-				hcr.lastModified = stat.ModTime()
-				hcr.reloadConfig()
+	for {
+		select {
+		case <-hcr.done:
+			return
+		case <-ticker.C:
+			if stat, err := os.Stat(hcr.configPath); err == nil {
+				if stat.ModTime().After(hcr.lastModified) {
+					hcr.lastModified = stat.ModTime()
+					hcr.reloadConfig()
+				}
 			}
 		}
 	}

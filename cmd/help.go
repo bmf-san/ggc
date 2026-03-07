@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
-	"github.com/bmf-san/ggc/v8/cmd/templates"
+	"github.com/bmf-san/ggc/v8/internal/templates"
 )
 
 // Helper provides help message functionality.

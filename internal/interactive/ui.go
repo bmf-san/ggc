@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/bmf-san/ggc/v8/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/git"
 	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 	"github.com/bmf-san/ggc/v8/internal/termio"
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer

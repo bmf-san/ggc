@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v8/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/git"
 )
 
 // Committer provides functionality for the commit command.

@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bmf-san/ggc/v8/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/git"
 )
 
 // Differ handles git diff operations.

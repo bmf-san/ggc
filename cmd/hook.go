@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v8/internal/config"
-	"github.com/bmf-san/ggc/v8/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/git"
 )
 
 // Hooker handles git hook operations.

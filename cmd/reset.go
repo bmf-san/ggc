@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v8/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/git"
 )
 
 // Resetter handles reset operations.

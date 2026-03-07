@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v8/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/git"
 )
 
 type mockRestoreOps struct {
