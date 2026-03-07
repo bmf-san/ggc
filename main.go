@@ -4,7 +4,6 @@ package main
 import (
 	"os"
 	"runtime/debug"
-	"strings"
 
 	"github.com/bmf-san/ggc/v8/cmd"
 	"github.com/bmf-san/ggc/v8/internal/config"
@@ -58,10 +57,6 @@ func RunApp(args []string) error {
 	}
 	cmd.SetVersionGetter(GetVersionInfo)
 	c := cmd.NewCmd(client, cm)
-	// Cache default remote in tagger to avoid repeated config loads.
-	if r := strings.TrimSpace(cm.GetConfig().Git.DefaultRemote); r != "" {
-		c.SetDefaultRemote(r)
-	}
 	return c.Execute(args)
 }
 

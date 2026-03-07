@@ -4,12 +4,11 @@ package command
 func basics() []Info {
 	return []Info{
 		{
-			Name:      "help",
-			Category:  CategoryBasics,
-			Summary:   "Show help information for commands",
-			Usage:     []string{"ggc help", "ggc help <command>"},
-			Examples:  []string{"ggc help", "ggc help branch"},
-			HandlerID: "help",
+			Name:     "help",
+			Category: CategoryBasics,
+			Summary:  "Show help information for commands",
+			Usage:    []string{"ggc help", "ggc help <command>"},
+			Examples: []string{"ggc help", "ggc help branch"},
 			Subcommands: []SubcommandInfo{
 				{
 					Name:    "help",
@@ -34,7 +33,6 @@ func basics() []Info {
 				"ggc add interactive  # Add changes interactively",
 				"ggc add patch        # Add changes interactively (patch mode)",
 			},
-			HandlerID: "add",
 			Subcommands: []SubcommandInfo{
 				{
 					Name:    "add <file>",

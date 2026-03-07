@@ -11,7 +11,6 @@ func utility() []Info {
 			Examples: []string{
 				"ggc version   # Shows build time, latest commit and version number",
 			},
-			HandlerID: "version",
 		},
 		{
 			Name:     "debug-keys",
@@ -27,7 +26,6 @@ func utility() []Info {
 				"ggc debug-keys raw             # Capture key sequences interactively",
 				"ggc debug-keys raw keys.txt    # Capture and save to keys.txt",
 			},
-			HandlerID: "debug-keys",
 			Subcommands: []SubcommandInfo{
 				{
 					Name:    "debug-keys",
@@ -47,12 +45,11 @@ func utility() []Info {
 			},
 		},
 		{
-			Name:      "quit",
-			Category:  CategoryUtility,
-			Summary:   "Exit interactive mode",
-			Usage:     []string{"quit"},
-			Examples:  []string{"quit"},
-			HandlerID: "quit",
+			Name:     "quit",
+			Category: CategoryUtility,
+			Summary:  "Exit interactive mode",
+			Usage:    []string{"quit"},
+			Examples: []string{"quit"},
 		},
 	}
 }

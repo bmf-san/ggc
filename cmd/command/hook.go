@@ -16,7 +16,6 @@ func hook() []Info {
 				"ggc hook uninstall <hook>        # Remove a hook",
 				"ggc hook edit <hook>             # Edit a hook",
 			},
-			HandlerID: "hook",
 			Subcommands: []SubcommandInfo{
 				{Name: "hook list", Summary: "List all hooks", Usage: []string{"ggc hook list"}},
 				{Name: "hook install <hook>", Summary: "Install a hook", Usage: []string{"ggc hook install pre-commit"}},

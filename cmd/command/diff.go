@@ -17,7 +17,6 @@ func diff() []Info {
 				"ggc diff abc123 cmd/diff.go         # Compare commit to working tree for a path",
 				"ggc diff -- cmd/deleted_file.go     # Diff a path using -- for disambiguation",
 			},
-			HandlerID: "diff",
 			Subcommands: []SubcommandInfo{
 				{Name: "diff", Summary: "Show changes (git diff HEAD)", Usage: []string{"ggc diff"}},
 				{Name: "diff unstaged", Summary: "Show unstaged changes", Usage: []string{"ggc diff unstaged"}},

@@ -20,7 +20,6 @@ func tag() []Info {
 				"ggc tag push origin v1.0.0                # Push specific tag (remote first)",
 				"ggc tag show v1.0.0                       # Show tag information",
 			},
-			HandlerID: "tag",
 			Subcommands: []SubcommandInfo{
 				{Name: "tag list", Summary: "List all tags", Usage: []string{"ggc tag list"}},
 				{Name: "tag annotated <tag> <message>", Summary: "Create annotated tag", Usage: []string{"ggc tag annotated v1.0.0 \"Release\""}},

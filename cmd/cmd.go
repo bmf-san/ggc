@@ -4,6 +4,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"sort"
@@ -21,33 +22,6 @@ const (
 	interactiveQuitCommand     = "quit"
 	interactiveWorkflowCommand = "workflow-executed"
 )
-
-// Executer is an interface for executing commands.
-type Executer interface {
-	Help(args []string)
-	Branch(args []string)
-	Commit(args []string)
-	Log(args []string)
-	Pull(args []string)
-	Push(args []string)
-	Reset(args []string)
-	Diff(args []string)
-	Config(args []string)
-	Hook(args []string)
-	Rebase(args []string)
-	Remote(args []string)
-	Version(args []string)
-	Stash(args []string)
-	Fetch(args []string)
-	Status(args []string)
-	Tag(args []string)
-	Clean(args []string)
-	Restore(args []string)
-	Add(args []string)
-	DebugKeys(args []string)
-	Interactive()
-	Route(args []string)
-}
 
 // Cmd represents the command-line interface.
 type Cmd struct {
@@ -118,6 +92,14 @@ func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 	}
 	config.SetValidCommandNames(names)
 
+	tagger := NewTagger(client)
+	// Inline default-remote configuration to avoid a post-construction setter.
+	if cm != nil {
+		if r := strings.TrimSpace(cm.GetConfig().Git.DefaultRemote); r != "" {
+			tagger.defaultRemote = r
+		}
+	}
+
 	cmd := &Cmd{
 		registry:      registry,
 		configManager: cm,
@@ -137,7 +119,7 @@ func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 		stasher:       NewStasher(client),
 		configurer:    NewConfigurer(client),
 		hooker:        NewHooker(client),
-		tagger:        NewTagger(client),
+		tagger:        tagger,
 		statuser:      NewStatuser(client),
 		versioner:     NewVersioner(client),
 		differ:        NewDiffer(client),
@@ -147,14 +129,6 @@ func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 	}
 	cmd.cmdRouter = mustNewCommandRouter(cmd)
 	return cmd
-}
-
-// SetDefaultRemote sets the default remote used by tag operations.
-// Passes through to Tagger to avoid repeated config loading.
-func (c *Cmd) SetDefaultRemote(remote string) {
-	if c.tagger != nil && strings.TrimSpace(remote) != "" {
-		c.tagger.defaultRemote = remote
-	}
 }
 
 // Help displays help information.
@@ -370,7 +344,10 @@ type commandRouter struct {
 func mustNewCommandRouter(cmd *Cmd) *commandRouter {
 	router, err := newCommandRouter(cmd)
 	if err != nil {
-		panic(err)
+		// This indicates a developer error: a command was added to the registry
+		// without a corresponding handler. It cannot occur in a correctly
+		// assembled binary.
+		log.Fatalf("internal error: failed to build command router: %v", err)
 	}
 	return router
 }
@@ -426,11 +403,8 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 	if !ok {
 		return false
 	}
-	identifier := strings.TrimSpace(info.HandlerID)
-	if identifier == "" {
-		return false
-	}
-	handler, ok := r.handlers[identifier]
+	// Use the canonical command name from the registry as the handler key.
+	handler, ok := r.handlers[info.Name]
 	if !ok {
 		return false
 	}
@@ -443,12 +417,11 @@ func missingHandlers(registry *commandregistry.Registry, available map[string]st
 	allCommands := registry.All()
 	for i := range allCommands {
 		info := &allCommands[i]
-		id := strings.TrimSpace(info.HandlerID)
-		if id == "" || info.Hidden {
+		if info.Hidden {
 			continue
 		}
-		if _, ok := available[id]; !ok {
-			missing = append(missing, id)
+		if _, ok := available[info.Name]; !ok {
+			missing = append(missing, info.Name)
 		}
 	}
 	return missing

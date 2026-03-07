@@ -23,7 +23,6 @@ func branch() []Info {
 				"ggc branch sort date              # List branches sorted by date",
 				"ggc branch contains abc123        # Show branches containing a commit",
 			},
-			HandlerID: "branch",
 			Subcommands: []SubcommandInfo{
 				{Name: "branch current", Summary: "Show current branch name", Usage: []string{"ggc branch current"}},
 				{Name: "branch checkout", Summary: "Switch to an existing branch", Usage: []string{"ggc branch checkout"}},

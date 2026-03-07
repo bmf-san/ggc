@@ -13,7 +13,6 @@ func cleanup() []Info {
 				"ggc clean dirs        # Clean untracked directories",
 				"ggc clean interactive # Clean files interactively",
 			},
-			HandlerID: "clean",
 			Subcommands: []SubcommandInfo{
 				{Name: "clean files", Summary: "Clean untracked files", Usage: []string{"ggc clean files"}},
 				{Name: "clean dirs", Summary: "Clean untracked directories", Usage: []string{"ggc clean dirs"}},
@@ -21,12 +20,11 @@ func cleanup() []Info {
 			},
 		},
 		{
-			Name:      "restore",
-			Category:  CategoryCleanup,
-			Summary:   "Restore files in working tree or staging area",
-			Usage:     []string{"ggc restore <file>", "ggc restore .", "ggc restore staged <file>", "ggc restore staged .", "ggc restore <commit> <file>"},
-			Examples:  []string{"ggc restore staged .", "ggc restore main README.md"},
-			HandlerID: "restore",
+			Name:     "restore",
+			Category: CategoryCleanup,
+			Summary:  "Restore files in working tree or staging area",
+			Usage:    []string{"ggc restore <file>", "ggc restore .", "ggc restore staged <file>", "ggc restore staged .", "ggc restore <commit> <file>"},
+			Examples: []string{"ggc restore staged .", "ggc restore main README.md"},
 			Subcommands: []SubcommandInfo{
 				{Name: "restore <file>", Summary: "Restore file in working directory from index", Usage: []string{"ggc restore README.md"}},
 				{Name: "restore .", Summary: "Restore all files in working directory from index", Usage: []string{"ggc restore ."}},

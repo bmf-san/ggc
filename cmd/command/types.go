@@ -10,7 +10,6 @@ type Info struct {
 	Examples    []string
 	Hidden      bool
 	Subcommands []SubcommandInfo
-	HandlerID   string
 }
 
 // SubcommandInfo describes a subcommand surface under a top-level command.
@@ -24,11 +23,10 @@ type SubcommandInfo struct {
 
 func (c *Info) clone() Info {
 	clone := Info{
-		Name:      c.Name,
-		Category:  c.Category,
-		Summary:   c.Summary,
-		Hidden:    c.Hidden,
-		HandlerID: c.HandlerID,
+		Name:     c.Name,
+		Category: c.Category,
+		Summary:  c.Summary,
+		Hidden:   c.Hidden,
 	}
 	if len(c.Aliases) > 0 {
 		clone.Aliases = append([]string(nil), c.Aliases...)

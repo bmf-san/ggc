@@ -16,8 +16,8 @@ func TestNewRegistry_Validate(t *testing.T) {
 func TestValidate_DuplicateCommand(t *testing.T) {
 	t.Parallel()
 	commands := []Info{
-		{Name: "test", Summary: "one", HandlerID: "test"},
-		{Name: "test", Summary: "two", HandlerID: "test"},
+		{Name: "dup", Summary: "first"},
+		{Name: "dup", Summary: "second"},
 	}
 
 	if err := Validate(commands); err == nil {
@@ -27,7 +27,7 @@ func TestValidate_DuplicateCommand(t *testing.T) {
 
 func TestValidate_MissingSummary(t *testing.T) {
 	t.Parallel()
-	commands := []Info{{Name: "test", HandlerID: "test"}}
+	commands := []Info{{Name: "test"}}
 	if err := Validate(commands); err == nil {
 		t.Fatalf("expected missing summary validation failure")
 	}
@@ -37,9 +37,8 @@ func TestValidate_DuplicateSubcommand(t *testing.T) {
 	t.Parallel()
 	commands := []Info{
 		{
-			Name:      "test",
-			Summary:   "ok",
-			HandlerID: "test",
+			Name:    "test",
+			Summary: "ok",
 			Subcommands: []SubcommandInfo{
 				{Name: "sub", Summary: "one"},
 				{Name: "sub", Summary: "two"},
@@ -55,8 +54,8 @@ func TestValidate_DuplicateSubcommand(t *testing.T) {
 func TestRegistry_All(t *testing.T) {
 	t.Parallel()
 	reg := NewRegistryWith([]Info{
-		{Name: "cmd1", Summary: "first", HandlerID: "cmd1"},
-		{Name: "cmd2", Summary: "second", HandlerID: "cmd2"},
+		{Name: "cmd1", Summary: "summary one"},
+		{Name: "cmd2", Summary: "summary two"},
 	})
 
 	cmds := reg.All()
@@ -75,8 +74,8 @@ func TestRegistry_All(t *testing.T) {
 func TestRegistry_Find(t *testing.T) {
 	t.Parallel()
 	reg := NewRegistryWith([]Info{
-		{Name: "help", Summary: "help command", HandlerID: "help"},
-		{Name: "version", Summary: "version command", HandlerID: "version"},
+		{Name: "help", Summary: "show help"},
+		{Name: "other", Summary: "some other cmd"},
 	})
 
 	if _, ok := reg.Find("help"); !ok {
@@ -95,8 +94,8 @@ func TestRegistry_Find(t *testing.T) {
 func TestRegistry_VisibleCommands(t *testing.T) {
 	t.Parallel()
 	reg := NewRegistryWith([]Info{
-		{Name: "visible", Summary: "visible command", HandlerID: "visible"},
 		{Name: "hidden", Summary: "hidden command", Hidden: true},
+		{Name: "visible", Summary: "visible command"},
 	})
 
 	cmds := reg.VisibleCommands()
@@ -111,9 +110,7 @@ func TestRegistry_VisibleCommands(t *testing.T) {
 
 func TestRegistry_Validate(t *testing.T) {
 	t.Parallel()
-	reg := NewRegistryWith([]Info{
-		{Name: "valid", Summary: "valid command", HandlerID: "valid"},
-	})
+	reg := NewRegistryWith([]Info{})
 
 	if err := reg.Validate(); err != nil {
 		t.Fatalf("expected valid registry, got error: %v", err)
@@ -212,7 +209,7 @@ func TestRegistry_VisibleCommands_ExcludesHidden(t *testing.T) {
 	t.Parallel()
 	reg := NewRegistryWith([]Info{
 		{Name: "__hidden_test__", Summary: "hidden", Hidden: true},
-		{Name: "__visible_test__", Summary: "visible", HandlerID: "visible"},
+		{Name: "__visible_test__", Summary: "visible"},
 	})
 
 	cmds := reg.VisibleCommands()
@@ -236,17 +233,17 @@ func TestRegistry_VisibleCommands_ExcludesHidden(t *testing.T) {
 
 func TestValidate_EmptyCommandName(t *testing.T) {
 	t.Parallel()
-	commands := []Info{{Name: " \t", Summary: "desc", HandlerID: "handler"}}
+	commands := []Info{{Name: "   ", Summary: "desc"}}
 	if err := Validate(commands); err == nil {
 		t.Fatalf("expected validation failure for empty command name")
 	}
 }
 
-func TestValidate_MissingHandlerID(t *testing.T) {
+func TestValidate_ValidCommandPasses(t *testing.T) {
 	t.Parallel()
 	commands := []Info{{Name: "test", Summary: "desc"}}
-	if err := Validate(commands); err == nil {
-		t.Fatalf("expected validation failure for missing handler ID")
+	if err := Validate(commands); err != nil {
+		t.Fatalf("expected valid command to pass validation, got: %v", err)
 	}
 }
 
@@ -265,9 +262,8 @@ func TestValidate_HiddenCommandWithoutHandlerID(t *testing.T) {
 func TestValidate_EmptySubcommandName(t *testing.T) {
 	t.Parallel()
 	commands := []Info{{
-		Name:      "test",
-		Summary:   "desc",
-		HandlerID: "handler",
+		Name:    "test",
+		Summary: "desc",
 		Subcommands: []SubcommandInfo{
 			{Name: "   ", Summary: "desc"},
 		},
@@ -280,9 +276,8 @@ func TestValidate_EmptySubcommandName(t *testing.T) {
 func TestValidate_MissingSubcommandSummary(t *testing.T) {
 	t.Parallel()
 	commands := []Info{{
-		Name:      "test",
-		Summary:   "desc",
-		HandlerID: "handler",
+		Name:    "test",
+		Summary: "desc",
 		Subcommands: []SubcommandInfo{
 			{Name: "child", Summary: ""},
 		},
@@ -294,7 +289,7 @@ func TestValidate_MissingSubcommandSummary(t *testing.T) {
 
 func TestCloneEmptySubcommands(t *testing.T) {
 	t.Parallel()
-	original := Info{Name: "test", Summary: "desc", HandlerID: "handler"}
+	original := Info{Name: "test", Summary: "desc"}
 	clone := (&original).clone()
 
 	if len(clone.Subcommands) != 0 {
@@ -310,9 +305,8 @@ func TestCloneEmptySubcommands(t *testing.T) {
 func TestCloneNilSlices(t *testing.T) {
 	t.Parallel()
 	original := Info{
-		Name:      "test",
-		Summary:   "desc",
-		HandlerID: "handler",
+		Name:    "test",
+		Summary: "desc",
 	}
 	clone := (&original).clone()
 
@@ -347,8 +341,8 @@ func TestNewRegistry(t *testing.T) {
 func TestNewRegistryWith(t *testing.T) {
 	t.Parallel()
 	customCmds := []Info{
-		{Name: "custom1", Summary: "first custom", HandlerID: "custom1"},
-		{Name: "custom2", Summary: "second custom", HandlerID: "custom2"},
+		{Name: "custom1", Summary: "first custom"},
+		{Name: "custom2", Summary: "second custom"},
 	}
 
 	reg := NewRegistryWith(customCmds)

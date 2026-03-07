@@ -13,7 +13,6 @@ func config() []Info {
 				"ggc config get <key>             # Get a config value by key path (e.g., 'ui.color')",
 				"ggc config set <key> <value>     # Set a config value by key path",
 			},
-			HandlerID: "config",
 			Subcommands: []SubcommandInfo{
 				{Name: "config list", Summary: "List all configuration", Usage: []string{"ggc config list"}},
 				{Name: "config get <key>", Summary: "Get a specific config value", Usage: []string{"ggc config get core.editor"}},

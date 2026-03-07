@@ -22,7 +22,6 @@ func stash() []Info {
 				"ggc stash create                       # Create stash and return object name",
 				"ggc stash store <object>               # Store stash object",
 			},
-			HandlerID: "stash",
 			Subcommands: []SubcommandInfo{
 				{Name: "stash", Summary: "Stash current changes", Usage: []string{"ggc stash"}},
 				{Name: "stash list", Summary: "List all stashes", Usage: []string{"ggc stash list"}},
