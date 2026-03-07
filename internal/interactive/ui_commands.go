@@ -1,39 +1,11 @@
 package interactive
 
-import (
-	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
-)
-
-// CommandInfo contains the name and description of the command
+// CommandInfo contains the name and description of a command available in
+// interactive mode. The list is injected at construction time via NewUI so
+// that this package does not depend on the cmd layer.
 type CommandInfo struct {
 	Command     string
 	Description string
-}
-
-var commands = buildInteractiveCommands()
-
-// buildInteractiveCommands builds the list of commands available in interactive mode
-func buildInteractiveCommands() []CommandInfo {
-	var list []CommandInfo
-	registry := commandregistry.NewRegistry()
-	allCommands := registry.All()
-	for i := range allCommands {
-		cmd := &allCommands[i]
-		if cmd.Hidden {
-			continue
-		}
-		if len(cmd.Subcommands) == 0 {
-			list = append(list, CommandInfo{Command: cmd.Name, Description: cmd.Summary})
-			continue
-		}
-		for _, sub := range cmd.Subcommands {
-			if sub.Hidden {
-				continue
-			}
-			list = append(list, CommandInfo{Command: sub.Name, Description: sub.Summary})
-		}
-	}
-	return list
 }
 
 // extractPlaceholders extracts <...> placeholders from a string

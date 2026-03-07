@@ -26,7 +26,7 @@ func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 	}
 
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 
 	if ui.profile != kb.ProfileEmacs {
 		t.Fatalf("profile = %v, want %v", ui.profile, kb.ProfileEmacs)

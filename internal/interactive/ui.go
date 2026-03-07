@@ -45,8 +45,10 @@ type UI struct {
 	noticeExpiresAt time.Time
 }
 
-// NewUI creates a new UI with the provided git client and loads keybindings from config
-func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
+// NewUI creates a new UI with the provided git client, command list, and optional
+// command router. commands is the list of entries shown in interactive search;
+// pass nil to start with an empty list.
+func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, router ...CommandRouter) *UI {
 	colors := NewANSIColors()
 
 	renderer := &Renderer{
@@ -55,9 +57,13 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 	}
 	renderer.updateSize()
 
+	if commands == nil {
+		commands = []CommandInfo{}
+	}
 	state := &UIState{
 		selected:       0,
 		input:          "",
+		commands:       commands,
 		filtered:       []CommandInfo{},
 		context:        kb.ContextGlobal, // Start in global context
 		contextStack:   []kb.Context{},
@@ -148,6 +154,6 @@ func NewUI(gitClient git.StatusInfoReader, router ...CommandRouter) *UI {
 // Run executes the incremental search interactive UI with the provided custom git client,
 // and returns the selected command as []string (or nil if nothing is selected).
 func Run(gitClient git.StatusInfoReader) []string {
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	return ui.Run()
 }

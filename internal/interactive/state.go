@@ -32,7 +32,8 @@ const (
 type UIState struct {
 	selected        int
 	input           string
-	cursorPos       int // Cursor position in input string
+	cursorPos       int           // Cursor position in input string
+	commands        []CommandInfo // injected by NewUI; never modified after init
 	filtered        []CommandInfo
 	context         kb.Context   // Current UI context (input/results/search/global)
 	contextStack    []kb.Context // Context stack for nested states
@@ -91,15 +92,15 @@ func (s *UIState) SetWorkflowListIndex(idx, total int) {
 func (s *UIState) UpdateFiltered() {
 	input := strings.ToLower(s.input)
 	if input == "" {
-		s.filtered = make([]CommandInfo, len(commands))
-		copy(s.filtered, commands)
+		s.filtered = make([]CommandInfo, len(s.commands))
+		copy(s.filtered, s.commands)
 	} else {
 		type match struct {
 			info  CommandInfo
 			score matchScore
 		}
-		matches := make([]match, 0, len(commands))
-		for _, cmd := range commands {
+		matches := make([]match, 0, len(s.commands))
+		for _, cmd := range s.commands {
 			cmdLower := strings.ToLower(cmd.Command)
 			if ok, score := fuzzyMatchScore(cmdLower, input); ok {
 				matches = append(matches, match{info: cmd, score: score})
