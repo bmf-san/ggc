@@ -283,8 +283,9 @@ func (c *Cmd) Interactive() {
 		os.Exit(0)
 	}()
 
-	// Create persistent UI instance to preserve state
-	ui := interactive.NewUI(c.gitClient, buildInteractiveCommands(c.registry), c)
+	// Create persistent UI instance to preserve state; pass already-loaded
+	// config so NewUI does not perform a second config load (Problem H fix).
+	ui := interactive.NewUI(c.gitClient, buildInteractiveCommands(c.registry), c.configManager.GetConfig(), c)
 
 	for {
 		args := ui.Run()

@@ -25,7 +25,6 @@ func (ui *UI) enterWorkflowMode() {
 	ui.state.SetMode(ModeWorkflow)
 	ui.state.SetContext(kb.ContextGlobal)
 	ui.ensureWorkflowListSelection()
-	ui.updateWorkflowPointer()
 }
 
 // enterSearchMode switches UI back to search mode.

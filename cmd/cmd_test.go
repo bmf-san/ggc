@@ -838,7 +838,7 @@ func TestCmd_InteractiveWorkflowIntegration(t *testing.T) {
 	cm := config.NewConfigManager(mockClient)
 	cmd := NewCmd(mockClient, cm)
 
-	ui := interactive.NewUI(mockClient, nil, cmd)
+	ui := interactive.NewUI(mockClient, nil, nil, cmd)
 	if ui == nil {
 		t.Fatal("interactive.NewUI returned nil")
 	}
