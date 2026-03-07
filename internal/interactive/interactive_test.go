@@ -98,6 +98,11 @@ func TestUI_Run(t *testing.T) {
 				selected:  0,
 				input:     "",
 				cursorPos: 0,
+				commands: []CommandInfo{
+					{Command: "help", Description: "Show help information"},
+					{Command: "status", Description: "Show working tree status"},
+					{Command: "add <file>", Description: "Add a specific file to the index"},
+				},
 				filtered:  []CommandInfo{},
 			}
 
@@ -236,41 +241,9 @@ func TestExtractPlaceholders(t *testing.T) {
 	}
 }
 
-func TestCommandDescriptions(t *testing.T) {
-	// Ensure that all commands have a description (catch in tests)
-	for _, cmd := range commands {
-		description := cmd.Description
-		if description == "" {
-			t.Errorf("Command '%s' has no description", cmd.Command)
-		}
-	}
-}
-
-func TestCommandDescriptionsContent(t *testing.T) {
-	// Test description content updated + showing correctly
-	expectedDescriptions := map[string]string{
-		"add <file>":       "Add a specific file to the index",
-		"status":           "Show working tree status",
-		"commit <message>": "Create commit with a message",
-		"quit":             "Exit interactive mode",
-	}
-
-	for cmdStr, expectedDesc := range expectedDescriptions {
-		found := false
-		for _, cmd := range commands {
-			if cmd.Command == cmdStr {
-				if cmd.Description != expectedDesc {
-					t.Errorf("Description for '%s' is '%s', expected '%s'", cmdStr, cmd.Description, expectedDesc)
-				}
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Command '%s' not found in commandList", cmdStr)
-		}
-	}
-}
+// TestCommandDescriptions and TestCommandDescriptionsContent previously tested a
+// package-level command list that has been removed. Commands are now injected via
+// NewUI. Coverage for command list content lives in cmd package tests.
 
 // Test UIState functionality
 func TestUIState_UpdateFiltered(t *testing.T) {
@@ -279,6 +252,11 @@ func TestUIState_UpdateFiltered(t *testing.T) {
 		input:     "add",
 		cursorPos: 3,
 		filtered:  []CommandInfo{},
+		commands: []CommandInfo{
+			{Command: "add <file>", Description: "Add a specific file to the index"},
+			{Command: "add all", Description: "Add all files to the index"},
+			{Command: "status", Description: "Show working tree status"},
+		},
 	}
 
 	state.UpdateFiltered()
@@ -302,6 +280,13 @@ func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 		input:     "commit",
 		cursorPos: 6,
 		filtered:  []CommandInfo{},
+		commands: []CommandInfo{
+			{Command: "commit <message>", Description: "Create commit with a message"},
+			{Command: "commit allow empty", Description: "Create commit allowing no diff"},
+			{Command: "commit amend", Description: "Amend the last commit"},
+			{Command: "commit amend no-edit", Description: "Amend without editing message"},
+			{Command: "status", Description: "Show working tree status"},
+		},
 	}
 
 	state.UpdateFiltered()
@@ -340,19 +325,16 @@ func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 }
 
 func TestUIState_UpdateFiltered_SortsByRelevance(t *testing.T) {
-	original := commands
-	commands = []CommandInfo{
-		{Command: "status", Description: "status desc"},
-		{Command: "stash", Description: "stash desc"},
-		{Command: "stage", Description: "stage desc"},
-	}
-	defer func() { commands = original }()
-
 	state := &UIState{
-		selected:  0,
-		input:     "sta",
+		selected: 0,
+		input:    "sta",
 		cursorPos: 3,
-		filtered:  []CommandInfo{},
+		filtered: []CommandInfo{},
+		commands: []CommandInfo{
+			{Command: "status", Description: "status desc"},
+			{Command: "stash", Description: "stash desc"},
+			{Command: "stage", Description: "stage desc"},
+		},
 	}
 
 	state.UpdateFiltered()
@@ -369,19 +351,16 @@ func TestUIState_UpdateFiltered_SortsByRelevance(t *testing.T) {
 }
 
 func TestUIState_UpdateFiltered_PrefersBaseCommand(t *testing.T) {
-	original := commands
-	commands = []CommandInfo{
-		{Command: "commit <message>", Description: "base commit"},
-		{Command: "commit amend", Description: "amend commit"},
-		{Command: "commit allow empty", Description: "allow empty"},
-	}
-	defer func() { commands = original }()
-
 	state := &UIState{
-		selected:  0,
-		input:     "commit",
+		selected: 0,
+		input:    "commit",
 		cursorPos: 6,
-		filtered:  []CommandInfo{},
+		filtered: []CommandInfo{},
+		commands: []CommandInfo{
+			{Command: "commit <message>", Description: "base commit"},
+			{Command: "commit amend", Description: "amend commit"},
+			{Command: "commit allow empty", Description: "allow empty"},
+		},
 	}
 
 	state.UpdateFiltered()
@@ -398,19 +377,16 @@ func TestUIState_UpdateFiltered_PrefersBaseCommand(t *testing.T) {
 }
 
 func TestUIState_UpdateFiltered_PrefersBranchCommands(t *testing.T) {
-	original := commands
-	commands = []CommandInfo{
-		{Command: "stash branch", Description: "stash branch"},
-		{Command: "branch checkout", Description: "branch checkout"},
-		{Command: "branch delete", Description: "branch delete"},
-	}
-	defer func() { commands = original }()
-
 	state := &UIState{
-		selected:  0,
-		input:     "branch",
+		selected: 0,
+		input:    "branch",
 		cursorPos: 6,
-		filtered:  []CommandInfo{},
+		filtered: []CommandInfo{},
+		commands: []CommandInfo{
+			{Command: "stash branch", Description: "stash branch"},
+			{Command: "branch checkout", Description: "branch checkout"},
+			{Command: "branch delete", Description: "branch delete"},
+		},
 	}
 
 	state.UpdateFiltered()
@@ -436,6 +412,11 @@ func TestUIState_UpdateFiltered_FuzzyNonConsecutive(t *testing.T) {
 		input:     "bd", // Should match "branch delete"
 		cursorPos: 2,
 		filtered:  []CommandInfo{},
+		commands: []CommandInfo{
+			{Command: "branch delete", Description: "delete a branch"},
+			{Command: "branch checkout", Description: "checkout a branch"},
+			{Command: "commit", Description: "commit changes"},
+		},
 	}
 
 	state.UpdateFiltered()
@@ -1220,7 +1201,7 @@ func TestNewUI_WiresContextualResolver(t *testing.T) {
 	t.Setenv(overrideEnv, "ctrl+q")
 
 	mockClient := testutil.NewMockGitClient()
-	ui := NewUI(mockClient)
+	ui := NewUI(mockClient, nil)
 
 	if ui.handler == nil {
 		t.Fatal("handler should be initialized")
@@ -1912,7 +1893,7 @@ func TestHandleInputChar_MultibyteDisplay(t *testing.T) {
 // TestKeyHandler_HandleWorkflowKeys tests workflow key handling
 func TestKeyHandler_HandleWorkflowKeys(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	handler := ui.handler
 
 	t.Run("Tab adds command to workflow in search mode", func(t *testing.T) {
@@ -1960,7 +1941,7 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			gitClient := testutil.NewMockGitClient()
-			ui := NewUI(gitClient)
+			ui := NewUI(gitClient, nil)
 
 			// Redirect output to avoid test output pollution
 			ui.stdout = &bytes.Buffer{}
@@ -1987,7 +1968,7 @@ func TestKeyHandler_AddCommandToWorkflow(t *testing.T) {
 func TestKeyHandler_ClearWorkflow(t *testing.T) {
 	// Setup
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 
 	// Redirect output to avoid test output pollution
 	ui.stdout = &bytes.Buffer{}
@@ -2013,7 +1994,7 @@ func TestKeyHandler_ClearWorkflow(t *testing.T) {
 func TestUI_ToggleWorkflowView(t *testing.T) {
 	// Setup
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 
 	// Initial state should be false
 	if ui.state.mode != ModeSearch {
@@ -2037,7 +2018,7 @@ func TestUI_ToggleWorkflowView(t *testing.T) {
 func TestUI_WorkflowOperations(t *testing.T) {
 	// Setup
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 
 	// Test AddToWorkflow
 	id := ui.AddToWorkflow("add", []string{"."}, "add .")
@@ -2083,7 +2064,7 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			gitClient := testutil.NewMockGitClient()
-			ui := NewUI(gitClient)
+			ui := NewUI(gitClient, nil)
 
 			// Redirect output to avoid test output pollution
 			ui.stdout = &bytes.Buffer{}
@@ -2108,7 +2089,7 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 
 func TestWorkflowModeActions(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	ui.stdout = &bytes.Buffer{}
 	handler := ui.handler
 
@@ -2149,7 +2130,7 @@ func TestWorkflowModeActions(t *testing.T) {
 
 func TestWorkflowModeNavigation(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	handler := ui.handler
 
 	ui.state.mode = ModeWorkflow
@@ -2180,7 +2161,7 @@ func TestWorkflowModeNavigation(t *testing.T) {
 
 func TestWorkflowMoveListUpdatesActive(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	handler := ui.handler
 
 	ui.state.mode = ModeWorkflow
@@ -2222,7 +2203,7 @@ func TestWorkflowErrorMessageExpires(t *testing.T) {
 
 func TestWorkflowRendererActiveList(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	ui.state.mode = ModeWorkflow
 	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
@@ -2266,7 +2247,7 @@ func TestWorkflowRendererActiveList(t *testing.T) {
 
 func TestWorkflowListScrollOffset(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	ui.state.mode = ModeWorkflow
 	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
@@ -2305,7 +2286,7 @@ func TestWorkflowListScrollOffset(t *testing.T) {
 
 func TestWorkflowRendererEmptyState(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient)
+	ui := NewUI(gitClient, nil)
 	ui.state.mode = ModeWorkflow
 	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil

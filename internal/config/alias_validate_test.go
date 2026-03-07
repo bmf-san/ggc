@@ -5,8 +5,24 @@ import (
 	"testing"
 )
 
+// testValidCommands mirrors the real ggc command registry for use in unit
+// tests where the cmd layer is not available.
+var testValidCommands = []string{
+	"add", "branch", "clean", "commit", "config", "debug", "diff",
+	"fetch", "help", "hook", "log", "pull", "push", "rebase", "remote",
+	"reset", "restore", "stash", "status", "tag", "version", "quit",
+}
+
+// TestMain initialises the package-level defaultValidator so that tests that
+// exercise validateAliasSequence / validateAliasValue (which use
+// defaultValidator internally) see a properly seeded whitelist.
+func TestMain(m *testing.M) {
+	SetValidCommandNames(testValidCommands)
+	m.Run()
+}
+
 func TestCommandValidator_ValidateCommand(t *testing.T) {
-	v := newCommandValidator()
+	v := newCommandValidator(testValidCommands...)
 
 	cases := []struct {
 		name      string
@@ -60,7 +76,7 @@ func TestCommandValidator_ValidateCommand(t *testing.T) {
 }
 
 func TestCommandValidator_IsValidCommand(t *testing.T) {
-	v := newCommandValidator()
+	v := newCommandValidator(testValidCommands...)
 
 	cases := []struct {
 		name     string
@@ -279,9 +295,9 @@ func TestConfig_ValidateAliases(t *testing.T) {
 }
 
 func TestCommandValidator_LazyInit(t *testing.T) {
-	// Test that multiple validators work independently
-	v1 := newCommandValidator()
-	v2 := newCommandValidator()
+	// Test that multiple validators work independently with explicit name sets.
+	v1 := newCommandValidator(testValidCommands...)
+	v2 := newCommandValidator(testValidCommands...)
 
 	if !v1.isValidCommand("status") {
 		t.Error("v1 should validate status")

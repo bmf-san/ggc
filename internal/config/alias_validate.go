@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/bmf-san/ggc/v8/cmd/command"
 )
 
 // shellMetacharacters are characters that could enable command injection attacks.
@@ -23,25 +21,46 @@ const shellMetacharacters = ";|&<>(){}[]$`\n\r"
 // commandValidator validates alias commands against security policies.
 // It maintains a whitelist of valid commands and checks for shell metacharacters.
 type commandValidator struct {
+	mu            sync.RWMutex
 	validCommands map[string]struct{}
-	once          sync.Once
+	initialized   bool
 }
 
 // newCommandValidator creates a new command validator.
-func newCommandValidator() *commandValidator {
-	return &commandValidator{}
+// Optionally accepts an initial set of valid command names; when provided the
+// instance is immediately initialized with those names, which is useful in
+// unit tests where the registry is not available.
+func newCommandValidator(names ...string) *commandValidator {
+	v := &commandValidator{}
+	if len(names) > 0 {
+		m := make(map[string]struct{}, len(names))
+		for _, n := range names {
+			m[n] = struct{}{}
+		}
+		v.validCommands = m
+		v.initialized = true
+	}
+	return v
+}
+
+// SetValidCommandNames configures the command whitelist used during alias
+// validation. It must be called by the cmd layer after the command registry is
+// built. Calling it replaces any previously registered names.
+// When not called (e.g. in tests), only the metacharacter check applies.
+func SetValidCommandNames(names []string) {
+	m := make(map[string]struct{}, len(names))
+	for _, n := range names {
+		m[n] = struct{}{}
+	}
+	defaultValidator.mu.Lock()
+	defaultValidator.validCommands = m
+	defaultValidator.initialized = true
+	defaultValidator.mu.Unlock()
 }
 
 // initCommands lazily initializes the valid command set.
 func (v *commandValidator) initCommands() {
-	v.once.Do(func() {
-		v.validCommands = make(map[string]struct{})
-		registry := command.NewRegistry()
-		allCommands := registry.All()
-		for i := range allCommands {
-			v.validCommands[allCommands[i].Name] = struct{}{}
-		}
-	})
+	// no-op: commands are set externally via SetValidCommandNames.
 }
 
 // validateCommand validates a single alias command string for security.
@@ -49,22 +68,31 @@ func (v *commandValidator) initCommands() {
 //
 // Returns an error if:
 //   - The command contains shell metacharacters
-//   - The command name is not a valid ggc command
+//   - The command name is not a valid ggc command (when the whitelist has been
+//     populated via SetValidCommandNames)
 func (v *commandValidator) validateCommand(cmd string) error {
 	// Check for shell metacharacters first (fast path)
 	if strings.ContainsAny(cmd, shellMetacharacters) {
 		return fmt.Errorf("command '%s' contains unsafe shell metacharacters (;|&<>(){}[]$`)", cmd)
 	}
 
-	// Ensure command set is initialized
-	v.initCommands()
+	// Only validate command name when the whitelist has been populated.
+	v.mu.RLock()
+	initialized := v.initialized
+	v.mu.RUnlock()
+	if !initialized {
+		return nil
+	}
 
 	// Extract command name (first word)
 	cmdParts := strings.SplitN(cmd, " ", 2)
 	cmdName := cmdParts[0]
 
 	// Check if command is in the whitelist
-	if _, valid := v.validCommands[cmdName]; !valid {
+	v.mu.RLock()
+	_, valid := v.validCommands[cmdName]
+	v.mu.RUnlock()
+	if !valid {
 		return fmt.Errorf("'%s' is not a valid ggc command", cmdName)
 	}
 
@@ -73,7 +101,11 @@ func (v *commandValidator) validateCommand(cmd string) error {
 
 // isValidCommand checks if a command name is in the valid command registry.
 func (v *commandValidator) isValidCommand(cmdName string) bool {
-	v.initCommands()
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	if !v.initialized {
+		return true // whitelist not set; assume valid
+	}
 	_, valid := v.validCommands[cmdName]
 	return valid
 }

@@ -109,6 +109,16 @@ type GitDeps interface {
 // The config manager is required for alias resolution and other configuration features.
 func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 	registry := commandregistry.NewRegistry()
+
+	// Populate the alias validator whitelist so that internal/config does not
+	// need to import cmd/command (fixes dependency inversion).
+	all := registry.All()
+	names := make([]string, len(all))
+	for i, c := range all {
+		names[i] = c.Name
+	}
+	config.SetValidCommandNames(names)
+
 	cmd := &Cmd{
 		registry:      registry,
 		configManager: cm,
@@ -261,6 +271,30 @@ func (c *Cmd) DebugKeys(args []string) {
 	c.debugger.DebugKeys(args)
 }
 
+// buildInteractiveCommands converts the command registry into the flat list of
+// CommandInfo entries consumed by the interactive UI. This keeps the cmd layer
+// as the sole owner of registry knowledge so that internal/interactive has no
+// dependency on cmd/command.
+func buildInteractiveCommands(registry *commandregistry.Registry) []interactive.CommandInfo {
+	var list []interactive.CommandInfo
+	for _, cmd := range registry.All() {
+		if cmd.Hidden {
+			continue
+		}
+		if len(cmd.Subcommands) == 0 {
+			list = append(list, interactive.CommandInfo{Command: cmd.Name, Description: cmd.Summary})
+			continue
+		}
+		for _, sub := range cmd.Subcommands {
+			if sub.Hidden {
+				continue
+			}
+			list = append(list, interactive.CommandInfo{Command: sub.Name, Description: sub.Summary})
+		}
+	}
+	return list
+}
+
 // Interactive starts the interactive UI mode.
 func (c *Cmd) Interactive() {
 	// Set up global Ctrl+C handling without introducing a reset window
@@ -275,7 +309,7 @@ func (c *Cmd) Interactive() {
 	}()
 
 	// Create persistent UI instance to preserve state
-	ui := interactive.NewUI(c.gitClient, c)
+	ui := interactive.NewUI(c.gitClient, buildInteractiveCommands(c.registry), c)
 
 	for {
 		args := ui.Run()
