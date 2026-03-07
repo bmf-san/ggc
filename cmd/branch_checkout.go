@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/internal/prompt"
-	"github.com/bmf-san/ggc/v7/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/prompt"
+	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 func (b *Brancher) branchCheckout() {

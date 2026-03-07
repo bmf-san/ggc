@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 func runeIndex(haystack, needle string) int {

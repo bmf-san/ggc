@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"os"
 
-	"github.com/bmf-san/ggc/v7/internal/termio"
+	"github.com/bmf-san/ggc/v8/internal/termio"
 )
 
 // handleEscape processes escape sequences for real-time input

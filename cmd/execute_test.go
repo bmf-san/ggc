@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/internal/config"
-	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v8/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
 
 func TestExecute_BasicCommands(t *testing.T) {

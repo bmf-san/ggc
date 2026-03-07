@@ -4,7 +4,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 // AddRune adds a UTF-8 rune to the input at cursor position

@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmf-san/ggc/v7/internal/prompt"
-	"github.com/bmf-san/ggc/v7/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/prompt"
+	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 const errMsgBranchNameEmpty = "Error: branch name cannot be empty."

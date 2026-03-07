@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/term"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 // KeyHandler manages keyboard input processing

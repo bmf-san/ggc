@@ -11,7 +11,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/bmf-san/ggc/v7/internal/testutil"
+	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
 
 // MockFileOps implements FileOps for testing

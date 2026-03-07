@@ -12,9 +12,9 @@ import (
 
 	"golang.org/x/term"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
-	"github.com/bmf-san/ggc/v7/internal/termio"
-	"github.com/bmf-san/ggc/v7/internal/testutil"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
+	"github.com/bmf-san/ggc/v8/internal/termio"
+	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
 
 // mockTerminal mocks terminal operations

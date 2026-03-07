@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/bmf-san/ggc/v7/internal/keybindings"
+	"github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 // Debugger handles debug operations.

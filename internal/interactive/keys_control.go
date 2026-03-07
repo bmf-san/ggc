@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/term"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 func (h *KeyHandler) handleControlChar(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {

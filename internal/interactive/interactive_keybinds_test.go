@@ -3,7 +3,7 @@ package interactive
 import (
 	"testing"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 func TestBuildSearchKeybindEntriesUsesConfiguredBindings(t *testing.T) {

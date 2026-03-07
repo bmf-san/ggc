@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v8/cmd/command"
 )
 
 const (

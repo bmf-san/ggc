@@ -3,7 +3,7 @@ package interactive
 import (
 	"bufio"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 func (h *KeyHandler) handleCSISequence(reader *bufio.Reader) {

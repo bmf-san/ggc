@@ -3,7 +3,7 @@ package keybindings
 import (
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/config"
 )
 
 func TestRuntimeProfileSwitcherSwitchProfile(t *testing.T) {

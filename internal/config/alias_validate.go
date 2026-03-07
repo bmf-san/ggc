@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bmf-san/ggc/v7/cmd/command"
+	"github.com/bmf-san/ggc/v8/cmd/command"
 )
 
 // shellMetacharacters are characters that could enable command injection attacks.

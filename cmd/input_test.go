@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/bmf-san/ggc/v7/internal/prompt"
+	"github.com/bmf-san/ggc/v8/internal/prompt"
 )
 
 type mockPrompter struct {

@@ -1,7 +1,7 @@
 package interactive
 
 import (
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 // ToggleWorkflowView toggles between search mode and workflow mode.

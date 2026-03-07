@@ -10,10 +10,10 @@ import (
 	"strings"
 	"syscall"
 
-	commandregistry "github.com/bmf-san/ggc/v7/cmd/command"
-	"github.com/bmf-san/ggc/v7/internal/config"
-	"github.com/bmf-san/ggc/v7/internal/interactive"
-	"github.com/bmf-san/ggc/v7/pkg/git"
+	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
+	"github.com/bmf-san/ggc/v8/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/interactive"
+	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // Interactive mode command constants.

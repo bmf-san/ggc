@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
-	"github.com/bmf-san/ggc/v7/internal/testutil"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
+	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
 
 func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {

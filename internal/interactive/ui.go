@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bmf-san/ggc/v7/internal/config"
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
-	"github.com/bmf-san/ggc/v7/internal/termio"
-	"github.com/bmf-san/ggc/v7/pkg/git"
+	"github.com/bmf-san/ggc/v8/internal/config"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
+	"github.com/bmf-san/ggc/v8/internal/termio"
+	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 // initialInputCapacity defines the initial capacity for the input rune buffer

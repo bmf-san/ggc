@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmf-san/ggc/v7/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/config"
 )
 
 // Execute executes the command with alias resolution.

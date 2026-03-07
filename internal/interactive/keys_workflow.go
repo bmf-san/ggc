@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/term"
 
-	kb "github.com/bmf-san/ggc/v7/internal/keybindings"
+	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
 func (h *KeyHandler) handleWorkflowKeys(r rune, oldState *term.State) (bool, bool, []string) {
