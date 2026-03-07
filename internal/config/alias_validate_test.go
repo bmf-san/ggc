@@ -13,7 +13,7 @@ var testValidCommands = []string{
 	"reset", "restore", "stash", "status", "tag", "version", "quit",
 }
 
-// TestMain initialises the package-level defaultValidator so that tests that
+// TestMain initializes the package-level defaultValidator so that tests that
 // exercise validateAliasSequence / validateAliasValue (which use
 // defaultValidator internally) see a properly seeded whitelist.
 func TestMain(m *testing.M) {

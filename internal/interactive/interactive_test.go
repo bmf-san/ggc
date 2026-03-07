@@ -103,7 +103,7 @@ func TestUI_Run(t *testing.T) {
 					{Command: "status", Description: "Show working tree status"},
 					{Command: "add <file>", Description: "Add a specific file to the index"},
 				},
-				filtered:  []CommandInfo{},
+				filtered: []CommandInfo{},
 			}
 
 			ui := &testUI{
@@ -326,10 +326,10 @@ func TestUIState_UpdateFiltered_FuzzyMatching(t *testing.T) {
 
 func TestUIState_UpdateFiltered_SortsByRelevance(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "sta",
+		selected:  0,
+		input:     "sta",
 		cursorPos: 3,
-		filtered: []CommandInfo{},
+		filtered:  []CommandInfo{},
 		commands: []CommandInfo{
 			{Command: "status", Description: "status desc"},
 			{Command: "stash", Description: "stash desc"},
@@ -352,10 +352,10 @@ func TestUIState_UpdateFiltered_SortsByRelevance(t *testing.T) {
 
 func TestUIState_UpdateFiltered_PrefersBaseCommand(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "commit",
+		selected:  0,
+		input:     "commit",
 		cursorPos: 6,
-		filtered: []CommandInfo{},
+		filtered:  []CommandInfo{},
 		commands: []CommandInfo{
 			{Command: "commit <message>", Description: "base commit"},
 			{Command: "commit amend", Description: "amend commit"},
@@ -378,10 +378,10 @@ func TestUIState_UpdateFiltered_PrefersBaseCommand(t *testing.T) {
 
 func TestUIState_UpdateFiltered_PrefersBranchCommands(t *testing.T) {
 	state := &UIState{
-		selected: 0,
-		input:    "branch",
+		selected:  0,
+		input:     "branch",
 		cursorPos: 6,
-		filtered: []CommandInfo{},
+		filtered:  []CommandInfo{},
 		commands: []CommandInfo{
 			{Command: "stash branch", Description: "stash branch"},
 			{Command: "branch checkout", Description: "branch checkout"},

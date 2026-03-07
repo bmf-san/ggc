@@ -32,7 +32,7 @@ const (
 type UIState struct {
 	selected        int
 	input           string
-	cursorPos       int // Cursor position in input string
+	cursorPos       int           // Cursor position in input string
 	commands        []CommandInfo // injected by NewUI; never modified after init
 	filtered        []CommandInfo
 	context         kb.Context   // Current UI context (input/results/search/global)

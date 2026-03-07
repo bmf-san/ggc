@@ -114,8 +114,8 @@ func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 	// need to import cmd/command (fixes dependency inversion).
 	all := registry.All()
 	names := make([]string, len(all))
-	for i, c := range all {
-		names[i] = c.Name
+	for i := range all {
+		names[i] = all[i].Name
 	}
 	config.SetValidCommandNames(names)
 
@@ -277,19 +277,20 @@ func (c *Cmd) DebugKeys(args []string) {
 // dependency on cmd/command.
 func buildInteractiveCommands(registry *commandregistry.Registry) []interactive.CommandInfo {
 	var list []interactive.CommandInfo
-	for _, cmd := range registry.All() {
-		if cmd.Hidden {
+	allCmds := registry.All()
+	for i := range allCmds {
+		if allCmds[i].Hidden {
 			continue
 		}
-		if len(cmd.Subcommands) == 0 {
-			list = append(list, interactive.CommandInfo{Command: cmd.Name, Description: cmd.Summary})
+		if len(allCmds[i].Subcommands) == 0 {
+			list = append(list, interactive.CommandInfo{Command: allCmds[i].Name, Description: allCmds[i].Summary})
 			continue
 		}
-		for _, sub := range cmd.Subcommands {
-			if sub.Hidden {
+		for j := range allCmds[i].Subcommands {
+			if allCmds[i].Subcommands[j].Hidden {
 				continue
 			}
-			list = append(list, interactive.CommandInfo{Command: sub.Name, Description: sub.Summary})
+			list = append(list, interactive.CommandInfo{Command: allCmds[i].Subcommands[j].Name, Description: allCmds[i].Subcommands[j].Summary})
 		}
 	}
 	return list

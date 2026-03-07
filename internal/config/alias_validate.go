@@ -58,11 +58,6 @@ func SetValidCommandNames(names []string) {
 	defaultValidator.mu.Unlock()
 }
 
-// initCommands lazily initializes the valid command set.
-func (v *commandValidator) initCommands() {
-	// no-op: commands are set externally via SetValidCommandNames.
-}
-
 // validateCommand validates a single alias command string for security.
 // It checks for both shell metacharacters and valid command names.
 //
