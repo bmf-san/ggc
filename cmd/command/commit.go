@@ -12,7 +12,6 @@ func commit() []Info {
 				"ggc log simple  # Show commit logs in a simple format",
 				"ggc log graph   # Show commit logs with a graph",
 			},
-			HandlerID: "log",
 			Subcommands: []SubcommandInfo{
 				{Name: "log simple", Summary: "Show simple historical log", Usage: []string{"ggc log simple"}},
 				{Name: "log graph", Summary: "Show log with graph", Usage: []string{"ggc log graph"}},
@@ -29,7 +28,6 @@ func commit() []Info {
 				"ggc commit amend                  # Amend previous commit (editor)",
 				"ggc commit amend no-edit          # Amend without editing commit message",
 			},
-			HandlerID: "commit",
 			Subcommands: []SubcommandInfo{
 				{Name: "commit <message>", Summary: "Create commit with a message", Usage: []string{"ggc commit \"Add feature\""}},
 				{Name: "commit allow empty", Summary: "Create an empty commit", Usage: []string{"ggc commit allow empty"}},

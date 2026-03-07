@@ -12,7 +12,6 @@ func status() []Info {
 				"ggc status        # Full detailed status output",
 				"ggc status short  # Short, concise output (porcelain format)",
 			},
-			HandlerID: "status",
 			Subcommands: []SubcommandInfo{
 				{Name: "status", Summary: "Show working tree status", Usage: []string{"ggc status"}},
 				{Name: "status short", Summary: "Show concise status (porcelain format)", Usage: []string{"ggc status short"}},

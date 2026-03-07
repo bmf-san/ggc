@@ -12,7 +12,6 @@ func remote() []Info {
 				"ggc push current  # Push current branch to remote",
 				"ggc push force    # Force push current branch",
 			},
-			HandlerID: "push",
 			Subcommands: []SubcommandInfo{
 				{Name: "push current", Summary: "Push current branch to remote repository", Usage: []string{"ggc push current"}},
 				{Name: "push force", Summary: "Force push current branch", Usage: []string{"ggc push force"}},
@@ -27,7 +26,6 @@ func remote() []Info {
 				"ggc pull current  # Pull current branch from remote",
 				"ggc pull rebase   # Pull with rebase",
 			},
-			HandlerID: "pull",
 			Subcommands: []SubcommandInfo{
 				{Name: "pull current", Summary: "Pull current branch from remote repository", Usage: []string{"ggc pull current"}},
 				{Name: "pull rebase", Summary: "Pull and rebase", Usage: []string{"ggc pull rebase"}},
@@ -41,19 +39,17 @@ func remote() []Info {
 			Examples: []string{
 				"ggc fetch prune   # Fetch and remove stale remote-tracking references",
 			},
-			HandlerID: "fetch",
 			Subcommands: []SubcommandInfo{
 				{Name: "fetch", Summary: "Fetch from the remote", Usage: []string{"ggc fetch"}},
 				{Name: "fetch prune", Summary: "Fetch and clean stale references", Usage: []string{"ggc fetch prune"}},
 			},
 		},
 		{
-			Name:      "remote",
-			Category:  CategoryRemote,
-			Summary:   "Manage remotes",
-			Usage:     []string{"ggc remote list", "ggc remote add <name> <url>", "ggc remote remove <name>", "ggc remote set-url <name> <url>"},
-			Examples:  []string{"ggc remote list", "ggc remote add origin git@github.com:user/repo.git"},
-			HandlerID: "remote",
+			Name:     "remote",
+			Category: CategoryRemote,
+			Summary:  "Manage remotes",
+			Usage:    []string{"ggc remote list", "ggc remote add <name> <url>", "ggc remote remove <name>", "ggc remote set-url <name> <url>"},
+			Examples: []string{"ggc remote list", "ggc remote add origin git@github.com:user/repo.git"},
 			Subcommands: []SubcommandInfo{
 				{Name: "remote list", Summary: "List all remote repositories", Usage: []string{"ggc remote list"}},
 				{Name: "remote add <name> <url>", Summary: "Add remote repository", Usage: []string{"ggc remote add upstream git@github.com:user/repo.git"}},

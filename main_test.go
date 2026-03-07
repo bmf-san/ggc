@@ -303,15 +303,6 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 			cmd.SetVersionGetter(GetVersionInfo)
 			c := cmd.NewCmd(mockClient, cm)
 
-			// Test the logic from main: if r := strings.TrimSpace(...); r != ""
-			trimmedRemote := strings.TrimSpace(tt.mockDefaultRemote)
-			if trimmedRemote != "" {
-				c.SetDefaultRemote(trimmedRemote)
-				t.Logf("%s: Set default remote to '%s' (trimmed from '%s')", tt.description, trimmedRemote, tt.mockDefaultRemote)
-			} else {
-				t.Logf("%s: Did not set default remote (empty after trim from '%s')", tt.description, tt.mockDefaultRemote)
-			}
-
 			// Test safe routing to complete the main() simulation
 			_ = c.Execute([]string{"help"})
 			t.Logf("Successfully completed main() simulation")
@@ -365,12 +356,6 @@ func TestMain_CompleteFlow(t *testing.T) {
 
 			// Step 3: Create cmd
 			c := cmd.NewCmd(mockClient, cm)
-
-			// Step 4: Cache default remote logic (lines 57-59 in main.go)
-			if r := strings.TrimSpace(tt.defaultRemote); r != "" {
-				c.SetDefaultRemote(r)
-				t.Logf("Set default remote to: %s", r)
-			}
 
 			// Step 5: Execute arguments (simulating os.Args[1:])
 			_ = c.Execute(tt.args)
@@ -525,14 +510,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 			t.Fatal("Cmd creation failed")
 		}
 
-		// Step 4: Default remote setup (requires config to be loaded)
-		cfg := cm.GetConfig()
-		if cfg != nil {
-			if r := strings.TrimSpace(cfg.Git.DefaultRemote); r != "" {
-				c.SetDefaultRemote(r)
-				t.Logf("Default remote set to: %s", r)
-			}
-		}
+		// Step 4: Default remote is now inlined in NewCmd — no explicit setup needed.
 
 		// Step 5: Execute command (using cmd with config manager)
 		_ = c.Execute([]string{"help"})

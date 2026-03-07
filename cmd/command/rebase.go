@@ -15,7 +15,6 @@ func rebase() []Info {
 				"ggc rebase abort        # Abort an in-progress rebase",
 				"ggc rebase skip         # Skip current patch and continue",
 			},
-			HandlerID: "rebase",
 			Subcommands: []SubcommandInfo{
 				{Name: "rebase interactive", Summary: "Interactive rebase", Usage: []string{"ggc rebase interactive"}},
 				{Name: "rebase <upstream>", Summary: "Rebase current branch onto <upstream>", Usage: []string{"ggc rebase main"}},

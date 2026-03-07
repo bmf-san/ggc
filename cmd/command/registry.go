@@ -102,9 +102,6 @@ func validateCommand(cmd *Info, seen map[string]struct{}) error {
 	if strings.TrimSpace(cmd.Summary) == "" {
 		return fmt.Errorf("command summary missing for %s", cmd.Name)
 	}
-	if !cmd.Hidden && strings.TrimSpace(cmd.HandlerID) == "" {
-		return fmt.Errorf("handler ID missing for %s", cmd.Name)
-	}
 
 	return validateSubcommands(cmd)
 }
