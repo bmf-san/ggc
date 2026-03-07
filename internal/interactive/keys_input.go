@@ -30,7 +30,6 @@ func (h *KeyHandler) handleCtrlC(oldState *term.State) {
 		}
 	}
 	h.ui.writeln("\nExiting...")
-	os.Exit(0)
 }
 
 // restoreTerminalState restores the terminal from raw mode to cooked mode

@@ -2382,9 +2382,10 @@ type mockRouterForExecute struct {
 	routedCommands [][]string
 }
 
-func (m *mockRouterForExecute) Route(args []string) {
+func (m *mockRouterForExecute) Route(args []string) error {
 	if m.routedCommands == nil {
 		m.routedCommands = make([][]string, 0)
 	}
 	m.routedCommands = append(m.routedCommands, args)
+	return nil
 }

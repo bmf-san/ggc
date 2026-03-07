@@ -331,7 +331,9 @@ func (c *Cmd) Interactive() {
 			continue
 		}
 
-		c.Route(args[1:]) // Skip "ggc" in args
+		if err := c.Route(args[1:]); err != nil {
+			_, _ = fmt.Fprintln(c.outputWriter, "Error:", err)
+		}
 
 		// Wait for user to continue
 		c.waitForContinue()
@@ -340,23 +342,24 @@ func (c *Cmd) Interactive() {
 }
 
 // Route routes the command to the appropriate handler based on args.
-func (c *Cmd) Route(args []string) {
+// It returns an error if the command is not recognized.
+func (c *Cmd) Route(args []string) error {
 	if len(args) == 0 {
 		c.Help(nil)
-		return
+		return nil
 	}
 
-	c.routeCommand(args[0], args[1:])
+	return c.routeCommand(args[0], args[1:])
 }
 
 // routeCommand routes to the appropriate command handler
-func (c *Cmd) routeCommand(cmd string, args []string) {
+func (c *Cmd) routeCommand(cmd string, args []string) error {
 
 	if c.cmdRouter.route(cmd, args) {
-		return
+		return nil
 	}
 
-	c.Help(nil)
+	return fmt.Errorf("unknown command: %q", cmd)
 }
 
 type commandRouter struct {
@@ -453,6 +456,6 @@ func missingHandlers(registry *commandregistry.Registry, available map[string]st
 
 // waitForContinue waits for user input to continue
 func (c *Cmd) waitForContinue() {
-	fmt.Print("\nPress Enter to continue...")
+	_, _ = fmt.Fprint(c.outputWriter, "\nPress Enter to continue...")
 	_, _ = fmt.Scanln()
 }
