@@ -289,17 +289,17 @@ func (dkc *DebugKeysCommand) saveToFile(sequences [][]byte) error {
 	var content strings.Builder
 
 	content.WriteString("# Raw Key Sequences Captured by ggc debug-keys\n")
-	content.WriteString(fmt.Sprintf("# Captured on: %s\n", time.Now().Format("2006-01-02 15:04:05")))
-	content.WriteString(fmt.Sprintf("# Total sequences: %d\n\n", len(sequences)))
+	fmt.Fprintf(&content, "# Captured on: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+	fmt.Fprintf(&content, "# Total sequences: %d\n\n", len(sequences))
 
 	for i, seq := range sequences {
-		content.WriteString(fmt.Sprintf("# Sequence %d\n", i+1))
-		content.WriteString(fmt.Sprintf("# Raw: %v\n", seq))
-		content.WriteString(fmt.Sprintf("# Hex: %x\n", seq))
+		fmt.Fprintf(&content, "# Sequence %d\n", i+1)
+		fmt.Fprintf(&content, "# Raw: %v\n", seq)
+		fmt.Fprintf(&content, "# Hex: %x\n", seq)
 		if identified := dkc.identifySequence(seq); identified != "" {
-			content.WriteString(fmt.Sprintf("# Identified: %s\n", identified))
+			fmt.Fprintf(&content, "# Identified: %s\n", identified)
 		}
-		content.WriteString(fmt.Sprintf("raw:%x\n\n", seq))
+		fmt.Fprintf(&content, "raw:%x\n\n", seq)
 	}
 
 	if err := os.WriteFile(dkc.outputFile, []byte(content.String()), 0600); err != nil {
