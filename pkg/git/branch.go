@@ -4,7 +4,6 @@ package git
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -41,6 +40,7 @@ type BranchWriter interface {
 type BranchOps interface {
 	BranchReader
 	BranchWriter
+	ValidateBranchName(name string) error
 }
 
 // BranchInfo contains rich information about a branch.
@@ -61,12 +61,12 @@ func splitBranchLines(out []byte) []string {
 	return strings.Split(trimmed, "\n")
 }
 
-func normalizeBranchName(name string) (string, error) {
+func (c *Client) normalizeBranchName(name string) (string, error) {
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
 		return "", fmt.Errorf("branch name cannot be empty")
 	}
-	cmd := exec.Command("git", "check-ref-format", "--branch", trimmed)
+	cmd := c.execCommand("git", "check-ref-format", "--branch", trimmed)
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("invalid branch name %q: %w", trimmed, err)
 	}
@@ -74,8 +74,8 @@ func normalizeBranchName(name string) (string, error) {
 }
 
 // ValidateBranchName checks whether the provided name is a valid git branch name.
-func ValidateBranchName(name string) error {
-	_, err := normalizeBranchName(name)
+func (c *Client) ValidateBranchName(name string) error {
+	_, err := c.normalizeBranchName(name)
 	return err
 }
 
@@ -122,7 +122,7 @@ func (c *Client) CheckoutBranch(name string) error {
 
 // CheckoutNewBranch creates a new branch and checks it out.
 func (c *Client) CheckoutNewBranch(name string) error {
-	normalized, err := normalizeBranchName(name)
+	normalized, err := c.normalizeBranchName(name)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (c *Client) CheckoutNewBranch(name string) error {
 
 // CheckoutNewBranchFromRemote creates a new local branch tracking a remote branch.
 func (c *Client) CheckoutNewBranchFromRemote(localBranch, remoteBranch string) error {
-	normalizedLocal, err := normalizeBranchName(localBranch)
+	normalizedLocal, err := c.normalizeBranchName(localBranch)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (c *Client) CheckoutNewBranchFromRemote(localBranch, remoteBranch string) e
 
 // DeleteBranch deletes a branch.
 func (c *Client) DeleteBranch(name string) error {
-	normalized, err := normalizeBranchName(name)
+	normalized, err := c.normalizeBranchName(name)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (c *Client) RenameBranch(old, newName string) error {
 		return fmt.Errorf("branch name cannot be empty")
 	}
 
-	normalizedNew, err := normalizeBranchName(newName)
+	normalizedNew, err := c.normalizeBranchName(newName)
 	if err != nil {
 		return err
 	}
@@ -210,13 +210,13 @@ func (c *Client) RenameBranch(old, newName string) error {
 
 // MoveBranch moves a branch pointer to a specific commit (git branch -f <branch> <commit>).
 func (c *Client) MoveBranch(branch, commit string) error {
-	normalized, err := normalizeBranchName(branch)
-	if err != nil {
-		return err
-	}
 	trimmedCommit := strings.TrimSpace(commit)
 	if trimmedCommit == "" {
 		return fmt.Errorf("commit cannot be empty")
+	}
+	normalized, err := c.normalizeBranchName(branch)
+	if err != nil {
+		return err
 	}
 
 	cmd := c.execCommand("git", "branch", "-f", normalized, trimmedCommit)
@@ -230,13 +230,13 @@ func (c *Client) MoveBranch(branch, commit string) error {
 
 // SetUpstreamBranch sets upstream for a branch (git branch -u <upstream> <branch>).
 func (c *Client) SetUpstreamBranch(branch, upstream string) error {
-	normalizedBranch, err := normalizeBranchName(branch)
-	if err != nil {
-		return err
-	}
 	trimmedUpstream := strings.TrimSpace(upstream)
 	if trimmedUpstream == "" {
 		return fmt.Errorf("upstream branch cannot be empty")
+	}
+	normalizedBranch, err := c.normalizeBranchName(branch)
+	if err != nil {
+		return err
 	}
 
 	cmd := c.execCommand("git", "branch", "-u", trimmedUpstream, normalizedBranch)
@@ -470,6 +470,3 @@ func parseBranchVVLine(line string) BranchInfo {
 	info.LastCommitMsg = strings.TrimSpace(remainder)
 	return info
 }
-
-// Ensure unused import exec referenced when building tests using helperCommand
-var _ = exec.Cmd{}

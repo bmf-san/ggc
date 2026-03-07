@@ -157,6 +157,20 @@ func (m *mockBranchGitClient) BranchesContaining(commit string) ([]string, error
 	return []string{"main", "feature"}, nil
 }
 
+func (m *mockBranchGitClient) ValidateBranchName(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("branch name cannot be empty")
+	}
+	// Simulate git check-ref-format rules for test purposes.
+	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
+		return errors.New("invalid branch name")
+	}
+	if strings.Contains(name, "..") || strings.Contains(name, " ") || strings.ContainsAny(name, "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f") {
+		return errors.New("invalid branch name")
+	}
+	return nil
+}
+
 func TestBrancher_Branch_Current(t *testing.T) {
 	var buf bytes.Buffer
 	mockClient := &mockBranchGitClient{

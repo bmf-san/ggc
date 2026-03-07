@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v8/internal/prompt"
-	"github.com/bmf-san/ggc/v8/pkg/git"
 )
 
 func (b *Brancher) branchCheckout() {
@@ -44,7 +43,7 @@ func (b *Brancher) branchCheckoutRemote() {
 	}
 	remoteBranch := branches[idx]
 	localBranch, valid := deriveLocalFromRemote(remoteBranch)
-	if !valid || git.ValidateBranchName(localBranch) != nil {
+	if !valid || b.gitClient.ValidateBranchName(localBranch) != nil {
 		WriteLine(b.outputWriter, "Invalid remote branch name.")
 		return
 	}

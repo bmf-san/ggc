@@ -172,3 +172,4 @@ func (m *testMockGitClient) MoveBranch(_, _ string) error            { return ni
 func (m *testMockGitClient) RenameBranch(_, _ string) error          { return nil }
 func (m *testMockGitClient) SetUpstreamBranch(_, _ string) error     { return nil }
 func (m *testMockGitClient) SortBranches(_ string) ([]string, error) { return []string{"main"}, nil }
+func (m *testMockGitClient) ValidateBranchName(_ string) error       { return nil }

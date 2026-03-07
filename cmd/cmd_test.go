@@ -146,6 +146,7 @@ func (m *mockGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
 }
 func (m *mockGitClient) SortBranches(_ string) ([]string, error)       { return []string{}, nil }
 func (m *mockGitClient) BranchesContaining(_ string) ([]string, error) { return []string{}, nil }
+func (m *mockGitClient) ValidateBranchName(_ string) error             { return nil }
 
 // Remote Operations methods
 func (m *mockGitClient) Fetch(_ bool) error             { return nil }
