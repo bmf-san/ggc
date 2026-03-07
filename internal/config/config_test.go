@@ -1792,7 +1792,7 @@ func stringifyAnyMap(m map[string]any) string {
 			b.WriteString(" ")
 		}
 		first = false
-		b.WriteString(fmt.Sprintf("%s: %s", key, stringifyValue(val)))
+		fmt.Fprintf(&b, "%s: %s", key, stringifyValue(val))
 	}
 	b.WriteString("}")
 	return b.String()
