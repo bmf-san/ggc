@@ -43,6 +43,7 @@ func (m *testMockGitClient) CommitAmend() error                    { return nil 
 func (m *testMockGitClient) CommitAmendNoEdit() error              { return nil }
 func (m *testMockGitClient) CommitAmendWithMessage(_ string) error { return nil }
 func (m *testMockGitClient) CommitAllowEmpty() error               { return nil }
+func (m *testMockGitClient) CommitFixup(_ string) error            { return nil }
 
 // Diff Operations
 func (m *testMockGitClient) Diff() (string, error)       { return "", nil }
@@ -92,6 +93,7 @@ func (m *testMockGitClient) LogOneline(_, _ string) (string, error) { return "",
 
 // Rebase Operations
 func (m *testMockGitClient) RebaseInteractive(_ int) error              { return nil }
+func (m *testMockGitClient) RebaseInteractiveAutosquash(_ int) error    { return nil }
 func (m *testMockGitClient) Rebase(_ string) error                      { return nil }
 func (m *testMockGitClient) RebaseContinue() error                      { return nil }
 func (m *testMockGitClient) RebaseAbort() error                         { return nil }
@@ -124,6 +126,7 @@ func (m *testMockGitClient) ConfigSetGlobal(_, _ string) error        { return n
 // Reset Operations
 func (m *testMockGitClient) ResetHardAndClean() error { return nil }
 func (m *testMockGitClient) ResetHard(_ string) error { return nil }
+func (m *testMockGitClient) ResetSoft(_ string) error { return nil }
 
 // Clean Operations
 func (m *testMockGitClient) CleanFiles() error                { return nil }

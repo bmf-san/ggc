@@ -27,24 +27,26 @@ func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
 
 // mockGitClient for testing
 type mockAddGitClient struct {
-	addCalled             bool
-	addInteractiveCalled  bool
-	addFiles              []string
-	addError              error
-	addInteractiveError   error
-	GetCurrentBranchFunc  func() (string, error)
-	LogOnelineFunc        func(from, to string) (string, error)
-	RebaseInteractiveFunc func(commitCount int) error
-	RebaseCalled          bool
-	RebaseUpstream        string
-	RebaseErr             error
-	RebaseContinueCalled  bool
-	RebaseContinueErr     error
-	RebaseAbortCalled     bool
-	RebaseAbortErr        error
-	RebaseSkipCalled      bool
-	RebaseSkipErr         error
-	RevParseVerifyFunc    func(ref string) bool
+	addCalled                         bool
+	addInteractiveCalled              bool
+	addFiles                          []string
+	addError                          error
+	addInteractiveError               error
+	GetCurrentBranchFunc              func() (string, error)
+	LogOnelineFunc                    func(from, to string) (string, error)
+	RebaseInteractiveFunc             func(commitCount int) error
+	RebaseInteractiveAutosquashCalled bool
+	RebaseInteractiveAutosquashCount  int
+	RebaseCalled                      bool
+	RebaseUpstream                    string
+	RebaseErr                         error
+	RebaseContinueCalled              bool
+	RebaseContinueErr                 error
+	RebaseAbortCalled                 bool
+	RebaseAbortErr                    error
+	RebaseSkipCalled                  bool
+	RebaseSkipErr                     error
+	RevParseVerifyFunc                func(ref string) bool
 }
 
 func (m *mockAddGitClient) Add(files ...string) error {
@@ -79,6 +81,7 @@ func (m *mockAddGitClient) CommitAmend() error                    { return nil }
 func (m *mockAddGitClient) CommitAmendNoEdit() error              { return nil }
 func (m *mockAddGitClient) CommitAmendWithMessage(_ string) error { return nil }
 func (m *mockAddGitClient) CommitAllowEmpty() error               { return nil }
+func (m *mockAddGitClient) CommitFixup(_ string) error            { return nil }
 
 // Diff Operations methods
 func (m *mockAddGitClient) Diff() (string, error)       { return "", nil }
@@ -139,6 +142,11 @@ func (m *mockAddGitClient) RebaseInteractive(commitCount int) error {
 	}
 	return nil
 }
+func (m *mockAddGitClient) RebaseInteractiveAutosquash(commitCount int) error {
+	m.RebaseInteractiveAutosquashCalled = true
+	m.RebaseInteractiveAutosquashCount = commitCount
+	return nil
+}
 func (m *mockAddGitClient) Rebase(upstream string) error {
 	m.RebaseCalled = true
 	m.RebaseUpstream = upstream
@@ -180,6 +188,7 @@ func (m *mockAddGitClient) RestoreAllStaged() error                       { retu
 // Reset and Clean Operations methods
 func (m *mockAddGitClient) ResetHardAndClean() error         { return nil }
 func (m *mockAddGitClient) ResetHard(_ string) error         { return nil }
+func (m *mockAddGitClient) ResetSoft(_ string) error         { return nil }
 func (m *mockAddGitClient) CleanFiles() error                { return nil }
 func (m *mockAddGitClient) CleanDirs() error                 { return nil }
 func (m *mockAddGitClient) CleanDryRun() (string, error)     { return "", nil }

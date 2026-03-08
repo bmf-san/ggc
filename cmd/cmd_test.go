@@ -80,6 +80,9 @@ func (m *mockGitClient) ResetHardAndClean() error {
 func (m *mockGitClient) ResetHard(_ string) error {
 	return nil
 }
+func (m *mockGitClient) ResetSoft(_ string) error {
+	return nil
+}
 
 func (m *mockGitClient) CleanFiles() error {
 	m.cleanFilesCalled = true
@@ -117,6 +120,7 @@ func (m *mockGitClient) Commit(_ string) error                 { return nil }
 func (m *mockGitClient) CommitAmend() error                    { return nil }
 func (m *mockGitClient) CommitAmendNoEdit() error              { return nil }
 func (m *mockGitClient) CommitAmendWithMessage(_ string) error { return nil }
+func (m *mockGitClient) CommitFixup(_ string) error            { return nil }
 
 // Diff Operations methods
 func (m *mockGitClient) Diff() (string, error)       { return "", nil }
@@ -171,11 +175,12 @@ func (m *mockGitClient) GetTagCommit(_ string) (string, error) { return "abc123"
 func (m *mockGitClient) LogOneline(_, _ string) (string, error) { return "", nil }
 
 // Rebase Operations methods
-func (m *mockGitClient) RebaseInteractive(_ int) error { return nil }
-func (m *mockGitClient) Rebase(_ string) error         { return nil }
-func (m *mockGitClient) RebaseContinue() error         { return nil }
-func (m *mockGitClient) RebaseAbort() error            { return nil }
-func (m *mockGitClient) RebaseSkip() error             { return nil }
+func (m *mockGitClient) RebaseInteractive(_ int) error           { return nil }
+func (m *mockGitClient) RebaseInteractiveAutosquash(_ int) error { return nil }
+func (m *mockGitClient) Rebase(_ string) error                   { return nil }
+func (m *mockGitClient) RebaseContinue() error                   { return nil }
+func (m *mockGitClient) RebaseAbort() error                      { return nil }
+func (m *mockGitClient) RebaseSkip() error                       { return nil }
 func (m *mockGitClient) GetUpstreamBranch(_ string) (string, error) {
 	return "origin/main", nil
 }

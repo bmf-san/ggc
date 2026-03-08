@@ -21,18 +21,20 @@ func commit() []Info {
 			Name:     "commit",
 			Category: CategoryCommit,
 			Summary:  "Create commits from staged changes",
-			Usage:    []string{"ggc commit <message>", "ggc commit amend", "ggc commit allow empty"},
+			Usage:    []string{"ggc commit <message>", "ggc commit amend", "ggc commit allow empty", "ggc commit fixup <commit>"},
 			Examples: []string{
 				"ggc commit \"Update docs\"        # Create commit with a message",
 				"ggc commit allow empty            # Create an empty commit",
 				"ggc commit amend                  # Amend previous commit (editor)",
 				"ggc commit amend no-edit          # Amend without editing commit message",
+				"ggc commit fixup abc1234          # Create a fixup commit targeting abc1234",
 			},
 			Subcommands: []SubcommandInfo{
 				{Name: "commit <message>", Summary: "Create commit with a message", Usage: []string{"ggc commit \"Add feature\""}},
 				{Name: "commit allow empty", Summary: "Create an empty commit", Usage: []string{"ggc commit allow empty"}},
 				{Name: "commit amend", Summary: "Amend previous commit (editor)", Usage: []string{"ggc commit amend"}},
 				{Name: "commit amend no-edit", Summary: "Amend without editing commit message", Usage: []string{"ggc commit amend no-edit"}},
+				{Name: "commit fixup <commit>", Summary: "Create a fixup commit targeting <commit>", Usage: []string{"ggc commit fixup abc1234"}},
 			},
 		},
 	}

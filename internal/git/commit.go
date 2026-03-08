@@ -15,6 +15,7 @@ type CommitWriter interface {
 	CommitAmendNoEdit() error
 	CommitAmendWithMessage(message string) error
 	CommitAllowEmpty() error
+	CommitFixup(commit string) error
 }
 
 // Commit commits with the given message.
@@ -80,6 +81,21 @@ func validateCommitMessage(message string) error {
 	}
 	if strings.ContainsRune(message, '\u0000') {
 		return fmt.Errorf("commit message cannot contain null characters")
+	}
+	return nil
+}
+
+// CommitFixup creates a fixup commit targeting the specified commit.
+func (c *Client) CommitFixup(commit string) error {
+	if strings.TrimSpace(commit) == "" {
+		return fmt.Errorf("commit reference cannot be empty")
+	}
+	cmd := c.execCommand("git", "commit", "--fixup", commit)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		return NewOpError("commit fixup", "git commit --fixup "+commit, err)
 	}
 	return nil
 }

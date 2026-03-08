@@ -327,3 +327,44 @@ func TestRebaser_Rebase_Error(t *testing.T) {
 		t.Errorf("expected error message, got %q", output)
 	}
 }
+
+func TestRebaser_RebaseAutosquash_SelectValid(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	r := &Rebaser{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		prompter:     prompt.New(strings.NewReader("2\n"), &buf),
+	}
+	r.helper.outputWriter = &buf
+	r.RebaseAutosquash()
+	if !strings.Contains(buf.String(), "Rebase successful") {
+		t.Errorf("expected success message, got: %s", buf.String())
+	}
+	if !mockClient.RebaseInteractiveAutosquashCalled {
+		t.Error("RebaseInteractiveAutosquash should have been called")
+	}
+	if mockClient.RebaseInteractiveAutosquashCount != 2 {
+		t.Errorf("expected commitCount=2, got %d", mockClient.RebaseInteractiveAutosquashCount)
+	}
+}
+
+func TestRebaser_Rebase_AutosquashSubcommand(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{}
+	r := &Rebaser{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		prompter:     prompt.New(strings.NewReader("1\n"), &buf),
+	}
+	r.helper.outputWriter = &buf
+	r.Rebase([]string{"autosquash"})
+	if !strings.Contains(buf.String(), "Rebase successful") {
+		t.Errorf("expected success message for autosquash, got: %s", buf.String())
+	}
+	if !mockClient.RebaseInteractiveAutosquashCalled {
+		t.Error("RebaseInteractiveAutosquash should have been called via autosquash subcommand")
+	}
+}

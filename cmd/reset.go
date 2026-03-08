@@ -28,37 +28,57 @@ func NewResetter(client git.ResetOps) *Resetter {
 // Reset executes git reset commands.
 func (r *Resetter) Reset(args []string) {
 	if len(args) == 0 {
-		// Default: reset to origin
-		branch, err := r.gitClient.GetCurrentBranch()
-		if err != nil {
-			WriteErrorf(r.outputWriter, "failed to get current branch: %v", err)
-			return
-		}
-
-		if err := r.gitClient.ResetHardAndClean(); err != nil {
-			WriteError(r.outputWriter, err)
-			return
-		}
-		_, _ = fmt.Fprintf(r.outputWriter, "Reset to origin/%s successful\n", branch)
+		r.handleDefaultReset()
 		return
 	}
 
 	switch args[0] {
 	case "hard":
-		if len(args) < 2 {
-			WriteErrorf(r.outputWriter, "commit hash required for hard reset")
-			r.helper.ShowResetHelp()
-			return
-		}
-
-		commit := args[1]
-		if err := r.gitClient.ResetHard(commit); err != nil {
-			WriteError(r.outputWriter, err)
-			return
-		}
-		_, _ = fmt.Fprintf(r.outputWriter, "Reset to %s successful\n", commit)
-		return
+		r.handleHardReset(args[1:])
+	case "soft":
+		r.handleSoftReset(args[1:])
 	default:
 		r.helper.ShowResetHelp()
 	}
+}
+
+func (r *Resetter) handleDefaultReset() {
+	branch, err := r.gitClient.GetCurrentBranch()
+	if err != nil {
+		WriteErrorf(r.outputWriter, "failed to get current branch: %v", err)
+		return
+	}
+	if err := r.gitClient.ResetHardAndClean(); err != nil {
+		WriteError(r.outputWriter, err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Reset to origin/%s successful\n", branch)
+}
+
+func (r *Resetter) handleHardReset(args []string) {
+	if len(args) == 0 {
+		WriteErrorf(r.outputWriter, "commit hash required for hard reset")
+		r.helper.ShowResetHelp()
+		return
+	}
+	commit := args[0]
+	if err := r.gitClient.ResetHard(commit); err != nil {
+		WriteError(r.outputWriter, err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Reset to %s successful\n", commit)
+}
+
+func (r *Resetter) handleSoftReset(args []string) {
+	if len(args) == 0 {
+		WriteErrorf(r.outputWriter, "commit reference required for soft reset")
+		r.helper.ShowResetHelp()
+		return
+	}
+	commit := args[0]
+	if err := r.gitClient.ResetSoft(commit); err != nil {
+		WriteError(r.outputWriter, err)
+		return
+	}
+	_, _ = fmt.Fprintf(r.outputWriter, "Reset to %s successful\n", commit)
 }

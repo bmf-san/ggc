@@ -10,6 +10,7 @@ import (
 type RebaseOps interface {
 	// sequence operations
 	RebaseInteractive(commitCount int) error
+	RebaseInteractiveAutosquash(commitCount int) error
 	Rebase(upstream string) error
 	RebaseContinue() error
 	RebaseAbort() error
@@ -39,6 +40,18 @@ func (c *Client) RebaseInteractive(commitCount int) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewOpError("rebase interactive", fmt.Sprintf("git rebase -i HEAD~%d", commitCount), err)
+	}
+	return nil
+}
+
+// RebaseInteractiveAutosquash starts an interactive rebase with --autosquash for the specified number of commits.
+func (c *Client) RebaseInteractiveAutosquash(commitCount int) error {
+	cmd := c.execCommand("git", "rebase", "-i", "--autosquash", fmt.Sprintf("HEAD~%d", commitCount))
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewOpError("rebase interactive autosquash", fmt.Sprintf("git rebase -i --autosquash HEAD~%d", commitCount), err)
 	}
 	return nil
 }

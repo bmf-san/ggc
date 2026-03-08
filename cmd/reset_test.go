@@ -12,6 +12,7 @@ type mockResetOps struct {
 	currentBranch           string
 	resetHardAndCleanCalled bool
 	resetHardCalled         bool
+	resetSoftCalled         bool
 	commit                  string
 }
 
@@ -27,6 +28,11 @@ func (m *mockResetOps) ResetHardAndClean() error {
 }
 func (m *mockResetOps) ResetHard(commit string) error {
 	m.resetHardCalled = true
+	m.commit = commit
+	return nil
+}
+func (m *mockResetOps) ResetSoft(commit string) error {
+	m.resetSoftCalled = true
 	m.commit = commit
 	return nil
 }
@@ -82,6 +88,18 @@ func TestResetter_Reset(t *testing.T) {
 			expectedOutput: "Usage: ggc reset",
 			shouldShowHelp: true,
 		},
+		{
+			name:           "soft reset with commit",
+			args:           []string{"soft", "HEAD~1"},
+			expectedOutput: "Reset to HEAD~1 successful",
+			shouldShowHelp: false,
+		},
+		{
+			name:           "soft reset without commit - should show help",
+			args:           []string{"soft"},
+			expectedOutput: "Error: commit reference required for soft reset",
+			shouldShowHelp: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -125,12 +143,12 @@ func TestResetter_ResetOperations(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     []string
-		testFunc func(*testing.T, *Resetter, *bytes.Buffer)
+		testFunc func(*testing.T, *Resetter, *mockResetOps, *bytes.Buffer)
 	}{
 		{
 			name: "default reset calls ResetHardAndClean",
 			args: []string{},
-			testFunc: func(t *testing.T, resetter *Resetter, buf *bytes.Buffer) {
+			testFunc: func(t *testing.T, resetter *Resetter, mc *mockResetOps, buf *bytes.Buffer) {
 				output := buf.String()
 				// Should show success message with branch name
 				if !strings.Contains(output, "Reset to origin/") || !strings.Contains(output, "successful") {
@@ -144,7 +162,7 @@ func TestResetter_ResetOperations(t *testing.T) {
 		{
 			name: "hard reset with commit calls ResetHard",
 			args: []string{"hard", "commit123"},
-			testFunc: func(t *testing.T, resetter *Resetter, buf *bytes.Buffer) {
+			testFunc: func(t *testing.T, resetter *Resetter, mc *mockResetOps, buf *bytes.Buffer) {
 				output := buf.String()
 				// Should show success message with commit hash
 				if !strings.Contains(output, "Reset to commit123 successful") {
@@ -158,7 +176,7 @@ func TestResetter_ResetOperations(t *testing.T) {
 		{
 			name: "hard reset without commit shows error and help",
 			args: []string{"hard"},
-			testFunc: func(t *testing.T, resetter *Resetter, buf *bytes.Buffer) {
+			testFunc: func(t *testing.T, resetter *Resetter, mc *mockResetOps, buf *bytes.Buffer) {
 				output := buf.String()
 				// Should show error message
 				if !strings.Contains(output, "Error: commit hash required") {
@@ -167,6 +185,44 @@ func TestResetter_ResetOperations(t *testing.T) {
 				// Should also show help
 				if !strings.Contains(output, "Usage:") {
 					t.Errorf("Expected help message after error, got: %s", output)
+				}
+			},
+		},
+		{
+			name: "soft reset with commit calls ResetSoft",
+			args: []string{"soft", "HEAD~1"},
+			testFunc: func(t *testing.T, resetter *Resetter, mc *mockResetOps, buf *bytes.Buffer) {
+				output := buf.String()
+				if !strings.Contains(output, "Reset to HEAD~1 successful") {
+					t.Errorf("Expected soft reset success message, got: %s", output)
+				}
+				if strings.Contains(output, "Error:") {
+					t.Errorf("Unexpected error in soft reset: %s", output)
+				}
+				if !mc.resetSoftCalled {
+					t.Error("ResetSoft should have been called")
+				}
+				if mc.commit != "HEAD~1" {
+					t.Errorf("expected commit ref 'HEAD~1', got '%s'", mc.commit)
+				}
+				if mc.resetHardCalled {
+					t.Error("ResetHard should NOT have been called for soft reset")
+				}
+			},
+		},
+		{
+			name: "soft reset without commit shows error and help",
+			args: []string{"soft"},
+			testFunc: func(t *testing.T, resetter *Resetter, mc *mockResetOps, buf *bytes.Buffer) {
+				output := buf.String()
+				if !strings.Contains(output, "Error: commit reference required") {
+					t.Errorf("Expected error message for missing commit ref, got: %s", output)
+				}
+				if !strings.Contains(output, "Usage:") {
+					t.Errorf("Expected help message after error, got: %s", output)
+				}
+				if mc.resetSoftCalled {
+					t.Error("ResetSoft should NOT have been called when no commit ref given")
 				}
 			},
 		},
@@ -185,7 +241,7 @@ func TestResetter_ResetOperations(t *testing.T) {
 			resetter.helper.outputWriter = buf
 
 			resetter.Reset(tt.args)
-			tt.testFunc(t, resetter, buf)
+			tt.testFunc(t, resetter, mockClient, buf)
 		})
 	}
 }

@@ -8,6 +8,7 @@ type ResetOps interface {
 	GetCurrentBranch() (string, error)
 	ResetHardAndClean() error
 	ResetHard(commit string) error
+	ResetSoft(commit string) error
 }
 
 // ResetHardAndClean resets the current branch to the state of origin and cleans the working directory.
@@ -35,6 +36,17 @@ func (c *Client) ResetHard(commit string) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return NewOpError("reset hard", "git reset --hard "+commit, err)
+	}
+	return nil
+}
+
+// ResetSoft resets to the specified commit, keeping changes staged.
+func (c *Client) ResetSoft(commit string) error {
+	cmd := c.execCommand("git", "reset", "--soft", commit)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return NewOpError("reset soft", "git reset --soft "+commit, err)
 	}
 	return nil
 }
