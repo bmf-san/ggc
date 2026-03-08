@@ -342,6 +342,12 @@ func TestRebaser_RebaseAutosquash_SelectValid(t *testing.T) {
 	if !strings.Contains(buf.String(), "Rebase successful") {
 		t.Errorf("expected success message, got: %s", buf.String())
 	}
+	if !mockClient.RebaseInteractiveAutosquashCalled {
+		t.Error("RebaseInteractiveAutosquash should have been called")
+	}
+	if mockClient.RebaseInteractiveAutosquashCount != 2 {
+		t.Errorf("expected commitCount=2, got %d", mockClient.RebaseInteractiveAutosquashCount)
+	}
 }
 
 func TestRebaser_Rebase_AutosquashSubcommand(t *testing.T) {
@@ -357,5 +363,8 @@ func TestRebaser_Rebase_AutosquashSubcommand(t *testing.T) {
 	r.Rebase([]string{"autosquash"})
 	if !strings.Contains(buf.String(), "Rebase successful") {
 		t.Errorf("expected success message for autosquash, got: %s", buf.String())
+	}
+	if !mockClient.RebaseInteractiveAutosquashCalled {
+		t.Error("RebaseInteractiveAutosquash should have been called via autosquash subcommand")
 	}
 }

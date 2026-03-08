@@ -93,6 +93,7 @@ func (c *Client) CommitFixup(commit string) error {
 	cmd := c.execCommand("git", "commit", "--fixup", commit)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
 		return NewOpError("commit fixup", "git commit --fixup "+commit, err)
 	}

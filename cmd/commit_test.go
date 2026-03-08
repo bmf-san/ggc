@@ -14,6 +14,8 @@ type mockCommitGitClient struct {
 	commitAmendCalled            bool
 	commitAmendNoEditCalled      bool
 	commitAmendWithMessageCalled bool
+	commitFixupCalled            bool
+	commitFixupArg               string
 	commitMessage                string
 	amendMessage                 string
 	err                          error
@@ -44,6 +46,8 @@ func (m *mockCommitGitClient) CommitAmendWithMessage(message string) error {
 	return m.err
 }
 func (m *mockCommitGitClient) CommitFixup(commit string) error {
+	m.commitFixupCalled = true
+	m.commitFixupArg = commit
 	return m.err
 }
 
@@ -242,6 +246,12 @@ func TestCommitter_Commit_Fixup(t *testing.T) {
 	}
 	c.helper.outputWriter = &buf
 	c.Commit([]string{"fixup", "abc1234"})
+	if !mockClient.commitFixupCalled {
+		t.Error("CommitFixup should have been called")
+	}
+	if mockClient.commitFixupArg != "abc1234" {
+		t.Errorf("expected commit ref 'abc1234', got '%s'", mockClient.commitFixupArg)
+	}
 	if buf.String() != "" {
 		t.Errorf("Expected no error output, got: %s", buf.String())
 	}
