@@ -79,6 +79,7 @@ func (m *mockAddGitClient) CommitAmend() error                    { return nil }
 func (m *mockAddGitClient) CommitAmendNoEdit() error              { return nil }
 func (m *mockAddGitClient) CommitAmendWithMessage(_ string) error { return nil }
 func (m *mockAddGitClient) CommitAllowEmpty() error               { return nil }
+func (m *mockAddGitClient) CommitFixup(_ string) error            { return nil }
 
 // Diff Operations methods
 func (m *mockAddGitClient) Diff() (string, error)       { return "", nil }
@@ -139,6 +140,7 @@ func (m *mockAddGitClient) RebaseInteractive(commitCount int) error {
 	}
 	return nil
 }
+func (m *mockAddGitClient) RebaseInteractiveAutosquash(_ int) error { return nil }
 func (m *mockAddGitClient) Rebase(upstream string) error {
 	m.RebaseCalled = true
 	m.RebaseUpstream = upstream
@@ -180,6 +182,7 @@ func (m *mockAddGitClient) RestoreAllStaged() error                       { retu
 // Reset and Clean Operations methods
 func (m *mockAddGitClient) ResetHardAndClean() error         { return nil }
 func (m *mockAddGitClient) ResetHard(_ string) error         { return nil }
+func (m *mockAddGitClient) ResetSoft(_ string) error         { return nil }
 func (m *mockAddGitClient) CleanFiles() error                { return nil }
 func (m *mockAddGitClient) CleanDirs() error                 { return nil }
 func (m *mockAddGitClient) CleanDryRun() (string, error)     { return "", nil }

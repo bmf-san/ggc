@@ -10,6 +10,7 @@ func rebase() []Info {
 			Usage:    []string{"ggc rebase <subcommand>"},
 			Examples: []string{
 				"ggc rebase interactive  # Interactive rebase",
+				"ggc rebase autosquash   # Interactive rebase with --autosquash",
 				"ggc rebase main         # Rebase current branch onto 'main'",
 				"ggc rebase continue     # Continue an in-progress rebase",
 				"ggc rebase abort        # Abort an in-progress rebase",
@@ -17,6 +18,7 @@ func rebase() []Info {
 			},
 			Subcommands: []SubcommandInfo{
 				{Name: "rebase interactive", Summary: "Interactive rebase", Usage: []string{"ggc rebase interactive"}},
+				{Name: "rebase autosquash", Summary: "Interactive rebase with --autosquash", Usage: []string{"ggc rebase autosquash"}},
 				{Name: "rebase <upstream>", Summary: "Rebase current branch onto <upstream>", Usage: []string{"ggc rebase main"}},
 				{Name: "rebase continue", Summary: "Continue an in-progress rebase", Usage: []string{"ggc rebase continue"}},
 				{Name: "rebase abort", Summary: "Abort an in-progress rebase", Usage: []string{"ggc rebase abort"}},

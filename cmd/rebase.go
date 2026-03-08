@@ -42,6 +42,8 @@ func (r *Rebaser) Rebase(args []string) {
 	switch args[0] {
 	case "interactive":
 		r.RebaseInteractive()
+	case "autosquash":
+		r.RebaseAutosquash()
 	case "continue":
 		r.handleRebaseContinue()
 	case "abort":
@@ -113,6 +115,24 @@ func (r *Rebaser) RebaseInteractive() {
 		return
 	}
 	if err := r.gitClient.RebaseInteractive(num); err != nil {
+		WriteError(r.outputWriter, err)
+		return
+	}
+	WriteLine(r.outputWriter, "Rebase successful")
+}
+
+// RebaseAutosquash executes interactive rebase with --autosquash.
+func (r *Rebaser) RebaseAutosquash() {
+	ctx, ok := r.prepareRebaseContext()
+	if !ok {
+		return
+	}
+	r.printCommitChoices(ctx.currentBranch, ctx.lines)
+	num, ok := r.promptRebaseCount(len(ctx.lines))
+	if !ok {
+		return
+	}
+	if err := r.gitClient.RebaseInteractiveAutosquash(num); err != nil {
 		WriteError(r.outputWriter, err)
 		return
 	}

@@ -75,6 +75,7 @@ func defaultCommands() []Info {
 	commands = append(commands, stash()...)
 	commands = append(commands, status()...)
 	commands = append(commands, rebase()...)
+	commands = append(commands, reset()...)
 	return commands
 }
 

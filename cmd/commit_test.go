@@ -43,6 +43,9 @@ func (m *mockCommitGitClient) CommitAmendWithMessage(message string) error {
 	m.amendMessage = message
 	return m.err
 }
+func (m *mockCommitGitClient) CommitFixup(commit string) error {
+	return m.err
+}
 
 func TestCommitter_Commit_AllowEmpty(t *testing.T) {
 	mockClient := &mockCommitGitClient{}
@@ -226,5 +229,50 @@ func TestCommitter_Commit_Amend_WithMultiWordMessage(t *testing.T) {
 	c.Commit([]string{"amend", "[update]", "message", "with", "spaces"})
 	if !mockClient.commitAmendWithMessageCalled {
 		t.Error("git commit --amend -m command should be called with the complete message")
+	}
+}
+
+func TestCommitter_Commit_Fixup(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockCommitGitClient{}
+	c := &Committer{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"fixup", "abc1234"})
+	if buf.String() != "" {
+		t.Errorf("Expected no error output, got: %s", buf.String())
+	}
+}
+
+func TestCommitter_Commit_Fixup_NoCommit(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockCommitGitClient{}
+	c := &Committer{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"fixup"})
+	if !strings.Contains(buf.String(), "Error:") {
+		t.Errorf("Expected error message for missing commit ref, got: %s", buf.String())
+	}
+}
+
+func TestCommitter_Commit_Fixup_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockCommitGitClient{err: errors.New("git error")}
+	c := &Committer{
+		gitClient:    mockClient,
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	c.helper.outputWriter = &buf
+	c.Commit([]string{"fixup", "abc1234"})
+	if !strings.Contains(buf.String(), "Error:") {
+		t.Errorf("Expected error message, got: %s", buf.String())
 	}
 }

@@ -30,6 +30,10 @@ func (m *mockResetOps) ResetHard(commit string) error {
 	m.commit = commit
 	return nil
 }
+func (m *mockResetOps) ResetSoft(commit string) error {
+	m.commit = commit
+	return nil
+}
 
 var _ git.ResetOps = (*mockResetOps)(nil)
 
@@ -80,6 +84,18 @@ func TestResetter_Reset(t *testing.T) {
 			name:           "unknown command - should show help",
 			args:           []string{"unknown"},
 			expectedOutput: "Usage: ggc reset",
+			shouldShowHelp: true,
+		},
+		{
+			name:           "soft reset with commit",
+			args:           []string{"soft", "HEAD~1"},
+			expectedOutput: "Reset to HEAD~1 successful",
+			shouldShowHelp: false,
+		},
+		{
+			name:           "soft reset without commit - should show help",
+			args:           []string{"soft"},
+			expectedOutput: "Error: commit reference required for soft reset",
 			shouldShowHelp: true,
 		},
 	}
@@ -165,6 +181,32 @@ func TestResetter_ResetOperations(t *testing.T) {
 					t.Errorf("Expected error message for missing commit, got: %s", output)
 				}
 				// Should also show help
+				if !strings.Contains(output, "Usage:") {
+					t.Errorf("Expected help message after error, got: %s", output)
+				}
+			},
+		},
+		{
+			name: "soft reset with commit calls ResetSoft",
+			args: []string{"soft", "HEAD~1"},
+			testFunc: func(t *testing.T, resetter *Resetter, buf *bytes.Buffer) {
+				output := buf.String()
+				if !strings.Contains(output, "Reset to HEAD~1 successful") {
+					t.Errorf("Expected soft reset success message, got: %s", output)
+				}
+				if strings.Contains(output, "Error:") {
+					t.Errorf("Unexpected error in soft reset: %s", output)
+				}
+			},
+		},
+		{
+			name: "soft reset without commit shows error and help",
+			args: []string{"soft"},
+			testFunc: func(t *testing.T, resetter *Resetter, buf *bytes.Buffer) {
+				output := buf.String()
+				if !strings.Contains(output, "Error: commit reference required") {
+					t.Errorf("Expected error message for missing commit ref, got: %s", output)
+				}
 				if !strings.Contains(output, "Usage:") {
 					t.Errorf("Expected help message after error, got: %s", output)
 				}

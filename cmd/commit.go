@@ -39,6 +39,8 @@ func (c *Committer) Commit(args []string) {
 		c.handleAllowCommand(args[1:])
 	case "amend":
 		c.handleAmendCommand(args[1:])
+	case "fixup":
+		c.handleFixupCommand(args[1:])
 	default:
 		c.handleDefaultCommit(args)
 	}
@@ -71,6 +73,18 @@ func (c *Committer) handleAmendCommand(args []string) {
 		if err := c.gitClient.CommitAmendWithMessage(msg); err != nil {
 			WriteError(c.outputWriter, err)
 		}
+	}
+}
+
+// handleFixupCommand handles the "fixup" subcommand
+func (c *Committer) handleFixupCommand(args []string) {
+	if len(args) == 0 {
+		WriteErrorf(c.outputWriter, "commit reference required for fixup")
+		c.helper.ShowCommitHelp()
+		return
+	}
+	if err := c.gitClient.CommitFixup(args[0]); err != nil {
+		WriteError(c.outputWriter, err)
 	}
 }
 
