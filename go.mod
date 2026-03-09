@@ -8,6 +8,6 @@ require (
 	golang.org/x/text v0.34.0
 )
 
-require golang.org/x/sys v0.41.0
+require golang.org/x/sys v0.42.0
 
 require github.com/creack/pty v1.1.24
