@@ -134,6 +134,13 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, cfg *config.C
 		profile:     profile,
 		workflowMgr: NewWorkflowManager(),
 	}
+
+	// Load pre-defined workflows from config so they are available immediately
+	// in the workflow panel. The scratch workflow remains active.
+	if cfg != nil && len(cfg.Workflows) > 0 {
+		ui.workflowMgr.LoadFromConfig(cfg.Workflows)
+	}
+
 	// Keep ContextManager alive via the onContextChange callback so it stays
 	// in sync with UIState; the field was removed from UI (Problem I fix).
 	state.onContextChange = func(_ kb.Context, newCtx kb.Context) {
