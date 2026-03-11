@@ -2,6 +2,7 @@ package interactive
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -229,4 +230,42 @@ func (m *WorkflowManager) ClearWorkflow(id int) bool {
 	}
 	w.data.Clear()
 	return true
+}
+
+// LoadFromConfig registers pre-defined workflows from the config's workflows
+// section. Each map key becomes the workflow name; each string in the slice
+// becomes a step where the first whitespace-delimited token is the command and
+// the remainder are arguments. Interactive placeholder syntax (<name>) is
+// supported and preserved in the step description.
+//
+// The scratch workflow that was active before the call is restored as active
+// afterwards so the user can start typing immediately in the UI.
+func (m *WorkflowManager) LoadFromConfig(workflows map[string][]string) {
+	if len(workflows) == 0 {
+		return
+	}
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	// Remember the current active workflow (the initial "scratch" workflow)
+	// so we can restore it after loading pre-defined ones.
+	activeBeforeLoad := m.activeID
+
+	for name, steps := range workflows {
+		wf := NewWorkflow()
+		for _, cmdStr := range steps {
+			parts := strings.Fields(cmdStr)
+			if len(parts) == 0 {
+				continue
+			}
+			wf.AddStep(parts[0], parts[1:], cmdStr)
+		}
+		m.createWorkflowLocked(wf, name)
+	}
+
+	// Restore the scratch workflow as active so the UI starts in edit mode.
+	if _, exists := m.workflows[activeBeforeLoad]; exists {
+		m.activeID = activeBeforeLoad
+	}
 }
