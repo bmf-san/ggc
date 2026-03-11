@@ -176,3 +176,69 @@ func TestResolveContextualAppliesOverridesPerContext(t *testing.T) {
 		t.Fatalf("search context bindings unexpected: %#v", searchMap.MoveUp)
 	}
 }
+
+// ── resolver_user: editing/navigation actions, parseUserBindingValue ──────────
+
+func testResolver() *KeyBindingResolver {
+	cfg := &config.Config{}
+	cfg.Interactive.Profile = "emacs"
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	return resolver
+}
+
+func TestApplyUserEditingAction_ClearLine(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserEditingAction(km, "clear_line", ks) {
+		t.Error("expected applyUserEditingAction to return true for clear_line")
+	}
+	if len(km.ClearLine) == 0 {
+		t.Error("expected ClearLine to be set")
+	}
+}
+
+func TestApplyUserEditingAction_DeleteToEnd(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserEditingAction(km, "delete_to_end", ks) {
+		t.Error("expected applyUserEditingAction to return true for delete_to_end")
+	}
+	if len(km.DeleteToEnd) == 0 {
+		t.Error("expected DeleteToEnd to be set")
+	}
+}
+
+func TestApplyUserNavigationAction_MoveLeft(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserNavigationAction(km, "move_left", ks) {
+		t.Error("expected applyUserNavigationAction to return true for move_left")
+	}
+	if len(km.MoveLeft) == 0 {
+		t.Error("expected MoveLeft to be set")
+	}
+}
+
+func TestApplyUserNavigationAction_MoveRight(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserNavigationAction(km, "move_right", ks) {
+		t.Error("expected applyUserNavigationAction to return true for move_right")
+	}
+	if len(km.MoveRight) == 0 {
+		t.Error("expected MoveRight to be set")
+	}
+}
+
+func TestParseUserBindingValue_Slice(t *testing.T) {
+	r := testResolver()
+	got := r.parseUserBindingValue([]interface{}{"ctrl+w", "ctrl+u"})
+	if len(got) != 2 {
+		t.Errorf("expected 2 keystrokes from slice input, got %d", len(got))
+	}
+}

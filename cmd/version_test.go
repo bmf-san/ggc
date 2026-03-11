@@ -391,3 +391,94 @@ func TestCompareSemanticVersions_DifferentLengths(t *testing.T) {
 		t.Errorf("compareSemanticVersions(v1.1, v1.0.9) = %d, want 1", got)
 	}
 }
+
+// ─── ensureCreatedAtSet: exercise the CreatedAt="" branch ─────────────────────
+
+func TestVersioner_EnsureCreatedAtSet(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".ggcconfig.yaml")
+	// Empty YAML: LoadConfig will use defaults — CreatedAt stays ""
+	if err := os.WriteFile(configPath, []byte(""), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	originalHome := os.Getenv("HOME")
+	if err := os.Setenv("HOME", tempDir); err != nil {
+		t.Fatalf("Setenv HOME: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+
+	originalGetter := getVersionInfo
+	SetVersionGetter(nil) // no version update — isolate ensureCreatedAtSet
+	t.Cleanup(func() { getVersionInfo = originalGetter })
+
+	var buf bytes.Buffer
+	v := &Versioner{
+		gitClient:    testutil.NewMockGitClient(),
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+	v.helper.outputWriter = &buf
+	v.Version([]string{})
+
+	output := buf.String()
+	if strings.Contains(output, "warn: failed to set created-at") {
+		t.Errorf("unexpected created-at warning: %s", output)
+	}
+	if !strings.Contains(output, "ggc version") {
+		t.Errorf("expected version in output, got: %s", output)
+	}
+}
+
+// ─── updateVersionInfoFromBuild: exercise when getVersionInfo returns new info ─
+
+func TestVersioner_UpdateVersionInfoFromBuild(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".ggcconfig.yaml")
+	if err := os.WriteFile(configPath, []byte(""), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	originalHome := os.Getenv("HOME")
+	if err := os.Setenv("HOME", tempDir); err != nil {
+		t.Fatalf("Setenv HOME: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+
+	originalGetter := getVersionInfo
+	SetVersionGetter(func() (string, string) { return "v99.0.0", "commit9999" })
+	t.Cleanup(func() { getVersionInfo = originalGetter })
+
+	var buf bytes.Buffer
+	v := &Versioner{
+		gitClient:    testutil.NewMockGitClient(),
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+	v.helper.outputWriter = &buf
+	v.Version([]string{})
+
+	output := buf.String()
+	if !strings.Contains(output, "v99.0.0") {
+		t.Errorf("expected v99.0.0 in output, got: %s", output)
+	}
+}
+
+// ─── updateConfigValue: exercise the Set-failure warning path ─────────────────
+
+func TestVersioner_UpdateConfigValue_Error(t *testing.T) {
+	var buf bytes.Buffer
+	v := &Versioner{
+		gitClient:    testutil.NewMockGitClient(),
+		outputWriter: &buf,
+	}
+	cm := config.NewConfigManager(testutil.NewMockGitClient())
+	// Empty key fails sanitizeConfigPath → Set returns error → warn logged
+	v.updateConfigValue(cm, "", "value")
+
+	if !strings.Contains(buf.String(), "warn: failed to set") {
+		t.Errorf("expected warn in output, got: %q", buf.String())
+	}
+}

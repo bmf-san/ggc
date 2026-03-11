@@ -2211,3 +2211,187 @@ func TestSetMapValue(t *testing.T) {
 		t.Errorf("Expected no error setting int value, got %v", err)
 	}
 }
+
+// ─── failingGitClient forces ConfigSetGlobal to return errors for sync tests ───
+// git.ConfigOps requires ConfigGetGlobal, ConfigSetGlobal, GetVersion, GetCommitHash.
+
+type failingGitClient struct {
+	failKey string // if empty, all ConfigSetGlobal calls fail
+}
+
+func newFailingGitClient(failKey string) *failingGitClient {
+	return &failingGitClient{failKey: failKey}
+}
+
+func (f *failingGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
+func (f *failingGitClient) ConfigSetGlobal(key, _ string) error {
+	if f.failKey == "" || key == f.failKey {
+		return fmt.Errorf("forced git error for %s", key)
+	}
+	return nil
+}
+func (f *failingGitClient) GetVersion() (string, error)    { return "test", nil }
+func (f *failingGitClient) GetCommitHash() (string, error) { return "abc", nil }
+
+func newTestConfigManagerWithFailingGit(failKey string) *Manager {
+	return NewConfigManager(newFailingGitClient(failKey))
+}
+
+// TestSyncDefaultSettings_EditorError covers the error return when setting core.editor fails
+func TestSyncDefaultSettings_EditorError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("core.editor")
+	cfg := cm.GetConfig()
+	cfg.Default.Editor = "vim"
+	err := cm.syncDefaultSettings(cfg)
+	if err == nil {
+		t.Error("expected error when core.editor ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncDefaultSettings_MergeToolError covers the merge.tool error path
+func TestSyncDefaultSettings_MergeToolError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("merge.tool")
+	cfg := cm.GetConfig()
+	cfg.Default.Editor = "" // skip editor
+	cfg.Default.MergeTool = "vimdiff"
+	err := cm.syncDefaultSettings(cfg)
+	if err == nil {
+		t.Error("expected error when merge.tool ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncDefaultSettings_BranchError covers the init.defaultBranch error path
+func TestSyncDefaultSettings_BranchError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("init.defaultBranch")
+	cfg := cm.GetConfig()
+	cfg.Default.Editor = ""
+	cfg.Default.MergeTool = ""
+	cfg.Default.Branch = "main"
+	err := cm.syncDefaultSettings(cfg)
+	if err == nil {
+		t.Error("expected error when init.defaultBranch ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncUISettings_ColorError covers the color.ui error path
+func TestSyncUISettings_ColorError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("color.ui")
+	cfg := cm.GetConfig()
+	err := cm.syncUISettings(cfg)
+	if err == nil {
+		t.Error("expected error when color.ui ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncUISettings_PagerError covers the core.pager error path.
+// color.ui always uses ConfigSetGlobal; we use a key-specific failing mock so
+// color.ui succeeds but core.pager fails.
+func TestSyncUISettings_PagerError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("core.pager")
+	cfg := cm.GetConfig()
+	cfg.UI.Color = true  // color.ui will call ConfigSetGlobal("color.ui","true") → passes
+	cfg.UI.Pager = false // triggers the pager branch → fails
+	err := cm.syncUISettings(cfg)
+	if err == nil {
+		t.Error("expected error when core.pager ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncBehaviorSettings_AutoFetchError covers the fetch.auto error path
+func TestSyncBehaviorSettings_AutoFetchError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("fetch.auto")
+	cfg := cm.GetConfig()
+	err := cm.syncBehaviorSettings(cfg)
+	if err == nil {
+		t.Error("expected error when fetch.auto ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncAliasSettings_Error covers the alias set error path
+func TestSyncAliasSettings_Error(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("alias.co")
+	cfg := cm.GetConfig()
+	cfg.Aliases = map[string]interface{}{"co": "checkout"}
+	err := cm.syncAliasSettings(cfg)
+	if err == nil {
+		t.Error("expected error when alias ConfigSetGlobal fails")
+	}
+}
+
+// TestSyncToGitConfig_DefaultSettingsError verifies syncToGitConfig propagates editor error
+func TestSyncToGitConfig_DefaultSettingsError(t *testing.T) {
+	cm := newTestConfigManagerWithFailingGit("core.editor")
+	cfg := cm.GetConfig()
+	cfg.Default.Editor = "vim"
+	err := cm.syncToGitConfig()
+	if err == nil {
+		t.Error("expected syncToGitConfig to return error on editor failure")
+	}
+}
+
+// ─── helpers for FileOps error injection ───────────────────────────────────────
+
+// mockTempFileWriteError is a TempFile whose Write always fails.
+type mockTempFileWriteError struct {
+	name string
+}
+
+func (m *mockTempFileWriteError) Write(_ []byte) (int, error) {
+	return 0, fmt.Errorf("forced write error")
+}
+func (m *mockTempFileWriteError) Close() error { return nil }
+func (m *mockTempFileWriteError) Name() string { return m.name }
+
+// MockFileOpsWithWriteError wraps MockFileOps and injects a write error via CreateTemp.
+type MockFileOpsWithWriteError struct {
+	*MockFileOps
+}
+
+func NewMockFileOpsWithWriteError() *MockFileOpsWithWriteError {
+	return &MockFileOpsWithWriteError{MockFileOps: NewMockFileOps()}
+}
+
+func (m *MockFileOpsWithWriteError) CreateTemp(dir, pattern string) (TempFile, error) {
+	return &mockTempFileWriteError{name: dir + "/tmp_" + pattern}, nil
+}
+
+// MockFileOpsWithRenameError wraps MockFileOps and makes Rename always fail.
+type MockFileOpsWithRenameError struct {
+	*MockFileOps
+}
+
+func NewMockFileOpsWithRenameError() *MockFileOpsWithRenameError {
+	return &MockFileOpsWithRenameError{MockFileOps: NewMockFileOps()}
+}
+
+func (m *MockFileOpsWithRenameError) Rename(_, _ string) error {
+	return fmt.Errorf("forced rename error")
+}
+
+// TestWriteTempConfigWithOps_WriteError verifies that a write error is propagated.
+func TestWriteTempConfigWithOps_WriteError(t *testing.T) {
+	mockFS := NewMockFileOpsWithWriteError()
+	if err := mockFS.MkdirAll("/test", 0700); err != nil {
+		t.Fatal(err)
+	}
+	cm := newTestConfigManager()
+	cm.configPath = "/test/cfg.yaml"
+	_, err := cm.writeTempConfigWithOps("/test", []byte("data"), mockFS)
+	if err == nil {
+		t.Error("expected error when temp-file Write fails")
+	}
+}
+
+// TestReplaceConfigFileWithOps_RenameError simulates a rename failure
+func TestReplaceConfigFileWithOps_RenameError(t *testing.T) {
+	mockFS := NewMockFileOpsWithRenameError()
+	if err := mockFS.MkdirAll("/test", 0700); err != nil {
+		t.Fatal(err)
+	}
+	cm := newTestConfigManager()
+	cm.configPath = "/test/cfg.yaml"
+	err := cm.replaceConfigFileWithOps("/test/.tmp-file", mockFS)
+	if err == nil {
+		t.Error("expected error when rename fails")
+	}
+}

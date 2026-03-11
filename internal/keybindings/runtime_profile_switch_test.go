@@ -1,6 +1,7 @@
 package keybindings
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v8/internal/config"
@@ -100,5 +101,111 @@ func TestProfileSwitcherUpdatesHandler(t *testing.T) {
 	if !emacsInput.MatchesKeyStroke("delete_word", NewAltKeyStroke('d', "")) {
 		t.Logf("emacs delete_word bindings: %#v", emacsInput.DeleteWord)
 		t.Error("emacs profile should use Alt+d for delete_word")
+	}
+}
+
+// ── ProfileSwitcher ──────────────────────────────────────────────────────────
+
+func newTestSwitcher() *ProfileSwitcher {
+	resolver := NewKeyBindingResolver(nil)
+	RegisterBuiltinProfiles(resolver)
+	return NewProfileSwitcher(resolver, nil)
+}
+
+func TestProfileSwitcher_GetCurrentProfile(t *testing.T) {
+	ps := newTestSwitcher()
+	if ps.GetCurrentProfile() != ProfileDefault {
+		t.Errorf("GetCurrentProfile() = %v, want %v", ps.GetCurrentProfile(), ProfileDefault)
+	}
+}
+
+func TestProfileSwitcher_GetAvailableProfiles(t *testing.T) {
+	ps := newTestSwitcher()
+	profiles := ps.GetAvailableProfiles()
+	if len(profiles) != 4 {
+		t.Fatalf("GetAvailableProfiles() returned %d profiles, want 4", len(profiles))
+	}
+}
+
+func TestProfileSwitcher_CanSwitchTo_Valid(t *testing.T) {
+	ps := newTestSwitcher()
+	ok, err := ps.CanSwitchTo(ProfileEmacs)
+	if err != nil {
+		t.Fatalf("CanSwitchTo(emacs) error: %v", err)
+	}
+	if !ok {
+		t.Error("CanSwitchTo(emacs) = false, want true")
+	}
+}
+
+func TestProfileSwitcher_CanSwitchTo_NotRegistered(t *testing.T) {
+	resolver := NewKeyBindingResolver(nil) // no profiles registered
+	ps := NewProfileSwitcher(resolver, nil)
+	_, err := ps.CanSwitchTo(ProfileEmacs)
+	if err == nil {
+		t.Error("expected error for unregistered profile")
+	}
+}
+
+func TestProfileSwitcher_GetProfileComparison(t *testing.T) {
+	ps := newTestSwitcher()
+	result, err := ps.GetProfileComparison(ProfileEmacs)
+	if err != nil {
+		t.Fatalf("GetProfileComparison(emacs) error: %v", err)
+	}
+	if result["profile1_name"] == nil {
+		t.Error("expected profile1_name in comparison result")
+	}
+}
+
+func TestProfileSwitcher_ShowCurrentProfileCommand(t *testing.T) {
+	ps := newTestSwitcher()
+	got := ShowCurrentProfileCommand(ps)
+	if !strings.Contains(got, "default") {
+		t.Errorf("ShowCurrentProfileCommand() = %q, want to contain 'default'", got)
+	}
+}
+
+// ── HandleProfileSwitchCommand ───────────────────────────────────────────────
+
+func TestHandleProfileSwitchCommand_List(t *testing.T) {
+	ps := newTestSwitcher()
+	if err := HandleProfileSwitchCommand(ps, "list"); err != nil {
+		t.Fatalf("HandleProfileSwitchCommand(list) error: %v", err)
+	}
+}
+
+func TestHandleProfileSwitchCommand_Unknown(t *testing.T) {
+	ps := newTestSwitcher()
+	if err := HandleProfileSwitchCommand(ps, "bogus"); err == nil {
+		t.Error("expected error for unknown subcommand")
+	}
+}
+
+func TestHandleProfileSwitchCommand_Empty(t *testing.T) {
+	ps := newTestSwitcher()
+	if err := HandleProfileSwitchCommand(ps, ""); err == nil {
+		t.Error("expected error for empty command")
+	}
+}
+
+func TestHandleProfileSwitchCommand_Preview(t *testing.T) {
+	ps := newTestSwitcher()
+	if err := HandleProfileSwitchCommand(ps, "preview emacs"); err != nil {
+		t.Fatalf("HandleProfileSwitchCommand(preview emacs) error: %v", err)
+	}
+}
+
+func TestHandleProfileSwitchCommand_Compare(t *testing.T) {
+	ps := newTestSwitcher()
+	if err := HandleProfileSwitchCommand(ps, "compare emacs"); err != nil {
+		t.Fatalf("HandleProfileSwitchCommand(compare emacs) error: %v", err)
+	}
+}
+
+func TestHandleProfileSwitchCommand_PreviewNoArg(t *testing.T) {
+	ps := newTestSwitcher()
+	if err := HandleProfileSwitchCommand(ps, "preview"); err == nil {
+		t.Error("expected error for preview without arg")
 	}
 }
