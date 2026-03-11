@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -243,5 +244,73 @@ func TestResetter_ResetOperations(t *testing.T) {
 			resetter.Reset(tt.args)
 			tt.testFunc(t, resetter, mockClient, buf)
 		})
+	}
+}
+
+// mockResetOpsWithErrors supports error injection for reset error-path tests.
+type mockResetOpsWithErrors struct {
+	currentBranch        string
+	currentBranchErr     error
+	resetHardAndCleanErr error
+	resetHardErr         error
+	resetSoftErr         error
+}
+
+func (m *mockResetOpsWithErrors) GetCurrentBranch() (string, error) {
+	if m.currentBranchErr != nil {
+		return "", m.currentBranchErr
+	}
+	if m.currentBranch != "" {
+		return m.currentBranch, nil
+	}
+	return "main", nil
+}
+func (m *mockResetOpsWithErrors) ResetHardAndClean() error { return m.resetHardAndCleanErr }
+func (m *mockResetOpsWithErrors) ResetHard(_ string) error { return m.resetHardErr }
+func (m *mockResetOpsWithErrors) ResetSoft(_ string) error { return m.resetSoftErr }
+
+var _ git.ResetOps = (*mockResetOpsWithErrors)(nil)
+
+func TestResetter_HandleDefaultReset_BranchError(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockResetOpsWithErrors{currentBranchErr: errors.New("branch error")}
+	r := &Resetter{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleDefaultReset()
+	if !strings.Contains(buf.String(), "branch error") {
+		t.Errorf("expected branch error, got: %s", buf.String())
+	}
+}
+
+func TestResetter_HandleDefaultReset_ResetError(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockResetOpsWithErrors{resetHardAndCleanErr: errors.New("reset error")}
+	r := &Resetter{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleDefaultReset()
+	if !strings.Contains(buf.String(), "reset error") {
+		t.Errorf("expected reset error, got: %s", buf.String())
+	}
+}
+
+func TestResetter_HandleHardReset_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockResetOpsWithErrors{resetHardErr: errors.New("hard reset error")}
+	r := &Resetter{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleHardReset([]string{"abc123"})
+	if !strings.Contains(buf.String(), "hard reset error") {
+		t.Errorf("expected hard reset error, got: %s", buf.String())
+	}
+}
+
+func TestResetter_HandleSoftReset_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockResetOpsWithErrors{resetSoftErr: errors.New("soft reset error")}
+	r := &Resetter{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleSoftReset([]string{"HEAD~1"})
+	if !strings.Contains(buf.String(), "soft reset error") {
+		t.Errorf("expected soft reset error, got: %s", buf.String())
 	}
 }

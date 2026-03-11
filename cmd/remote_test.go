@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -257,5 +258,61 @@ func TestRemoter_List_Add_Remove_SetURL(t *testing.T) {
 	}
 	if got := buf.String(); got == "" {
 		t.Fatal("expected confirmation output for set-url")
+	}
+}
+
+// mockRemoteManagerWithErrors allows injecting errors for error-path testing.
+type mockRemoteManagerWithErrors struct {
+	listErr   error
+	addErr    error
+	removeErr error
+	setURLErr error
+}
+
+func (m *mockRemoteManagerWithErrors) RemoteList() error              { return m.listErr }
+func (m *mockRemoteManagerWithErrors) RemoteAdd(_, _ string) error    { return m.addErr }
+func (m *mockRemoteManagerWithErrors) RemoteRemove(_ string) error    { return m.removeErr }
+func (m *mockRemoteManagerWithErrors) RemoteSetURL(_, _ string) error { return m.setURLErr }
+
+var _ git.RemoteManager = (*mockRemoteManagerWithErrors)(nil)
+
+func TestRemoter_ErrorPaths(t *testing.T) {
+	errMsg := "remote error"
+	cases := []struct {
+		name string
+		args []string
+		mock *mockRemoteManagerWithErrors
+	}{
+		{
+			name: "list error",
+			args: []string{"list"},
+			mock: &mockRemoteManagerWithErrors{listErr: errors.New(errMsg)},
+		},
+		{
+			name: "add error",
+			args: []string{"add", "origin", "https://example.com/r.git"},
+			mock: &mockRemoteManagerWithErrors{addErr: errors.New(errMsg)},
+		},
+		{
+			name: "remove error",
+			args: []string{"remove", "origin"},
+			mock: &mockRemoteManagerWithErrors{removeErr: errors.New(errMsg)},
+		},
+		{
+			name: "set-url error",
+			args: []string{"set-url", "origin", "https://example.com/n.git"},
+			mock: &mockRemoteManagerWithErrors{setURLErr: errors.New(errMsg)},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			r := &Remoter{gitClient: tc.mock, outputWriter: &buf, helper: NewHelper()}
+			r.helper.outputWriter = &buf
+			r.Remote(tc.args)
+			if !strings.Contains(buf.String(), errMsg) {
+				t.Errorf("expected error %q in output, got: %q", errMsg, buf.String())
+			}
+		})
 	}
 }

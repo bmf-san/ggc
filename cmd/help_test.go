@@ -258,3 +258,37 @@ func TestHelper_ShowCommandHelp_EmptyExamples(t *testing.T) {
 		t.Error("Expected description in output")
 	}
 }
+
+func TestFormatExample(t *testing.T) {
+	if got := formatExample("ggc add .", "Add all"); got != "ggc add .  # Add all" {
+		t.Errorf("formatExample with summary = %q", got)
+	}
+	if got := formatExample("ggc add .", ""); got != "ggc add ." {
+		t.Errorf("formatExample no summary = %q", got)
+	}
+	if got := formatExample("  ggc add .  ", "Trim"); got != "ggc add .  # Trim" {
+		t.Errorf("formatExample trimmed usage = %q", got)
+	}
+}
+
+func TestFirstNonEmpty(t *testing.T) {
+	if got := firstNonEmpty([]string{"", "  ", "hello"}, "fallback"); got != "hello" {
+		t.Errorf("firstNonEmpty = %q, want hello", got)
+	}
+	if got := firstNonEmpty([]string{"", "  "}, "fallback"); got != "fallback" {
+		t.Errorf("firstNonEmpty all empty = %q, want fallback", got)
+	}
+	if got := firstNonEmpty(nil, "fb"); got != "fb" {
+		t.Errorf("firstNonEmpty nil = %q, want fb", got)
+	}
+}
+
+func TestUniqueStrings(t *testing.T) {
+	got := uniqueStrings([]string{"a", "b", "a", "c", "b"})
+	if len(got) != 3 {
+		t.Errorf("uniqueStrings len = %d, want 3", len(got))
+	}
+	if got := uniqueStrings(nil); len(got) != 0 {
+		t.Errorf("uniqueStrings nil = %v", got)
+	}
+}

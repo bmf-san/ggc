@@ -3,6 +3,7 @@ package interactive
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -2382,4 +2383,101 @@ func (m *mockRouterForExecute) Route(args []string) error {
 	}
 	m.routedCommands = append(m.routedCommands, args)
 	return nil
+}
+
+// mockStatusInfoReader is a minimal mock used for git_status error-branch tests.
+type mockStatusInfoReader struct {
+	currentBranch     string
+	currentBranchErr  error
+	statusOutput      string
+	statusErr         error
+	aheadBehindOutput string
+	aheadBehindErr    error
+	upstreamName      string
+	upstreamNameErr   error
+}
+
+func (m *mockStatusInfoReader) GetCurrentBranch() (string, error) {
+	return m.currentBranch, m.currentBranchErr
+}
+func (m *mockStatusInfoReader) StatusWithColor() (string, error) {
+	return m.statusOutput, m.statusErr
+}
+func (m *mockStatusInfoReader) StatusShortWithColor() (string, error) {
+	return m.statusOutput, m.statusErr
+}
+func (m *mockStatusInfoReader) GetAheadBehindCount(_, _ string) (string, error) {
+	return m.aheadBehindOutput, m.aheadBehindErr
+}
+func (m *mockStatusInfoReader) GetUpstreamBranchName(_ string) (string, error) {
+	return m.upstreamName, m.upstreamNameErr
+}
+
+func TestGetGitBranch_Error(t *testing.T) {
+	mock := &mockStatusInfoReader{currentBranchErr: errors.New("not a repo")}
+	result := getGitBranch(mock)
+	if result != "" {
+		t.Errorf("expected empty string on error, got %q", result)
+	}
+}
+
+func TestGetGitWorkingStatus_Error(t *testing.T) {
+	mock := &mockStatusInfoReader{
+		currentBranch: "main",
+		statusErr:     errors.New("git status failed"),
+	}
+	modified, staged := getGitWorkingStatus(mock)
+	if modified != 0 || staged != 0 {
+		t.Errorf("expected (0,0) on error, got (%d,%d)", modified, staged)
+	}
+}
+
+func TestGetGitRemoteStatus_Error(t *testing.T) {
+	mock := &mockStatusInfoReader{
+		currentBranch:  "main",
+		aheadBehindErr: errors.New("no upstream"),
+	}
+	ahead, behind := getGitRemoteStatus(mock)
+	if ahead != 0 || behind != 0 {
+		t.Errorf("expected (0,0) on error, got (%d,%d)", ahead, behind)
+	}
+}
+
+func TestGetGitRemoteStatus_MalformedOutput(t *testing.T) {
+	mock := &mockStatusInfoReader{
+		currentBranch:     "main",
+		aheadBehindOutput: "invalid-single-token",
+	}
+	ahead, behind := getGitRemoteStatus(mock)
+	if ahead != 0 || behind != 0 {
+		t.Errorf("expected (0,0) for malformed output, got (%d,%d)", ahead, behind)
+	}
+}
+
+func TestGetGitStatus_NilOnBranchError(t *testing.T) {
+	mock := &mockStatusInfoReader{currentBranchErr: errors.New("detached HEAD")}
+	status := getGitStatus(mock)
+	if status != nil {
+		t.Errorf("expected nil status when branch errors, got %+v", status)
+	}
+}
+
+func TestUIWorkflow_NilManagerGuards(t *testing.T) {
+	ui := &UI{} // workflowMgr is nil
+
+	if id := ui.AddToWorkflow("cmd", nil, "desc"); id != 0 {
+		t.Errorf("AddToWorkflow with nil manager should return 0, got %d", id)
+	}
+	ui.ClearWorkflow() // should not panic
+	if ws := ui.listWorkflows(); ws != nil {
+		t.Errorf("listWorkflows with nil manager should return nil")
+	}
+}
+
+func TestUIWorkflow_NilExecutorGuard(t *testing.T) {
+	ui := &UI{workflowMgr: NewWorkflowManager()} // workflowEx is nil
+	err := ui.ExecuteWorkflow()
+	if err == nil || err.Error() != "workflow executor not initialized" {
+		t.Errorf("ExecuteWorkflow with nil executor should return error, got %v", err)
+	}
 }

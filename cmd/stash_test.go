@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -377,5 +378,79 @@ func TestStasher_StashArgumentHandling(t *testing.T) {
 			stasher.Stash(tt.args)
 			tt.testFunc(t, stasher, buf)
 		})
+	}
+}
+
+// mockStashOpsWithErrors supports error injection for stash error-path tests.
+type mockStashOpsWithErrors struct {
+	stashErr error
+	listErr  error
+	clearErr error
+}
+
+func (m *mockStashOpsWithErrors) Stash() error               { return m.stashErr }
+func (m *mockStashOpsWithErrors) StashList() (string, error) { return "", m.listErr }
+func (m *mockStashOpsWithErrors) StashShow(_ string) error   { return nil }
+func (m *mockStashOpsWithErrors) StashApply(_ string) error  { return nil }
+func (m *mockStashOpsWithErrors) StashPop(_ string) error    { return nil }
+func (m *mockStashOpsWithErrors) StashPush(_ string) error   { return nil }
+func (m *mockStashOpsWithErrors) StashDrop(_ string) error   { return nil }
+func (m *mockStashOpsWithErrors) StashClear() error          { return m.clearErr }
+
+var _ git.StashOps = (*mockStashOpsWithErrors)(nil)
+
+func TestStasher_StashDefault_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockStashOpsWithErrors{stashErr: errors.New("stash failed")}
+	s := &Stasher{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	s.helper.outputWriter = &buf
+	s.stashDefault()
+	if !strings.Contains(buf.String(), "stash failed") {
+		t.Errorf("expected stash error, got: %s", buf.String())
+	}
+}
+
+func TestStasher_StashList_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockStashOpsWithErrors{listErr: errors.New("list failed")}
+	s := &Stasher{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	s.helper.outputWriter = &buf
+	s.stashList()
+	if !strings.Contains(buf.String(), "list failed") {
+		t.Errorf("expected list error, got: %s", buf.String())
+	}
+}
+
+func TestStasher_StashClear_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockStashOpsWithErrors{clearErr: errors.New("clear failed")}
+	s := &Stasher{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	s.helper.outputWriter = &buf
+	s.stashClear()
+	if !strings.Contains(buf.String(), "clear failed") {
+		t.Errorf("expected clear error, got: %s", buf.String())
+	}
+}
+
+func TestStasher_StashPush_ViaStash(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockStashOps{}
+	s := &Stasher{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	s.helper.outputWriter = &buf
+	// Dispatch through Stash with "push" and a message arg
+	s.Stash([]string{"push", "my message"})
+	if !mock.pushCalled {
+		t.Error("expected StashPush to be called")
+	}
+}
+
+func TestStasher_StashList_Empty(t *testing.T) {
+	var buf bytes.Buffer
+	mock := &mockStashOpsWithErrors{} // StashList returns ("", nil) → no stashes
+	s := &Stasher{gitClient: mock, outputWriter: &buf, helper: NewHelper()}
+	s.helper.outputWriter = &buf
+	s.stashList()
+	if !strings.Contains(buf.String(), "No stashes found") {
+		t.Errorf("expected 'No stashes found', got: %s", buf.String())
 	}
 }

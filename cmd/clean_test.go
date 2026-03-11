@@ -316,3 +316,31 @@ func TestCleaner_CleanInteractive_NothingSelected(t *testing.T) {
 		t.Error("Expected output to contain 'Invalid number: 10'")
 	}
 }
+
+func TestCleaner_Clean_DefaultArg(t *testing.T) {
+	var buf bytes.Buffer
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	cleaner.helper.outputWriter = &buf
+	cleaner.Clean([]string{"unknown"})
+	if !strings.Contains(buf.String(), "Usage") {
+		t.Errorf("expected usage/help for unknown arg, got %q", buf.String())
+	}
+}
+
+func TestCleaner_Clean_Interactive(t *testing.T) {
+	var buf bytes.Buffer
+	inputBuf := strings.NewReader("\n") // cancel immediately
+	cleaner := &Cleaner{
+		gitClient:    &mockCleanGitClient{cleanDryRunResult: ""},
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		prompter:     prompt.New(inputBuf, &buf),
+	}
+	cleaner.helper.outputWriter = &buf
+	cleaner.Clean([]string{"interactive"})
+	// Should not panic — CleanInteractive called, exits early with no files
+}

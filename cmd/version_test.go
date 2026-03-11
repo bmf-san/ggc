@@ -280,3 +280,114 @@ func TestVersioner_ShouldForceUpdateFromBuild(t *testing.T) {
 		})
 	}
 }
+
+func TestParseVersionSegments(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		want   []int
+		wantOk bool
+	}{
+		{name: "simple semver", input: "1.2.3", want: []int{1, 2, 3}, wantOk: true},
+		{name: "v prefix", input: "v2.0.0", want: []int{2, 0, 0}, wantOk: true},
+		{name: "prerelease stripped", input: "v1.2.3-beta", want: []int{1, 2, 3}, wantOk: true},
+		{name: "build meta stripped", input: "v1.2.3+build", want: []int{1, 2, 3}, wantOk: true},
+		{name: "empty string", input: "", want: nil, wantOk: false},
+		{name: "non-numeric part", input: "v1.x.3", want: nil, wantOk: false},
+		{name: "empty part from double dot", input: "v1..3", want: nil, wantOk: false},
+		{name: "only v prefix", input: "v", want: nil, wantOk: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := parseVersionSegments(tt.input)
+			if ok != tt.wantOk {
+				t.Errorf("parseVersionSegments(%q) ok=%t, want %t", tt.input, ok, tt.wantOk)
+			}
+			if ok && len(got) != len(tt.want) {
+				t.Errorf("parseVersionSegments(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+			for i := range tt.want {
+				if i < len(got) && got[i] != tt.want[i] {
+					t.Errorf("parseVersionSegments(%q)[%d] = %d, want %d", tt.input, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestSegmentAt(t *testing.T) {
+	segs := []int{1, 2, 3}
+	if got := segmentAt(segs, 1); got != 2 {
+		t.Errorf("segmentAt([1,2,3], 1) = %d, want 2", got)
+	}
+	if got := segmentAt(segs, 5); got != 0 {
+		t.Errorf("segmentAt([1,2,3], 5) = %d, want 0", got)
+	}
+}
+
+func TestVersioner_ShouldUpdateCommit(t *testing.T) {
+	v := &Versioner{}
+	tests := []struct {
+		newCommit     string
+		currentCommit string
+		want          bool
+	}{
+		{newCommit: "abc123", currentCommit: "unknown", want: true},
+		{newCommit: "abc123", currentCommit: "def456", want: true},
+		{newCommit: "abc123", currentCommit: "abc123", want: false},
+		{newCommit: "", currentCommit: "abc123", want: false},
+	}
+	for _, tt := range tests {
+		got := v.shouldUpdateCommit(tt.newCommit, tt.currentCommit)
+		if got != tt.want {
+			t.Errorf("shouldUpdateCommit(%q, %q) = %t, want %t", tt.newCommit, tt.currentCommit, got, tt.want)
+		}
+	}
+}
+
+func TestBuildUpdateValue(t *testing.T) {
+	alwaysTrue := func(_, _ string) bool { return true }
+	alwaysFalse := func(_, _ string) bool { return false }
+
+	tests := []struct {
+		name         string
+		newValue     string
+		currentValue string
+		force        bool
+		shouldUpdate func(string, string) bool
+		want         string
+	}{
+		{name: "empty new value", newValue: "", currentValue: "old", force: false, shouldUpdate: alwaysTrue, want: ""},
+		{name: "force update", newValue: "new", currentValue: "old", force: true, shouldUpdate: alwaysFalse, want: "new"},
+		{name: "shouldUpdate true", newValue: "new", currentValue: "old", force: false, shouldUpdate: alwaysTrue, want: "new"},
+		{name: "shouldUpdate false", newValue: "new", currentValue: "old", force: false, shouldUpdate: alwaysFalse, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildUpdateValue(tt.newValue, tt.currentValue, tt.force, tt.shouldUpdate)
+			if got != tt.want {
+				t.Errorf("buildUpdateValue(%q, %q, %t) = %q, want %q", tt.newValue, tt.currentValue, tt.force, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompareSemanticVersions_DifferentLengths(t *testing.T) {
+	// v1.0.0 vs v1.0 — longer one with trailing zeros should be equal
+	got, ok := compareSemanticVersions("v1.0.0", "v1.0")
+	if !ok {
+		t.Fatal("expected ok=true")
+	}
+	if got != 0 {
+		t.Errorf("compareSemanticVersions(v1.0.0, v1.0) = %d, want 0", got)
+	}
+	// v1.1 vs v1.0.9 — first is newer
+	got, ok = compareSemanticVersions("v1.1", "v1.0.9")
+	if !ok {
+		t.Fatal("expected ok=true")
+	}
+	if got != 1 {
+		t.Errorf("compareSemanticVersions(v1.1, v1.0.9) = %d, want 1", got)
+	}
+}
