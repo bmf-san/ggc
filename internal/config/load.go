@@ -60,6 +60,16 @@ func (cm *Manager) loadFromFileWithOps(path string, fileOps FileOps) error {
 
 	cm.syncFromGitConfig()
 	cm.config = config
+
+	// Validate only the workflows section on load so that invalid workflow
+	// definitions (bad names, metacharacters) are rejected before they are
+	// passed to LoadFromConfig. Full Validate() is deferred to Save() where
+	// it already ran before this change; calling it here would reject
+	// partial context-keybinding configs that are otherwise accepted.
+	if err := cm.config.validateWorkflows(); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
 	return nil
 }
 
