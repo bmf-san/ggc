@@ -121,6 +121,11 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, cfg *config.C
 		}
 	}
 
+	workflowMgr := NewWorkflowManager()
+	// Load pre-defined workflows from config so they are available immediately
+	// in the workflow panel. LoadFromConfig is a no-op for nil/empty maps.
+	workflowMgr.LoadFromConfig(cfg.Workflows)
+
 	ui := &UI{
 		stdin:       os.Stdin,
 		stdout:      os.Stdout,
@@ -132,13 +137,7 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, cfg *config.C
 		gitClient:   gitClient,
 		gitStatus:   getGitStatus(gitClient),
 		profile:     profile,
-		workflowMgr: NewWorkflowManager(),
-	}
-
-	// Load pre-defined workflows from config so they are available immediately
-	// in the workflow panel. The scratch workflow remains active.
-	if cfg != nil && len(cfg.Workflows) > 0 {
-		ui.workflowMgr.LoadFromConfig(cfg.Workflows)
+		workflowMgr: workflowMgr,
 	}
 
 	// Keep ContextManager alive via the onContextChange callback so it stays
