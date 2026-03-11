@@ -12,7 +12,8 @@ var (
 	gitRemoteNameCharsRe = regexp.MustCompile(`^[A-Za-z0-9._/\-]+$`)
 	configPathSegmentRe  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
-	aliasPlaceholderPattern = regexp.MustCompile(`\{([^}]*)\}`)
+	aliasPlaceholderPattern   = regexp.MustCompile(`\{([^}]*)\}`)
+	angleBracketPlaceholderRe = regexp.MustCompile(`<[^>]*>`)
 )
 
 // Config represents the complete configuration structure
@@ -76,7 +77,8 @@ type Config struct {
 		StashBeforeSwitch  bool   `yaml:"stash-before-switch"`
 	} `yaml:"behavior"`
 
-	Aliases map[string]interface{} `yaml:"aliases"`
+	Aliases   map[string]interface{} `yaml:"aliases"`
+	Workflows map[string][]string    `yaml:"workflows,omitempty"`
 
 	Git struct {
 		DefaultRemote string `yaml:"default-remote"`
