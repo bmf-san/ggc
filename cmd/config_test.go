@@ -498,3 +498,15 @@ func TestFormatAliasValue(t *testing.T) {
 		t.Errorf("formatAliasValue multi = %q", got)
 	}
 }
+
+func TestConfigurer_displayAliases_InvalidValue(t *testing.T) {
+	var buf bytes.Buffer
+	c := &Configurer{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	c.displayAliases(map[string]any{"bad-alias": 123})
+	if !strings.Contains(buf.String(), "<invalid alias") {
+		t.Errorf("expected invalid alias message, got: %s", buf.String())
+	}
+}

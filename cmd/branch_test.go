@@ -2094,3 +2094,87 @@ func TestBrancher_branchCheckoutRemote_CheckoutError(t *testing.T) {
 		t.Errorf("expected checkout error, got %q", buf.String())
 	}
 }
+
+func TestBrancher_HandleListCommand_NoArgs(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+	brancher.Branch([]string{"list"})
+	// no args to handleListCommand → early return, no output
+	if buf.Len() != 0 {
+		t.Errorf("expected no output for 'list' with no sub-arg, got: %s", buf.String())
+	}
+}
+
+func TestBrancher_HandleListCommand_Local(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+	brancher.Branch([]string{"list", "local"})
+	out := buf.String()
+	if !strings.Contains(out, "main") {
+		t.Errorf("expected 'main' in local branch list, got: %s", out)
+	}
+}
+
+func TestBrancher_HandleListCommand_Remote(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+	brancher.Branch([]string{"list", "remote"})
+	out := buf.String()
+	if !strings.Contains(out, "origin/main") {
+		t.Errorf("expected 'origin/main' in remote branch list, got: %s", out)
+	}
+}
+
+func TestBrancher_HandleListCommand_Verbose(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient:    &mockBranchGitClient{},
+		outputWriter: &buf,
+	}
+	brancher.Branch([]string{"list", "verbose"})
+	out := buf.String()
+	if !strings.Contains(out, "main") {
+		t.Errorf("expected 'main' in verbose branch list, got: %s", out)
+	}
+}
+
+func TestBrancher_BranchListLocal_Error(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient: &mockBranchGitClient{
+			listLocalBranches: func() ([]string, error) {
+				return nil, errors.New("list local error")
+			},
+		},
+		outputWriter: &buf,
+	}
+	brancher.Branch([]string{"list", "local"})
+	if !strings.Contains(buf.String(), "list local error") {
+		t.Errorf("expected error output, got: %s", buf.String())
+	}
+}
+
+func TestBrancher_BranchListRemote_Error(t *testing.T) {
+	var buf bytes.Buffer
+	brancher := &Brancher{
+		gitClient: &mockBranchGitClient{
+			listRemoteBranches: func() ([]string, error) {
+				return nil, errors.New("list remote error")
+			},
+		},
+		outputWriter: &buf,
+	}
+	brancher.Branch([]string{"list", "remote"})
+	if !strings.Contains(buf.String(), "list remote error") {
+		t.Errorf("expected error output, got: %s", buf.String())
+	}
+}

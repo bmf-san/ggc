@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/bmf-san/ggc/v8/internal/config"
 	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 	"github.com/bmf-san/ggc/v8/internal/termio"
 	"github.com/bmf-san/ggc/v8/internal/testutil"
@@ -2090,7 +2091,7 @@ func TestKeyHandler_ExecuteWorkflow(t *testing.T) {
 
 func TestWorkflowModeActions(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient, nil, nil)
+	ui := NewUI(gitClient, nil, &config.Config{})
 	ui.stdout = &bytes.Buffer{}
 	handler := ui.handler
 
@@ -2202,7 +2203,7 @@ func TestWorkflowErrorMessageExpires(t *testing.T) {
 
 func TestWorkflowRendererActiveList(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient, nil, nil)
+	ui := NewUI(gitClient, nil, &config.Config{})
 	ui.state.mode = ModeWorkflow
 	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil
@@ -2282,7 +2283,7 @@ func TestWorkflowListScrollOffset(t *testing.T) {
 
 func TestWorkflowRendererEmptyState(t *testing.T) {
 	gitClient := testutil.NewMockGitClient()
-	ui := NewUI(gitClient, nil, nil)
+	ui := NewUI(gitClient, nil, &config.Config{})
 	ui.state.mode = ModeWorkflow
 	ui.state.FocusWorkflowList()
 	ui.gitStatus = nil

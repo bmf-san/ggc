@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
 	"github.com/bmf-san/ggc/v8/internal/templates"
 )
 
@@ -290,5 +291,42 @@ func TestUniqueStrings(t *testing.T) {
 	}
 	if got := uniqueStrings(nil); len(got) != 0 {
 		t.Errorf("uniqueStrings nil = %v", got)
+	}
+}
+
+func TestHelper_RenderUnknownCommand(t *testing.T) {
+	var buf bytes.Buffer
+	h := NewHelper()
+	h.outputWriter = &buf
+	h.renderCommandFromRegistry("zzz-nonexistent-command", nil, "")
+	if !strings.Contains(buf.String(), "No help available for") {
+		t.Errorf("expected 'No help available for' in output, got: %s", buf.String())
+	}
+}
+
+func TestHelper_RegistryWithHiddenSubcmdAndFilter(t *testing.T) {
+	reg := commandregistry.NewRegistryWith([]commandregistry.Info{
+		{
+			Name:    "testhelpcmd",
+			Summary: "Test help command",
+			Subcommands: []commandregistry.SubcommandInfo{
+				{Name: "testhelpcmd hidden-sub", Hidden: true, Summary: "hidden"},
+			},
+		},
+	})
+	var buf bytes.Buffer
+	h := NewHelper(reg)
+	h.outputWriter = &buf
+	filter := func(sub commandregistry.SubcommandInfo) bool { return false }
+	h.renderCommandFromRegistryWithFilter("testhelpcmd", nil, "", filter)
+	if buf.Len() == 0 {
+		t.Error("expected some output")
+	}
+}
+
+func TestUniqueStrings_EmptyStringsFiltered(t *testing.T) {
+	got := uniqueStrings([]string{"a", "", "b", "  ", "a"})
+	if len(got) != 2 {
+		t.Errorf("uniqueStrings with empties: got %d items %v, want 2", len(got), got)
 	}
 }
