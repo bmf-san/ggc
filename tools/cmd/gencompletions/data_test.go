@@ -121,10 +121,10 @@ func TestEscapeFunctions(t *testing.T) {
 		t.Errorf("escapeZsh = %q, want %q", got, "it'\\''s")
 	}
 	if got := escapeFish(`say "hi"`); got != `say \"hi\"` {
-		t.Errorf("escapeFish = %q", got)
+		t.Errorf("escapeFish = %q, want %q", got, `say \"hi\"`)
 	}
 	if got := escapeBash(`say "hi"`); got != `say \"hi\"` {
-		t.Errorf("escapeBash = %q", got)
+		t.Errorf("escapeBash = %q, want %q", got, `say \"hi\"`)
 	}
 }
 
