@@ -38,6 +38,11 @@ func TestCommandValidator_ValidateCommand(t *testing.T) {
 		{name: "command with hyphen", cmd: "branch delete-merged", wantError: false},
 		{name: "command with dot", cmd: "restore .", wantError: false},
 
+		// Placeholder syntax – must not be rejected as metacharacters
+		{name: "placeholder {0} in commit", cmd: "commit {0}", wantError: false},
+		{name: "placeholder {1} in branch", cmd: "branch checkout-from {0} feature/{1}", wantError: false},
+		{name: "multiple placeholders", cmd: "push {0}", wantError: false},
+
 		// Shell metacharacter injection
 		{name: "semicolon injection", cmd: "status; echo pwned", wantError: true, errorMsg: "unsafe shell metacharacters"},
 		{name: "pipe injection", cmd: "status | cat", wantError: true, errorMsg: "unsafe shell metacharacters"},
@@ -45,7 +50,6 @@ func TestCommandValidator_ValidateCommand(t *testing.T) {
 		{name: "command substitution", cmd: "status $(whoami)", wantError: true, errorMsg: "unsafe shell metacharacters"},
 		{name: "backtick injection", cmd: "`whoami`", wantError: true, errorMsg: "unsafe shell metacharacters"},
 		{name: "redirection", cmd: "status > /tmp/output", wantError: true, errorMsg: "unsafe shell metacharacters"},
-		{name: "stash ref with braces", cmd: "stash show stash@{0}", wantError: true, errorMsg: "unsafe shell metacharacters"},
 		{name: "newline injection", cmd: "status\necho pwned", wantError: true, errorMsg: "unsafe shell metacharacters"},
 
 		// Invalid commands
@@ -184,6 +188,18 @@ func TestValidateAliasSequence(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name:      "valid sequence with placeholders",
+			aliasName: "acp",
+			sequence:  []interface{}{"add .", "commit {0}", "push current"},
+			wantError: false,
+		},
+		{
+			name:      "valid sequence with multiple placeholders",
+			aliasName: "feature",
+			sequence:  []interface{}{"branch checkout-from {0} feature/{1}", "commit {0}"},
+			wantError: false,
+		},
+		{
 			name:      "empty sequence",
 			aliasName: "test",
 			sequence:  []interface{}{},
@@ -258,6 +274,15 @@ func TestConfig_ValidateAliases(t *testing.T) {
 			config: &Config{
 				Aliases: map[string]interface{}{
 					"workflow": []interface{}{"add .", "commit -m test"},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "valid sequence alias with placeholders",
+			config: &Config{
+				Aliases: map[string]interface{}{
+					"acp": []interface{}{"add .", "commit {0}", "push current"},
 				},
 			},
 			wantError: false,

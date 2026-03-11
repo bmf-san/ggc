@@ -62,12 +62,17 @@ func SetValidCommandNames(names []string) {
 // It checks for both shell metacharacters and valid command names.
 //
 // Returns an error if:
-//   - The command contains shell metacharacters
+//   - The command contains shell metacharacters outside of placeholder tokens
 //   - The command name is not a valid ggc command (when the whitelist has been
 //     populated via SetValidCommandNames)
 func (v *commandValidator) validateCommand(cmd string) error {
+	// Strip alias placeholder tokens (e.g. {0}, {1}) before the metacharacter
+	// check. Placeholders are documented syntax for sequence aliases and must
+	// not be falsely rejected as shell brace-expansion metacharacters.
+	cleaned := aliasPlaceholderPattern.ReplaceAllString(cmd, "")
+
 	// Check for shell metacharacters first (fast path)
-	if strings.ContainsAny(cmd, shellMetacharacters) {
+	if strings.ContainsAny(cleaned, shellMetacharacters) {
 		return fmt.Errorf("command '%s' contains unsafe shell metacharacters (;|&<>(){}[]$`)", cmd)
 	}
 
