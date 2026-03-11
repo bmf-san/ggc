@@ -121,6 +121,11 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, cfg *config.C
 		}
 	}
 
+	workflowMgr := NewWorkflowManager()
+	// Load pre-defined workflows from config so they are available immediately
+	// in the workflow panel. LoadFromConfig is a no-op for nil/empty maps.
+	workflowMgr.LoadFromConfig(cfg.Workflows)
+
 	ui := &UI{
 		stdin:       os.Stdin,
 		stdout:      os.Stdout,
@@ -132,8 +137,9 @@ func NewUI(gitClient git.StatusInfoReader, commands []CommandInfo, cfg *config.C
 		gitClient:   gitClient,
 		gitStatus:   getGitStatus(gitClient),
 		profile:     profile,
-		workflowMgr: NewWorkflowManager(),
+		workflowMgr: workflowMgr,
 	}
+
 	// Keep ContextManager alive via the onContextChange callback so it stays
 	// in sync with UIState; the field was removed from UI (Problem I fix).
 	state.onContextChange = func(_ kb.Context, newCtx kb.Context) {

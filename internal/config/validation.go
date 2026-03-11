@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -87,6 +88,58 @@ func (c *Config) validateGitDefaultRemote() error {
 	return nil
 }
 
+// validateWorkflows validates all workflows defined in the configuration.
+// Workflow names must be non-empty and contain no spaces. Each workflow must
+// have at least one step, and each step must be a non-empty command string that
+// does not contain shell metacharacters.
+//
+// Two placeholder syntaxes are permitted within step strings:
+//   - Interactive placeholder syntax: <name> (angle brackets, e.g. "commit <message>").
+//     These are stripped before the metacharacter check via angleBracketPlaceholderRe.
+//   - Alias-style positional placeholders: {0}, {1}, … (curly braces, e.g. "commit {0}").
+//     These are stripped by defaultValidator.validateCommand via aliasPlaceholderPattern.
+func (c *Config) validateWorkflows() error {
+	for name, steps := range c.Workflows {
+		if strings.TrimSpace(name) == "" || strings.Contains(name, " ") {
+			return &ValidationError{
+				Field:   "workflows." + name,
+				Value:   name,
+				Message: "workflow names must not be empty or contain spaces",
+			}
+		}
+		if len(steps) == 0 {
+			return &ValidationError{
+				Field:   "workflows." + name,
+				Value:   name,
+				Message: "workflow must have at least one step",
+			}
+		}
+		for i, step := range steps {
+			if strings.TrimSpace(step) == "" {
+				return &ValidationError{
+					Field:   fmt.Sprintf("workflows.%s[%d]", name, i),
+					Value:   step,
+					Message: "step command must not be empty",
+				}
+			}
+			// Strip <placeholder> tokens (interactive workflow syntax) before
+			// the metacharacter check so that e.g. "commit <message>" is valid.
+			// Note: alias-style placeholders like {0} are stripped by
+			// defaultValidator.validateCommand, so both forms are permitted
+			// in workflow step commands.
+			cleaned := angleBracketPlaceholderRe.ReplaceAllString(step, "")
+			if err := defaultValidator.validateCommand(cleaned); err != nil {
+				return &ValidationError{
+					Field:   fmt.Sprintf("workflows.%s[%d]", name, i),
+					Value:   step,
+					Message: err.Error(),
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // Validate is a function that handles validation operations
 func (c *Config) Validate() error {
 	if err := c.validateBranch(); err != nil {
@@ -105,6 +158,9 @@ func (c *Config) Validate() error {
 		return err
 	}
 	if err := c.validateKeybindings(); err != nil {
+		return err
+	}
+	if err := c.validateWorkflows(); err != nil {
 		return err
 	}
 	return nil
