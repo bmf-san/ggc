@@ -60,6 +60,11 @@ func (cm *Manager) loadFromFileWithOps(path string, fileOps FileOps) error {
 
 	cm.syncFromGitConfig()
 	cm.config = config
+
+	if err := cm.config.Validate(); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
 	return nil
 }
 
