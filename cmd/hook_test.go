@@ -550,30 +550,30 @@ func TestHooker_copyFile(t *testing.T) {
 	}
 }
 func TestHooker_withName_CallsHandler(t *testing.T) {
-        tmpDir := t.TempDir()
-        originalDir, _ := os.Getwd()
-        if err := os.Chdir(tmpDir); err != nil {
-                t.Fatalf("failed to chdir: %v", err)
-        }
-        defer func() {
-                if err := os.Chdir(originalDir); err != nil {
-                        t.Fatalf("failed to restore dir: %v", err)
-                }
-        }()
+	tmpDir := t.TempDir()
+	originalDir, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Fatalf("failed to restore dir: %v", err)
+		}
+	}()
 
-        if err := os.MkdirAll(filepath.Join(tmpDir, ".git", "hooks"), 0755); err != nil {
-                t.Fatalf("failed to create hooks dir: %v", err)
-        }
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".git", "hooks"), 0755); err != nil {
+		t.Fatalf("failed to create hooks dir: %v", err)
+	}
 
-        var buf bytes.Buffer
-        h := &Hooker{
-                outputWriter: &buf,
-                helper:       NewHelper(),
-                execCommand:  exec.Command,
-        }
-        h.helper.outputWriter = &buf
-        // Provide a name argument so withName calls f(rest[0]) — covers line 62 of hook.go
-        h.Hook([]string{"enable", "pre-commit"})
-        // Hook not found is expected output; just verify no panic
-        _ = buf.String()
+	var buf bytes.Buffer
+	h := &Hooker{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+	h.helper.outputWriter = &buf
+	// Provide a name argument so withName calls f(rest[0]) — covers line 62 of hook.go
+	h.Hook([]string{"enable", "pre-commit"})
+	// Hook not found is expected output; just verify no panic
+	_ = buf.String()
 }
