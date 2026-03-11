@@ -621,13 +621,7 @@ func TestHandleProfileSwitchCommand_PreviewNoArg(t *testing.T) {
 // ─── DetectTerminal: cover all TERM_PROGRAM and TERM branches ─────────────────
 
 func TestDetectTerminal_TermProgram(t *testing.T) {
-	orig := os.Getenv("TERM_PROGRAM")
-	origTERM := os.Getenv("TERM")
-	t.Cleanup(func() {
-		os.Setenv("TERM_PROGRAM", orig)
-		os.Setenv("TERM", origTERM)
-	})
-	os.Setenv("TERM", "")
+	t.Setenv("TERM", "")
 
 	cases := []struct {
 		prog string
@@ -639,7 +633,7 @@ func TestDetectTerminal_TermProgram(t *testing.T) {
 		{"Hyper", "hyper"},
 	}
 	for _, c := range cases {
-		os.Setenv("TERM_PROGRAM", c.prog)
+		t.Setenv("TERM_PROGRAM", c.prog)
 		if got := DetectTerminal(); got != c.want {
 			t.Errorf("TERM_PROGRAM=%q: want %q, got %q", c.prog, c.want, got)
 		}
@@ -647,13 +641,7 @@ func TestDetectTerminal_TermProgram(t *testing.T) {
 }
 
 func TestDetectTerminal_TERM(t *testing.T) {
-	origProg := os.Getenv("TERM_PROGRAM")
-	origTERM := os.Getenv("TERM")
-	t.Cleanup(func() {
-		os.Setenv("TERM_PROGRAM", origProg)
-		os.Setenv("TERM", origTERM)
-	})
-	os.Setenv("TERM_PROGRAM", "")
+	t.Setenv("TERM_PROGRAM", "")
 
 	cases := []struct {
 		term string
@@ -672,7 +660,7 @@ func TestDetectTerminal_TERM(t *testing.T) {
 		{"", "generic"},
 	}
 	for _, c := range cases {
-		os.Setenv("TERM", c.term)
+		t.Setenv("TERM", c.term)
 		if got := DetectTerminal(); got != c.want {
 			t.Errorf("TERM=%q: want %q, got %q", c.term, c.want, got)
 		}
