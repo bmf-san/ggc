@@ -2,6 +2,7 @@ package interactive
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -238,6 +239,9 @@ func (m *WorkflowManager) ClearWorkflow(id int) bool {
 // the remainder are arguments. Interactive placeholder syntax (<name>) is
 // supported and preserved in the step description.
 //
+// Workflows are inserted in alphabetical order by name so that the order shown
+// in ListWorkflows / the UI cycling key is stable and predictable across runs.
+//
 // The scratch workflow that was active before the call is restored as active
 // afterwards so the user can start typing immediately in the UI.
 func (m *WorkflowManager) LoadFromConfig(workflows map[string][]string) {
@@ -252,7 +256,16 @@ func (m *WorkflowManager) LoadFromConfig(workflows map[string][]string) {
 	// so we can restore it after loading pre-defined ones.
 	activeBeforeLoad := m.activeID
 
-	for name, steps := range workflows {
+	// Sort names so insertion order — and therefore the order shown by
+	// ListWorkflows and cycled in the UI — is deterministic across runs.
+	names := make([]string, 0, len(workflows))
+	for name := range workflows {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		steps := workflows[name]
 		wf := NewWorkflow()
 		for _, cmdStr := range steps {
 			parts := strings.Fields(cmdStr)
