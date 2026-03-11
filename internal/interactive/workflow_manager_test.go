@@ -80,3 +80,34 @@ func TestWorkflowManagerCloneWorkflow(t *testing.T) {
 		t.Fatal("expected SetActive to fail for missing workflow")
 	}
 }
+
+func TestWorkflowManager_CycleActive(t *testing.T) {
+	mgr := NewWorkflowManager()
+	// NewWorkflowManager creates one default workflow (id=1), so manager is not empty.
+	// Add two more so we have three total.
+	id2 := mgr.CreateWorkflow("wf2")
+	id3 := mgr.CreateWorkflow("wf3")
+	id1 := 1 // the default workflow
+
+	mgr.SetActive(id1)
+
+	// forward cycle: id1 → id2
+	got := mgr.CycleActive(1)
+	if got != id2 {
+		t.Errorf("CycleActive(1) from id1 = %d, want %d", got, id2)
+	}
+
+	// forward past end wraps around: id3 → id1
+	mgr.SetActive(id3)
+	got = mgr.CycleActive(1)
+	if got != id1 {
+		t.Errorf("CycleActive(1) from id3 wraps = %d, want %d", got, id1)
+	}
+
+	// backward cycle: id1 → id3
+	mgr.SetActive(id1)
+	got = mgr.CycleActive(-1)
+	if got != id3 {
+		t.Errorf("CycleActive(-1) from id1 = %d, want %d", got, id3)
+	}
+}

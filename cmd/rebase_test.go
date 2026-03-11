@@ -368,3 +368,36 @@ func TestRebaser_Rebase_AutosquashSubcommand(t *testing.T) {
 		t.Error("RebaseInteractiveAutosquash should have been called via autosquash subcommand")
 	}
 }
+
+func TestRebaser_HandleRebaseContinue_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{RebaseContinueErr: errors.New("continue failed")}
+	r := &Rebaser{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleRebaseContinue()
+	if !strings.Contains(buf.String(), "continue failed") {
+		t.Errorf("expected error message, got: %s", buf.String())
+	}
+}
+
+func TestRebaser_HandleRebaseAbort_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{RebaseAbortErr: errors.New("abort failed")}
+	r := &Rebaser{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleRebaseAbort()
+	if !strings.Contains(buf.String(), "abort failed") {
+		t.Errorf("expected error message, got: %s", buf.String())
+	}
+}
+
+func TestRebaser_HandleRebaseSkip_Error(t *testing.T) {
+	var buf bytes.Buffer
+	mockClient := &mockAddGitClient{RebaseSkipErr: errors.New("skip failed")}
+	r := &Rebaser{gitClient: mockClient, outputWriter: &buf, helper: NewHelper()}
+	r.helper.outputWriter = &buf
+	r.handleRebaseSkip()
+	if !strings.Contains(buf.String(), "skip failed") {
+		t.Errorf("expected error message, got: %s", buf.String())
+	}
+}

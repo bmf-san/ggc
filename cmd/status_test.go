@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -374,5 +375,71 @@ func TestParseCounts(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// mockStatusInfoReaderWithErrors allows injecting errors for specific methods.
+type mockStatusInfoReaderWithErrors struct {
+	mockStatusInfoReader
+	upstreamBranchErr  error
+	aheadBehindErr     error
+	aheadBehindBadResp bool
+}
+
+func (m *mockStatusInfoReaderWithErrors) GetUpstreamBranchName(_ string) (string, error) {
+	if m.upstreamBranchErr != nil {
+		return "", m.upstreamBranchErr
+	}
+	return "origin/main", nil
+}
+
+func (m *mockStatusInfoReaderWithErrors) GetAheadBehindCount(_, _ string) (string, error) {
+	if m.aheadBehindErr != nil {
+		return "", m.aheadBehindErr
+	}
+	if m.aheadBehindBadResp {
+		return "bad-single-token", nil
+	}
+	return "0 0", nil
+}
+
+var _ git.StatusInfoReader = (*mockStatusInfoReaderWithErrors)(nil)
+
+func TestGetUpstreamStatus_UpstreamError(t *testing.T) {
+	buf := &bytes.Buffer{}
+	mock := &mockStatusInfoReaderWithErrors{
+		upstreamBranchErr: errors.New("no upstream"),
+	}
+	s := &Statuser{gitClient: mock, outputWriter: buf, helper: NewHelper()}
+	s.helper.outputWriter = buf
+	result := s.getUpstreamStatus("main")
+	if result != "" {
+		t.Errorf("expected empty string on upstream error, got %q", result)
+	}
+}
+
+func TestGetUpstreamStatus_AheadBehindError(t *testing.T) {
+	buf := &bytes.Buffer{}
+	mock := &mockStatusInfoReaderWithErrors{
+		aheadBehindErr: errors.New("no tracking info"),
+	}
+	s := &Statuser{gitClient: mock, outputWriter: buf, helper: NewHelper()}
+	s.helper.outputWriter = buf
+	result := s.getUpstreamStatus("main")
+	if !strings.Contains(result, "up to date") {
+		t.Errorf("expected up-to-date message on ahead/behind error, got %q", result)
+	}
+}
+
+func TestGetUpstreamStatus_MalformedOutput(t *testing.T) {
+	buf := &bytes.Buffer{}
+	mock := &mockStatusInfoReaderWithErrors{
+		aheadBehindBadResp: true,
+	}
+	s := &Statuser{gitClient: mock, outputWriter: buf, helper: NewHelper()}
+	s.helper.outputWriter = buf
+	result := s.getUpstreamStatus("main")
+	if !strings.Contains(result, "up to date") {
+		t.Errorf("expected up-to-date message for malformed output, got %q", result)
 	}
 }

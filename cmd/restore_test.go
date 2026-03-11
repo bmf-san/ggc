@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -289,5 +290,72 @@ func TestRestorer_CommitDetection(t *testing.T) {
 			restorer.Restore(tt.args)
 			tt.testFunc(t, restorer, buf)
 		})
+	}
+}
+
+// mockRestoreOpsWithErrors is a variant of mockRestoreOps that can return errors.
+type mockRestoreOpsWithErrors struct {
+	mockRestoreOps
+	restoreStagedErr error
+}
+
+func (m *mockRestoreOpsWithErrors) RestoreStaged(paths ...string) error {
+	m.restoreStagedCalled = true
+	m.paths = paths
+	return m.restoreStagedErr
+}
+
+var _ git.RestoreOps = (*mockRestoreOpsWithErrors)(nil)
+
+func TestRestorer_RestoreStaged_EmptyPaths(t *testing.T) {
+	buf := &bytes.Buffer{}
+	mockClient := &mockRestoreOps{}
+	r := &Restorer{
+		gitClient:    mockClient,
+		outputWriter: buf,
+		helper:       NewHelper(),
+	}
+	r.helper.outputWriter = buf
+	// "staged" with no following paths → ShowRestoreHelp
+	r.Restore([]string{"staged"})
+	if !strings.Contains(buf.String(), "Usage") && !strings.Contains(buf.String(), "usage") {
+		t.Errorf("expected help output for empty staged paths, got %q", buf.String())
+	}
+}
+
+func TestRestorer_RestoreStaged_Error(t *testing.T) {
+	buf := &bytes.Buffer{}
+	mockClient := &mockRestoreOpsWithErrors{
+		restoreStagedErr: errors.New("staged restore failed"),
+	}
+	r := &Restorer{
+		gitClient:    mockClient,
+		outputWriter: buf,
+		helper:       NewHelper(),
+	}
+	r.helper.outputWriter = buf
+	r.Restore([]string{"staged", "file.txt"})
+	if !strings.Contains(buf.String(), "staged restore failed") {
+		t.Errorf("expected error output, got %q", buf.String())
+	}
+}
+
+func TestIsHexObjectName(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{input: "abc1234", want: true},
+		{input: "abc123", want: false},
+		{input: "ABCDEF1", want: true},
+		{input: "xyz1234", want: false},
+		{input: "abc123g", want: false},
+		{input: "0000000000000000000000000000000000000000", want: true},
+		{input: string(make([]byte, 65)), want: false},
+	}
+	for _, tt := range tests {
+		if got := isHexObjectName(tt.input); got != tt.want {
+			t.Errorf("isHexObjectName(%q) = %t, want %t", tt.input, got, tt.want)
+		}
 	}
 }

@@ -356,3 +356,48 @@ func TestNewRegistryWith(t *testing.T) {
 		t.Fatalf("expected custom commands, got %v", cmds)
 	}
 }
+
+func TestCategoryOrder_KnownCategories(t *testing.T) {
+	tests := []struct {
+		cat  Category
+		want int
+	}{
+		{CategoryBasics, 1},
+		{CategoryBranch, 2},
+		{CategoryCommit, 3},
+		{CategoryRemote, 4},
+		{CategoryStatus, 5},
+		{CategoryCleanup, 6},
+		{CategoryDiff, 7},
+		{CategoryTag, 8},
+		{CategoryConfig, 9},
+		{CategoryHook, 10},
+		{CategoryRebase, 11},
+		{CategoryStash, 12},
+		{CategoryUtility, 13},
+	}
+	for _, tt := range tests {
+		if got := CategoryOrder(tt.cat); got != tt.want {
+			t.Errorf("CategoryOrder(%q) = %d, want %d", tt.cat, got, tt.want)
+		}
+	}
+}
+
+func TestCategoryOrder_Unknown(t *testing.T) {
+	if got := CategoryOrder(Category("unknown")); got != 999 {
+		t.Errorf("CategoryOrder(unknown) = %d, want 999", got)
+	}
+}
+
+func TestOrderedCategories(t *testing.T) {
+	cats := OrderedCategories()
+	if len(cats) != 13 {
+		t.Fatalf("OrderedCategories() returned %d categories, want 13", len(cats))
+	}
+	if cats[0] != CategoryBasics {
+		t.Errorf("first category = %q, want %q", cats[0], CategoryBasics)
+	}
+	if cats[len(cats)-1] != CategoryUtility {
+		t.Errorf("last category = %q, want %q", cats[len(cats)-1], CategoryUtility)
+	}
+}

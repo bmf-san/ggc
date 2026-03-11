@@ -463,3 +463,50 @@ func TestParseValue(t *testing.T) {
 		})
 	}
 }
+
+func TestParseAliasValue(t *testing.T) {
+	// string input
+	got, err := parseAliasValue("branch checkout")
+	if err != nil || len(got) != 1 || got[0] != "branch checkout" {
+		t.Errorf("parseAliasValue(string) = %v, %v", got, err)
+	}
+
+	// []interface{} input
+	got, err = parseAliasValue([]interface{}{"add .", "commit main", "push current"})
+	if err != nil || len(got) != 3 {
+		t.Errorf("parseAliasValue([]interface{}) = %v, %v", got, err)
+	}
+
+	// []interface{} with non-string item
+	_, err = parseAliasValue([]interface{}{"ok", 42})
+	if err == nil {
+		t.Error("expected error for non-string item in alias list")
+	}
+
+	// unexpected type
+	_, err = parseAliasValue(123)
+	if err == nil {
+		t.Error("expected error for unexpected type")
+	}
+}
+
+func TestFormatAliasValue(t *testing.T) {
+	if got := formatAliasValue([]string{"branch checkout"}); got != "branch checkout" {
+		t.Errorf("formatAliasValue single = %q", got)
+	}
+	if got := formatAliasValue([]string{"add .", "commit main", "push current"}); got != "[add . -> commit main -> push current]" {
+		t.Errorf("formatAliasValue multi = %q", got)
+	}
+}
+
+func TestConfigurer_displayAliases_InvalidValue(t *testing.T) {
+	var buf bytes.Buffer
+	c := &Configurer{
+		outputWriter: &buf,
+		helper:       NewHelper(),
+	}
+	c.displayAliases(map[string]any{"bad-alias": 123})
+	if !strings.Contains(buf.String(), "<invalid alias") {
+		t.Errorf("expected invalid alias message, got: %s", buf.String())
+	}
+}

@@ -600,3 +600,69 @@ func TestTagger_Show_ErrorOutputs(t *testing.T) {
 		t.Fatalf("expected error output, got: %q", got)
 	}
 }
+
+func TestTagger_ListTags_Error(t *testing.T) {
+	m := &mockTagOps{errList: errors.New("list error")}
+	var buf bytes.Buffer
+	tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+	tg.helper.outputWriter = &buf
+	tg.listTags(nil)
+	if !strings.Contains(buf.String(), "list error") {
+		t.Errorf("expected list error, got: %s", buf.String())
+	}
+}
+
+func TestTagger_CreateTag_Error(t *testing.T) {
+	m := &mockTagOps{errCreate: errors.New("create error")}
+	var buf bytes.Buffer
+	tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+	tg.helper.outputWriter = &buf
+	tg.createTag([]string{"v1.0.0"})
+	if !strings.Contains(buf.String(), "create error") {
+		t.Errorf("expected create error, got: %s", buf.String())
+	}
+}
+
+func TestTagger_CreateTag_WithCommit_Error(t *testing.T) {
+	m := &mockTagOps{errCreate: errors.New("create commit error")}
+	var buf bytes.Buffer
+	tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+	tg.helper.outputWriter = &buf
+	tg.createTag([]string{"v1.0.0", "abc123"})
+	if !strings.Contains(buf.String(), "create commit error") {
+		t.Errorf("expected create-commit error, got: %s", buf.String())
+	}
+}
+
+func TestTagger_DeleteTags_Error(t *testing.T) {
+	m := &mockTagOps{errDelete: errors.New("delete error")}
+	var buf bytes.Buffer
+	tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+	tg.helper.outputWriter = &buf
+	tg.deleteTags([]string{"v1.0.0"})
+	if !strings.Contains(buf.String(), "delete error") {
+		t.Errorf("expected delete error, got: %s", buf.String())
+	}
+}
+
+func TestTagger_PushTags_AllError(t *testing.T) {
+	m := &mockTagOps{errPushAll: errors.New("push all error")}
+	var buf bytes.Buffer
+	tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+	tg.helper.outputWriter = &buf
+	tg.pushTags(nil) // no args = push all
+	if !strings.Contains(buf.String(), "push all error") {
+		t.Errorf("expected push all error, got: %s", buf.String())
+	}
+}
+
+func TestTagger_PushTags_SpecificError(t *testing.T) {
+	m := &mockTagOps{errPush: errors.New("push error")}
+	var buf bytes.Buffer
+	tg := &Tagger{gitClient: m, outputWriter: &buf, helper: NewHelper()}
+	tg.helper.outputWriter = &buf
+	tg.pushTags([]string{"v1.0.0"}) // 1 arg = push specific tag
+	if !strings.Contains(buf.String(), "push error") {
+		t.Errorf("expected push error, got: %s", buf.String())
+	}
+}
