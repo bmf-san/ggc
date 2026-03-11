@@ -1,6 +1,8 @@
 package keybindings
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -613,5 +615,408 @@ func TestHandleProfileSwitchCommand_PreviewNoArg(t *testing.T) {
 	ps := newTestSwitcher()
 	if err := HandleProfileSwitchCommand(ps, "preview"); err == nil {
 		t.Error("expected error for preview without arg")
+	}
+}
+
+// ─── DetectTerminal: cover all TERM_PROGRAM and TERM branches ─────────────────
+
+func TestDetectTerminal_TermProgram(t *testing.T) {
+	orig := os.Getenv("TERM_PROGRAM")
+	origTERM := os.Getenv("TERM")
+	t.Cleanup(func() {
+		os.Setenv("TERM_PROGRAM", orig)
+		os.Setenv("TERM", origTERM)
+	})
+	os.Setenv("TERM", "")
+
+	cases := []struct {
+		prog string
+		want string
+	}{
+		{"iTerm.app", "iterm"},
+		{"Apple_Terminal", "terminal"},
+		{"vscode", "vscode"},
+		{"Hyper", "hyper"},
+	}
+	for _, c := range cases {
+		os.Setenv("TERM_PROGRAM", c.prog)
+		if got := DetectTerminal(); got != c.want {
+			t.Errorf("TERM_PROGRAM=%q: want %q, got %q", c.prog, c.want, got)
+		}
+	}
+}
+
+func TestDetectTerminal_TERM(t *testing.T) {
+	origProg := os.Getenv("TERM_PROGRAM")
+	origTERM := os.Getenv("TERM")
+	t.Cleanup(func() {
+		os.Setenv("TERM_PROGRAM", origProg)
+		os.Setenv("TERM", origTERM)
+	})
+	os.Setenv("TERM_PROGRAM", "")
+
+	cases := []struct {
+		term string
+		want string
+	}{
+		{"tmux-256color", "tmux"},
+		{"screen-256color", "screen"},
+		{"xterm-256color", "xterm"},
+		{"alacritty", "alacritty"},
+		{"kitty", "kitty"},
+		{"wezterm", "wezterm"},
+		{"konsole-256color", "konsole"},
+		{"gnome-256color", "gnome-terminal"},
+		{"rxvt-unicode", "rxvt"},
+		{"dumb", "dumb"},
+		{"", "generic"},
+	}
+	for _, c := range cases {
+		os.Setenv("TERM", c.term)
+		if got := DetectTerminal(); got != c.want {
+			t.Errorf("TERM=%q: want %q, got %q", c.term, c.want, got)
+		}
+	}
+}
+
+// ─── GetTerminalCapabilities: cover all missing terminal branches ─────────────
+
+func TestGetTerminalCapabilities_StandardTerminals(t *testing.T) {
+	for _, terminal := range []string{"xterm", "gnome-terminal", "konsole"} {
+		caps := GetTerminalCapabilities(terminal)
+		if !caps["alt_keys"] {
+			t.Errorf("%s: expected alt_keys=true", terminal)
+		}
+		if caps["mouse"] {
+			t.Errorf("%s: expected mouse=false", terminal)
+		}
+	}
+}
+
+func TestGetTerminalCapabilities_Multiplexers(t *testing.T) {
+	for _, terminal := range []string{"tmux", "screen"} {
+		caps := GetTerminalCapabilities(terminal)
+		if !caps["alt_keys"] {
+			t.Errorf("%s: expected alt_keys=true", terminal)
+		}
+		if caps["mouse"] {
+			t.Errorf("%s: expected mouse=false", terminal)
+		}
+	}
+}
+
+func TestGetTerminalCapabilities_MacTerminal(t *testing.T) {
+	caps := GetTerminalCapabilities("terminal")
+	if !caps["alt_keys"] {
+		t.Error("terminal: expected alt_keys=true")
+	}
+	if caps["mouse"] {
+		t.Error("terminal: expected mouse=false")
+	}
+}
+
+func TestGetTerminalCapabilities_Generic(t *testing.T) {
+	caps := GetTerminalCapabilities("generic")
+	if !caps["alt_keys"] {
+		t.Error("generic: expected alt_keys=true")
+	}
+	if caps["function_keys"] {
+		t.Error("generic: expected function_keys=false")
+	}
+	if caps["mouse"] {
+		t.Error("generic: expected mouse=false")
+	}
+}
+
+func TestGetTerminalCapabilities_Unknown(t *testing.T) {
+	caps := GetTerminalCapabilities("unknown-terminal-xyz")
+	// default branch — same as generic
+	if caps["mouse"] {
+		t.Error("unknown terminal: expected mouse=false")
+	}
+}
+
+// ─── GetPlatformSpecificKeyBindings: cover linux, windows, default ────────────
+
+func TestGetPlatformSpecificKeyBindings_Linux(t *testing.T) {
+	bindings := GetPlatformSpecificKeyBindings("linux")
+	ks, ok := bindings["delete_word"]
+	if !ok {
+		t.Fatal("linux: expected delete_word binding")
+	}
+	if len(ks) == 0 {
+		t.Error("linux: expected at least one delete_word keystroke")
+	}
+}
+
+func TestGetPlatformSpecificKeyBindings_BSD(t *testing.T) {
+	bindings := GetPlatformSpecificKeyBindings("bsd")
+	if _, ok := bindings["delete_word"]; !ok {
+		t.Error("bsd: expected delete_word binding")
+	}
+}
+
+func TestGetPlatformSpecificKeyBindings_Unix(t *testing.T) {
+	bindings := GetPlatformSpecificKeyBindings("unix")
+	if _, ok := bindings["delete_word"]; !ok {
+		t.Error("unix: expected delete_word binding")
+	}
+}
+
+func TestGetPlatformSpecificKeyBindings_Windows(t *testing.T) {
+	// Windows branch exists but currently returns empty map
+	bindings := GetPlatformSpecificKeyBindings("windows")
+	_ = bindings // no panic = pass
+}
+
+func TestGetPlatformSpecificKeyBindings_Default(t *testing.T) {
+	bindings := GetPlatformSpecificKeyBindings("unknown-platform")
+	if len(bindings) != 0 {
+		t.Error("unknown platform: expected empty bindings")
+	}
+}
+
+// ─── GetTerminalSpecificKeyBindings: cover all terminal branches ──────────────
+
+func TestGetTerminalSpecificKeyBindings_All(t *testing.T) {
+	for _, terminal := range []string{"tmux", "screen", "iterm", "alacritty", "kitty", "wezterm", "other"} {
+		bindings := GetTerminalSpecificKeyBindings(terminal)
+		_ = bindings // all return empty map — no panic = pass
+	}
+}
+
+// ─── formatKeystrokeForExport: cover RawSeq cases, FnKey, unknown ─────────────
+
+func formatExporter() *KeybindingExporter {
+	cfg := &config.Config{}
+	cfg.Interactive.Profile = "emacs"
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	return NewKeybindingExporter(resolver)
+}
+
+func TestFormatKeystrokeForExport_RawSeq_SingleByte(t *testing.T) {
+	ke := formatExporter()
+	cases := []struct {
+		seq  []byte
+		want string
+	}{
+		{[]byte{9}, "tab"},
+		{[]byte{13}, "enter"},
+		{[]byte{27}, "esc"},
+		{[]byte{32}, "space"},
+	}
+	for _, c := range cases {
+		ks := NewRawKeyStroke(c.seq)
+		got := ke.formatKeystrokeForExport(ks)
+		if got != c.want {
+			t.Errorf("seq=%v: want %q, got %q", c.seq, c.want, got)
+		}
+	}
+}
+
+func TestFormatKeystrokeForExport_RawSeq_ArrowKeys(t *testing.T) {
+	ke := formatExporter()
+	cases := []struct {
+		seq  []byte
+		want string
+	}{
+		{[]byte{27, 91, 65}, "up"},
+		{[]byte{27, 91, 66}, "down"},
+		{[]byte{27, 91, 67}, "right"},
+		{[]byte{27, 91, 68}, "left"},
+	}
+	for _, c := range cases {
+		ks := NewRawKeyStroke(c.seq)
+		got := ke.formatKeystrokeForExport(ks)
+		if got != c.want {
+			t.Errorf("seq=%v: want %q, got %q", c.seq, c.want, got)
+		}
+	}
+}
+
+func TestFormatKeystrokeForExport_RawSeq_Raw(t *testing.T) {
+	ke := formatExporter()
+	ks := NewRawKeyStroke([]byte{0xff, 0x01})
+	got := ke.formatKeystrokeForExport(ks)
+	if !strings.HasPrefix(got, "raw:") {
+		t.Errorf("expected raw: prefix, got %q", got)
+	}
+}
+
+func TestFormatKeystrokeForExport_FnKey(t *testing.T) {
+	ke := formatExporter()
+	ks := KeyStroke{Kind: KeyStrokeFnKey, Name: "F1"}
+	got := ke.formatKeystrokeForExport(ks)
+	if got != "f1" {
+		t.Errorf("want 'f1', got %q", got)
+	}
+}
+
+func TestFormatKeystrokeForExport_Unknown(t *testing.T) {
+	ke := formatExporter()
+	ks := KeyStroke{Kind: KeyStrokeKind(99), Rune: 'x'}
+	got := ke.formatKeystrokeForExport(ks)
+	if !strings.HasPrefix(got, "unknown:") {
+		t.Errorf("expected 'unknown:' prefix, got %q", got)
+	}
+}
+
+// ─── KeybindingExport.ToYAML: cover Contexts and Platform branches ────────────
+
+func TestKeybindingExport_ToYAML_WithContextsAndPlatform(t *testing.T) {
+	export := &KeybindingExport{
+		Profile: "test",
+		Keybindings: map[string]string{
+			"delete_word": "ctrl+w",
+		},
+		Contexts: map[string]map[string]string{
+			"input": {"complete": "tab"},
+		},
+		Platform: map[string]map[string]string{
+			"darwin": {"delete_word": "alt+backspace"},
+		},
+		Metadata: ExportMetadata{
+			Version:    "v1",
+			ExportedAt: time.Now(),
+			ExportedBy: "test",
+			Platform:   "darwin",
+			Terminal:   "iterm",
+			DeltaFrom:  "base-profile",
+		},
+	}
+	yaml, err := export.ToYAML()
+	if err != nil {
+		t.Fatalf("ToYAML() error: %v", err)
+	}
+	for _, want := range []string{"contexts:", "darwin:", "delta_from:"} {
+		if !strings.Contains(yaml, want) {
+			t.Errorf("ToYAML() output missing %q", want)
+		}
+	}
+}
+
+// ─── KeybindingImporter: parseImportFile via Import(InputFile=...) ────────────
+
+func minimalImportYAML() []byte {
+	return []byte(`profile: emacs
+keybindings:
+  delete_word: "ctrl+w"
+metadata:
+  exported_at: "2024-01-01T00:00:00Z"
+  exported_by: "test"
+  version: "v1"
+  platform: "darwin"
+  terminal: "iterm"
+`)
+}
+
+func testImporter() *KeybindingImporter {
+	cfg := &config.Config{}
+	cfg.Interactive.Profile = "emacs"
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	return NewKeybindingImporter(resolver)
+}
+
+func TestKeybindingImporter_Import_InputFile(t *testing.T) {
+	dir := t.TempDir()
+	fpath := filepath.Join(dir, "keybindings.yaml")
+	if err := os.WriteFile(fpath, minimalImportYAML(), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	ki := testImporter()
+	if err := ki.Import(ImportOptions{InputFile: fpath}); err != nil {
+		t.Fatalf("Import(InputFile) error: %v", err)
+	}
+}
+
+func TestKeybindingImporter_Import_InputFile_NotFound(t *testing.T) {
+	ki := testImporter()
+	err := ki.Import(ImportOptions{InputFile: "/nonexistent/path/keybindings.yaml"})
+	if err == nil {
+		t.Error("expected error for missing file")
+	}
+}
+
+func TestKeybindingImporter_Import_Interactive(t *testing.T) {
+	ki := testImporter()
+	err := ki.Import(ImportOptions{Data: minimalImportYAML(), Interactive: true})
+	if err != nil {
+		t.Fatalf("Import(Interactive) error: %v", err)
+	}
+}
+
+func TestKeybindingImporter_Import_BackupConfig(t *testing.T) {
+	ki := testImporter()
+	err := ki.Import(ImportOptions{Data: minimalImportYAML(), BackupConfig: true})
+	if err != nil {
+		t.Fatalf("Import(BackupConfig) error: %v", err)
+	}
+}
+
+// ─── resolver_user.go: cover clear_line, delete_to_end, move_left, move_right ─
+
+func testResolver() *KeyBindingResolver {
+	cfg := &config.Config{}
+	cfg.Interactive.Profile = "emacs"
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	return resolver
+}
+
+func TestApplyUserEditingAction_ClearLine(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserEditingAction(km, "clear_line", ks) {
+		t.Error("expected applyUserEditingAction to return true for clear_line")
+	}
+	if len(km.ClearLine) == 0 {
+		t.Error("expected ClearLine to be set")
+	}
+}
+
+func TestApplyUserEditingAction_DeleteToEnd(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserEditingAction(km, "delete_to_end", ks) {
+		t.Error("expected applyUserEditingAction to return true for delete_to_end")
+	}
+	if len(km.DeleteToEnd) == 0 {
+		t.Error("expected DeleteToEnd to be set")
+	}
+}
+
+func TestApplyUserNavigationAction_MoveLeft(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserNavigationAction(km, "move_left", ks) {
+		t.Error("expected applyUserNavigationAction to return true for move_left")
+	}
+	if len(km.MoveLeft) == 0 {
+		t.Error("expected MoveLeft to be set")
+	}
+}
+
+func TestApplyUserNavigationAction_MoveRight(t *testing.T) {
+	r := testResolver()
+	km := DefaultKeyBindingMap()
+	ks := []KeyStroke{NewTabKeyStroke()}
+	if !r.applyUserNavigationAction(km, "move_right", ks) {
+		t.Error("expected applyUserNavigationAction to return true for move_right")
+	}
+	if len(km.MoveRight) == 0 {
+		t.Error("expected MoveRight to be set")
+	}
+}
+
+func TestParseUserBindingValue_Slice(t *testing.T) {
+	r := testResolver()
+	got := r.parseUserBindingValue([]interface{}{"ctrl+w", "ctrl+u"})
+	if len(got) != 2 {
+		t.Errorf("expected 2 keystrokes from slice input, got %d", len(got))
 	}
 }
