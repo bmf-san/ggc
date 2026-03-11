@@ -1548,3 +1548,193 @@ func TestPerformance(t *testing.T) {
 		t.Errorf("ShowKeys took too long: %v", duration)
 	}
 }
+
+// ── KeybindingExport.ToYAML ───────────────────────────────────────────────────
+
+func TestKeybindingExport_ToYAML(t *testing.T) {
+	export := &KeybindingExport{
+		Profile:     "default",
+		Keybindings: map[string]string{"delete_word": "ctrl+w"},
+		Metadata: ExportMetadata{
+			Version:  "v8.0.0",
+			Platform: "darwin",
+			Terminal: "xterm-256color",
+		},
+	}
+
+	yaml, err := export.ToYAML()
+	if err != nil {
+		t.Fatalf("ToYAML() error: %v", err)
+	}
+	if !strings.Contains(yaml, "profile:") {
+		t.Errorf("ToYAML() missing 'profile:', got:\n%s", yaml)
+	}
+}
+
+func TestKeybindingExport_ToYAML_WithContextsAndPlatform(t *testing.T) {
+	export := &KeybindingExport{
+		Profile: "test",
+		Keybindings: map[string]string{
+			"delete_word": "ctrl+w",
+		},
+		Contexts: map[string]map[string]string{
+			"input": {"complete": "tab"},
+		},
+		Platform: map[string]map[string]string{
+			"darwin": {"delete_word": "alt+backspace"},
+		},
+		Metadata: ExportMetadata{
+			Version:    "v1",
+			ExportedAt: time.Now(),
+			ExportedBy: "test",
+			Platform:   "darwin",
+			Terminal:   "iterm",
+			DeltaFrom:  "base-profile",
+		},
+	}
+	out, err := export.ToYAML()
+	if err != nil {
+		t.Fatalf("ToYAML() error: %v", err)
+	}
+	for _, want := range []string{"contexts:", "darwin:", "delta_from:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("ToYAML() output missing %q", want)
+		}
+	}
+}
+
+// ── formatKeystrokeForExport ──────────────────────────────────────────────────
+
+func formatExporter() *KeybindingExporter {
+	cfg := &config.Config{}
+	cfg.Interactive.Profile = "emacs"
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	return NewKeybindingExporter(resolver)
+}
+
+func TestFormatKeystrokeForExport_RawSeq_SingleByte(t *testing.T) {
+	ke := formatExporter()
+	cases := []struct {
+		seq  []byte
+		want string
+	}{
+		{[]byte{9}, "tab"},
+		{[]byte{13}, "enter"},
+		{[]byte{27}, "esc"},
+		{[]byte{32}, "space"},
+	}
+	for _, c := range cases {
+		ks := NewRawKeyStroke(c.seq)
+		got := ke.formatKeystrokeForExport(ks)
+		if got != c.want {
+			t.Errorf("seq=%v: want %q, got %q", c.seq, c.want, got)
+		}
+	}
+}
+
+func TestFormatKeystrokeForExport_RawSeq_ArrowKeys(t *testing.T) {
+	ke := formatExporter()
+	cases := []struct {
+		seq  []byte
+		want string
+	}{
+		{[]byte{27, 91, 65}, "up"},
+		{[]byte{27, 91, 66}, "down"},
+		{[]byte{27, 91, 67}, "right"},
+		{[]byte{27, 91, 68}, "left"},
+	}
+	for _, c := range cases {
+		ks := NewRawKeyStroke(c.seq)
+		got := ke.formatKeystrokeForExport(ks)
+		if got != c.want {
+			t.Errorf("seq=%v: want %q, got %q", c.seq, c.want, got)
+		}
+	}
+}
+
+func TestFormatKeystrokeForExport_RawSeq_Raw(t *testing.T) {
+	ke := formatExporter()
+	ks := NewRawKeyStroke([]byte{0xff, 0x01})
+	got := ke.formatKeystrokeForExport(ks)
+	if !strings.HasPrefix(got, "raw:") {
+		t.Errorf("expected raw: prefix, got %q", got)
+	}
+}
+
+func TestFormatKeystrokeForExport_FnKey(t *testing.T) {
+	ke := formatExporter()
+	ks := KeyStroke{Kind: KeyStrokeFnKey, Name: "F1"}
+	got := ke.formatKeystrokeForExport(ks)
+	if got != "f1" {
+		t.Errorf("want 'f1', got %q", got)
+	}
+}
+
+func TestFormatKeystrokeForExport_Unknown(t *testing.T) {
+	ke := formatExporter()
+	ks := KeyStroke{Kind: KeyStrokeKind(99), Rune: 'x'}
+	got := ke.formatKeystrokeForExport(ks)
+	if !strings.HasPrefix(got, "unknown:") {
+		t.Errorf("expected 'unknown:' prefix, got %q", got)
+	}
+}
+
+// ── KeybindingImporter.Import ─────────────────────────────────────────────────
+
+func minimalImportYAML() []byte {
+	return []byte(`profile: emacs
+keybindings:
+  delete_word: "ctrl+w"
+metadata:
+  exported_at: "2024-01-01T00:00:00Z"
+  exported_by: "test"
+  version: "v1"
+  platform: "darwin"
+  terminal: "iterm"
+`)
+}
+
+func testImporter() *KeybindingImporter {
+	cfg := &config.Config{}
+	cfg.Interactive.Profile = "emacs"
+	resolver := NewKeyBindingResolver(cfg)
+	RegisterBuiltinProfiles(resolver)
+	return NewKeybindingImporter(resolver)
+}
+
+func TestKeybindingImporter_Import_InputFile(t *testing.T) {
+	dir := t.TempDir()
+	fpath := filepath.Join(dir, "keybindings.yaml")
+	if err := os.WriteFile(fpath, minimalImportYAML(), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	ki := testImporter()
+	if err := ki.Import(ImportOptions{InputFile: fpath}); err != nil {
+		t.Fatalf("Import(InputFile) error: %v", err)
+	}
+}
+
+func TestKeybindingImporter_Import_InputFile_NotFound(t *testing.T) {
+	ki := testImporter()
+	err := ki.Import(ImportOptions{InputFile: "/nonexistent/path/keybindings.yaml"})
+	if err == nil {
+		t.Error("expected error for missing file")
+	}
+}
+
+func TestKeybindingImporter_Import_Interactive(t *testing.T) {
+	ki := testImporter()
+	err := ki.Import(ImportOptions{Data: minimalImportYAML(), Interactive: true})
+	if err != nil {
+		t.Fatalf("Import(Interactive) error: %v", err)
+	}
+}
+
+func TestKeybindingImporter_Import_BackupConfig(t *testing.T) {
+	ki := testImporter()
+	err := ki.Import(ImportOptions{Data: minimalImportYAML(), BackupConfig: true})
+	if err != nil {
+		t.Fatalf("Import(BackupConfig) error: %v", err)
+	}
+}
