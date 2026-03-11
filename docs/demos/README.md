@@ -11,6 +11,5 @@ This directory houses automated VHS scripts used to generate GIFs demonstrating 
 - `cli-workflow` → `docs/demos/generated/cli-workflow.gif`
 - `interactive-overview` → `docs/demos/generated/interactive-overview.gif`
 - `branch-management` → `docs/demos/generated/branch-management.gif`
-- `stash-cycle` → `docs/demos/generated/stash-cycle.gif`
 
 Run `make demos` (or `make docs`) after installing VHS and its dependencies to refresh all assets.
