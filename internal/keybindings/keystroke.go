@@ -404,13 +404,11 @@ func ValidateKeyBindings(bindings map[string]string) error {
 func validateKeyStroke(ks KeyStroke) error { //nolint:revive // validation covers all keystroke kinds
 	switch ks.Kind {
 	case KeyStrokeCtrl:
-		// Ctrl keystrokes are limited to alphabetic runes (Ctrl+a…z / Ctrl+A…Z),
-		// matching what the parser, exporter, and control-byte conversion support.
+		// Ctrl keystrokes accept any non-zero rune. Both alphabetic (Ctrl+a…z) and
+		// special characters (Ctrl+Space, Ctrl+@, Ctrl+_, etc.) are used in
+		// built-in Emacs and Readline profiles and are valid terminal key combinations.
 		if ks.Rune == 0 {
 			return fmt.Errorf("ctrl keystroke rune must be non-zero")
-		}
-		if (ks.Rune < 'a' || ks.Rune > 'z') && (ks.Rune < 'A' || ks.Rune > 'Z') {
-			return fmt.Errorf("ctrl keystroke rune must be a letter (a\u2013z or A\u2013Z), got %q", ks.Rune)
 		}
 	case KeyStrokeAlt:
 		// Alt keys can have various runes or names, both are valid
