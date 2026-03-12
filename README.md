@@ -697,6 +697,6 @@ Or simply giving ⭐ on GitHub is greatly appreciated—it keeps me motivated to
 # Forkers
 [![Forkers repo roster for @bmf-san/ggc](https://reporoster.com/forks/bmf-san/ggc)](https://github.com/bmf-san/ggc/network/members)
 
-## License
+# License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
