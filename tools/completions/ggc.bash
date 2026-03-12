@@ -8,7 +8,7 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote restore stash status tag version"
+    opts="add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote reset restore stash status tag version"
     case ${prev} in
         branch)
             subopts="checkout contains create current delete info list move rename set sort"
@@ -21,7 +21,7 @@ _ggc()
             return 0
             ;;
         commit)
-            subopts="allow amend"
+            subopts="allow amend fixup"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
@@ -66,12 +66,17 @@ _ggc()
             return 0
             ;;
         rebase)
-            subopts="abort continue interactive skip"
+            subopts="abort autosquash continue interactive skip"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
         remote)
             subopts="add list remove set-url"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        reset)
+            subopts="hard soft"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

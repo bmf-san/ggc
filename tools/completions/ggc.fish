@@ -10,13 +10,13 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote restore stash status tag version"
+complete -c ggc -f -a "add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote reset restore stash status tag version"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "checkout contains create current delete info list move rename set sort"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from set" -a "upstream"
 complete -c ggc -f -n "__fish_seen_subcommand_from clean" -a "dirs files interactive"
-complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow amend"
+complete -c ggc -f -n "__fish_seen_subcommand_from commit" -a "allow amend fixup"
 complete -c ggc -f -n "__fish_seen_subcommand_from commit; and __fish_seen_subcommand_from allow" -a "empty"
 complete -c ggc -f -n "__fish_seen_subcommand_from commit; and __fish_seen_subcommand_from amend" -a "no-edit"
 complete -c ggc -f -n "__fish_seen_subcommand_from config" -a "get list set"
@@ -27,8 +27,9 @@ complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "disable edit enable
 complete -c ggc -f -n "__fish_seen_subcommand_from log" -a "graph simple"
 complete -c ggc -f -n "__fish_seen_subcommand_from pull" -a "current rebase"
 complete -c ggc -f -n "__fish_seen_subcommand_from push" -a "current force"
-complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "abort continue interactive skip"
+complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "abort autosquash continue interactive skip"
 complete -c ggc -f -n "__fish_seen_subcommand_from remote" -a "add list remove set-url"
+complete -c ggc -f -n "__fish_seen_subcommand_from reset" -a "hard soft"
 complete -c ggc -f -n "__fish_seen_subcommand_from restore" -a "staged"
 complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "apply branch clear create drop list pop push save show store"
 complete -c ggc -f -n "__fish_seen_subcommand_from stash; and __fish_seen_subcommand_from push" -a "-m"

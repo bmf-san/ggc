@@ -54,6 +54,9 @@ _ggc() {
                 remote)
                     _ggc_remote
                     ;;
+                reset)
+                    _ggc_reset
+                    ;;
                 restore)
                     _ggc_restore
                     ;;
@@ -90,6 +93,7 @@ _ggc_commands() {
         'quit:Exit interactive mode'
         'rebase:Reapply commits on top of another base tip'
         'remote:Manage remotes'
+        'reset:Reset current HEAD to the specified state'
         'restore:Restore files in working tree or staging area'
         'stash:Save and reapply work-in-progress changes'
         'status:Show working tree status'
@@ -181,6 +185,7 @@ _ggc_commit() {
     subcommands=(
         'allow:Create an empty commit'
         'amend:Amend previous commit (editor)'
+        'fixup:Create a fixup commit targeting <commit>'
     )
     if (( CURRENT == 2 )); then
         _describe 'commit subcommands' subcommands
@@ -288,6 +293,7 @@ _ggc_rebase() {
     local subcommands
     subcommands=(
         'abort:Abort an in-progress rebase'
+        'autosquash:Interactive rebase with --autosquash'
         'continue:Continue an in-progress rebase'
         'interactive:Interactive rebase'
         'skip:Skip current patch and continue'
@@ -318,6 +324,16 @@ _ggc_remote() {
     )
     if (( CURRENT == 2 )); then
         _describe 'remote subcommands' subcommands
+    fi
+}
+_ggc_reset() {
+    local subcommands
+    subcommands=(
+        'hard:Hard reset to specified commit'
+        'soft:Soft reset: move HEAD but keep changes staged'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'reset subcommands' subcommands
     fi
 }
 _ggc_restore() {

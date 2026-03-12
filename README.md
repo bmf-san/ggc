@@ -251,6 +251,9 @@ ggc
 | `add patch` | Add changes interactively (patch mode) |
 | `help` | Show main help message |
 | `help <command>` | Show help for a specific command |
+| `reset` | Hard reset to origin/<branch> and clean working directory |
+| `reset hard <commit>` | Hard reset to specified commit |
+| `reset soft <commit>` | Soft reset: move HEAD but keep changes staged |
 | `branch checkout` | Switch to an existing branch |
 | `branch checkout remote` | Create and checkout a local branch from the remote |
 | `branch contains <commit>` | Show branches containing a commit |
@@ -270,7 +273,7 @@ ggc
 | `commit allow empty` | Create an empty commit |
 | `commit amend` | Amend previous commit (editor) |
 | `commit amend no-edit` | Amend without editing commit message |
-| `commit fixup <commit>` | Create a fixup commit targeting `<commit>` |
+| `commit fixup <commit>` | Create a fixup commit targeting <commit> |
 | `log graph` | Show log with graph |
 | `log simple` | Show simple historical log |
 | `fetch` | Fetch from the remote |
@@ -318,9 +321,6 @@ ggc
 | `rebase continue` | Continue an in-progress rebase |
 | `rebase interactive` | Interactive rebase |
 | `rebase skip` | Skip current patch and continue |
-| `reset` | Hard reset to origin/<branch> and clean working directory |
-| `reset hard <commit>` | Hard reset to specified commit |
-| `reset soft <commit>` | Soft reset: move HEAD but keep changes staged |
 | `stash` | Stash current changes |
 | `stash apply` | Apply stash without removing it |
 | `stash apply <stash>` | Apply specific stash without removing it |
