@@ -36,8 +36,9 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
         with:
           path: ~/.cache/go-build/fuzz
-          key: fuzz-corpus-${{ matrix.target.fuzz }}-${{ github.run_id }}
+          key: fuzz-corpus-${{ matrix.target.fuzz }}-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
+            fuzz-corpus-${{ matrix.target.fuzz }}-${{ runner.os }}-
             fuzz-corpus-${{ matrix.target.fuzz }}-
       - name: Pick fuzztime
         id: t
