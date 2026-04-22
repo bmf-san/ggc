@@ -1,0 +1,61 @@
+site_name: ggc
+site_description: A Go-based interactive Git CLI with powerful shortcuts and fuzzy finders.
+site_url: https://bmf-san.github.io/ggc/
+repo_url: https://github.com/bmf-san/ggc
+repo_name: bmf-san/ggc
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: icon.png
+  favicon: icon.png
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: guide/install.md
+      - Quick start: guide/quickstart.md
+  - Commands: guide/commands.md
+  - Interactive mode: guide/interactive.md
+  - Configuration & aliases: guide/config.md
+  - Troubleshooting: guide/troubleshooting.md
+  - Contributing: contributing.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/bmf-san/ggc
