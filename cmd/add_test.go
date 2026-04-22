@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmf-san/ggc/v8/internal/git"
+	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
 
 func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
@@ -25,8 +25,12 @@ func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
 	}
 }
 
-// mockGitClient for testing
+// mockAddGitClient captures call state for add- and rebase-command tests.
+// It embeds testutil.MockGitClient which supplies default no-op behavior for
+// every other git operation; this mock only overrides the operations whose
+// arguments, return value, or invocation need to be observed.
 type mockAddGitClient struct {
+	testutil.MockGitClient
 	addCalled                         bool
 	addInteractiveCalled              bool
 	addFiles                          []string
@@ -60,74 +64,13 @@ func (m *mockAddGitClient) AddInteractive() error {
 	return m.addInteractiveError
 }
 
-// Repository Information methods
 func (m *mockAddGitClient) GetCurrentBranch() (string, error) {
 	if m.GetCurrentBranchFunc != nil {
 		return m.GetCurrentBranchFunc()
 	}
 	return "feature/test", nil
 }
-func (m *mockAddGitClient) GetBranchName() (string, error) { return "main", nil }
 
-// Status Operations methods
-func (m *mockAddGitClient) Status() (string, error)               { return "", nil }
-func (m *mockAddGitClient) StatusShort() (string, error)          { return "", nil }
-func (m *mockAddGitClient) StatusWithColor() (string, error)      { return "", nil }
-func (m *mockAddGitClient) StatusShortWithColor() (string, error) { return "", nil }
-
-// Commit Operations methods
-func (m *mockAddGitClient) Commit(_ string) error                 { return nil }
-func (m *mockAddGitClient) CommitAmend() error                    { return nil }
-func (m *mockAddGitClient) CommitAmendNoEdit() error              { return nil }
-func (m *mockAddGitClient) CommitAmendWithMessage(_ string) error { return nil }
-func (m *mockAddGitClient) CommitAllowEmpty() error               { return nil }
-func (m *mockAddGitClient) CommitFixup(_ string) error            { return nil }
-
-// Diff Operations methods
-func (m *mockAddGitClient) Diff() (string, error)       { return "", nil }
-func (m *mockAddGitClient) DiffStaged() (string, error) { return "", nil }
-func (m *mockAddGitClient) DiffHead() (string, error)   { return "", nil }
-func (m *mockAddGitClient) DiffWith(_ []string) (string, error) {
-	return "", nil
-}
-
-// Branch Operations methods
-func (m *mockAddGitClient) ListLocalBranches() ([]string, error) { return []string{"main"}, nil }
-func (m *mockAddGitClient) ListRemoteBranches() ([]string, error) {
-	return []string{"origin/main"}, nil
-}
-func (m *mockAddGitClient) CheckoutNewBranch(_ string) error { return nil }
-func (m *mockAddGitClient) CheckoutBranch(_ string) error    { return nil }
-func (m *mockAddGitClient) CheckoutNewBranchFromRemote(_, _ string) error {
-	return nil
-}
-func (m *mockAddGitClient) DeleteBranch(_ string) error           { return nil }
-func (m *mockAddGitClient) ListMergedBranches() ([]string, error) { return []string{}, nil }
-
-// Remote Operations methods
-func (m *mockAddGitClient) Push(_ bool) error              { return nil }
-func (m *mockAddGitClient) Pull(_ bool) error              { return nil }
-func (m *mockAddGitClient) Fetch(_ bool) error             { return nil }
-func (m *mockAddGitClient) RemoteList() error              { return nil }
-func (m *mockAddGitClient) RemoteAdd(_, _ string) error    { return nil }
-func (m *mockAddGitClient) RemoteRemove(_ string) error    { return nil }
-func (m *mockAddGitClient) RemoteSetURL(_, _ string) error { return nil }
-
-// Tag Operations methods
-func (m *mockAddGitClient) TagList(_ []string) error              { return nil }
-func (m *mockAddGitClient) TagCreate(_, _ string) error           { return nil }
-func (m *mockAddGitClient) TagCreateAnnotated(_, _ string) error  { return nil }
-func (m *mockAddGitClient) TagDelete(_ []string) error            { return nil }
-func (m *mockAddGitClient) TagPush(_, _ string) error             { return nil }
-func (m *mockAddGitClient) TagPushAll(_ string) error             { return nil }
-func (m *mockAddGitClient) TagShow(_ string) error                { return nil }
-func (m *mockAddGitClient) GetLatestTag() (string, error)         { return "v1.0.0", nil }
-func (m *mockAddGitClient) TagExists(_ string) bool               { return false }
-func (m *mockAddGitClient) GetTagCommit(_ string) (string, error) { return "abc123", nil }
-
-// Log Operations methods
-func (m *mockAddGitClient) LogSimple() error { return nil }
-func (m *mockAddGitClient) LogGraph() error  { return nil }
 func (m *mockAddGitClient) LogOneline(from, to string) (string, error) {
 	if m.LogOnelineFunc != nil {
 		return m.LogOnelineFunc(from, to)
@@ -135,101 +78,46 @@ func (m *mockAddGitClient) LogOneline(from, to string) (string, error) {
 	return "abc123 First commit\ndef456 Second commit\nghi789 Third commit", nil
 }
 
-// Rebase Operations methods
 func (m *mockAddGitClient) RebaseInteractive(commitCount int) error {
 	if m.RebaseInteractiveFunc != nil {
 		return m.RebaseInteractiveFunc(commitCount)
 	}
 	return nil
 }
+
 func (m *mockAddGitClient) RebaseInteractiveAutosquash(commitCount int) error {
 	m.RebaseInteractiveAutosquashCalled = true
 	m.RebaseInteractiveAutosquashCount = commitCount
 	return nil
 }
+
 func (m *mockAddGitClient) Rebase(upstream string) error {
 	m.RebaseCalled = true
 	m.RebaseUpstream = upstream
 	return m.RebaseErr
 }
+
 func (m *mockAddGitClient) RebaseContinue() error {
 	m.RebaseContinueCalled = true
 	return m.RebaseContinueErr
 }
+
 func (m *mockAddGitClient) RebaseAbort() error {
 	m.RebaseAbortCalled = true
 	return m.RebaseAbortErr
 }
+
 func (m *mockAddGitClient) RebaseSkip() error {
 	m.RebaseSkipCalled = true
 	return m.RebaseSkipErr
 }
-func (m *mockAddGitClient) GetUpstreamBranch(_ string) (string, error) {
-	return "origin/main", nil
-}
 
-// Stash Operations methods
-func (m *mockAddGitClient) Stash() error               { return nil }
-func (m *mockAddGitClient) StashList() (string, error) { return "", nil }
-func (m *mockAddGitClient) StashShow(_ string) error   { return nil }
-func (m *mockAddGitClient) StashApply(_ string) error  { return nil }
-func (m *mockAddGitClient) StashPop(_ string) error    { return nil }
-func (m *mockAddGitClient) StashPush(_ string) error   { return nil }
-func (m *mockAddGitClient) StashDrop(_ string) error   { return nil }
-func (m *mockAddGitClient) StashClear() error          { return nil }
-
-// Restore Operations methods
-func (m *mockAddGitClient) RestoreWorkingDir(_ ...string) error           { return nil }
-func (m *mockAddGitClient) RestoreStaged(_ ...string) error               { return nil }
-func (m *mockAddGitClient) RestoreFromCommit(_ string, _ ...string) error { return nil }
-func (m *mockAddGitClient) RestoreAll() error                             { return nil }
-func (m *mockAddGitClient) RestoreAllStaged() error                       { return nil }
-
-// Reset and Clean Operations methods
-func (m *mockAddGitClient) ResetHardAndClean() error         { return nil }
-func (m *mockAddGitClient) ResetHard(_ string) error         { return nil }
-func (m *mockAddGitClient) ResetSoft(_ string) error         { return nil }
-func (m *mockAddGitClient) CleanFiles() error                { return nil }
-func (m *mockAddGitClient) CleanDirs() error                 { return nil }
-func (m *mockAddGitClient) CleanDryRun() (string, error)     { return "", nil }
-func (m *mockAddGitClient) CleanFilesForce(_ []string) error { return nil }
-
-// Utility Operations methods
-func (m *mockAddGitClient) ListFiles() (string, error) { return "", nil }
-func (m *mockAddGitClient) GetUpstreamBranchName(_ string) (string, error) {
-	return "origin/main", nil
-}
-func (m *mockAddGitClient) GetAheadBehindCount(_, _ string) (string, error) {
-	return "0	0", nil
-}
-func (m *mockAddGitClient) GetVersion() (string, error)    { return "test-version", nil }
-func (m *mockAddGitClient) GetCommitHash() (string, error) { return "test-commit", nil }
 func (m *mockAddGitClient) RevParseVerify(ref string) bool {
 	if m.RevParseVerifyFunc != nil {
 		return m.RevParseVerifyFunc(ref)
 	}
 	return true
 }
-
-// Config Operations
-func (m *mockAddGitClient) ConfigGet(_ string) (string, error)       { return "", nil }
-func (m *mockAddGitClient) ConfigSet(_, _ string) error              { return nil }
-func (m *mockAddGitClient) ConfigGetGlobal(_ string) (string, error) { return "", nil }
-func (m *mockAddGitClient) ConfigSetGlobal(_, _ string) error        { return nil }
-
-// Enhanced Branch Operations
-func (m *mockAddGitClient) RenameBranch(_, _ string) error      { return nil }
-func (m *mockAddGitClient) MoveBranch(_, _ string) error        { return nil }
-func (m *mockAddGitClient) SetUpstreamBranch(_, _ string) error { return nil }
-func (m *mockAddGitClient) GetBranchInfo(branch string) (*git.BranchInfo, error) {
-	bi := &git.BranchInfo{Name: branch}
-	return bi, nil
-}
-func (m *mockAddGitClient) ListBranchesVerbose() ([]git.BranchInfo, error) {
-	return []git.BranchInfo{}, nil
-}
-func (m *mockAddGitClient) SortBranches(_ string) ([]string, error)       { return []string{}, nil }
-func (m *mockAddGitClient) BranchesContaining(_ string) ([]string, error) { return []string{}, nil }
 
 func TestAdder_Add_GitAddCalled(t *testing.T) {
 	mockClient := &mockAddGitClient{}
