@@ -122,7 +122,7 @@ func NewCmd(client GitDeps, cm *config.Manager) (*Cmd, error) {
 		hooker:        NewHooker(client),
 		tagger:        tagger,
 		statuser:      NewStatuser(client),
-		versioner:     NewVersioner(client),
+		versioner:     NewVersioner(client).withConfigManager(cm),
 		differ:        NewDiffer(client),
 		restorer:      NewRestorer(client),
 		fetcher:       NewFetcher(client),

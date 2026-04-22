@@ -26,10 +26,11 @@ func SetVersionGetter(getter VersionGetter) {
 
 // Versioner handles version operations.
 type Versioner struct {
-	outputWriter io.Writer
-	helper       *Helper
-	execCommand  func(string, ...string) *exec.Cmd
-	gitClient    git.ConfigOps
+	outputWriter  io.Writer
+	helper        *Helper
+	execCommand   func(string, ...string) *exec.Cmd
+	gitClient     git.ConfigOps
+	configManager *config.Manager // optional; if nil, a fresh one is created per call
 }
 
 // NewVersioner creates a new Versioner instance.
@@ -40,6 +41,14 @@ func NewVersioner(client git.ConfigOps) *Versioner {
 		execCommand:  exec.Command,
 		gitClient:    client,
 	}
+}
+
+// withConfigManager lets the owning Cmd share its already-loaded config
+// manager so `ggc version` does not have to re-read and re-save the config
+// file on every invocation.
+func (v *Versioner) withConfigManager(cm *config.Manager) *Versioner {
+	v.configManager = cm
+	return v
 }
 
 // Version returns the ggc version with the given arguments.
@@ -53,6 +62,16 @@ func (v *Versioner) Version(args []string) {
 
 // displayVersionInfo displays the version information
 func (v *Versioner) displayVersionInfo() {
+	// Reuse the shared config manager when available to skip a redundant
+	// Load+Save round-trip that otherwise costs ~80ms per `ggc version`.
+	if v.configManager != nil {
+		loadedConfig := v.configManager.GetConfig()
+		v.ensureCreatedAtSet(v.configManager, loadedConfig)
+		v.updateVersionInfoFromBuild(v.configManager, loadedConfig)
+		v.printVersionInfo(loadedConfig)
+		return
+	}
+
 	configManager := config.NewConfigManager(v.gitClient)
 	loadErr := configManager.LoadConfig()
 	loadedConfig := configManager.GetConfig()
