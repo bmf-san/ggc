@@ -30,7 +30,7 @@ func TestAdder_Add_NoArgs_PrintsUsage(t *testing.T) {
 // every other git operation; this mock only overrides the operations whose
 // arguments, return value, or invocation need to be observed.
 type mockAddGitClient struct {
-	*testutil.MockGitClient
+	testutil.MockGitClient
 	addCalled                         bool
 	addInteractiveCalled              bool
 	addFiles                          []string
@@ -54,7 +54,7 @@ type mockAddGitClient struct {
 }
 
 func newMockAddGitClient() *mockAddGitClient {
-	return &mockAddGitClient{MockGitClient: testutil.NewMockGitClient()}
+	return &mockAddGitClient{}
 }
 
 func (m *mockAddGitClient) Add(files ...string) error {
