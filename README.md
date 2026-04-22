@@ -13,6 +13,8 @@
 
 A Go Git CLI.
 
+📖 **Full documentation:** https://bmf-san.github.io/ggc/
+
 <img src="./docs/icon.png" alt="ggc" title="ggc" width="100px">
 
 This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c2b4123684f93071af0cf559eb0b5).
@@ -676,6 +678,7 @@ This setup will automatically find the completion script regardless of the insta
 
 # References
 
+- [ggc documentation site](https://bmf-san.github.io/ggc/) - Full user guide, install notes, configuration reference, and troubleshooting
 - [Git Documentation](https://git-scm.com/docs) - Complete Git reference documentation
 - [Git Tutorial](https://git-scm.com/docs/gittutorial) - Official Git tutorial for beginners
 - [Git User Manual](https://git-scm.com/docs/user-manual) - Comprehensive Git user guide
