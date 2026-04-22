@@ -1,0 +1,6 @@
+# Configuration for kentaro-m/auto-assign-action
+# Automatically assigns the PR author as the assignee.
+addAssignees: author
+
+# Reviewers are not auto-assigned for this repository.
+addReviewers: false
