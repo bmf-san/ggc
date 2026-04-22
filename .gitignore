@@ -42,3 +42,4 @@ gencompletions
 
 # VHS demo workspaces
 docs/demos/workspaces/
+.claude/
