@@ -37,6 +37,15 @@ archives:
       - LICENSE
       - README.md
 
+universal_binaries:
+  - id: ggc-universal
+    ids: [ggc]
+    name_template: "ggc"
+    # Keep the per-arch Darwin archives as well so existing download links
+    # and any downstream automation continues to work; homebrew-core picks
+    # up whichever archive matches the runner arch.
+    replace: false
+
 checksum:
   name_template: "checksums.txt"
 
