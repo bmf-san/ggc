@@ -53,10 +53,6 @@ type mockAddGitClient struct {
 	RevParseVerifyFunc                func(ref string) bool
 }
 
-func newMockAddGitClient() *mockAddGitClient {
-	return &mockAddGitClient{}
-}
-
 func (m *mockAddGitClient) Add(files ...string) error {
 	m.addCalled = true
 	m.addFiles = files
