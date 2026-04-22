@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/bmf-san/ggc/v8/internal/config"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // Doctor inspects the local environment and reports anything that could
@@ -46,6 +48,9 @@ type diagResult struct {
 // Doctor runs diagnostics. Any arg prints help (stub for future --json etc).
 func (d *Doctor) Doctor(args []string) {
 	if len(args) > 0 {
+		// Keep the helper's writer in sync so callers/tests that redirect
+		// d.outputWriter see the help output too.
+		d.helper.outputWriter = d.outputWriter
 		d.helper.ShowDoctorHelp()
 		return
 	}
@@ -97,7 +102,9 @@ func (d *Doctor) checkGitBinary() diagResult {
 	if err != nil {
 		return diagResult{name: "git binary", ok: false, detail: "'git' not found on PATH"}
 	}
-	out, err := d.execCommand("git", "--version").Output()
+	// Invoke the resolved path so the reported binary is exactly the one
+	// we measured, even if PATH changes between LookPath and exec.
+	out, err := d.execCommand(path, "--version").Output()
 	if err != nil {
 		return diagResult{name: "git binary", ok: false, detail: fmt.Sprintf("%s: %v", path, err)}
 	}
@@ -135,11 +142,27 @@ func (d *Doctor) checkGgcConfig() diagResult {
 			detail: fmt.Sprintf("no config yet (defaults in use; will be created at %s)", paths[0]),
 		}
 	}
-	m := config.NewConfigManager(nil)
-	if err := m.Load(); err != nil {
+	// Parse the YAML directly: config.NewConfigManager requires a non-nil
+	// git.ConfigOps (getDefaultConfig calls methods on it), and the doctor
+	// runs at diagnose time without that dependency wired in. We only need
+	// to know whether the file is a syntactically valid ggc config.
+	if err := parseConfigFile(found); err != nil {
 		return diagResult{name: "ggc config", ok: false, detail: fmt.Sprintf("%s: %v", found, err)}
 	}
 	return diagResult{name: "ggc config", ok: true, detail: fmt.Sprintf("%s loaded", found)}
+}
+
+// parseConfigFile validates that the given path is a YAML file that matches
+// the ggc config schema. It does not apply defaults or perform any git
+// lookups, which makes it safe to call from the doctor without wiring up a
+// full config.Manager.
+func parseConfigFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var cfg config.Config
+	return yaml.Unmarshal(data, &cfg)
 }
 
 // checkCompletions looks for an installed completion script in well-known

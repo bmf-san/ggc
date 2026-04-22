@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -58,6 +59,42 @@ func TestDoctor_Config_NoFile(t *testing.T) {
 	}
 	if !strings.Contains(r.detail, "no config yet") {
 		t.Fatalf("unexpected detail: %s", r.detail)
+	}
+}
+
+func TestDoctor_Config_ValidFileLoads(t *testing.T) {
+	tmp := t.TempDir()
+	// Exercise the ~/.ggcconfig.yaml candidate.
+	path := filepath.Join(tmp, ".ggcconfig.yaml")
+	if err := os.WriteFile(path, []byte("meta:\n  version: v8.0.0\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := newTestDoctor(&bytes.Buffer{})
+	d.userHomeDir = func() (string, error) { return tmp, nil }
+	r := d.checkGgcConfig()
+	if !r.ok {
+		t.Fatalf("valid config should be OK, got %+v", r)
+	}
+	if !strings.Contains(r.detail, "loaded") {
+		t.Fatalf("detail should mention loaded, got %q", r.detail)
+	}
+}
+
+func TestDoctor_Config_InvalidYAMLFails(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, ".ggcconfig.yaml")
+	// Emit YAML that the parser rejects outright.
+	if err := os.WriteFile(path, []byte("meta: [this is not a map\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := newTestDoctor(&bytes.Buffer{})
+	d.userHomeDir = func() (string, error) { return tmp, nil }
+	r := d.checkGgcConfig()
+	if r.ok {
+		t.Fatalf("malformed config should be FAIL, got %+v", r)
+	}
+	if !strings.Contains(r.detail, path) {
+		t.Fatalf("detail should mention the failing path, got %q", r.detail)
 	}
 }
 
