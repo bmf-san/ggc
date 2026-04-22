@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -53,22 +54,26 @@ func (v *Versioner) withConfigManager(cm *config.Manager) *Versioner {
 
 // Version returns the ggc version with the given arguments.
 func (v *Versioner) Version(args []string) {
-	if len(args) == 0 {
-		v.displayVersionInfo()
-	} else {
+	switch {
+	case len(args) == 0:
+		v.displayVersionInfo(false)
+	case len(args) == 1 && args[0] == "json":
+		v.displayVersionInfo(true)
+	default:
 		v.helper.ShowVersionHelp()
 	}
 }
 
-// displayVersionInfo displays the version information
-func (v *Versioner) displayVersionInfo() {
+// displayVersionInfo displays the version information.
+// When asJSON is true the output is a machine-readable JSON document.
+func (v *Versioner) displayVersionInfo(asJSON bool) {
 	// Reuse the shared config manager when available to skip a redundant
 	// Load+Save round-trip that otherwise costs ~80ms per `ggc version`.
 	if v.configManager != nil {
 		loadedConfig := v.configManager.GetConfig()
 		v.ensureCreatedAtSet(v.configManager, loadedConfig)
 		v.updateVersionInfoFromBuild(v.configManager, loadedConfig)
-		v.printVersionInfo(loadedConfig)
+		v.emitVersionInfo(loadedConfig, asJSON)
 		return
 	}
 
@@ -81,6 +86,16 @@ func (v *Versioner) displayVersionInfo() {
 		v.updateVersionInfoFromBuild(configManager, loadedConfig)
 	} else {
 		_, _ = fmt.Fprintf(v.outputWriter, "failed to load config: %v\n", loadErr)
+	}
+	v.emitVersionInfo(loadedConfig, asJSON)
+}
+
+// emitVersionInfo writes the version information in either plain-text or
+// JSON form, depending on asJSON.
+func (v *Versioner) emitVersionInfo(loadedConfig *config.Config, asJSON bool) {
+	if asJSON {
+		v.printVersionInfoJSON(loadedConfig)
+		return
 	}
 	v.printVersionInfo(loadedConfig)
 }
@@ -202,6 +217,35 @@ func (v *Versioner) printVersionInfo(loadedConfig *config.Config) {
 	_, _ = fmt.Fprintf(v.outputWriter, "built: %s\n", loadedConfig.Meta.CreatedAt)
 	_, _ = fmt.Fprintf(v.outputWriter, "config version: %s\n", loadedConfig.Meta.ConfigVersion)
 	_, _ = fmt.Fprintf(v.outputWriter, "os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+}
+
+// printVersionInfoJSON prints the version information as a JSON document.
+// The schema is intentionally flat and stable so tooling can depend on it.
+func (v *Versioner) printVersionInfoJSON(loadedConfig *config.Config) {
+	payload := struct {
+		Version       string `json:"version"`
+		Commit        string `json:"commit"`
+		Built         string `json:"built"`
+		ConfigVersion string `json:"configVersion"`
+		GoVersion     string `json:"goVersion"`
+		OS            string `json:"os"`
+		Arch          string `json:"arch"`
+	}{
+		Version:       v.getVersionString(loadedConfig.Meta.Version),
+		Commit:        v.getCommitString(loadedConfig.Meta.Commit),
+		Built:         loadedConfig.Meta.CreatedAt,
+		ConfigVersion: loadedConfig.Meta.ConfigVersion,
+		GoVersion:     runtime.Version(),
+		OS:            runtime.GOOS,
+		Arch:          runtime.GOARCH,
+	}
+
+	encoded, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		_, _ = fmt.Fprintf(v.outputWriter, "failed to marshal version info: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintln(v.outputWriter, string(encoded))
 }
 
 // getVersionString returns a formatted version string

@@ -69,6 +69,9 @@ _ggc() {
                 tag)
                     _ggc_tag
                     ;;
+                version)
+                    _ggc_version
+                    ;;
             esac
             ;;
     esac
@@ -394,6 +397,15 @@ _ggc_tag() {
     )
     if (( CURRENT == 2 )); then
         _describe 'tag subcommands' subcommands
+    fi
+}
+_ggc_version() {
+    local subcommands
+    subcommands=(
+        'json:Emit the version information as a JSON document'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'version subcommands' subcommands
     fi
 }
 
