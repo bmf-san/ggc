@@ -75,9 +75,8 @@ test-and-lint: test lint
 .PHONY: docs completions
 
 docs:
-	@echo "Updating README.md command table..."
+	@echo "Regenerating docs/guide/commands.md from registry..."
 	@go run tools/cmd/gendocs/main.go
-	@echo "README.md command table updated from registry"
 	@$(MAKE) completions
 	@echo "Documentation, completions updated successfully"
 
