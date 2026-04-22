@@ -405,7 +405,10 @@ func TestNewCmd(t *testing.T) {
 	mockClient := &mockGitClient{}
 	cm := config.NewConfigManager(mockClient)
 
-	cmd, _ := NewCmd(mockClient, cm)
+	cmd, err := NewCmd(mockClient, cm)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
 
 	// Check if all fields are properly initialized
 	if cmd.adder == nil {
