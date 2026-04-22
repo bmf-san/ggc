@@ -14,10 +14,10 @@ $ ggc
 
 ## Why ggc?
 
-- **Type less, do more.** `ggc s` stages + commits in one step, `ggc branch` opens a fuzzy picker over local branches, `ggc rebase i 3` starts an interactive rebase 3 commits back.
+- **Type less, do more.** `ggc commit "fix: parser"` commits without a `-m` flag, `ggc branch checkout` lists local branches and lets you pick one, `ggc rebase interactive` starts an interactive rebase.
 - **Unified syntax.** No `-`/`--` flag soup. Every command is a verb followed by plain words.
 - **Scripts stay scripts.** `ggc` is a thin layer over `git`: anything you can't express in `ggc` you can always fall back to.
-- **Safe by default.** Destructive operations ask for confirmation unless you pass `--yes`.
+- **Safe by default.** Destructive subcommands (branch/tag deletion, `clean`, stash drop/clear) confirm before acting.
 
 ## Get it
 

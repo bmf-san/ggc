@@ -19,39 +19,41 @@ ggc diff --staged   # staged only
 ## 2. Stage and commit
 
 ```bash
-ggc add             # pick files interactively
-ggc commit          # opens your $EDITOR like git commit
-ggc commit amend    # amend the last commit
+ggc add .               # stage everything
+ggc add interactive     # pick hunks interactively
+ggc add patch           # patch-mode staging
+ggc commit "fix: off-by-one in parser"   # no -m required
+ggc commit amend        # amend the last commit
+ggc commit amend no-edit
 ```
-
-One-shot:
-
-```bash
-ggc s "fix: off-by-one in parser"
-```
-
-is equivalent to `git add -A && git commit -m "fix: off-by-one in parser"`.
 
 ## 3. Switch branches
 
 ```bash
-ggc branch                # fuzzy-pick a local branch
-ggc branch new feature/x  # create and switch
-ggc branch delete         # fuzzy-pick a branch to delete
+ggc branch current                # show current branch
+ggc branch list local             # list local branches
+ggc branch checkout               # list + prompt for a branch
+ggc branch create feature/x       # create and switch
+ggc branch delete feature/old     # delete a specific branch
+ggc branch delete merged          # clean up merged branches
 ```
 
 ## 4. Save work in progress
 
 ```bash
-ggc stash              # stash current changes
-ggc stash pop          # reapply the most recent stash
-ggc stash list         # browse stashes (fuzzy picker)
+ggc stash                 # stash current changes
+ggc stash list            # list all stashes
+ggc stash show            # show changes in the latest stash
+ggc stash pop             # reapply the most recent stash
+ggc stash drop            # drop the most recent stash
 ```
 
 ## 5. Rebase
 
 ```bash
-ggc rebase i 5            # interactive rebase 5 commits back
+ggc rebase interactive    # interactive rebase
+ggc rebase autosquash     # interactive rebase with --autosquash
+ggc rebase main           # rebase current branch onto main
 ggc rebase continue       # resume after fixing conflicts
 ggc rebase abort          # give up and restore pre-rebase state
 ```
@@ -67,9 +69,10 @@ ggc push force            # force-with-lease
 ## 7. Tag a release
 
 ```bash
-ggc tag                  # list tags
-ggc tag create v1.2.0    # create (and sign, if configured)
-ggc tag push v1.2.0      # push a single tag to origin
+ggc tag list                            # list tags
+ggc tag create v1.2.0                   # create a lightweight tag
+ggc tag annotated v1.2.0 "Release"      # create an annotated tag
+ggc tag push                            # push tags to origin
 ```
 
 ## 8. Try interactive mode
