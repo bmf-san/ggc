@@ -2,7 +2,9 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
 	"runtime/debug"
 
 	"github.com/bmf-san/ggc/v8/cmd"
@@ -49,14 +51,26 @@ func GetVersionInfo() (string, string) {
 // RunApp contains the main application logic, separated for testability.
 // This function initializes all components and routes the provided arguments.
 func RunApp(args []string) error {
-	client := git.NewClient()
+	// Bind a signal-aware context so Ctrl+C cancels any running git subprocess.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	client := git.NewClient().WithContext(ctx)
 	cm := config.NewConfigManager(client)
 	if err := cm.LoadConfig(); err != nil {
-		// Continue with default config on error
-		_, _ = os.Stderr.WriteString("Warning: " + err.Error() + "\n")
+		if config.IsWarning(err) {
+			// Non-fatal: persist step failed but config was loaded OK.
+			_, _ = os.Stderr.WriteString("Warning: " + err.Error() + "\n")
+		} else {
+			// Fatal: config file is malformed or invalid.
+			return err
+		}
 	}
 	cmd.SetVersionGetter(GetVersionInfo)
-	c := cmd.NewCmd(client, cm)
+	c, err := cmd.NewCmd(client, cm)
+	if err != nil {
+		return err
+	}
 	return c.Execute(args)
 }
 

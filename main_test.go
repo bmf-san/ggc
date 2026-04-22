@@ -178,7 +178,7 @@ func TestMain_Components(t *testing.T) {
 				// Test cmd creation with mock client (safe, no real git commands)
 				mockClient := testutil.NewMockGitClient()
 				cm := config.NewConfigManager(mockClient)
-				c := cmd.NewCmd(mockClient, cm)
+				c, _ := cmd.NewCmd(mockClient, cm)
 				if c == nil {
 					t.Error("cmd should be created")
 				}
@@ -195,7 +195,7 @@ func TestMain_Components(t *testing.T) {
 				cm := config.NewConfigManager(mockClient)
 				_ = cm.LoadConfig()
 				cmd.SetVersionGetter(GetVersionInfo)
-				c := cmd.NewCmd(mockClient, cm)
+				c, _ := cmd.NewCmd(mockClient, cm)
 
 				// Test safe routing (help command)
 				_ = c.Execute([]string{"help"})
@@ -245,7 +245,7 @@ func TestMain_ArgumentHandling(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
-			c := cmd.NewCmd(mockClient, cm)
+			c, _ := cmd.NewCmd(mockClient, cm)
 
 			// Test routing with different arguments (safe with mock)
 			_ = c.Execute(tt.args)
@@ -301,7 +301,7 @@ func TestMain_DefaultRemoteHandling(t *testing.T) {
 
 			// Initialize cmd and check default remote setting logic
 			cmd.SetVersionGetter(GetVersionInfo)
-			c := cmd.NewCmd(mockClient, cm)
+			c, _ := cmd.NewCmd(mockClient, cm)
 
 			// Test safe routing to complete the main() simulation
 			_ = c.Execute([]string{"help"})
@@ -355,7 +355,7 @@ func TestMain_CompleteFlow(t *testing.T) {
 			cmd.SetVersionGetter(GetVersionInfo)
 
 			// Step 3: Create cmd
-			c := cmd.NewCmd(mockClient, cm)
+			c, _ := cmd.NewCmd(mockClient, cm)
 
 			// Step 5: Execute arguments (simulating os.Args[1:])
 			_ = c.Execute(tt.args)
@@ -387,7 +387,7 @@ func TestMain_OsArgsSimulation(t *testing.T) {
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
 			cmd.SetVersionGetter(GetVersionInfo)
-			c := cmd.NewCmd(mockClient, cm)
+			c, _ := cmd.NewCmd(mockClient, cm)
 
 			// Route the arguments (safe with mock)
 			_ = c.Execute(routeArgs)
@@ -505,7 +505,7 @@ func TestMain_InitializationOrder(t *testing.T) {
 		cmd.SetVersionGetter(GetVersionInfo)
 
 		// Step 3: Cmd creation (requires version getter to be set)
-		c := cmd.NewCmd(mockClient, cm)
+		c, _ := cmd.NewCmd(mockClient, cm)
 		if c == nil {
 			t.Fatal("Cmd creation failed")
 		}
