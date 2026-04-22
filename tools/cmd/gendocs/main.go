@@ -195,7 +195,8 @@ func writeCommandsReference(path string) error {
 	b.WriteString("## Table of contents\n\n")
 
 	byCategory := make(map[command.Category][]command.Info)
-	for _, c := range commands {
+	for i := range commands {
+		c := commands[i]
 		byCategory[c.Category] = append(byCategory[c.Category], c)
 	}
 	for _, cat := range command.OrderedCategories() {
@@ -227,44 +228,53 @@ func writeCommandSection(b *strings.Builder, c *command.Info) {
 	if c.Summary != "" {
 		fmt.Fprintf(b, "%s.\n\n", strings.TrimSuffix(c.Summary, "."))
 	}
-	if len(c.Aliases) > 0 {
-		quoted := make([]string, 0, len(c.Aliases))
-		for _, a := range c.Aliases {
-			quoted = append(quoted, "`"+a+"`")
-		}
-		fmt.Fprintf(b, "**Aliases:** %s\n\n", strings.Join(quoted, ", "))
+	writeAliases(b, c.Aliases)
+	writeUsageBlock(b, "Usage", c.Usage)
+	writeSubcommandsBlock(b, visibleSubs(c.Subcommands))
+	writeUsageBlock(b, "Examples", c.Examples)
+}
+
+func writeAliases(b *strings.Builder, aliases []string) {
+	if len(aliases) == 0 {
+		return
 	}
-	if len(c.Usage) > 0 {
-		b.WriteString("**Usage:**\n\n```bash\n")
-		for _, u := range c.Usage {
-			fmt.Fprintf(b, "%s\n", u)
-		}
-		b.WriteString("```\n\n")
+	quoted := make([]string, 0, len(aliases))
+	for _, a := range aliases {
+		quoted = append(quoted, "`"+a+"`")
 	}
-	subs := visibleSubs(c.Subcommands)
-	if len(subs) > 0 {
-		b.WriteString("**Subcommands:**\n\n")
-		b.WriteString("| Subcommand | Description |\n")
-		b.WriteString("|---|---|\n")
-		sort.Slice(subs, func(i, j int) bool { return subs[i].Name < subs[j].Name })
-		for _, s := range subs {
-			fmt.Fprintf(b, "| `%s` | %s |\n", s.Name, s.Summary)
-		}
-		b.WriteString("\n")
-		for _, s := range subs {
-			if len(s.Examples) == 0 {
-				continue
-			}
-			fmt.Fprintf(b, "_Examples for `%s`:_\n\n```bash\n", s.Name)
-			for _, ex := range s.Examples {
-				fmt.Fprintf(b, "%s\n", ex)
-			}
-			b.WriteString("```\n\n")
-		}
+	fmt.Fprintf(b, "**Aliases:** %s\n\n", strings.Join(quoted, ", "))
+}
+
+func writeUsageBlock(b *strings.Builder, label string, lines []string) {
+	if len(lines) == 0 {
+		return
 	}
-	if len(c.Examples) > 0 {
-		b.WriteString("**Examples:**\n\n```bash\n")
-		for _, ex := range c.Examples {
+	fmt.Fprintf(b, "**%s:**\n\n```bash\n", label)
+	for _, l := range lines {
+		fmt.Fprintf(b, "%s\n", l)
+	}
+	b.WriteString("```\n\n")
+}
+
+func writeSubcommandsBlock(b *strings.Builder, subs []command.SubcommandInfo) {
+	if len(subs) == 0 {
+		return
+	}
+	b.WriteString("**Subcommands:**\n\n")
+	b.WriteString("| Subcommand | Description |\n")
+	b.WriteString("|---|---|\n")
+	sort.Slice(subs, func(i, j int) bool { return subs[i].Name < subs[j].Name })
+	for i := range subs {
+		fmt.Fprintf(b, "| `%s` | %s |\n", subs[i].Name, subs[i].Summary)
+	}
+	b.WriteString("\n")
+	for i := range subs {
+		s := &subs[i]
+		if len(s.Examples) == 0 {
+			continue
+		}
+		fmt.Fprintf(b, "_Examples for `%s`:_\n\n```bash\n", s.Name)
+		for _, ex := range s.Examples {
 			fmt.Fprintf(b, "%s\n", ex)
 		}
 		b.WriteString("```\n\n")
