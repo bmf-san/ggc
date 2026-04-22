@@ -84,6 +84,7 @@ _ggc_commands() {
         'config:Get and set ggc configuration'
         'debug-keys:Debug keybinding issues and capture raw key sequences'
         'diff:Inspect changes between commits, the index, and the working tree'
+        'doctor:Diagnose the local ggc installation'
         'fetch:Download objects and refs from remotes'
         'help:Show help information for commands'
         'hook:Manage Git hooks'

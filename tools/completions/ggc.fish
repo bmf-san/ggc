@@ -10,7 +10,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote reset restore stash status tag version"
+complete -c ggc -f -a "add branch clean commit config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore stash status tag version"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "checkout contains create current delete info list move rename set sort"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"

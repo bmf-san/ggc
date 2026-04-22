@@ -342,6 +342,7 @@ ggc
 | `debug-keys` | Show current keybindings |
 | `debug-keys raw` | Capture key sequences interactively |
 | `debug-keys raw <file>` | Capture key sequences and save them to a file |
+| `doctor` | Diagnose the local ggc installation |
 | `quit` | Exit interactive mode |
 | `version` | Display current ggc version |
 ### Unified Syntax and "--" Separator

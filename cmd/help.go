@@ -256,6 +256,11 @@ func (h *Helper) ShowVersionHelp() {
 	h.renderCommandFromRegistry("version", nil, "Show current ggc version")
 }
 
+// ShowDoctorHelp shows help message for Doctor command.
+func (h *Helper) ShowDoctorHelp() {
+	h.renderCommandFromRegistry("doctor", nil, "Diagnose the local ggc installation")
+}
+
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.renderCommandFromRegistry("rebase", []string{"ggc rebase [interactive | <upstream> | continue | abort | skip]"}, "Rebase current branch onto another branch; supports interactive and common workflows")
