@@ -1,0 +1,25 @@
+# Configuration for actions/labeler
+# Automatically applies labels to pull requests based on changed file paths.
+# Only labels that already exist in this repository are declared here so that
+# `sync-labels: true` never fails trying to add a missing label.
+# Note: `dependencies` is intentionally omitted because Dependabot attaches it directly.
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**
+          - "**/*.md"
+          - README*
+          - LICENSE
+
+github-actions:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+
+go:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.go"
+          - go.mod
+          - go.sum

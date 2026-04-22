@@ -112,12 +112,17 @@ func (cm *Manager) syncFromGitConfig() {
 
 // LoadConfig loads and saves the configuration file.
 // Returns an error if loading or saving fails.
+//
+// Save errors are wrapped as warnings via [WarningError]; callers that wish
+// to tolerate non-critical issues (e.g. unable to persist auto-normalized
+// config back to disk) can use [errors.As] to differentiate a fatal
+// configuration error from a recoverable warning.
 func (cm *Manager) LoadConfig() error {
 	if err := cm.Load(); err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 	if err := cm.Save(); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+		return &WarningError{Err: fmt.Errorf("failed to save config: %w", err)}
 	}
 	return nil
 }

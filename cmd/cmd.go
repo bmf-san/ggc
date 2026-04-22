@@ -4,7 +4,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"sort"
@@ -80,7 +79,10 @@ type GitDeps interface {
 
 // NewCmd creates a new Cmd with the provided git client and config manager.
 // The config manager is required for alias resolution and other configuration features.
-func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
+// It returns an error if the command registry is inconsistent (a developer error
+// indicating a command is registered without a handler). Callers that are sure
+// the registry is valid may ignore the error.
+func NewCmd(client GitDeps, cm *config.Manager) (*Cmd, error) {
 	registry := commandregistry.NewRegistry()
 
 	// Populate the alias validator whitelist so that internal/config does not
@@ -127,8 +129,12 @@ func NewCmd(client GitDeps, cm *config.Manager) *Cmd {
 		fetcher:       NewFetcher(client),
 		debugger:      NewDebugger(),
 	}
-	cmd.cmdRouter = mustNewCommandRouter(cmd)
-	return cmd
+	router, err := newCommandRouter(cmd)
+	if err != nil {
+		return nil, err
+	}
+	cmd.cmdRouter = router
+	return cmd, nil
 }
 
 // Help displays help information.
@@ -340,17 +346,6 @@ func (c *Cmd) routeCommand(cmd string, args []string) error {
 type commandRouter struct {
 	registry *commandregistry.Registry
 	handlers map[string]func([]string)
-}
-
-func mustNewCommandRouter(cmd *Cmd) *commandRouter {
-	router, err := newCommandRouter(cmd)
-	if err != nil {
-		// This indicates a developer error: a command was added to the registry
-		// without a corresponding handler. It cannot occur in a correctly
-		// assembled binary.
-		log.Fatalf("internal error: failed to build command router: %v", err)
-	}
-	return router
 }
 
 func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
