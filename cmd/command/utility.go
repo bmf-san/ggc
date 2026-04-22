@@ -7,9 +7,20 @@ func utility() []Info {
 			Name:     "version",
 			Category: CategoryUtility,
 			Summary:  "Display current ggc version",
-			Usage:    []string{"ggc version"},
+			Usage: []string{
+				"ggc version",
+				"ggc version json",
+			},
 			Examples: []string{
-				"ggc version   # Shows build time, latest commit and version number",
+				"ggc version        # Human-readable version, commit, build time, os/arch",
+				"ggc version json   # Same info as a JSON document for scripting",
+			},
+			Subcommands: []SubcommandInfo{
+				{
+					Name:    "version json",
+					Summary: "Emit the version information as a JSON document",
+					Usage:   []string{"ggc version json"},
+				},
 			},
 		},
 		{

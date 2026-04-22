@@ -100,6 +100,11 @@ _ggc()
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
+        version)
+            subopts="json"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
     esac
 
     if [[ ${COMP_CWORD} == 1 ]]; then

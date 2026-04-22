@@ -711,11 +711,19 @@ Display current ggc version.
 
 ```bash
 ggc version
+ggc version json
 ```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|---|---|
+| `version json` | Emit the version information as a JSON document |
 
 **Examples:**
 
 ```bash
-ggc version   # Shows build time, latest commit and version number
+ggc version        # Human-readable version, commit, build time, os/arch
+ggc version json   # Same info as a JSON document for scripting
 ```
 

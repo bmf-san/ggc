@@ -35,6 +35,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "apply branch clear
 complete -c ggc -f -n "__fish_seen_subcommand_from stash; and __fish_seen_subcommand_from push" -a "-m"
 complete -c ggc -f -n "__fish_seen_subcommand_from status" -a "short"
 complete -c ggc -f -n "__fish_seen_subcommand_from tag" -a "annotated create delete list push show"
+complete -c ggc -f -n "__fish_seen_subcommand_from version" -a "json"
 
 # Branch checkout needs both keyword and dynamic branch names
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from checkout" -a "remote (__ggc_complete_branches)"

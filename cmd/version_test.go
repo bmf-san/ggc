@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -480,5 +481,52 @@ func TestVersioner_UpdateConfigValue_Error(t *testing.T) {
 
 	if !strings.Contains(buf.String(), "warn: failed to set") {
 		t.Errorf("expected warn in output, got: %q", buf.String())
+	}
+}
+
+// ─── version json: machine-readable output ─────────────────────────────────────
+
+func TestVersioner_VersionJSON(t *testing.T) {
+	originalGetter := getVersionInfo
+	SetVersionGetter(func() (string, string) { return "v1.2.3", "deadbeef" })
+	t.Cleanup(func() { getVersionInfo = originalGetter })
+
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	if err := os.Setenv("HOME", tempDir); err != nil {
+		t.Fatalf("Setenv HOME: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+
+	var buf bytes.Buffer
+	v := &Versioner{
+		gitClient:    testutil.NewMockGitClient(),
+		outputWriter: &buf,
+		helper:       NewHelper(),
+		execCommand:  exec.Command,
+	}
+	v.helper.outputWriter = &buf
+	v.Version([]string{"json"})
+
+	var payload struct {
+		Version       string `json:"version"`
+		Commit        string `json:"commit"`
+		Built         string `json:"built"`
+		ConfigVersion string `json:"configVersion"`
+		GoVersion     string `json:"goVersion"`
+		OS            string `json:"os"`
+		Arch          string `json:"arch"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &payload); err != nil {
+		t.Fatalf("version json did not produce valid JSON: %v\noutput: %q", err, buf.String())
+	}
+	if payload.Version != "v1.2.3" {
+		t.Errorf("version mismatch: want v1.2.3, got %q", payload.Version)
+	}
+	if payload.Commit != "deadbeef" {
+		t.Errorf("commit mismatch: want deadbeef, got %q", payload.Commit)
+	}
+	if payload.GoVersion == "" || payload.OS == "" || payload.Arch == "" {
+		t.Errorf("runtime fields must be populated, got %+v", payload)
 	}
 }
