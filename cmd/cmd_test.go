@@ -265,7 +265,10 @@ func TestNewCmd(t *testing.T) {
 	mockClient := &mockGitClient{}
 	cm := config.NewConfigManager(mockClient)
 
-	cmd, _ := NewCmd(mockClient, cm)
+	cmd, err := NewCmd(mockClient, cm)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
 
 	// Check if all fields are properly initialized
 	if cmd.adder == nil {
@@ -396,7 +399,11 @@ func TestCmd_Route(t *testing.T) {
 		restorer:   &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		fetcher:    &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
-	cmd.cmdRouter, _ = newCommandRouter(cmd)
+	var routerErr error
+	cmd.cmdRouter, routerErr = newCommandRouter(cmd)
+	if routerErr != nil {
+		t.Fatalf("newCommandRouter returned an unexpected error: %v", routerErr)
+	}
 
 	testCases := []struct {
 		name string
@@ -472,7 +479,11 @@ func TestCmd_Route_SeparatorAllowsHyphenValues(t *testing.T) {
 		restorer:     &Restorer{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 		fetcher:      &Fetcher{gitClient: mockClient, outputWriter: io.Discard, helper: helper},
 	}
-	cmd.cmdRouter, _ = newCommandRouter(cmd)
+	var routerErr error
+	cmd.cmdRouter, routerErr = newCommandRouter(cmd)
+	if routerErr != nil {
+		t.Fatalf("newCommandRouter returned an unexpected error: %v", routerErr)
+	}
 
 	// Using "--" should allow a value starting with '-' to pass through
 	// without triggering the legacy-like error.
@@ -702,7 +713,10 @@ func TestCmd_InteractiveWorkflowIntegration(t *testing.T) {
 	// Setup
 	mockClient := &mockGitClient{}
 	cm := config.NewConfigManager(mockClient)
-	cmd, _ := NewCmd(mockClient, cm)
+	cmd, err := NewCmd(mockClient, cm)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
 
 	ui := interactive.NewUI(mockClient, nil, nil, cmd)
 	if ui == nil {
