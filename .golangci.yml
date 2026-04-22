@@ -22,6 +22,7 @@ linters:
       - ".*_mock\\.go"
       - ".*\\.pb\\.go"
       - "testdata/.*"
+      - "internal/testutil/.*"
     rules:
       # Relax rules for test files
       - path: _test\.go
