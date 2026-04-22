@@ -20,6 +20,8 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
+      - name: Install Syft (SBOM)
+        uses: anchore/sbom-action/download-syft@v0
       - name: Dry run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
