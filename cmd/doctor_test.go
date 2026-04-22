@@ -147,3 +147,80 @@ func TestDoctor_FullReport_NoHardFailures(t *testing.T) {
 		t.Fatalf("expected success footer, got:\n%s", out)
 	}
 }
+
+func TestParseGitVersion(t *testing.T) {
+	cases := []struct {
+		in           string
+		major, minor int
+		ok           bool
+	}{
+		{"git version 2.46.0", 2, 46, true},
+		{"git version 2.39.3 (Apple Git-146)", 2, 39, true},
+		{"git version 1.9.1", 1, 9, true},
+		{"git version abc", 0, 0, false},
+		{"not a git version string", 0, 0, false},
+		{"git version 2", 0, 0, false},
+	}
+	for _, tc := range cases {
+		major, minor, ok := parseGitVersion(tc.in)
+		if ok != tc.ok || major != tc.major || minor != tc.minor {
+			t.Errorf("parseGitVersion(%q) = (%d, %d, %v); want (%d, %d, %v)",
+				tc.in, major, minor, ok, tc.major, tc.minor, tc.ok)
+		}
+	}
+}
+
+func TestDoctor_GitBinary_TooOldIsWarn(t *testing.T) {
+	d := newTestDoctor(&bytes.Buffer{})
+	d.lookPath = func(string) (string, error) { return "/usr/bin/git", nil }
+	d.execCommand = func(_ string, _ ...string) *exec.Cmd {
+		// Well below the minimum we care about.
+		return exec.Command("echo", "git version 1.9.1")
+	}
+	r := d.checkGitBinary()
+	if r.ok || !r.warn {
+		t.Fatalf("ancient git should be WARN, got %+v", r)
+	}
+	if !strings.Contains(r.detail, "older than the recommended") {
+		t.Fatalf("detail should explain the warning, got %q", r.detail)
+	}
+}
+
+func TestDoctor_Term_DumbIsWarn(t *testing.T) {
+	d := newTestDoctor(&bytes.Buffer{})
+	t.Setenv("TERM", "dumb")
+	r := d.checkTerm()
+	if r.ok || !r.warn {
+		t.Fatalf("TERM=dumb should be WARN, got %+v", r)
+	}
+	if !strings.Contains(r.detail, "dumb") {
+		t.Fatalf("detail should mention dumb, got %q", r.detail)
+	}
+}
+
+func TestDoctor_Term_UnsetIsWarn(t *testing.T) {
+	d := newTestDoctor(&bytes.Buffer{})
+	t.Setenv("TERM", "")
+	r := d.checkTerm()
+	if r.ok || !r.warn {
+		t.Fatalf("unset TERM should be WARN, got %+v", r)
+	}
+}
+
+func TestDoctor_Term_NormalIsOK(t *testing.T) {
+	d := newTestDoctor(&bytes.Buffer{})
+	t.Setenv("TERM", "xterm-256color")
+	r := d.checkTerm()
+	if !r.ok {
+		t.Fatalf("normal TERM should be OK, got %+v", r)
+	}
+}
+
+func TestDoctor_GgcOnPATH_NotFound(t *testing.T) {
+	d := newTestDoctor(&bytes.Buffer{})
+	d.lookPath = func(string) (string, error) { return "", errors.New("not found") }
+	r := d.checkGgcOnPATH()
+	if r.ok || !r.warn {
+		t.Fatalf("missing ggc on PATH should be WARN, got %+v", r)
+	}
+}
