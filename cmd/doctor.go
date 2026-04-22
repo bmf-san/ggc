@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/bmf-san/ggc/v8/internal/config"
@@ -57,9 +58,12 @@ func (d *Doctor) Doctor(args []string) {
 	results := []diagResult{
 		d.checkGoRuntime(),
 		d.checkGitBinary(),
+		d.checkGgcOnPATH(),
 		d.checkGgcConfig(),
 		d.checkCompletions("bash"),
 		d.checkCompletions("zsh"),
+		d.checkCompletions("fish"),
+		d.checkTerm(),
 		d.checkTTY(),
 	}
 	d.printReport(results)
@@ -108,7 +112,83 @@ func (d *Doctor) checkGitBinary() diagResult {
 	if err != nil {
 		return diagResult{name: "git binary", ok: false, detail: fmt.Sprintf("%s: %v", path, err)}
 	}
-	return diagResult{name: "git binary", ok: true, detail: fmt.Sprintf("%s (%s)", path, strings.TrimSpace(string(out)))}
+	trimmed := strings.TrimSpace(string(out))
+	if major, minor, ok := parseGitVersion(trimmed); ok {
+		if major < minGitMajor || (major == minGitMajor && minor < minGitMinor) {
+			return diagResult{
+				name:   "git binary",
+				ok:     false,
+				warn:   true,
+				detail: fmt.Sprintf("%s (%s) is older than the recommended %d.%d; some subcommands may not work", path, trimmed, minGitMajor, minGitMinor),
+			}
+		}
+	}
+	return diagResult{name: "git binary", ok: true, detail: fmt.Sprintf("%s (%s)", path, trimmed)}
+}
+
+// minGit{Major,Minor} is the lowest Git version we actively test against.
+// Older Git ships without the porcelain flags several ggc subcommands rely on.
+const (
+	minGitMajor = 2
+	minGitMinor = 30
+)
+
+// parseGitVersion extracts the major+minor number from a `git --version`
+// line such as "git version 2.44.0" or "git version 2.39.3 (Apple Git-146)".
+func parseGitVersion(s string) (int, int, bool) {
+	const prefix = "git version "
+	if !strings.HasPrefix(s, prefix) {
+		return 0, 0, false
+	}
+	rest := strings.TrimPrefix(s, prefix)
+	if idx := strings.IndexAny(rest, " \t"); idx != -1 {
+		rest = rest[:idx]
+	}
+	parts := strings.SplitN(rest, ".", 3)
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+	major, err1 := strconv.Atoi(parts[0])
+	minor, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+	return major, minor, true
+}
+
+// checkGgcOnPATH verifies that a user invoking `ggc` from an arbitrary
+// directory gets the same binary that is currently running. Shadowing by
+// an old Homebrew install or a stale `go install` copy is a common silent
+// failure mode.
+func (d *Doctor) checkGgcOnPATH() diagResult {
+	self, selfErr := os.Executable()
+	resolved, lookErr := d.lookPath("ggc")
+	switch {
+	case lookErr != nil && selfErr == nil:
+		return diagResult{
+			name:   "ggc on PATH",
+			ok:     false,
+			warn:   true,
+			detail: fmt.Sprintf("running %s but 'ggc' is not on PATH; add its directory to PATH to use shell completions", self),
+		}
+	case lookErr != nil:
+		return diagResult{name: "ggc on PATH", ok: false, warn: true, detail: "'ggc' not found on PATH"}
+	case selfErr != nil:
+		return diagResult{name: "ggc on PATH", ok: true, detail: resolved}
+	}
+	// Compare by resolved symlink target so /opt/homebrew/bin/ggc ->
+	// /opt/homebrew/Cellar/ggc/…/bin/ggc still counts as a match.
+	selfReal, _ := filepath.EvalSymlinks(self)
+	resolvedReal, _ := filepath.EvalSymlinks(resolved)
+	if selfReal != "" && resolvedReal != "" && selfReal != resolvedReal {
+		return diagResult{
+			name:   "ggc on PATH",
+			ok:     false,
+			warn:   true,
+			detail: fmt.Sprintf("running %s but PATH resolves 'ggc' to %s; an older install may shadow this one", self, resolved),
+		}
+	}
+	return diagResult{name: "ggc on PATH", ok: true, detail: resolved}
 }
 
 // configCandidatePaths mirrors (manager).getConfigPaths without exposing it.
@@ -188,6 +268,13 @@ func (d *Doctor) checkCompletions(shell string) diagResult {
 			"/opt/homebrew/share/zsh/site-functions/_ggc",
 			filepath.Join(home, ".zsh/completions/_ggc"),
 		}
+	case "fish":
+		candidates = []string{
+			"/usr/share/fish/vendor_completions.d/ggc.fish",
+			"/usr/local/share/fish/vendor_completions.d/ggc.fish",
+			"/opt/homebrew/share/fish/vendor_completions.d/ggc.fish",
+			filepath.Join(home, ".config/fish/completions/ggc.fish"),
+		}
 	default:
 		return diagResult{name: shell + " completions", ok: true}
 	}
@@ -217,4 +304,27 @@ func (d *Doctor) checkTTY() diagResult {
 		}
 	}
 	return diagResult{name: "stdin TTY", ok: true, detail: "stdin is a TTY"}
+}
+
+// checkTerm warns when $TERM looks like something the interactive TUI
+// cannot fully drive (dumb terminal, unset, or vt52-level).
+func (d *Doctor) checkTerm() diagResult {
+	term := os.Getenv("TERM")
+	switch term {
+	case "":
+		return diagResult{
+			name:   "TERM",
+			ok:     false,
+			warn:   true,
+			detail: "$TERM is unset; interactive mode may render incorrectly",
+		}
+	case "dumb":
+		return diagResult{
+			name:   "TERM",
+			ok:     false,
+			warn:   true,
+			detail: "$TERM=dumb; interactive mode will not work (one-shot subcommands are fine)",
+		}
+	}
+	return diagResult{name: "TERM", ok: true, detail: term}
 }
