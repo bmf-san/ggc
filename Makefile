@@ -38,6 +38,16 @@ fmt:
 test:
 	go test ./...
 
+test-race:
+	go test -race ./...
+
+vuln: install-tools
+	@if ! command -v govulncheck >/dev/null 2>&1; then \
+		echo "Installing govulncheck..."; \
+		go install golang.org/x/vuln/cmd/govulncheck@latest; \
+	fi
+	govulncheck ./...
+
 lint: install-tools
 	golangci-lint run --max-issues-per-linter=0 --max-same-issues=0
 

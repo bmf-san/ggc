@@ -39,6 +39,9 @@ jobs:
       - name: Run tests
         run: make test
 
+      - name: Run tests with race detector
+        run: make test-race
+
       - name: Run linter
         run: make lint
 
