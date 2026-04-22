@@ -3,77 +3,69 @@
 # Requires:
 #   GGC_DEMO_INTERACTIVE_WORKDIR - prepared fixture path
 #
-# This script illustrates launching interactive mode, refining search,
-# building a workflow, and managing workflows in Workflow Mode.
+# Show off the real differentiators of interactive mode:
+#   1. Type a few letters, fuzzy-search every ggc command, hit Enter.
+#   2. Tab to queue commands into a workflow from search mode.
+#   3. Ctrl+T to switch to Workflow mode and execute the queue.
 
 Output docs/demos/generated/interactive-overview.gif
 Set Shell "bash"
-Set Width 1200
-Set Height 675
-Set FontSize 22
+Set Width 1000
+Set Height 560
+Set FontSize 20
 Set TypingSpeed 55ms
+Set Framerate 8
+Set PlaybackSpeed 1.25
 Set Theme "Dracula"
 
 Type "cd $GGC_DEMO_INTERACTIVE_WORKDIR"
 Enter
 Sleep 350ms
 
-# Launch interactive mode
+# --- 1. Fuzzy search ------------------------------------------------------
 Type "ggc"
 Enter
-Sleep 1500ms
+Sleep 1000ms
 
-# Search for status command and execute
+# "brl" fuzzy-matches "branch list"
+Type "brl"
+Sleep 1000ms
+Enter
+Sleep 1400ms
+
+# exit back to shell
+Ctrl+C
+Sleep 500ms
+
+# --- 2. Build a workflow from search mode --------------------------------
+Type "ggc"
+Enter
+Sleep 900ms
+
+# queue "status"
 Type "status"
-Sleep 1500ms
-Enter
-Sleep 1500ms
+Sleep 700ms
+Tab
+Sleep 500ms
+Ctrl+U
 
-# Exit back to shell
-Ctrl+C
-Sleep 1500ms
-
-# Re-open interactive mode
-Type "ggc"
-Enter
-Sleep 1500ms
-
-# Build workflow: add -> commit -> push (using Tab in Search Mode)
+# queue "add"
 Type "add"
-Sleep 1500ms
+Sleep 700ms
 Tab
-Sleep 1500ms
-Type "commit "
-Sleep 1500ms
-Tab
-Sleep 1500ms
-Type "push"
-Sleep 1500ms
-Tab
-Sleep 1500ms
+Sleep 500ms
+Ctrl+U
 
-# Toggle to Workflow Mode (Ctrl+T)
+# queue "commit"
+Type "commit"
+Sleep 700ms
+Tab
+Sleep 700ms
+
+# --- 3. Switch to Workflow mode and run ----------------------------------
 Ctrl+T
-Sleep 1500ms
+Sleep 1400ms
 
-# Create a new workflow with 'n'
-Type "n"
-Sleep 1500ms
-
-# Navigate workflow list with Ctrl+N/P
-Ctrl+P
-Sleep 1500ms
-Ctrl+N
-Sleep 1500ms
-
-# Delete a workflow with 'd'
-Type "d"
-Sleep 1500ms
-
-# Execute a workflow with 'x'
-Type "x"
-Sleep 1500ms
-
-# Exit interactive mode
+# exit
 Ctrl+C
-Sleep 1500ms
+Sleep 500ms
