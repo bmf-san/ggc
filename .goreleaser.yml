@@ -48,23 +48,23 @@ changelog:
   use: github
   groups:
     - title: Features
-      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*feat(\([[:word:]]+\))?!?:.+$'
       order: 0
     - title: Bug fixes
-      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*fix(\([[:word:]]+\))?!?:.+$'
       order: 1
     - title: Performance
-      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*perf(\([[:word:]]+\))?!?:.+$'
       order: 2
     - title: Others
       order: 999
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
-      - '^ci:'
-      - '^style:'
+      - '^docs(\([[:word:]]+\))?:'
+      - '^test(\([[:word:]]+\))?:'
+      - '^chore(\([[:word:]]+\))?:'
+      - '^ci(\([[:word:]]+\))?:'
+      - '^style(\([[:word:]]+\))?:'
       - 'Merge pull request'
       - 'Merge branch'
 
