@@ -25,9 +25,9 @@ Commands that take a branch, file, or stash entry open a nested picker using the
 Workflow mode turns the interactive prompt into a command pipeline builder. Typical use: stage → commit → push in one go without re-typing anything.
 
 1. In search mode, highlight a command and press <kbd>Tab</kbd>. The command is appended to the workflow queue and the prompt stays in search mode so you can add the next one.
-2. Press <kbd>Ctrl</kbd>+<kbd>W</kbd> to switch to workflow view. You see the queued commands in order.
-3. <kbd>Enter</kbd> in workflow view runs the queue; execution stops on the first failure.
-4. <kbd>Esc</kbd> returns to search mode without clearing the queue; <kbd>Ctrl</kbd>+<kbd>X</kbd> clears the queue.
+2. Press <kbd>Ctrl</kbd>+<kbd>T</kbd> to switch to workflow view. You see the queued commands in order.
+3. In workflow view: <kbd>x</kbd> runs the queue (execution stops on the first failure), <kbd>n</kbd> creates a new workflow, <kbd>d</kbd> / <kbd>Ctrl</kbd>+<kbd>D</kbd> deletes the active workflow, <kbd>Ctrl</kbd>+<kbd>N</kbd>/<kbd>Ctrl</kbd>+<kbd>P</kbd> cycles between workflows.
+4. <kbd>Ctrl</kbd>+<kbd>T</kbd> again returns to search mode without clearing the queue; <kbd>c</kbd> clears the active workflow.
 
 Commands with placeholders (e.g. aliases like `commit-msg: "commit -m '{0}'"`) will prompt for the placeholder value when they run, not when they're queued.
 

@@ -30,221 +30,60 @@ Click any GIF to view full size.
 
 ## Overview
 
-ggc is a Git tool written in Go, offering both traditional CLI commands and an interactive interface with incremental search. You can either run subcommands like ggc add directly, or launch the interactive mode by simply typing ggc. Designed to be fast, user-friendly, and extensible.
+ggc is a Git tool written in Go, offering both a traditional CLI and an interactive TUI with incremental search and multi-command workflows. Run `ggc <subcommand>` directly, or type `ggc` on its own to open the fuzzy picker.
+
+Full docs: **<https://bmf-san.github.io/ggc/>**
 
 ## Features
 
-- Traditional command-line interface (CLI): Run ggc <command> [args] to execute specific operations directly.
-- Interactive interface: Run ggc with no arguments to launch an incremental search UI for command selection.
-- **Workflow functionality**: Build and execute multi-command workflows in interactive mode (e.g., add → commit → push)
-- Simple commands for common Git operations (add, push, pull, branch, log, etc.)
-- Composite commands that combine multiple Git operations
-- Interactive UI for branch/file selection and message input
-- Customizable keybindings with profile support (default, emacs, vi, readline)
-- Unified, flagless command syntax for intuitive usage
-- Shell completion for Bash, Zsh, and Fish
-- Configurable via YAML configuration file
-- Built with Go standard library and minimal dependencies
+- **Flagless CLI** — every command is verb + words (`ggc branch delete merged`, `ggc commit amend no-edit`). No `-m`/`--flag` juggling.
+- **Interactive mode** — fuzzy-search every command, pipe commands into workflows with <kbd>Tab</kbd>, and run the pipeline with <kbd>Ctrl</kbd>+<kbd>T</kbd>.
+- **Pickers when arguments are omitted** — `ggc branch checkout`, `ggc stash pop`, `ggc restore` all prompt for the target.
+- **Composite helpers** — `ggc pull rebase`, `ggc push force`, `ggc rebase autosquash`, `ggc fetch prune`, and more.
+- **User aliases** — define simple or multi-step aliases in `~/.config/ggc/config.yaml`.
+- **Customizable keybindings** — 4 built-in profiles (default, emacs, vi, readline) plus per-OS / per-terminal / per-context overrides.
+- **Shell completion** — pre-built scripts for Bash, Zsh, and Fish.
+- **Supported:** macOS (amd64 / arm64 / universal), Linux (amd64 / arm64), Windows (amd64). Requires Git and Go 1.25+ to build.
 
-## Supported Environments
+## Install
 
-### Supported Platforms
-- macOS (Apple Silicon/Intel): `darwin_amd64`, `darwin_arm64` - Verified
-- Linux (ARM64/x86_64): `linux_amd64`, `linux_arm64` - Supported
-- Windows (x86_64): `windows_amd64` - Supported
-
-### Requirements
-- Go version: 1.25 or later recommended
-- `git` command must be installed
-
-## Installation
-
-### Pre-compiled Binaries (Recommended)
-
-Pre-compiled binaries are available for multiple platforms and architectures. This is the fastest way to get started with `ggc`.
-
-#### Download from Releases
-1. Visit the [Releases](https://github.com/bmf-san/ggc/releases/) page to download the latest binary for your platform
-2. Make the binary executable: `chmod +x ggc`
-3. Move it to a directory in your PATH: `sudo mv ggc /usr/local/bin/` (or another location in your PATH)
-4. Verify installation: `ggc version`
-
-### Homebrew
-
-Install via Homebrew:
-
-```sh
-brew install ggc
-# Upgrade later:
-# brew upgrade ggc
-# Verify:
-# ggc version
-```
-
-- Formula: https://formulae.brew.sh/formula/ggc
-- Supported platforms via Homebrew: macOS (Apple Silicon/Intel), Linux (ARM64/x86_64)
-
-### Quick Install with Script
-
-The easiest way to install `ggc` is using the provided installation script:
-
-```sh
-# Download and run the installation script
+```bash
+# quick install (macOS / Linux)
 curl -sSL https://raw.githubusercontent.com/bmf-san/ggc/main/install.sh | bash
-```
 
-Or download and run it manually:
+# or Homebrew
+brew install ggc
 
-```sh
-# Download the script
-curl -O https://raw.githubusercontent.com/bmf-san/ggc/main/install.sh
-
-# Make it executable
-chmod +x install.sh
-
-# Run the script
-./install.sh
-```
-
-The script will:
-- Detect your operating system and architecture
-- Download the appropriate binary for your system
-- Install using `git`, manual `go install` fallback
-- Verify the installation
-
-### Build with make
-
-```sh
-# Clone the repository by SSH
-git clone git@github.com:bmf-san/ggc.git
-cd ggc
-
-# Build the binary
-make build
-
-# Move the binary to a directory in your PATH
-sudo mv ggc /usr/local/bin/
-```
-
-### Development Setup
-
-#### Prerequisites for development
-- Go 1.25 or later
-- Git
-
-For development, you can use the Makefile to install required tools and dependencies:
-
-```sh
-# Install all dependencies and tools
-make deps
-
-# Run formatter
-make fmt
-
-# Run tests
-make test
-
-# Run linter
-make lint
-
-# Run tests with coverage
-make cover
-
-# Run tests and lint
-make test-and-lint
-
-# Build with go build
-make build
-
-# Build and run with version info
-make run
-```
-
-The Makefile will automatically install required tools like `golangci-lint` using `go install`.
-
-### Global install with go install
-
-```sh
-# Requires Go 1.25+ installed
+# or Go
 go install github.com/bmf-san/ggc/v8@latest
 ```
 
-- The `ggc` binary will be installed to `$GOBIN` (usually `$HOME/go/bin`).
-- If `$GOBIN` is in your `PATH`, you can use `ggc` from anywhere.
-- If not, add it to your `PATH`:
+Windows binaries, pre-built archives, and source builds are covered in the [installation guide](https://bmf-san.github.io/ggc/guide/install/). After installing, run `ggc doctor` to verify.
 
-> [!NOTE]
-> When using `go install`, you may get limited version info due to `ldflags` not working with `go install`. It is recommended to build with make build or use the install script or binaries.
+## Quick start
 
-```sh
-export PATH=$PATH:$(go env GOBIN)
-# or
-export PATH=$PATH:$HOME/go/bin
+```bash
+ggc status                           # working tree status
+ggc add .                            # stage everything
+ggc commit "fix: off-by-one"         # no -m required
+ggc log graph                        # prettier git log
+ggc branch checkout                  # list + pick a local branch
+ggc rebase interactive               # interactive rebase
 ```
 
-## Usage
+Run `ggc` with no arguments to enter interactive mode. See the [quick start](https://bmf-san.github.io/ggc/guide/quickstart/) and [interactive mode guide](https://bmf-san.github.io/ggc/guide/interactive/) for more.
 
-### Interactive Command Selection (Fuzzy Search UI)
+### Unified syntax and `--` separator
 
-Just run:
+ggc uses a flagless, space-separated syntax. To pass a literal that starts with `-`, use the standard `--` separator:
 
-```sh
-ggc
+```bash
+ggc commit -- - fix leading dash
 ```
 
-**Search Features:**
-- **Fuzzy matching**: Type any characters that appear in the command (e.g., `"bd"` matches `"branch delete"`, `"ca"` matches `"commit amend"`)
-- **Case-insensitive**: Search works regardless of case
-- **Real-time filtering**: Results update as you type
+Everything after `--` is treated as data, never as subcommands.
 
-**Navigation & Editing:**
-- `Ctrl+n` / `Ctrl+p`: Navigate up/down through results
-- `←` / `→`: Move cursor left/right
-- `Ctrl+←` / `Ctrl+→`: Move by word
-- `Option+←` / `Option+→` (macOS): Move by word
-- `Ctrl+a` / `Ctrl+e`: Move cursor to beginning/end of input
-- `Ctrl+u`: Clear all input
-- `Ctrl+w`: Delete word before cursor
-- `Option+Backspace` (macOS): Delete word before cursor
-- `Ctrl+k`: Delete from cursor to end of line
-- `Backspace`: Delete character before cursor
-- `Enter`: Execute selected command
-- `Ctrl+c`: Exit interactive mode
-
-**Workflow Operations (Search Mode):**
-- `Tab`: Add selected command to the active workflow
-- `Ctrl+t`: Switch to Workflow Mode
-
-**Workflow Mode Keys:**
-- `n`: Create a new workflow
-- `d` / `Ctrl+d`: Delete the active workflow
-- `x`: Execute the active workflow
-- `Ctrl+n/p`: Navigate workflows
-- `Ctrl+t`: Return to Search Mode
-- `Ctrl+c`: Exit interactive mode
-
-**Command Execution:**
-- If a command requires arguments (e.g. `<file>`, `<name>`, `<url>`), you will be prompted for input
-- After command execution, results are displayed and you can press Enter to continue
-- After viewing results, you return to the command selection screen for continuous use
-- Type `"quit"` or use `Ctrl+c` to exit interactive mode
-- All UI and prompts are in English
-
-**Workflow Feature:**
-- Build multi-command workflows by adding commands with `Tab`
-- Manage and execute workflows in a dedicated Workflow Mode
-- Create, delete, and cycle through multiple workflows
-- Commands are executed sequentially when you run the active workflow
-- Placeholder arguments (e.g., `<message>`) are prompted during workflow execution
-- Workflows persist after execution for reuse
-- Common workflow examples: `add` → `commit` → `push`, `fetch` → `rebase` → `push force`
-
-**Examples of Fuzzy Search:**
-- `"bd"` → finds `"branch delete"`
-- `"ca"` → finds `"commit amend"`
-- `"ai"` → finds `"add interactive"`
-- `"ss"` → finds `"status short"`
-- `"brdel"` → finds `"branch delete"`
+## Command reference
 
 ### Available Commands
 
@@ -350,347 +189,18 @@ ggc
 | `doctor` | Diagnose the local ggc installation |
 | `quit` | Exit interactive mode |
 | `version` | Display current ggc version |
-### Unified Syntax and "--" Separator
-
-- Unified commands: ggc uses a flagless, space-separated syntax (no `-x`/`--long` options). Use subcommands and words, e.g., `ggc fetch prune`, `ggc commit allow empty`.
-- Passing literals that begin with `-`: use the standard `--` separator to mark the end of options; everything after `--` is treated as data.
-  - Example: `ggc commit -- - fix leading dash`
-- When `--` is encountered, all subsequent arguments are treated as data, not as commands or options.
-- This unified syntax makes the CLI behavior predictable, safe, and testable.
-
-## Command Aliases
-
-Chain multiple `ggc` commands together with custom aliases you define. Here is an example of aliases in your `~/.ggcconfig.yaml` file:
-```yaml
-aliases:
-    # Simple aliases
-    br: branch
-    ci: commit
-    st: status
-
-    # Simple aliases with placeholders
-    commit-msg: "commit -m '{0}'"
-
-    # Sequence aliases
-    quick:
-        - status
-        - add .
-        - commit
-
-    # Sequence aliases with placeholders
-    deploy:
-        - "branch checkout {0}"
-        - "pull current"
-        - "push {0}"
-
-    feature:
-        - "branch checkout-from {0} feature/{1}"
-        - "commit -m 'Start feature {1} from {0}'"
-```
-
-Aliases support two formats:
-
-1. **Simple alias**: Maps to a single command (e.g., `br: branch`)
-   - Arguments are passed to the aliased command
-   - Example: `ggc br list` will execute `ggc branch list`
-   - Supports placeholders: `commit-msg: "commit -m '{0}'"` allows `ggc commit-msg "Fix bug"`
-
-2. **Sequence alias**: Maps to multiple commands in sequence
-   - Commands are executed in order
-   - Without placeholders: Arguments are ignored (e.g., `quick: [status, add ., commit]`)
-   - With placeholders: Arguments are substituted using `{0}`, `{1}`, etc.
-   - Example: `deploy: ["branch checkout {0}", "push {0}"]` allows `ggc deploy production`
-
-**Placeholder Support**: Both simple and sequence aliases support positional placeholders:
-- Use `{0}` for the first argument, `{1}` for the second, etc.
-- Required arguments must be provided or the command will fail with a clear error
-- Example: `ggc feature main user-auth` → executes with `{0}=main`, `{1}=user-auth`
-- **Note**: Arguments containing spaces or quotes may be split incorrectly (e.g., `'fix bug'` becomes `'fix` and `bug'` as separate arguments)
-
-## Interactive Mode Keybindings
-
-You can customize keybindings in the interactive mode by adding configuration to your `~/.ggcconfig.yaml` file:
-
-### Basic Configuration
-
-```yaml
-interactive:
-  profile: default  # Base profile to extend (default, emacs, vi, readline)
-  keybindings:      # Global keybindings
-    move_up: "ctrl+p"
-    move_down: "ctrl+n"
-    move_to_beginning: "ctrl+a"
-    move_to_end: "ctrl+e"
-    delete_word: "ctrl+w"
-    clear_line: "ctrl+u"
-    delete_to_end: "ctrl+k"
-    # Workflow keybindings
-    add_to_workflow: "tab"
-    toggle_workflow_view: "ctrl+t"
-    clear_workflow: "c"
-    soft_cancel: "ctrl+g"
-```
-
-### Supported Key Format Notations
-
-ggc supports three key binding format notations:
-- `ctrl+key` format: e.g., `ctrl+w`, `ctrl+a`
-- Caret notation: e.g., `^w`, `^a`
-- Emacs notation: e.g., `C-w`, `C-a`
-
-These notations are interchangeable - use whichever style you prefer.
-
-### Advanced Configuration
-
-#### Profiles and Layers
-
-ggc provides four built-in keybinding profiles:
-
-- **default**: Current default behavior (backward compatible)
-- **emacs**: Emacs-style bindings (Ctrl-based, modeless)
-- **vi**: Vi-style bindings (modal concepts adapted for CLI)
-- **readline**: GNU Readline standard bindings
-
-Configuration resolution order: defaults → profile → platform (OS) → terminal ($TERM) → your config.
-
-When conflicts occur, later layers override earlier ones. For example, your custom settings in `~/.ggcconfig.yaml` will override any default profile settings.
-
-#### Default Profile Bindings
-
-Each profile has different default keybindings:
-
-- **default**: Standard terminal navigation (arrow keys for movement)
-- **emacs**: Emacs-style commands (Ctrl+P/N for up/down, Ctrl+A/E for start/end)
-- **vi**: Vi-inspired navigation (H/J/K/L, 0/$ for start/end)
-- **readline**: GNU Readline compatible (similar to Emacs but with some differences)
-
-#### Available Contexts
-
-You can define keybindings for specific UI contexts:
-
-- **global**: Always active (reserved keys like Ctrl+C and soft cancel via Ctrl+G/Esc)
-- **input**: When typing/editing the search query
-- **results**: When navigating through filtered results
-- **search**: When fuzzy search is active (combines input + results)
-
-Soft cancel lets you abandon the current interactive operation and return to the search screen without leaving interactive mode. Press `Ctrl+G` (or `Esc` when no escape sequence follows) to trigger a soft cancel; `Ctrl+C` continues to provide a hard exit.
-
-#### Per-OS Configuration
-
-Configure different key bindings for each operating system:
-
-```yaml
-interactive:
-  # OS-specific overrides
-  darwin:    # macOS
-    keybindings:
-      move_up: "up"
-      move_down: "down"
-
-  linux:     # Linux
-    keybindings:
-      move_up: "up"
-      move_down: "down"
-
-  windows:   # Windows
-    keybindings:
-      move_up: "up"
-      move_down: "down"
-```
-
-#### Context-Specific Configuration
-
-Configure key bindings for different operational contexts:
-
-```yaml
-interactive:
-  contexts:
-    # Input field bindings
-    input:
-      keybindings:
-        delete_word: ["ctrl+w", "alt+backspace"]  # Multiple bindings
-
-    # Results list bindings
-    results:
-      keybindings:
-        move_up: ["up", "ctrl+p"]
-        move_down: ["down", "ctrl+n"]
-```
-
-#### Terminal-Specific Configuration
-
-Target specific terminals via `$TERM` value:
-
-```yaml
-interactive:
-  terminals:
-    xterm-256color:
-      keybindings:
-        delete_to_end: "ctrl+k"
-      contexts:
-        input:
-          keybindings:
-            move_to_beginning: "ctrl+a"
-```
-
-#### Common Keybinding Names
-
-Here are some common keybinding action names you can customize:
-
-- **Navigation**: `move_up`, `move_down`, `move_left`, `move_right`
-- **Editing**: `delete_word`, `clear_line`, `delete_to_end`
-- **Cursor Movement**: `move_to_beginning`, `move_to_end`, `move_word_left`, `move_word_right`
-- **Control**: `execute`, `cancel`, `quit`
-- **Workflow**: `add_to_workflow`, `toggle_workflow_view`, `workflow_create`, `workflow_delete`
-
-#### Special Key Support
-
-- **Alt/Option Keys**: In macOS terminals, configure to send ESC+<letter> for Option keys. In iTerm2, set "Left/Right Option Key" to "Esc+".
-- **Function Keys and Alt/Meta Keys**: Support for these keys is limited in the current implementation.
-- **Multiple Bindings**: You can assign multiple key combinations to the same action using array syntax.
-
-### Managing Configuration
-
-Check your current key binding settings:
-
-```sh
-# Display all settings
-ggc config list
-
-# Check key binding settings
-ggc config get interactive.keybindings
-
-# Check OS-specific settings
-ggc config get interactive.darwin
-```
-
-```sh
-# Check OS-specific keybinding settings
-ggc config get interactive.darwin.keybindings
-
-# Set a specific binding
-ggc config set interactive.keybindings.move_up "ctrl+p"
-```
-
-### tmux Support
-
-If using tmux, add the following to your `.tmux.conf` to improve key input processing:
-
-```
-set -g xterm-keys on
-```
-
-## Directory Structure
-
-```
-main.go                  # Entry point
-main_test.go             # Main package tests
-cmd/                     # Command handlers and routing
-  command/               # Centralized command registry and categories
-docs/                    # Documentation and demo assets
-internal/                # All private packages (not exported)
-  config/                # Configuration loading, validation, keybindings
-  git/                   # Git operation wrappers (Client + interface types)
-  interactive/           # TUI: rendering, state, keybinding dispatch
-  keybindings/           # Keybinding profiles (default, vi, emacs, readline)
-  prompt/                # Input prompt utilities
-  templates/             # Help message templates
-  termio/                # Terminal I/O abstraction
-  testutil/              # Shared test utilities (mock git client)
-  ui/                    # UI model types
-test/                    # BATS integration tests
-tools/                   # Development and build tooling
-  completions/           # Auto-generated shell completion scripts
-  cmd/                   # Generator binaries (gencompletions, gendocs)
-  demos/                 # VHS scripts for animated demo generation
-```
-
-## Shell Completion
-
-ggc provides tab completion for commands and subcommands in Bash, Zsh, and Fish shells.
-
-### Generating Completion Scripts
-
-Run `make docs` (or `make completions`) to regenerate the README command table and the shell completion scripts in `tools/completions/` from the centralized command registry. This keeps documentation and completions aligned with the current command surface.
-
-### Using Pre-Built Completion Scripts
-
-ggc comes with pre-built completion scripts for common shells located in the `tools/completions` directory.
-
-### Enabling Completions
-
-#### Bash
-Add the following to your `~/.bash_profile` or `~/.bashrc`:
-```bash
-# Option 1: Use the pre-installed completion script (if installed via go install)
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash
-fi
-
-# Option 2: Use the generated completion script
-if [ -f ~/.ggc-completion.bash ]; then
-  . ~/.ggc-completion.bash
-fi
-```
-
-#### Zsh
-Add the following to your `~/.zshrc`:
-```zsh
-# Option 1: Use the pre-installed completion script (if installed via go install)
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh
-fi
-
-# Option 2: Use the generated completion script
-if [ -f ~/.ggc-completion.zsh ]; then
-  . ~/.ggc-completion.zsh
-fi
-```
-
-#### Fish
-Add the following to your `~/.config/fish/config.fish`:
-```fish
-# Option 1: Use the pre-installed completion script (if installed via go install)
-if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
-    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
-end
-
-# Option 2: Use the generated completion script
-if test -f ~/.ggc-completion.fish
-    source ~/.ggc-completion.fish
-end
-```
-
-### Using Completions
-
-Once enabled, tab completion will work for all ggc commands and subcommands. For example:
-
-```
-$ ggc b<tab>          # Completes to "branch"
-$ ggc branch <tab>    # Shows branch subcommands (checkout, list, etc.)
-$ ggc checkout <tab>  # Shows available local branches
-```
-
-Commands with multiple levels of subcommands are also supported:
-```
-$ ggc branch delete m<tab>   # Completes matching branch names
-$ ggc commit amend <tab>     # Shows "no-edit" option
-```
-
-This setup will automatically find the completion script regardless of the installed version.
-
-# References
+## References
 
 - [ggc documentation site](https://bmf-san.github.io/ggc/) - Full user guide, install notes, configuration reference, and troubleshooting
 - [Git Documentation](https://git-scm.com/docs) - Complete Git reference documentation
 - [Git Tutorial](https://git-scm.com/docs/gittutorial) - Official Git tutorial for beginners
 - [Git User Manual](https://git-scm.com/docs/user-manual) - Comprehensive Git user guide
 
-# Contributing
+## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.
 
-# Sponsor
+## Sponsor
 
 If you’d like to support my work, please consider sponsoring me!
 
@@ -698,12 +208,12 @@ If you’d like to support my work, please consider sponsoring me!
 
 Or simply giving ⭐ on GitHub is greatly appreciated—it keeps me motivated to maintain and improve the project! :D
 
-# Stargazers
+## Stargazers
 [![Stargazers repo roster for @bmf-san/ggc](https://reporoster.com/stars/bmf-san/ggc)](https://github.com/bmf-san/ggc/stargazers)
 
-# Forkers
+## Forkers
 [![Forkers repo roster for @bmf-san/ggc](https://reporoster.com/forks/bmf-san/ggc)](https://github.com/bmf-san/ggc/network/members)
 
-# License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
