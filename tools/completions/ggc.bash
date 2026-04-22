@@ -8,7 +8,7 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add branch clean commit config debug-keys diff fetch help hook log pull push quit rebase remote reset restore stash status tag version"
+    opts="add branch clean commit config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore stash status tag version"
     case ${prev} in
         branch)
             subopts="checkout contains create current delete info list move rename set sort"

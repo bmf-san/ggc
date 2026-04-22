@@ -13,6 +13,15 @@ func utility() []Info {
 			},
 		},
 		{
+			Name:     "doctor",
+			Category: CategoryUtility,
+			Summary:  "Diagnose the local ggc installation",
+			Usage:    []string{"ggc doctor"},
+			Examples: []string{
+				"ggc doctor   # Check git binary, config, shell completions, TTY, etc.",
+			},
+		},
+		{
 			Name:     "debug-keys",
 			Category: CategoryUtility,
 			Summary:  "Debug keybinding issues and capture raw key sequences",
