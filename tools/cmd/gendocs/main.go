@@ -46,8 +46,7 @@ func writeCommandsReference(path string) error {
 		if len(list) == 0 {
 			continue
 		}
-		anchor := strings.ToLower(string(cat))
-		fmt.Fprintf(&b, "- [%s](#%s)\n", cat, anchor)
+		fmt.Fprintf(&b, "- [%s](#%s)\n", cat, categoryAnchor(cat))
 	}
 	b.WriteString("\n")
 
@@ -56,7 +55,7 @@ func writeCommandsReference(path string) error {
 		if len(list) == 0 {
 			continue
 		}
-		fmt.Fprintf(&b, "## %s\n\n", cat)
+		fmt.Fprintf(&b, "## %s {#%s}\n\n", cat, categoryAnchor(cat))
 		for i := range list {
 			writeCommandSection(&b, &list[i])
 		}
@@ -66,7 +65,7 @@ func writeCommandsReference(path string) error {
 }
 
 func writeCommandSection(b *strings.Builder, c *command.Info) {
-	fmt.Fprintf(b, "### `ggc %s`\n\n", c.Name)
+	fmt.Fprintf(b, "### `ggc %s` {#%s}\n\n", c.Name, commandAnchor(c.Name))
 	if c.Summary != "" {
 		fmt.Fprintf(b, "%s.\n\n", strings.TrimSuffix(c.Summary, "."))
 	}
@@ -131,4 +130,35 @@ func visibleSubs(subs []command.SubcommandInfo) []command.SubcommandInfo {
 		}
 	}
 	return out
+}
+
+// categoryAnchor returns a stable, URL-safe anchor for a category heading.
+func categoryAnchor(cat command.Category) string {
+	return "cat-" + slugify(string(cat))
+}
+
+// commandAnchor returns a stable, URL-safe anchor for a command heading.
+// Using a "cmd-" prefix avoids clashes with MkDocs' auto-generated anchors
+// and lets external docs deep-link to specific commands safely.
+func commandAnchor(name string) string {
+	return "cmd-" + slugify(name)
+}
+
+func slugify(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	prevDash := false
+	for _, r := range strings.ToLower(s) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			prevDash = false
+		default:
+			if !prevDash && b.Len() > 0 {
+				b.WriteByte('-')
+				prevDash = true
+			}
+		}
+	}
+	return strings.TrimRight(b.String(), "-")
 }

@@ -6,23 +6,23 @@ For quick lookup, `ggc help` lists every command and `ggc help <command>` shows 
 
 ## Table of contents
 
-- [Basics](#basics)
-- [Branch](#branch)
-- [Commit](#commit)
-- [Remote](#remote)
-- [Status](#status)
-- [Cleanup](#cleanup)
-- [Diff](#diff)
-- [Tag](#tag)
-- [Config](#config)
-- [Hook](#hook)
-- [Rebase](#rebase)
-- [Stash](#stash)
-- [Utility](#utility)
+- [Basics](#cat-basics)
+- [Branch](#cat-branch)
+- [Commit](#cat-commit)
+- [Remote](#cat-remote)
+- [Status](#cat-status)
+- [Cleanup](#cat-cleanup)
+- [Diff](#cat-diff)
+- [Tag](#cat-tag)
+- [Config](#cat-config)
+- [Hook](#cat-hook)
+- [Rebase](#cat-rebase)
+- [Stash](#cat-stash)
+- [Utility](#cat-utility)
 
-## Basics
+## Basics {#cat-basics}
 
-### `ggc add`
+### `ggc add` {#cmd-add}
 
 Stage changes for the next commit.
 
@@ -53,7 +53,7 @@ ggc add interactive  # Add changes interactively
 ggc add patch        # Add changes interactively (patch mode)
 ```
 
-### `ggc help`
+### `ggc help` {#cmd-help}
 
 Show help information for commands.
 
@@ -78,7 +78,7 @@ ggc help
 ggc help branch
 ```
 
-### `ggc reset`
+### `ggc reset` {#cmd-reset}
 
 Reset current HEAD to the specified state.
 
@@ -107,9 +107,9 @@ ggc reset soft HEAD~1   # Soft reset: keep changes staged
 ggc reset soft HEAD~3   # Soft reset 3 commits, keeping changes staged
 ```
 
-## Branch
+## Branch {#cat-branch}
 
-### `ggc branch`
+### `ggc branch` {#cmd-branch}
 
 List, create, and manage branches.
 
@@ -164,9 +164,9 @@ ggc branch sort date              # List branches sorted by date
 ggc branch contains abc123        # Show branches containing a commit
 ```
 
-## Commit
+## Commit {#cat-commit}
 
-### `ggc commit`
+### `ggc commit` {#cmd-commit}
 
 Create commits from staged changes.
 
@@ -199,7 +199,7 @@ ggc commit amend no-edit          # Amend without editing commit message
 ggc commit fixup abc1234          # Create a fixup commit targeting abc1234
 ```
 
-### `ggc log`
+### `ggc log` {#cmd-log}
 
 Inspect commit history.
 
@@ -224,9 +224,9 @@ ggc log simple  # Show commit logs in a simple format
 ggc log graph   # Show commit logs with a graph
 ```
 
-## Remote
+## Remote {#cat-remote}
 
-### `ggc fetch`
+### `ggc fetch` {#cmd-fetch}
 
 Download objects and refs from remotes.
 
@@ -250,7 +250,7 @@ ggc fetch prune
 ggc fetch prune   # Fetch and remove stale remote-tracking references
 ```
 
-### `ggc pull`
+### `ggc pull` {#cmd-pull}
 
 Fetch and integrate from the remote.
 
@@ -275,7 +275,7 @@ ggc pull current  # Pull current branch from remote
 ggc pull rebase   # Pull with rebase
 ```
 
-### `ggc push`
+### `ggc push` {#cmd-push}
 
 Update remote branches.
 
@@ -300,7 +300,7 @@ ggc push current  # Push current branch to remote
 ggc push force    # Force push current branch
 ```
 
-### `ggc remote`
+### `ggc remote` {#cmd-remote}
 
 Manage remotes.
 
@@ -329,9 +329,9 @@ ggc remote list
 ggc remote add origin git@github.com:user/repo.git
 ```
 
-## Status
+## Status {#cat-status}
 
-### `ggc status`
+### `ggc status` {#cmd-status}
 
 Show working tree status.
 
@@ -356,9 +356,9 @@ ggc status        # Full detailed status output
 ggc status short  # Short, concise output (porcelain format)
 ```
 
-## Cleanup
+## Cleanup {#cat-cleanup}
 
-### `ggc clean`
+### `ggc clean` {#cmd-clean}
 
 Remove untracked files and directories.
 
@@ -386,7 +386,7 @@ ggc clean dirs        # Clean untracked directories
 ggc clean interactive # Clean files interactively
 ```
 
-### `ggc restore`
+### `ggc restore` {#cmd-restore}
 
 Restore files in working tree or staging area.
 
@@ -417,9 +417,9 @@ ggc restore staged .
 ggc restore main README.md
 ```
 
-## Diff
+## Diff {#cat-diff}
 
-### `ggc diff`
+### `ggc diff` {#cmd-diff}
 
 Inspect changes between commits, the index, and the working tree.
 
@@ -448,9 +448,9 @@ ggc diff abc123 cmd/diff.go         # Compare commit to working tree for a path
 ggc diff -- cmd/deleted_file.go     # Diff a path using -- for disambiguation
 ```
 
-## Tag
+## Tag {#cat-tag}
 
-### `ggc tag`
+### `ggc tag` {#cmd-tag}
 
 Create, list, and manage tags.
 
@@ -491,9 +491,9 @@ ggc tag push origin v1.0.0                # Push specific tag (remote first)
 ggc tag show v1.0.0                       # Show tag information
 ```
 
-## Config
+## Config {#cat-config}
 
-### `ggc config`
+### `ggc config` {#cmd-config}
 
 Get and set ggc configuration.
 
@@ -521,9 +521,9 @@ ggc config get <key>             # Get a config value by key path (e.g., 'ui.col
 ggc config set <key> <value>     # Set a config value by key path
 ```
 
-## Hook
+## Hook {#cat-hook}
 
-### `ggc hook`
+### `ggc hook` {#cmd-hook}
 
 Manage Git hooks.
 
@@ -555,9 +555,9 @@ ggc hook uninstall <hook>        # Remove a hook
 ggc hook edit <hook>             # Edit a hook
 ```
 
-## Rebase
+## Rebase {#cat-rebase}
 
-### `ggc rebase`
+### `ggc rebase` {#cmd-rebase}
 
 Reapply commits on top of another base tip.
 
@@ -589,9 +589,9 @@ ggc rebase abort        # Abort an in-progress rebase
 ggc rebase skip         # Skip current patch and continue
 ```
 
-## Stash
+## Stash {#cat-stash}
 
-### `ggc stash`
+### `ggc stash` {#cmd-stash}
 
 Save and reapply work-in-progress changes.
 
@@ -641,9 +641,9 @@ ggc stash create                       # Create stash and return object name
 ggc stash store <object>               # Store stash object
 ```
 
-## Utility
+## Utility {#cat-utility}
 
-### `ggc debug-keys`
+### `ggc debug-keys` {#cmd-debug-keys}
 
 Debug keybinding issues and capture raw key sequences.
 
@@ -671,7 +671,7 @@ ggc debug-keys raw             # Capture key sequences interactively
 ggc debug-keys raw keys.txt    # Capture and save to keys.txt
 ```
 
-### `ggc doctor`
+### `ggc doctor` {#cmd-doctor}
 
 Diagnose the local ggc installation.
 
@@ -687,7 +687,7 @@ ggc doctor
 ggc doctor   # Check git binary, config, shell completions, TTY, etc.
 ```
 
-### `ggc quit`
+### `ggc quit` {#cmd-quit}
 
 Exit interactive mode.
 
@@ -703,7 +703,7 @@ quit
 quit
 ```
 
-### `ggc version`
+### `ggc version` {#cmd-version}
 
 Display current ggc version.
 
