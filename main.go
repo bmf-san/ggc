@@ -86,17 +86,23 @@ func main() {
 
 // writeCLIError renders a terminal-facing error consistently across the CLI.
 //
-// For *git.OpError we print a two-line summary (what failed, then the
-// underlying message). The raw git command is only shown when GGC_VERBOSE=1
-// because it can be long and is usually noise in normal use. Non-git errors
-// keep their historical single-line format so we don't churn existing tests
-// or user expectations.
+// For *git.OpError we print a one-line "<op> failed" summary, followed by
+// the underlying error message on a second line when one is available. The
+// operation detail (OpError.Command — the git subcommand or logical step
+// that was attempted) is only shown when GGC_VERBOSE=1 because it can be
+// long and is usually noise in normal use. Non-git errors keep their
+// historical single-line format so we don't churn existing tests or user
+// expectations.
 func writeCLIError(w io.Writer, err error, verbose bool) {
 	var opErr *git.OpError
 	if errors.As(err, &opErr) {
-		_, _ = fmt.Fprintf(w, "Error: %s failed\n  %s\n", opErr.Op, opErr.Err)
+		if opErr.Err != nil {
+			_, _ = fmt.Fprintf(w, "Error: %s failed\n  %s\n", opErr.Op, opErr.Err)
+		} else {
+			_, _ = fmt.Fprintf(w, "Error: %s failed\n", opErr.Op)
+		}
 		if verbose && opErr.Command != "" {
-			_, _ = fmt.Fprintf(w, "  command: %s\n", opErr.Command)
+			_, _ = fmt.Fprintf(w, "  detail: %s\n", opErr.Command)
 		}
 		return
 	}

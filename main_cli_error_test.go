@@ -42,8 +42,25 @@ func TestWriteCLIError_OpErrorVerboseShowsCommand(t *testing.T) {
 	writeCLIError(&buf, err, true)
 	got := buf.String()
 
-	if !strings.Contains(got, "command: git checkout main") {
-		t.Errorf("verbose mode should include command: %q", got)
+	if !strings.Contains(got, "detail: git checkout main") {
+		t.Errorf("verbose mode should include operation detail: %q", got)
+	}
+}
+
+func TestWriteCLIError_OpErrorNilUnderlyingError(t *testing.T) {
+	var buf bytes.Buffer
+	err := git.NewOpError("add files", "git add .", nil)
+	writeCLIError(&buf, err, false)
+	got := buf.String()
+
+	if !strings.Contains(got, "Error: add files failed") {
+		t.Errorf("missing op summary: %q", got)
+	}
+	if strings.Contains(got, "<nil>") {
+		t.Errorf("nil underlying error should not be rendered: %q", got)
+	}
+	if strings.Contains(got, "git add .") {
+		t.Errorf("operation detail leaked without verbose mode: %q", got)
 	}
 }
 
