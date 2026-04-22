@@ -64,32 +64,38 @@ sudo mv ggc /usr/local/bin/
 
 ## Shell completions
 
-After installing, generate and install the completion script for your shell:
+`ggc` does not generate completions at runtime. Instead, pre-built scripts for Bash, Zsh, and Fish live in
+[`tools/completions/`](https://github.com/bmf-san/ggc/tree/main/tools/completions). Source the one matching your shell from your rc file.
 
-=== "bash"
+### Bash
 
-    ```bash
-    ggc completion bash | sudo tee /etc/bash_completion.d/ggc
-    ```
+```bash
+# installed via `go install` (path varies by version)
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash
+fi
 
-=== "zsh"
+# or from a local clone
+. /path/to/ggc/tools/completions/ggc.bash
+```
 
-    ```bash
-    ggc completion zsh > ~/.zsh/completions/_ggc
-    # add '~/.zsh/completions' to fpath in your .zshrc
-    ```
+### Zsh
 
-=== "fish"
+```zsh
+if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh" ]; then
+  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh
+fi
+```
 
-    ```bash
-    ggc completion fish > ~/.config/fish/completions/ggc.fish
-    ```
+### Fish
 
-=== "PowerShell"
+```fish
+if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
+    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
+end
+```
 
-    ```powershell
-    ggc completion powershell | Out-String | Invoke-Expression
-    ```
+To regenerate the scripts (maintainers): `make completions`. They are produced from the command registry, so a missing completion means the command is not in the registry.
 
 ## Verify
 
@@ -97,56 +103,3 @@ After installing, generate and install the completion script for your shell:
 ggc doctor
 ```
 
-Should print a green checklist. If anything is `WARN` or `FAIL`, the output explains what to fix. See [Troubleshooting](troubleshooting.md) for details.
-# Installation
-
-## Homebrew (macOS / Linux)
-
-```bash
-brew install bmf-san/tap/ggc
-```
-
-## Go
-
-Requires Go 1.25 or newer:
-
-```bash
-go install github.com/bmf-san/ggc/v8@latest
-```
-
-## Pre-built binaries
-
-Download the archive for your OS/arch from the [releases page](https://github.com/bmf-san/ggc/releases) and drop `ggc` on your `$PATH`.
-
-macOS universal binaries (one file that runs on both Intel and Apple Silicon) are published starting with v8.3.0.
-
-## Shell completions
-
-After installing, generate and install the completion script for your shell:
-
-=== "bash"
-
-    ```bash
-    ggc completion bash | sudo tee /etc/bash_completion.d/ggc
-    ```
-
-=== "zsh"
-
-    ```bash
-    ggc completion zsh > ~/.zsh/completions/_ggc
-    # add '~/.zsh/completions' to fpath in your .zshrc
-    ```
-
-=== "fish"
-
-    ```bash
-    ggc completion fish > ~/.config/fish/completions/ggc.fish
-    ```
-
-## Verify
-
-```bash
-ggc doctor
-```
-
-Should print a green checklist. If something is WARN or FAIL, the output explains what to fix.
