@@ -23,7 +23,7 @@ func TestExecute_BasicCommands(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
-			c := NewCmd(mockClient, cm)
+			c, _ := NewCmd(mockClient, cm)
 			err := c.Execute(tc.args)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -42,7 +42,7 @@ func TestExecute_WithSimpleAlias(t *testing.T) {
 		"st": "status",
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, _ := NewCmd(mockClient, configManager)
 	err := c.Execute([]string{"st"})
 
 	if err != nil {
@@ -60,7 +60,7 @@ func TestExecute_WithSimpleAliasAndArgs(t *testing.T) {
 		"br": "branch",
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, _ := NewCmd(mockClient, configManager)
 	err := c.Execute([]string{"br", "current"})
 
 	if err != nil {
@@ -78,7 +78,7 @@ func TestExecute_WithSequenceAlias(t *testing.T) {
 		"sync": []interface{}{"status", "log simple"},
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, _ := NewCmd(mockClient, configManager)
 	err := c.Execute([]string{"sync"})
 
 	if err != nil {
@@ -96,7 +96,7 @@ func TestExecute_SequenceAliasRejectsArguments(t *testing.T) {
 		"deploy": []interface{}{"status"},
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, _ := NewCmd(mockClient, configManager)
 	err := c.Execute([]string{"deploy", "production"})
 
 	if err == nil {
@@ -112,7 +112,7 @@ func TestExecute_SequenceAliasRejectsArguments(t *testing.T) {
 
 func TestExecute_ConfigManagerNil(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
-	c := NewCmd(mockClient, nil)
+	c, _ := NewCmd(mockClient, nil)
 
 	// Should not panic and should execute normal command
 	err := c.Execute([]string{"help"})
@@ -132,7 +132,7 @@ func TestExecute_NonAliasCommand(t *testing.T) {
 		"st": "status",
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, _ := NewCmd(mockClient, configManager)
 	// "commit" is not an alias, should be routed directly
 	err := c.Execute([]string{"commit", "test"})
 
@@ -201,7 +201,7 @@ func TestExecute_PlaceholderProcessing(t *testing.T) {
 			cfg := configManager.GetConfig()
 			cfg.Aliases = tt.aliases
 
-			c := NewCmd(mockClient, configManager)
+			c, _ := NewCmd(mockClient, configManager)
 			err := c.Execute(tt.args)
 
 			if tt.expectError {
@@ -295,7 +295,7 @@ func TestExecute_PlaceholderEdgeCases(t *testing.T) {
 			cfg := configManager.GetConfig()
 			cfg.Aliases = tt.aliases
 
-			c := NewCmd(mockClient, configManager)
+			c, _ := NewCmd(mockClient, configManager)
 			err := c.Execute(tt.args)
 
 			if tt.expectError {
@@ -322,7 +322,7 @@ func TestExecute_InvalidAliasFormat(t *testing.T) {
 		"invalid": 123, // Invalid format - should be string or []interface{}
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, _ := NewCmd(mockClient, configManager)
 	err := c.Execute([]string{"invalid"})
 
 	if err == nil {
