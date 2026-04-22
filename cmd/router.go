@@ -16,10 +16,10 @@ type commandRouter struct {
 	handlers map[string]func([]string)
 }
 
-// newCommandRouter builds the handler map and validates that every command
-// in the registry has a handler. The map-key is the canonical command name
-// as exposed by the registry; this keeps shell completions, README.md and
-// the router in strict lockstep.
+// newCommandRouter builds the handler map and validates that every
+// non-hidden command in the registry has a handler. The map-key is the
+// canonical command name as exposed by the registry; this keeps shell
+// completions, README.md and the router in strict lockstep.
 func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 	if err := cmd.registry.Validate(); err != nil {
 		return nil, fmt.Errorf("command registry validation failed: %w", err)
@@ -68,7 +68,9 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 
 // route looks up cmd in the registry (which handles aliases and canonical
 // names), then dispatches to the registered handler. It returns false when
-// the command is unknown so the caller can fall back to alias or error paths.
+// the command is unknown to the registry, or when no handler is registered
+// for the canonical name, so the caller can fall back to alias or error
+// paths.
 func (r *commandRouter) route(cmd string, args []string) bool {
 	info, ok := r.registry.Find(cmd)
 	if !ok {
