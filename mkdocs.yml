@@ -53,7 +53,10 @@ markdown_extensions:
   - pymdownx.details
 
 plugins:
-  - search
+  - search:
+      lang:
+        - en
+        - ja
 
 extra:
   social:
