@@ -42,10 +42,8 @@ test-race:
 	go test -race ./...
 
 vuln: install-tools
-	@if ! command -v govulncheck >/dev/null 2>&1; then \
-		echo "Installing govulncheck..."; \
-		go install golang.org/x/vuln/cmd/govulncheck@latest; \
-	fi
+	@echo "Installing latest govulncheck..."
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	govulncheck ./...
 
 # Run integration tests (BATS). Requires `bats` installed.

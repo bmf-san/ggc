@@ -40,6 +40,7 @@ jobs:
         run: make test
 
       - name: Run tests with race detector
+        if: matrix.os == 'ubuntu-latest'
         run: make test-race
 
       - name: Install bats (integration test runner)

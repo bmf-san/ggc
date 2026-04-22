@@ -7,7 +7,8 @@ on:
     - cron: '42 5 * * 1'
   workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   analysis:
