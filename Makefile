@@ -3,7 +3,7 @@
 APP_NAME=ggc
 OUT?=coverage.out
 
-.PHONY: install-tools deps build run test test-integration lint clean cover test-cover test-and-lint fmt docs demos
+.PHONY: install-tools deps build run test test-race test-integration vuln lint clean cover test-cover test-and-lint fmt docs demos
 
 # Install required tools
 install-tools:
@@ -37,6 +37,14 @@ fmt:
 
 test:
 	go test ./...
+
+test-race:
+	go test -race ./...
+
+vuln: install-tools
+	@echo "Installing latest govulncheck..."
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck ./...
 
 # Run integration tests (BATS). Requires `bats` installed.
 test-integration: build
