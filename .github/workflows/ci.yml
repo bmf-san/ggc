@@ -14,17 +14,17 @@ jobs:
         go-version: ['1.25.0']
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
         with:
           go-version: ${{ matrix.go-version }}
 
       - name: Cache Go modules
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
         with:
           path: |
             ~/.cache/go-build
@@ -53,11 +53,21 @@ jobs:
       - name: Run linter
         run: make lint
 
+      - name: Check generated artifacts are up to date
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          make docs
+          if ! git diff --quiet; then
+            echo "::error::Generated files (completions/docs) are out of date. Run 'make completions docs' locally and commit the diff." >&2
+            git --no-pager diff
+            exit 1
+          fi
+
       - name: Test with coverage
         run: make cover
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6.0.0
+        uses: codecov/codecov-action@3f20e214133d0983f9a10f3d63b0faf9241a3daa # v6.0.0
         with:
           fail_ci_if_error: true
           file: ./coverage.out
