@@ -42,7 +42,7 @@ See [alias validation](https://github.com/bmf-san/ggc/blob/main/internal/config/
 
 ## Keybindings
 
-The interactive prompt's keybindings are defined in code and not yet user-configurable. See [#issue tracker](https://github.com/bmf-san/ggc/issues) for progress on making them user-override-able.
+The interactive prompt's keybindings are defined in code and not yet user-configurable. See [issue tracker](https://github.com/bmf-san/ggc/issues) for progress on making them user-override-able.
 
 ## Editing
 
