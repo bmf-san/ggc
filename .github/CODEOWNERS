@@ -1,0 +1,5 @@
+# CODEOWNERS for bmf-san/ggc
+# Lines later in this file take precedence.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @bmf-san

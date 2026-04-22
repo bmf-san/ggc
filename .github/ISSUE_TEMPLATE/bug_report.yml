@@ -1,0 +1,78 @@
+name: Bug Report
+description: Create a bug report to help us improve ggc
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report!
+        Please fill out the sections below to help us reproduce and fix the issue quickly.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the behavior.
+      placeholder: |
+        1. Run `ggc ...`
+        2. See error ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Paste full error output if any (use code blocks).
+    validations:
+      required: true
+  - type: input
+    id: ggc-version
+    attributes:
+      label: ggc version
+      description: Output of `ggc version`.
+      placeholder: v8.x.x (commit: abcdef)
+    validations:
+      required: true
+  - type: input
+    id: git-version
+    attributes:
+      label: git version
+      description: Output of `git --version`.
+      placeholder: git version 2.43.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: os-detail
+    attributes:
+      label: OS version / distribution
+      placeholder: "macOS 14.4 / Ubuntu 22.04 / ..."
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Configuration, screenshots, logs, or anything else that helps.
