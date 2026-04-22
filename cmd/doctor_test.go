@@ -79,7 +79,7 @@ func TestDoctor_TTY_NonTTY(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	d.stdinStat = func() (os.FileInfo, error) { return os.Stat(f.Name()) }
 	r := d.checkTTY()
 	if !r.ok || !strings.Contains(r.detail, "not a TTY") {
@@ -98,7 +98,7 @@ func TestDoctor_FullReport_NoHardFailures(t *testing.T) {
 	}
 	// Pipe-like stat (non-TTY is not a failure).
 	f, _ := os.CreateTemp(tmp, "stdin")
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	d.stdinStat = func() (os.FileInfo, error) { return os.Stat(f.Name()) }
 
 	d.Doctor(nil)
