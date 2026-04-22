@@ -23,8 +23,11 @@ func TestExecute_BasicCommands(t *testing.T) {
 			mockClient := testutil.NewMockGitClient()
 			cm := config.NewConfigManager(mockClient)
 			_ = cm.LoadConfig()
-			c := NewCmd(mockClient, cm)
-			err := c.Execute(tc.args)
+			c, err := NewCmd(mockClient, cm)
+			if err != nil {
+				t.Fatalf("NewCmd returned an unexpected error: %v", err)
+			}
+			err = c.Execute(tc.args)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -42,8 +45,11 @@ func TestExecute_WithSimpleAlias(t *testing.T) {
 		"st": "status",
 	}
 
-	c := NewCmd(mockClient, configManager)
-	err := c.Execute([]string{"st"})
+	c, err := NewCmd(mockClient, configManager)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
+	err = c.Execute([]string{"st"})
 
 	if err != nil {
 		t.Errorf("simple alias should not return error: %v", err)
@@ -60,8 +66,11 @@ func TestExecute_WithSimpleAliasAndArgs(t *testing.T) {
 		"br": "branch",
 	}
 
-	c := NewCmd(mockClient, configManager)
-	err := c.Execute([]string{"br", "current"})
+	c, err := NewCmd(mockClient, configManager)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
+	err = c.Execute([]string{"br", "current"})
 
 	if err != nil {
 		t.Errorf("simple alias with args should not return error: %v", err)
@@ -78,8 +87,11 @@ func TestExecute_WithSequenceAlias(t *testing.T) {
 		"sync": []interface{}{"status", "log simple"},
 	}
 
-	c := NewCmd(mockClient, configManager)
-	err := c.Execute([]string{"sync"})
+	c, err := NewCmd(mockClient, configManager)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
+	err = c.Execute([]string{"sync"})
 
 	if err != nil {
 		t.Errorf("sequence alias should not return error: %v", err)
@@ -96,8 +108,11 @@ func TestExecute_SequenceAliasRejectsArguments(t *testing.T) {
 		"deploy": []interface{}{"status"},
 	}
 
-	c := NewCmd(mockClient, configManager)
-	err := c.Execute([]string{"deploy", "production"})
+	c, err := NewCmd(mockClient, configManager)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
+	err = c.Execute([]string{"deploy", "production"})
 
 	if err == nil {
 		t.Fatal("sequence alias should return error when arguments are provided")
@@ -112,10 +127,13 @@ func TestExecute_SequenceAliasRejectsArguments(t *testing.T) {
 
 func TestExecute_ConfigManagerNil(t *testing.T) {
 	mockClient := testutil.NewMockGitClient()
-	c := NewCmd(mockClient, nil)
+	c, err := NewCmd(mockClient, nil)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
 
 	// Should not panic and should execute normal command
-	err := c.Execute([]string{"help"})
+	err = c.Execute([]string{"help"})
 
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -132,9 +150,12 @@ func TestExecute_NonAliasCommand(t *testing.T) {
 		"st": "status",
 	}
 
-	c := NewCmd(mockClient, configManager)
+	c, err := NewCmd(mockClient, configManager)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
 	// "commit" is not an alias, should be routed directly
-	err := c.Execute([]string{"commit", "test"})
+	err = c.Execute([]string{"commit", "test"})
 
 	if err != nil {
 		t.Errorf("non-alias command should not return error: %v", err)
@@ -201,8 +222,11 @@ func TestExecute_PlaceholderProcessing(t *testing.T) {
 			cfg := configManager.GetConfig()
 			cfg.Aliases = tt.aliases
 
-			c := NewCmd(mockClient, configManager)
-			err := c.Execute(tt.args)
+			c, err := NewCmd(mockClient, configManager)
+			if err != nil {
+				t.Fatalf("NewCmd returned an unexpected error: %v", err)
+			}
+			err = c.Execute(tt.args)
 
 			if tt.expectError {
 				if err == nil {
@@ -295,8 +319,11 @@ func TestExecute_PlaceholderEdgeCases(t *testing.T) {
 			cfg := configManager.GetConfig()
 			cfg.Aliases = tt.aliases
 
-			c := NewCmd(mockClient, configManager)
-			err := c.Execute(tt.args)
+			c, err := NewCmd(mockClient, configManager)
+			if err != nil {
+				t.Fatalf("NewCmd returned an unexpected error: %v", err)
+			}
+			err = c.Execute(tt.args)
 
 			if tt.expectError {
 				if err == nil {
@@ -322,8 +349,11 @@ func TestExecute_InvalidAliasFormat(t *testing.T) {
 		"invalid": 123, // Invalid format - should be string or []interface{}
 	}
 
-	c := NewCmd(mockClient, configManager)
-	err := c.Execute([]string{"invalid"})
+	c, err := NewCmd(mockClient, configManager)
+	if err != nil {
+		t.Fatalf("NewCmd returned an unexpected error: %v", err)
+	}
+	err = c.Execute([]string{"invalid"})
 
 	if err == nil {
 		t.Fatal("invalid alias format should return error")
