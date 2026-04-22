@@ -21,9 +21,12 @@ This logo was created by [gopherize.me](https://gopherize.me/gopher/d654ddf2b81c
 
 ## Demo
 
-| Branch Management | CLI Workflow | Interactive Overview |
+Click any GIF to view full size.
+
+| Interactive & Workflow mode | CLI workflow | Branch management |
 | --- | --- | --- |
-| <img src="docs/demos/generated/branch-management.gif" alt="Branch management demo" width="320"> | <img src="docs/demos/generated/cli-workflow.gif" alt="CLI workflow demo" width="320"> | <img src="docs/demos/generated/interactive-overview.gif" alt="Interactive overview demo" width="320"> |
+| [<img src="docs/demos/generated/interactive-overview.gif" alt="Interactive overview demo" width="320">](docs/demos/generated/interactive-overview.gif) | [<img src="docs/demos/generated/cli-workflow.gif" alt="CLI workflow demo" width="320">](docs/demos/generated/cli-workflow.gif) | [<img src="docs/demos/generated/branch-management.gif" alt="Branch management demo" width="320">](docs/demos/generated/branch-management.gif) |
+| Fuzzy-search every `ggc` command, then press <kbd>Tab</kbd> to queue them into a workflow and <kbd>Ctrl</kbd>+<kbd>T</kbd> to run the pipeline. | Traditional one-shot commands: `ggc status`, `ggc add`, `ggc commit "<msg>"`, `ggc log simple`. | Create and switch branches with plain verbs; interactive pickers appear when arguments are omitted. |
 
 ## Overview
 
