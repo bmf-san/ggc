@@ -32,9 +32,34 @@ jobs:
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
         with:
           go-version: '1.25.0'
+      - name: Restore fuzz corpus cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
+        with:
+          path: ~/.cache/go-build/fuzz
+          key: fuzz-corpus-${{ matrix.target.fuzz }}-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            fuzz-corpus-${{ matrix.target.fuzz }}-${{ runner.os }}-
+            fuzz-corpus-${{ matrix.target.fuzz }}-
+      - name: Pick fuzztime
+        id: t
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "fuzztime=60s" >> "$GITHUB_OUTPUT"
+          else
+            echo "fuzztime=300s" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run ${{ matrix.target.fuzz }}
         run: |
           go test ${{ matrix.target.path }} \
             -run='^$' \
             -fuzz='^${{ matrix.target.fuzz }}$' \
-            -fuzztime=60s
+            -fuzztime=${{ steps.t.outputs.fuzztime }}
+      - name: Upload fuzz failure corpus
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-failure-${{ matrix.target.fuzz }}
+          path: |
+            **/testdata/fuzz/**
+          if-no-files-found: ignore
+          retention-days: 14
