@@ -52,15 +52,12 @@ func (c *Client) newCommand(name string, arg ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, name, arg...)
 }
 
-// isBoundToDefaultExec heuristically reports whether the client's
-// execCommand is the default (ctx-aware) implementation. Test code that
-// overrides execCommand with a closure gets a different function value,
-// which we detect via an internal sentinel marker set on the Client. Since
-// plain function-value equality is not supported in Go, we rely on the
-// invariant that NewClient always sets execCommand = c.newCommand, and
-// test overrides never do.
+// isBoundToDefaultExec reports whether WithContext should rebind execCommand
+// to the clone's ctx-aware default implementation.
 //
-// In practice the only caller is WithContext; a conservative "true" is safe
-// there because rewiring to the clone's newCommand is a no-op for tests
-// that immediately reassign execCommand after WithContext.
+// This helper currently returns true unconditionally. That conservative
+// behavior is safe for the only caller, WithContext: it ensures the cloned
+// client uses clone.newCommand so git subprocesses observe the cloned
+// context, and tests that need a custom execCommand can still reassign it
+// after calling WithContext.
 func isBoundToDefaultExec(_ *Client) bool { return true }
