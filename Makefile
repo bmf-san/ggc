@@ -3,7 +3,7 @@
 APP_NAME=ggc
 OUT?=coverage.out
 
-.PHONY: install-tools deps build run test lint clean cover test-cover test-and-lint fmt docs demos
+.PHONY: install-tools deps build run test test-integration lint clean cover test-cover test-and-lint fmt docs demos
 
 # Install required tools
 install-tools:
@@ -37,6 +37,15 @@ fmt:
 
 test:
 	go test ./...
+
+# Run integration tests (BATS). Requires `bats` installed.
+test-integration: build
+	@if ! command -v bats >/dev/null 2>&1; then \
+		echo "Error: bats is required. Install via 'brew install bats-core' or your package manager."; \
+		exit 1; \
+	fi
+	@echo "Running BATS integration tests..."
+	bats test/
 
 lint: install-tools
 	golangci-lint run --max-issues-per-linter=0 --max-same-issues=0
