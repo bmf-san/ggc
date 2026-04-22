@@ -29,8 +29,9 @@ func FuzzTokenize(f *testing.F) {
 		// Each token is a plain string; joining with space and re-tokenising
 		// should produce at most the same number of tokens (quoted whitespace
 		// survives the round trip, unquoted whitespace may split further).
-		if len(tokens) == 0 {
-			return
+		retokenized := tokenize(strings.Join(tokens, " "))
+		if len(retokenized) > len(tokens) {
+			t.Errorf("tokenize round trip increased token count: input=%q tokens=%#v retokenized=%#v", s, tokens, retokenized)
 		}
 		for _, tok := range tokens {
 			// A token must not itself contain a raw NUL; the tokenizer never
