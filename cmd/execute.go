@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/bmf-san/ggc/v8/internal/config"
 )
@@ -123,11 +124,60 @@ func (c *Cmd) processPlaceholders(alias *config.ParsedAlias, args []string, alia
 			}
 		}
 
-		// TODO: Support named placeholders in the future
-		// For now, we only support positional placeholders
+		// Replace well-known named placeholders. These do not consume args;
+		// they are derived from the current repo / config / time.
+		processed = c.replaceNamedPlaceholders(processed)
 
 		processedCommands[i] = processed
 	}
 
 	return processedCommands, nil
+}
+
+// replaceNamedPlaceholders substitutes a small, well-known set of named
+// placeholders that are derived from environment rather than arguments.
+// Supported names:
+//
+//	{branch} - current branch name
+//	{remote} - default remote (from config, fallback "origin")
+//	{date}   - today's date in YYYY-MM-DD (local time)
+//
+// Unknown named placeholders are left untouched so that future additions do
+// not silently drop user text. This function is cheap: it short-circuits
+// when no "{" is present.
+func (c *Cmd) replaceNamedPlaceholders(s string) string {
+	if !strings.Contains(s, "{") {
+		return s
+	}
+	replacements := map[string]func() string{
+		"{branch}": func() string {
+			if c.gitClient == nil {
+				return ""
+			}
+			name, err := c.gitClient.GetCurrentBranch()
+			if err != nil {
+				return ""
+			}
+			return name
+		},
+		"{remote}": func() string {
+			if c.configManager == nil {
+				return "origin"
+			}
+			r := strings.TrimSpace(c.configManager.GetConfig().Git.DefaultRemote)
+			if r == "" {
+				return "origin"
+			}
+			return r
+		},
+		"{date}": func() string {
+			return time.Now().Format("2006-01-02")
+		},
+	}
+	for placeholder, resolve := range replacements {
+		if strings.Contains(s, placeholder) {
+			s = strings.ReplaceAll(s, placeholder, resolve())
+		}
+	}
+	return s
 }
