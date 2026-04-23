@@ -33,6 +33,42 @@ func utility() []Info {
 			},
 		},
 		{
+			Name:     "completion",
+			Category: CategoryUtility,
+			Summary:  "Print or install shell completion scripts",
+			Usage: []string{
+				"ggc completion <bash|zsh|fish>",
+				"ggc completion install <bash|zsh|fish>",
+			},
+			Examples: []string{
+				"ggc completion bash                   # Print the bash completion to stdout",
+				"ggc completion install zsh            # Install zsh completion under ~/.zsh/completions/",
+				"ggc completion fish > ~/.config/fish/completions/ggc.fish",
+			},
+			Subcommands: []SubcommandInfo{
+				{
+					Name:    "completion bash",
+					Summary: "Print bash completion script",
+					Usage:   []string{"ggc completion bash"},
+				},
+				{
+					Name:    "completion zsh",
+					Summary: "Print zsh completion script",
+					Usage:   []string{"ggc completion zsh"},
+				},
+				{
+					Name:    "completion fish",
+					Summary: "Print fish completion script",
+					Usage:   []string{"ggc completion fish"},
+				},
+				{
+					Name:    "completion install <shell>",
+					Summary: "Install the completion script for <bash|zsh|fish>",
+					Usage:   []string{"ggc completion install <bash|zsh|fish>"},
+				},
+			},
+		},
+		{
 			Name:     "debug-keys",
 			Category: CategoryUtility,
 			Summary:  "Debug keybinding issues and capture raw key sequences",

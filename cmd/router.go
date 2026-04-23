@@ -48,6 +48,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"restore":    func(args []string) { cmd.Restore(args) },
 		"doctor":     func(args []string) { cmd.doctor.Doctor(args) },
 		"debug-keys": func(args []string) { cmd.DebugKeys(args) },
+		"completion": func(args []string) { cmd.completer.Completion(args) },
 		interactiveQuitCommand: func([]string) {
 			_, _ = fmt.Fprintln(cmd.outputWriter, "The 'quit' command is only available in interactive mode.")
 		},

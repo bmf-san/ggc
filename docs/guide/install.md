@@ -64,38 +64,28 @@ sudo mv ggc /usr/local/bin/
 
 ## Shell completions
 
-`ggc` does not generate completions at runtime. Instead, pre-built scripts for Bash, Zsh, and Fish live in
-[`tools/completions/`](https://github.com/bmf-san/ggc/tree/main/tools/completions). Source the one matching your shell from your rc file.
-
-### Bash
+The completion scripts are embedded in the `ggc` binary. One command per shell:
 
 ```bash
-# installed via `go install` (path varies by version)
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash
-fi
-
-# or from a local clone
-. /path/to/ggc/tools/completions/ggc.bash
+ggc completion install bash   # -> ~/.local/share/bash-completion/completions/ggc
+ggc completion install zsh    # -> ~/.zsh/completions/_ggc
+ggc completion install fish   # -> ~/.config/fish/completions/ggc.fish
 ```
 
-### Zsh
+Restart your shell (or for zsh: make sure `~/.zsh/completions` is on `$fpath`).
 
-```zsh
-if [ -f "$(go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh" ]; then
-  . "$(go env GOPATH)"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh
-fi
+### Piping to a custom location
+
+`ggc completion <shell>` prints the script to stdout, so you can redirect it anywhere:
+
+```bash
+ggc completion zsh  | sudo tee /usr/local/share/zsh/site-functions/_ggc
+ggc completion bash | sudo tee /etc/bash_completion.d/ggc
 ```
 
-### Fish
+### Reading the pre-built files directly
 
-```fish
-if test -f (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
-    source (go env GOPATH)/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
-end
-```
-
-To regenerate the scripts (maintainers): `make completions`. They are produced from the command registry, so a missing completion means the command is not in the registry.
+Source files are also versioned in [`cmd/completions/`](https://github.com/bmf-san/ggc/tree/main/cmd/completions); they are regenerated from the command registry by `make completions`.
 
 ## Verify
 

@@ -287,7 +287,7 @@ func (d *Doctor) checkCompletions(shell string) diagResult {
 		name:   shell + " completions",
 		ok:     false,
 		warn:   true,
-		detail: "not installed in a well-known location (see tools/completions/ in the repo)",
+		detail: "not installed in a well-known location; try `ggc completion install " + shell + "`",
 	}
 }
 

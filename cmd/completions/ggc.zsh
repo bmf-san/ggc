@@ -24,6 +24,9 @@ _ggc() {
                 commit)
                     _ggc_commit
                     ;;
+                completion)
+                    _ggc_completion
+                    ;;
                 config)
                     _ggc_config
                     ;;
@@ -84,6 +87,7 @@ _ggc_commands() {
         'branch:List, create, and manage branches'
         'clean:Remove untracked files and directories'
         'commit:Create commits from staged changes'
+        'completion:Print or install shell completion scripts'
         'config:Get and set ggc configuration'
         'debug-keys:Debug keybinding issues and capture raw key sequences'
         'diff:Inspect changes between commits, the index, and the working tree'
@@ -208,6 +212,18 @@ _ggc_commit() {
             return
             ;;
     esac
+}
+_ggc_completion() {
+    local subcommands
+    subcommands=(
+        'bash:Print bash completion script'
+        'fish:Print fish completion script'
+        'install:Install the completion script for <bash|zsh|fish>'
+        'zsh:Print zsh completion script'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'completion subcommands' subcommands
+    fi
 }
 _ggc_config() {
     local subcommands

@@ -8,7 +8,7 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add branch clean commit config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore stash status tag version"
+    opts="add branch clean commit completion config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore stash status tag version"
     case ${prev} in
         branch)
             subopts="checkout contains create current delete info list move rename set sort"
@@ -22,6 +22,11 @@ _ggc()
             ;;
         commit)
             subopts="allow amend fixup"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        completion)
+            subopts="bash fish install zsh"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
