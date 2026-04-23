@@ -103,3 +103,28 @@ To regenerate the scripts (maintainers): `make completions`. They are produced f
 ggc doctor
 ```
 
+## Verifying a downloaded release
+
+Starting with releases signed by cosign keyless, you can verify archives before installing:
+
+```bash
+TAG=v8.2.0     # or whichever release
+BASE="https://github.com/bmf-san/ggc/releases/download/${TAG}"
+
+curl -sSLO "${BASE}/checksums.txt"
+curl -sSLO "${BASE}/checksums.txt.sig"
+curl -sSLO "${BASE}/checksums.txt.pem"
+
+cosign verify-blob \
+  --certificate checksums.txt.pem \
+  --signature   checksums.txt.sig \
+  --certificate-identity-regexp "^https://github.com/bmf-san/ggc/\.github/workflows/release\.yml@" \
+  --certificate-oidc-issuer     "https://token.actions.githubusercontent.com" \
+  checksums.txt
+
+# Then verify the archive you downloaded against the signed checksum file:
+sha256sum -c --ignore-missing checksums.txt
+```
+
+The certificate is short-lived (Fulcio) and the signature is recorded in the public Rekor transparency log — no long-lived key to rotate.
+
