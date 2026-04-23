@@ -643,6 +643,34 @@ ggc stash store <object>               # Store stash object
 
 ## Utility {#cat-utility}
 
+### `ggc completion` {#cmd-completion}
+
+Print or install shell completion scripts.
+
+**Usage:**
+
+```bash
+ggc completion <bash|zsh|fish>
+ggc completion install <bash|zsh|fish>
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|---|---|
+| `completion bash` | Print bash completion script |
+| `completion fish` | Print fish completion script |
+| `completion install <shell>` | Install the completion script for <bash|zsh|fish> |
+| `completion zsh` | Print zsh completion script |
+
+**Examples:**
+
+```bash
+ggc completion bash                   # Print the bash completion to stdout
+ggc completion install zsh            # Install zsh completion under ~/.zsh/completions/
+ggc completion fish > ~/.config/fish/completions/ggc.fish
+```
+
 ### `ggc debug-keys` {#cmd-debug-keys}
 
 Debug keybinding issues and capture raw key sequences.

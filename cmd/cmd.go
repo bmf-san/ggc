@@ -50,6 +50,7 @@ type Cmd struct {
 	cmdRouter     *commandRouter
 	debugger      *Debugger
 	doctor        *Doctor
+	completer     *Completer
 }
 
 // GitDeps is a composite for wiring commands that depend on git operations.
@@ -129,6 +130,7 @@ func NewCmd(client GitDeps, cm *config.Manager) (*Cmd, error) {
 		fetcher:       NewFetcher(client),
 		doctor:        NewDoctor(),
 		debugger:      NewDebugger(),
+		completer:     NewCompleter(),
 	}
 	router, err := newCommandRouter(cmd)
 	if err != nil {

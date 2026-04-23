@@ -261,6 +261,11 @@ func (h *Helper) ShowDoctorHelp() {
 	h.renderCommandFromRegistry("doctor", nil, "Diagnose the local ggc installation")
 }
 
+// ShowCompletionHelp shows help message for the completion command.
+func (h *Helper) ShowCompletionHelp() {
+	h.renderCommandFromRegistry("completion", nil, "Print or install shell completion scripts")
+}
+
 // ShowRebaseHelp shows help message for rebase command.
 func (h *Helper) ShowRebaseHelp() {
 	h.renderCommandFromRegistry("rebase", []string{"ggc rebase [interactive | <upstream> | continue | abort | skip]"}, "Rebase current branch onto another branch; supports interactive and common workflows")

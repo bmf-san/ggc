@@ -33,7 +33,7 @@ When implementing new features or modifying existing ones, please ensure to:
 
 #### Shell Completion Scripts:
 - **Auto-generated**: Run `make docs` (or `make completions`) to regenerate the Bash/Zsh/Fish completion scripts from the registry.
-- **Do not edit** files under `tools/completions/` manually—changes will be overwritten by the generator.
+- **Do not edit** files under `cmd/completions/` manually—changes will be overwritten by the generator.
 
 **📋 Checklist for Command Changes:**
 - [ ] cmd/command/registry.go entry added/updated (usage, examples, handler)

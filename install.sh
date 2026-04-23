@@ -199,7 +199,7 @@ function __ggc_load_completion
     end
 
     # Look for completion file in go modules
-    for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.fish
+    for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v8@*/cmd/completions/ggc.fish
         if test -f "$completion_file"
             source "$completion_file"
             return 0
@@ -207,7 +207,7 @@ function __ggc_load_completion
     end
 
     # Fallback: find completion file
-    set -l completion_file (find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.fish" -path "*/tools/completions/*" 2>/dev/null | head -1)
+    set -l completion_file (find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.fish" -path "*/cmd/completions/*" 2>/dev/null | head -1)
     if test -n "$completion_file"; and test -f "$completion_file"
         source "$completion_file"
         return 0
@@ -242,14 +242,14 @@ load_ggc_completion() {
 		return 1
 	fi
 
-	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.bash; do
+	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v8@*/cmd/completions/ggc.bash; do
 		if [ -f "$completion_file" ]; then
 			source "$completion_file"
 			return 0
 		fi
 	done
 
-	completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.bash" -path "*/tools/completions/*" 2>/dev/null | head -1)
+	completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.bash" -path "*/cmd/completions/*" 2>/dev/null | head -1)
 	if [ -n "$completion_file" ] && [ -f "$completion_file" ]; then
 		source "$completion_file"
 		return 0
@@ -275,14 +275,14 @@ load_ggc_completion() {
 		return 1
 	fi
 
-	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v8@*/tools/completions/ggc.zsh; do
+	for completion_file in "$gopath"/pkg/mod/github.com/bmf-san/ggc/v8@*/cmd/completions/ggc.zsh; do
 		if [ -f "$completion_file" ]; then
 			source "$completion_file"
 			return 0
 		fi
 	done
 
-	completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.zsh" -path "*/tools/completions/*" 2>/dev/null | head -1)
+	completion_file=$(find "$gopath/pkg/mod/github.com/bmf-san" -name "ggc.zsh" -path "*/cmd/completions/*" 2>/dev/null | head -1)
 	if [ -n "$completion_file" ] && [ -f "$completion_file" ]; then
 		source "$completion_file"
 		return 0

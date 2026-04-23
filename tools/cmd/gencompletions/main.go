@@ -25,9 +25,9 @@ func main() {
 	}
 
 	writers := map[string]string{
-		"bash": filepath.Join("tools", "completions", "ggc.bash"),
-		"zsh":  filepath.Join("tools", "completions", "ggc.zsh"),
-		"fish": filepath.Join("tools", "completions", "ggc.fish"),
+		"bash": filepath.Join("cmd", "completions", "ggc.bash"),
+		"zsh":  filepath.Join("cmd", "completions", "ggc.zsh"),
+		"fish": filepath.Join("cmd", "completions", "ggc.fish"),
 	}
 
 	funcMap := template.FuncMap{
