@@ -1,0 +1,63 @@
+name: Benchmark history
+
+# Track benchmark numbers over time on main. Data (and an auto-generated
+# HTML dashboard) is pushed to the orphan `benchmarks` branch on every
+# push so regressions are visible commit-by-commit without touching the
+# MkDocs docs site.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/bench-history.yml'
+  workflow_dispatch:
+
+permissions:
+  # Needed to push benchmark results back to the `benchmarks` branch.
+  contents: write
+
+concurrency:
+  group: bench-history
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    name: Record main benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
+        with:
+          go-version: '1.25.0'
+
+      - name: Run benchmarks
+        run: |
+          mkdir -p bench-output
+          go test ./... -run='^$' -bench=. -benchmem -count=6 \
+            | tee bench-output/bench.txt
+
+      - name: Publish to benchmarks branch
+        uses: benchmark-action/github-action-benchmark@a60cea5bc7b49e15c1f58f411161f99e0df48372 # v1
+        with:
+          tool: 'go'
+          output-file-path: bench-output/bench.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Keep the data and dashboard off gh-pages so the MkDocs site
+          # is not disturbed. The `benchmarks` branch is an orphan that
+          # the action manages end-to-end.
+          gh-pages-branch: benchmarks
+          benchmark-data-dir-path: dev/bench
+          auto-push: true
+          # 150% = 1.5x slower than the recorded best — generous enough
+          # to absorb shared-runner noise while still catching real
+          # regressions. The job doesn't fail; it just comments on the
+          # offending commit so a human can triage.
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
