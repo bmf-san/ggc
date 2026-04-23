@@ -8,6 +8,20 @@ ggc reads configuration from one of:
 
 The first file that exists wins. If none exists, built-in defaults are used. On Windows the path resolves via `%APPDATA%\ggc\config.yaml`.
 
+## Editor autocomplete (JSON Schema)
+
+A JSON Schema for the config file is published alongside these docs:
+<https://bmf-san.github.io/ggc/ggc-config.schema.json>. Add this header to your YAML to get autocomplete, hover docs, and validation in VS Code (with the YAML extension) and anything else that speaks [SchemaStore](https://www.schemastore.org/json/) conventions:
+
+```yaml
+# yaml-language-server: $schema=https://bmf-san.github.io/ggc/ggc-config.schema.json
+meta:
+  version: v8.3.0
+  # ...
+```
+
+The schema mirrors the Go struct (`internal/config.Config`); a unit test guards against drift between the two, so what's published is what ggc actually reads.
+
 ## Anatomy
 
 ```yaml

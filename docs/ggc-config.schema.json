@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bmf-san.github.io/ggc/ggc-config.schema.json",
+  "properties": {
+    "meta": {
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "created-at": {
+          "type": "string"
+        },
+        "config-version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "version",
+        "commit",
+        "created-at",
+        "config-version"
+      ]
+    },
+    "default": {
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "editor": {
+          "type": "string"
+        },
+        "merge-tool": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "branch",
+        "editor",
+        "merge-tool"
+      ]
+    },
+    "ui": {
+      "properties": {
+        "color": {
+          "type": "boolean"
+        },
+        "pager": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "color",
+        "pager"
+      ]
+    },
+    "interactive": {
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "keybindings": {
+          "properties": {
+            "delete_word": {
+              "type": "string"
+            },
+            "clear_line": {
+              "type": "string"
+            },
+            "delete_to_end": {
+              "type": "string"
+            },
+            "move_to_beginning": {
+              "type": "string"
+            },
+            "move_to_end": {
+              "type": "string"
+            },
+            "move_up": {
+              "type": "string"
+            },
+            "move_down": {
+              "type": "string"
+            },
+            "move_left": {
+              "type": "string"
+            },
+            "move_right": {
+              "type": "string"
+            },
+            "add_to_workflow": {
+              "type": "string"
+            },
+            "toggle_workflow_view": {
+              "type": "string"
+            },
+            "clear_workflow": {
+              "type": "string"
+            },
+            "workflow_create": {
+              "type": "string"
+            },
+            "workflow_delete": {
+              "type": "string"
+            },
+            "soft_cancel": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "delete_word",
+            "clear_line",
+            "delete_to_end",
+            "move_to_beginning",
+            "move_to_end",
+            "move_up",
+            "move_down",
+            "move_left",
+            "move_right",
+            "add_to_workflow",
+            "toggle_workflow_view",
+            "clear_workflow",
+            "workflow_create",
+            "workflow_delete",
+            "soft_cancel"
+          ]
+        },
+        "contexts": {
+          "properties": {
+            "input": {
+              "properties": {
+                "keybindings": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object"
+            },
+            "results": {
+              "properties": {
+                "keybindings": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object"
+            },
+            "search": {
+              "properties": {
+                "keybindings": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "darwin": {
+          "properties": {
+            "keybindings": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "linux": {
+          "properties": {
+            "keybindings": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "windows": {
+          "properties": {
+            "keybindings": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "terminals": {
+          "additionalProperties": {
+            "properties": {
+              "keybindings": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "keybindings"
+      ]
+    },
+    "behavior": {
+      "properties": {
+        "auto-push": {
+          "type": "boolean"
+        },
+        "confirm-destructive": {
+          "type": "string"
+        },
+        "auto-fetch": {
+          "type": "boolean"
+        },
+        "stash-before-switch": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "auto-push",
+        "confirm-destructive",
+        "auto-fetch",
+        "stash-before-switch"
+      ]
+    },
+    "aliases": {
+      "type": "object"
+    },
+    "workflows": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "git": {
+      "properties": {
+        "default-remote": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "default-remote"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "meta",
+    "default",
+    "ui",
+    "interactive",
+    "behavior",
+    "aliases",
+    "git"
+  ],
+  "title": "ggc configuration",
+  "description": "JSON Schema for ggc's YAML configuration file (~/.ggcconfig.yaml). Auto-generated from internal/config.Config; do not edit by hand."
+}
