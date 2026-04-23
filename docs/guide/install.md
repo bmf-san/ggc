@@ -51,6 +51,21 @@ Windows binaries are published to the [releases page](https://github.com/bmf-san
 
 If you use Git Bash or WSL the Linux instructions above also work unchanged.
 
+## Docker (ghcr.io)
+
+Multi-arch images (`linux/amd64`, `linux/arm64`) are published to GitHub Container Registry on every tagged release, starting from the next release after v8.3.0.
+
+```bash
+docker pull ghcr.io/bmf-san/ggc:latest
+# or pin a version
+docker pull ghcr.io/bmf-san/ggc:v8.4.0
+
+# run against the current directory
+docker run --rm -it -v "$PWD:/work" ghcr.io/bmf-san/ggc:latest status
+```
+
+The image is based on `alpine:3.22` and bundles `git`. Runs as an unprivileged user (`ggc`).
+
 ## Build from source
 
 ```bash

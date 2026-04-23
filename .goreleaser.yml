@@ -94,6 +94,49 @@ changelog:
       - 'Merge pull request'
       - 'Merge branch'
 
+dockers:
+  - id: ggc-amd64
+    ids: [ggc]
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/bmf-san/ggc:{{ .Version }}-amd64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source=https://github.com/bmf-san/ggc"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+  - id: ggc-arm64
+    ids: [ggc]
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "ghcr.io/bmf-san/ggc:{{ .Version }}-arm64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source=https://github.com/bmf-san/ggc"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+docker_manifests:
+  - name_template: "ghcr.io/bmf-san/ggc:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/bmf-san/ggc:{{ .Version }}-amd64"
+      - "ghcr.io/bmf-san/ggc:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/bmf-san/ggc:latest"
+    image_templates:
+      - "ghcr.io/bmf-san/ggc:{{ .Version }}-amd64"
+      - "ghcr.io/bmf-san/ggc:{{ .Version }}-arm64"
+
 release:
   github:
     owner: bmf-san

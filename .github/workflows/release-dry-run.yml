@@ -27,6 +27,8 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          # Skip signing in the dry run: cosign keyless needs a real
-          # GitHub OIDC token, which is only minted on tagged releases.
-          args: release --snapshot --skip=sign
+          # Skip signing and docker in the dry run: cosign keyless needs a
+          # real GitHub OIDC token (only minted on tagged releases), and
+          # docker images can't be published from a fork anyway. The real
+          # release workflow exercises both.
+          args: release --snapshot --skip=sign,docker
