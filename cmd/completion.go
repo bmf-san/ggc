@@ -65,7 +65,7 @@ func (c *Completer) print(shell string) {
 
 // install writes the completion script to the conventional location for
 // the given shell. It picks the first writable target among a
-// deliberately short list of well-known locations so the behaviour is
+// deliberately short list of well-known locations so the behavior is
 // predictable across distros and package managers.
 func (c *Completer) install(shell string) {
 	home, err := c.userHomeDir()
