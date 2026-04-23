@@ -52,6 +52,23 @@ checksum:
 sboms:
   - artifacts: archive
 
+# Sign the checksum file with cosign in keyless mode (via GitHub OIDC).
+# Signing only the checksum file keeps the release page small while still
+# covering every archive: verifying the checksum verifies each artifact.
+signs:
+  - id: cosign-checksum
+    cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - "sign-blob"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
 changelog:
   sort: asc
   use: github
