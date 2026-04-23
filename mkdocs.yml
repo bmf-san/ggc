@@ -34,6 +34,7 @@ nav:
       - Installation: guide/install.md
       - Quick start: guide/quickstart.md
   - Commands: guide/commands.md
+  - Recipes: guide/recipes.md
   - Interactive mode: guide/interactive.md
   - Configuration & aliases: guide/config.md
   - Troubleshooting: guide/troubleshooting.md

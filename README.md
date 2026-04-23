@@ -8,6 +8,7 @@
 [![CI](https://github.com/bmf-san/ggc/actions/workflows/ci.yml/badge.svg)](https://github.com/bmf-san/ggc/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/bmf-san/ggc/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/bmf-san/ggc/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/bmf-san/ggc/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/bmf-san/ggc/actions/workflows/dependabot/dependabot-updates)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bmf-san/ggc/badge)](https://scorecard.dev/viewer/?uri=github.com/bmf-san/ggc)
 [![Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 
 
@@ -39,6 +40,7 @@ Full documentation lives at **<https://bmf-san.github.io/ggc/>**:
 - [Why ggc? + feature highlights](https://bmf-san.github.io/ggc/#why-ggc)
 - [Quick start](https://bmf-san.github.io/ggc/guide/quickstart/)
 - [Command reference](https://bmf-san.github.io/ggc/guide/commands/) — auto-generated from the registry
+- [Recipes](https://bmf-san.github.io/ggc/guide/recipes/) — task-oriented walkthroughs
 - [Interactive mode & workflows](https://bmf-san.github.io/ggc/guide/interactive/)
 - [Configuration, aliases, keybindings](https://bmf-san.github.io/ggc/guide/config/)
 - [Troubleshooting](https://bmf-san.github.io/ggc/guide/troubleshooting/)
