@@ -60,7 +60,7 @@ func (cm *Manager) getValueByPath(obj any, path string) (any, error) {
 	current := reflect.ValueOf(obj)
 
 	for _, part := range parts {
-		if current.Kind() == reflect.Ptr {
+		if current.Kind() == reflect.Pointer {
 			current = current.Elem()
 		}
 
@@ -137,7 +137,7 @@ func (cm *Manager) navigateToParent(current reflect.Value, parts []string) (refl
 
 // navigateOneLevel navigates one level into a struct or map
 func (cm *Manager) navigateOneLevel(current reflect.Value, part string, pathSoFar []string) (reflect.Value, error) {
-	if current.Kind() == reflect.Ptr {
+	if current.Kind() == reflect.Pointer {
 		current = current.Elem()
 	}
 
@@ -163,7 +163,7 @@ func (cm *Manager) navigateOneLevel(current reflect.Value, part string, pathSoFa
 
 // setFinalValue sets the final value in the target location
 func (cm *Manager) setFinalValue(current reflect.Value, lastPart string, value any) error {
-	if current.Kind() == reflect.Ptr {
+	if current.Kind() == reflect.Pointer {
 		current = current.Elem()
 	}
 
@@ -211,7 +211,7 @@ func (cm *Manager) setMapValue(current reflect.Value, key string, value any) err
 // flattenConfig converts nested config to flat key-value pairs
 func (cm *Manager) flattenConfig(obj any, prefix string, result map[string]any) {
 	value := reflect.ValueOf(obj)
-	if value.Kind() == reflect.Ptr {
+	if value.Kind() == reflect.Pointer {
 		value = value.Elem()
 	}
 	switch value.Kind() {
