@@ -313,3 +313,8 @@ func (h *Helper) ShowDiffHelp() {
 func (h *Helper) ShowFetchHelp() {
 	h.renderCommandFromRegistry("fetch", []string{"ggc fetch [subcommand]"}, "Download objects and refs from another repository")
 }
+
+// ShowShowHelp shows help message for show command.
+func (h *Helper) ShowShowHelp() {
+	h.renderCommandFromRegistry("show", []string{"ggc show [<options>] [<object>...]"}, "Show various types of objects (commits, tags, trees, blobs)")
+}

@@ -107,6 +107,37 @@ ggc reset soft HEAD~1   # Soft reset: keep changes staged
 ggc reset soft HEAD~3   # Soft reset 3 commits, keeping changes staged
 ```
 
+### `ggc show` {#cmd-show}
+
+Show various types of objects (commits, tags, trees, blobs).
+
+**Usage:**
+
+```bash
+ggc show [<options>] [<object>...]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|---|---|
+| `show` | Show HEAD commit |
+| `show --name-only <object>` | Show object with names only |
+| `show --stat <object>` | Show object with diffstat |
+| `show <object>` | Show a specific commit, tag, tree, or blob |
+
+**Examples:**
+
+```bash
+ggc show                              # Show HEAD commit
+ggc show HEAD~1                       # Show previous commit
+ggc show abc1234                      # Show a specific commit
+ggc show --stat HEAD                  # Show commit with diffstat
+ggc show --name-only HEAD             # Show only changed file names
+ggc show v1.0.0                       # Show a tag
+ggc show HEAD:path/to/file.go         # Show file contents at HEAD
+```
+
 ## Branch {#cat-branch}
 
 ### `ggc branch` {#cmd-branch}

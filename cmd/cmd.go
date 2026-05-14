@@ -47,6 +47,7 @@ type Cmd struct {
 	differ        *Differ
 	restorer      *Restorer
 	fetcher       *Fetcher
+	shower        *Shower
 	cmdRouter     *commandRouter
 	debugger      *Debugger
 	doctor        *Doctor
@@ -74,6 +75,7 @@ type GitDeps interface {
 	git.DiffReader
 	git.RestoreOps
 	git.FetchOps
+	git.ShowOps
 	git.LocalBranchLister
 	git.FileLister
 }
@@ -128,6 +130,7 @@ func NewCmd(client GitDeps, cm *config.Manager) (*Cmd, error) {
 		differ:        NewDiffer(client),
 		restorer:      NewRestorer(client),
 		fetcher:       NewFetcher(client),
+		shower:        NewShower(client),
 		doctor:        NewDoctor(),
 		debugger:      NewDebugger(),
 		completer:     NewCompleter(),
@@ -176,6 +179,11 @@ func (c *Cmd) Stash(args []string) {
 // Fetch executes the fetch command with the given arguments.
 func (c *Cmd) Fetch(args []string) {
 	c.fetcher.Fetch(args)
+}
+
+// Show executes the show command with the given arguments.
+func (c *Cmd) Show(args []string) {
+	c.shower.Show(args)
 }
 
 // Commit executes the commit command with the given arguments.

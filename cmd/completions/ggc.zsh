@@ -63,6 +63,9 @@ _ggc() {
                 restore)
                     _ggc_restore
                     ;;
+                show)
+                    _ggc_show
+                    ;;
                 stash)
                     _ggc_stash
                     ;;
@@ -103,6 +106,7 @@ _ggc_commands() {
         'remote:Manage remotes'
         'reset:Reset current HEAD to the specified state'
         'restore:Restore files in working tree or staging area'
+        'show:Show various types of objects (commits, tags, trees, blobs)'
         'stash:Save and reapply work-in-progress changes'
         'status:Show working tree status'
         'tag:Create, list, and manage tags'
@@ -363,6 +367,16 @@ _ggc_restore() {
     )
     if (( CURRENT == 2 )); then
         _describe 'restore subcommands' subcommands
+    fi
+}
+_ggc_show() {
+    local subcommands
+    subcommands=(
+        '--name-only:Show object with names only'
+        '--stat:Show object with diffstat'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'show subcommands' subcommands
     fi
 }
 _ggc_stash() {
