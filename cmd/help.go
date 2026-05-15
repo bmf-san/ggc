@@ -318,3 +318,10 @@ func (h *Helper) ShowFetchHelp() {
 func (h *Helper) ShowShowHelp() {
 	h.renderCommandFromRegistry("show", []string{"ggc show [<options>] [<object>...]"}, "Show various types of objects (commits, tags, trees, blobs)")
 }
+
+// ShowPassthroughHelp renders help for a pass-through command by looking up
+// its entry in the registry. Used by the generic passthroughCommand wrapper
+// for commands such as cherry-pick, revert, blame, etc.
+func (h *Helper) ShowPassthroughHelp(name string) {
+	h.renderCommandFromRegistry(name, nil, "")
+}

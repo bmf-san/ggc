@@ -102,6 +102,9 @@ func (m *MockGitClient) LogOneline(_, _ string) (string, error) { return "", nil
 // Show Operations
 func (m *MockGitClient) Show(_ []string) error { return nil }
 
+// Passthrough Operations
+func (m *MockGitClient) RunGit(_ string, _ []string) error { return nil }
+
 // Rebase Operations
 func (m *MockGitClient) RebaseInteractive(_ int) error              { return nil }
 func (m *MockGitClient) RebaseInteractiveAutosquash(_ int) error    { return nil }

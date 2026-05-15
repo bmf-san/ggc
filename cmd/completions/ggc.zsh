@@ -72,6 +72,9 @@ _ggc() {
                 status)
                     _ggc_status
                     ;;
+                switch)
+                    _ggc_switch
+                    ;;
                 tag)
                     _ggc_tag
                     ;;
@@ -87,30 +90,55 @@ _ggc_commands() {
     local commands
     commands=(
         'add:Stage changes for the next commit'
+        'am:Apply a series of patches from a mailbox'
+        'archive:Create an archive of files from a named tree'
+        'bisect:Use binary search to find the commit that introduced a bug'
+        'blame:Show what revision and author last modified each line of a file'
         'branch:List, create, and manage branches'
+        'checkout:Switch branches or restore working tree files'
+        'cherry-pick:Apply the changes introduced by some existing commits'
         'clean:Remove untracked files and directories'
         'commit:Create commits from staged changes'
         'completion:Print or install shell completion scripts'
         'config:Get and set ggc configuration'
         'debug-keys:Debug keybinding issues and capture raw key sequences'
+        'describe:Give an object a human-readable name based on an available ref'
         'diff:Inspect changes between commits, the index, and the working tree'
         'doctor:Diagnose the local ggc installation'
         'fetch:Download objects and refs from remotes'
+        'format-patch:Prepare patches for e-mail submission'
+        'fsck:Verify the connectivity and validity of objects in the repository'
+        'gc:Cleanup unnecessary files and optimize the local repository'
+        'grep:Print lines matching a pattern in tracked files'
         'help:Show help information for commands'
         'hook:Manage Git hooks'
         'log:Inspect commit history'
+        'maintenance:Run scheduled background repository optimizations'
+        'merge:Join two or more development histories together'
+        'mv:Move or rename a file, directory, or symlink'
+        'notes:Add, read, or edit object notes'
+        'prune:Prune all unreachable objects from the object database'
         'pull:Fetch and integrate from the remote'
         'push:Update remote branches'
         'quit:Exit interactive mode'
+        'range-diff:Compare two commit ranges (e.g. before and after a rebase)'
         'rebase:Reapply commits on top of another base tip'
+        'reflog:Manage reflog information (recovery aid)'
         'remote:Manage remotes'
         'reset:Reset current HEAD to the specified state'
         'restore:Restore files in working tree or staging area'
+        'revert:Revert some existing commits'
+        'rm:Remove files from the working tree and the index'
+        'shortlog:Summarize git log output grouped by committer'
         'show:Show various types of objects (commits, tags, trees, blobs)'
+        'sparse-checkout:Reduce the working tree to a subset of tracked files'
         'stash:Save and reapply work-in-progress changes'
         'status:Show working tree status'
+        'submodule:Initialize, update, or inspect submodules'
+        'switch:Switch branches'
         'tag:Create, list, and manage tags'
         'version:Display current ggc version'
+        'worktree:Manage multiple working trees'
     )
     _describe 'commands' commands
 }
@@ -413,6 +441,16 @@ _ggc_status() {
     )
     if (( CURRENT == 2 )); then
         _describe 'status subcommands' subcommands
+    fi
+}
+_ggc_switch() {
+    local subcommands
+    subcommands=(
+        '--detach:Detached checkout at a ref'
+        '-c:Create and switch to a new branch'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'switch subcommands' subcommands
     fi
 }
 _ggc_tag() {

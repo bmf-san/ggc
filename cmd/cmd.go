@@ -48,6 +48,7 @@ type Cmd struct {
 	restorer      *Restorer
 	fetcher       *Fetcher
 	shower        *Shower
+	passthroughs  map[string]*passthroughCommand
 	cmdRouter     *commandRouter
 	debugger      *Debugger
 	doctor        *Doctor
@@ -76,6 +77,7 @@ type GitDeps interface {
 	git.RestoreOps
 	git.FetchOps
 	git.ShowOps
+	git.PassthroughOps
 	git.LocalBranchLister
 	git.FileLister
 }
@@ -131,6 +133,7 @@ func NewCmd(client GitDeps, cm *config.Manager) (*Cmd, error) {
 		restorer:      NewRestorer(client),
 		fetcher:       NewFetcher(client),
 		shower:        NewShower(client),
+		passthroughs:  buildPassthroughs(client),
 		doctor:        NewDoctor(),
 		debugger:      NewDebugger(),
 		completer:     NewCompleter(),

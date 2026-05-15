@@ -10,7 +10,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean commit completion config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore show stash status tag version"
+complete -c ggc -f -a "add am archive bisect blame branch checkout cherry-pick clean commit completion config debug-keys describe diff doctor fetch format-patch fsck gc grep help hook log maintenance merge mv notes prune pull push quit range-diff rebase reflog remote reset restore revert rm shortlog show sparse-checkout stash status submodule switch tag version worktree"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "checkout contains create current delete info list move rename set sort"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"
@@ -36,6 +36,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from show" -a "--name-only --stat"
 complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "apply branch clear create drop list pop push save show store"
 complete -c ggc -f -n "__fish_seen_subcommand_from stash; and __fish_seen_subcommand_from push" -a "-m"
 complete -c ggc -f -n "__fish_seen_subcommand_from status" -a "short"
+complete -c ggc -f -n "__fish_seen_subcommand_from switch" -a "--detach -c"
 complete -c ggc -f -n "__fish_seen_subcommand_from tag" -a "annotated create delete list push show"
 complete -c ggc -f -n "__fish_seen_subcommand_from version" -a "json"
 
