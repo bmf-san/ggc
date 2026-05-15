@@ -53,6 +53,42 @@ ggc add interactive  # Add changes interactively
 ggc add patch        # Add changes interactively (patch mode)
 ```
 
+### `ggc blame` {#cmd-blame}
+
+Show what revision and author last modified each line of a file.
+
+**Usage:**
+
+```bash
+ggc blame [<options>] <file>
+```
+
+**Examples:**
+
+```bash
+ggc blame README.md                   # Show line authorship for a file
+ggc blame -L 10,20 README.md          # Limit blame to specific lines
+ggc blame -C -C README.md             # Detect copy/move across files
+```
+
+### `ggc grep` {#cmd-grep}
+
+Print lines matching a pattern in tracked files.
+
+**Usage:**
+
+```bash
+ggc grep [<options>] <pattern> [<pathspec>...]
+```
+
+**Examples:**
+
+```bash
+ggc grep TODO                         # Search tracked files for TODO
+ggc grep -n -i fixme                  # Case-insensitive with line numbers
+ggc grep -e foo -e bar -- cmd         # Match multiple patterns in cmd/
+```
+
 ### `ggc help` {#cmd-help}
 
 Show help information for commands.
@@ -76,6 +112,23 @@ ggc help <command>
 ```bash
 ggc help
 ggc help branch
+```
+
+### `ggc mv` {#cmd-mv}
+
+Move or rename a file, directory, or symlink.
+
+**Usage:**
+
+```bash
+ggc mv [<options>] <source>... <destination>
+```
+
+**Examples:**
+
+```bash
+ggc mv old.go new.go                  # Rename a tracked file
+ggc mv -k a.go b.go pkg/              # Skip move when destination is in the way
 ```
 
 ### `ggc reset` {#cmd-reset}
@@ -105,6 +158,41 @@ ggc reset               # Hard reset to origin/<current-branch> and clean
 ggc reset hard HEAD~1   # Hard reset to previous commit
 ggc reset soft HEAD~1   # Soft reset: keep changes staged
 ggc reset soft HEAD~3   # Soft reset 3 commits, keeping changes staged
+```
+
+### `ggc rm` {#cmd-rm}
+
+Remove files from the working tree and the index.
+
+**Usage:**
+
+```bash
+ggc rm [<options>] <file>...
+```
+
+**Examples:**
+
+```bash
+ggc rm old.go                         # Stage removal of a tracked file
+ggc rm --cached secret.env            # Stop tracking but keep the file on disk
+ggc rm -r build/                      # Remove a directory recursively
+```
+
+### `ggc shortlog` {#cmd-shortlog}
+
+Summarize git log output grouped by committer.
+
+**Usage:**
+
+```bash
+ggc shortlog [<options>] [<revision-range>]
+```
+
+**Examples:**
+
+```bash
+ggc shortlog -sn                      # Summary count by author
+ggc shortlog v1.0..HEAD               # Limit to a range
 ```
 
 ### `ggc show` {#cmd-show}
@@ -195,7 +283,113 @@ ggc branch sort date              # List branches sorted by date
 ggc branch contains abc123        # Show branches containing a commit
 ```
 
+### `ggc checkout` {#cmd-checkout}
+
+Switch branches or restore working tree files.
+
+**Usage:**
+
+```bash
+ggc checkout [<options>] [<branch>|<commit>] [--] [<path>...]
+```
+
+**Examples:**
+
+```bash
+ggc checkout main                     # Switch to an existing branch
+ggc checkout -b feature/login         # Create and switch to a new branch
+ggc checkout -- path/to/file.go       # Discard working-tree changes to a file
+ggc checkout HEAD~1 -- path/file.go   # Restore a file from a specific commit
+```
+
+### `ggc merge` {#cmd-merge}
+
+Join two or more development histories together.
+
+**Usage:**
+
+```bash
+ggc merge [<options>] [<commit>...]
+```
+
+**Examples:**
+
+```bash
+ggc merge feature/login               # Merge a branch into the current branch
+ggc merge --no-ff feature/login       # Force a merge commit
+ggc merge --squash feature/login      # Squash all commits into the index
+ggc merge --abort                     # Abort an in-progress merge
+ggc merge --continue                  # Continue an in-progress merge
+```
+
+### `ggc switch` {#cmd-switch}
+
+Switch branches.
+
+**Usage:**
+
+```bash
+ggc switch [<options>] <branch>
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|---|---|
+| `switch --detach <ref>` | Detached checkout at a ref |
+| `switch -c <branch>` | Create and switch to a new branch |
+| `switch <branch>` | Switch to an existing branch |
+
+**Examples:**
+
+```bash
+ggc switch main                       # Switch to an existing branch
+ggc switch -c feature/login           # Create and switch to a new branch
+ggc switch -C feature/login          # Force-create and switch
+ggc switch --detach HEAD~3            # Detached checkout
+ggc switch -                          # Switch back to the previous branch
+```
+
+### `ggc worktree` {#cmd-worktree}
+
+Manage multiple working trees.
+
+**Usage:**
+
+```bash
+ggc worktree <subcommand> [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc worktree list                     # List linked working trees
+ggc worktree add ../wt-feat feature   # Add a new working tree
+ggc worktree remove ../wt-feat        # Remove a linked working tree
+ggc worktree prune                    # Prune stale worktree metadata
+```
+
 ## Commit {#cat-commit}
+
+### `ggc cherry-pick` {#cmd-cherry-pick}
+
+Apply the changes introduced by some existing commits.
+
+**Usage:**
+
+```bash
+ggc cherry-pick [<options>] <commit>...
+```
+
+**Examples:**
+
+```bash
+ggc cherry-pick abc1234               # Apply a single commit
+ggc cherry-pick -x abc1234            # Apply and append "(cherry picked from ...)"
+ggc cherry-pick A..B                  # Apply a range of commits
+ggc cherry-pick --continue            # Continue after resolving conflicts
+ggc cherry-pick --abort               # Abort the in-progress cherry-pick
+```
 
 ### `ggc commit` {#cmd-commit}
 
@@ -253,6 +447,26 @@ ggc log graph
 ```bash
 ggc log simple  # Show commit logs in a simple format
 ggc log graph   # Show commit logs with a graph
+```
+
+### `ggc revert` {#cmd-revert}
+
+Revert some existing commits.
+
+**Usage:**
+
+```bash
+ggc revert [<options>] <commit>...
+```
+
+**Examples:**
+
+```bash
+ggc revert HEAD                       # Revert the latest commit
+ggc revert --no-edit abc1234          # Revert without editing the message
+ggc revert -n abc1234                 # Revert without committing (stage only)
+ggc revert --continue                 # Continue after resolving conflicts
+ggc revert --abort                    # Abort the in-progress revert
 ```
 
 ## Remote {#cat-remote}
@@ -479,6 +693,23 @@ ggc diff abc123 cmd/diff.go         # Compare commit to working tree for a path
 ggc diff -- cmd/deleted_file.go     # Diff a path using -- for disambiguation
 ```
 
+### `ggc range-diff` {#cmd-range-diff}
+
+Compare two commit ranges (e.g. before and after a rebase).
+
+**Usage:**
+
+```bash
+ggc range-diff <range1> <range2>
+```
+
+**Examples:**
+
+```bash
+ggc range-diff main..@{u} main..HEAD  # Compare upstream vs. local rewrite
+ggc range-diff abc..def 123..456      # Compare two arbitrary ranges
+```
+
 ## Tag {#cat-tag}
 
 ### `ggc tag` {#cmd-tag}
@@ -674,6 +905,60 @@ ggc stash store <object>               # Store stash object
 
 ## Utility {#cat-utility}
 
+### `ggc am` {#cmd-am}
+
+Apply a series of patches from a mailbox.
+
+**Usage:**
+
+```bash
+ggc am [<options>] [<mailbox>...]
+```
+
+**Examples:**
+
+```bash
+ggc am 0001-fix-bug.patch             # Apply a single patch
+ggc am --continue                     # Continue after resolving conflicts
+ggc am --abort                        # Abort the in-progress am
+```
+
+### `ggc archive` {#cmd-archive}
+
+Create an archive of files from a named tree.
+
+**Usage:**
+
+```bash
+ggc archive [<options>] <tree-ish> [<path>...]
+```
+
+**Examples:**
+
+```bash
+ggc archive -o out.tar.gz HEAD        # Archive current HEAD to a tarball
+ggc archive --format=zip -o v1.zip v1 # Archive a tag as a zip
+```
+
+### `ggc bisect` {#cmd-bisect}
+
+Use binary search to find the commit that introduced a bug.
+
+**Usage:**
+
+```bash
+ggc bisect <subcommand> [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc bisect start                      # Start a new bisect session
+ggc bisect bad                        # Mark current commit as bad
+ggc bisect good v1.0.0                # Mark a known-good commit
+ggc bisect reset                      # Finish bisecting
+```
+
 ### `ggc completion` {#cmd-completion}
 
 Print or install shell completion scripts.
@@ -730,6 +1015,24 @@ ggc debug-keys raw             # Capture key sequences interactively
 ggc debug-keys raw keys.txt    # Capture and save to keys.txt
 ```
 
+### `ggc describe` {#cmd-describe}
+
+Give an object a human-readable name based on an available ref.
+
+**Usage:**
+
+```bash
+ggc describe [<options>] [<commit>]
+```
+
+**Examples:**
+
+```bash
+ggc describe                          # Describe current HEAD
+ggc describe --tags                   # Use any tag, not just annotated ones
+ggc describe --always --dirty         # Always emit a string; mark dirty trees
+```
+
 ### `ggc doctor` {#cmd-doctor}
 
 Diagnose the local ggc installation.
@@ -746,6 +1049,110 @@ ggc doctor
 ggc doctor   # Check git binary, config, shell completions, TTY, etc.
 ```
 
+### `ggc format-patch` {#cmd-format-patch}
+
+Prepare patches for e-mail submission.
+
+**Usage:**
+
+```bash
+ggc format-patch [<options>] <commit-range>
+```
+
+**Examples:**
+
+```bash
+ggc format-patch -1 HEAD              # Produce a patch for the latest commit
+ggc format-patch origin/main..HEAD    # Produce patches for a branch
+```
+
+### `ggc fsck` {#cmd-fsck}
+
+Verify the connectivity and validity of objects in the repository.
+
+**Usage:**
+
+```bash
+ggc fsck [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc fsck                              # Run a basic fsck
+ggc fsck --full --strict              # Comprehensive checks
+```
+
+### `ggc gc` {#cmd-gc}
+
+Cleanup unnecessary files and optimize the local repository.
+
+**Usage:**
+
+```bash
+ggc gc [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc gc                                # Run a normal gc
+ggc gc --aggressive --prune=now       # Aggressively repack and prune
+```
+
+### `ggc maintenance` {#cmd-maintenance}
+
+Run scheduled background repository optimizations.
+
+**Usage:**
+
+```bash
+ggc maintenance <subcommand> [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc maintenance run                   # Run all enabled tasks once
+ggc maintenance start                 # Install scheduled maintenance
+ggc maintenance stop                  # Remove scheduled maintenance
+```
+
+### `ggc notes` {#cmd-notes}
+
+Add, read, or edit object notes.
+
+**Usage:**
+
+```bash
+ggc notes <subcommand> [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc notes add -m "reviewed" HEAD     # Attach a note to HEAD
+ggc notes show HEAD                   # Show a note
+ggc notes list                        # List notes
+```
+
+### `ggc prune` {#cmd-prune}
+
+Prune all unreachable objects from the object database.
+
+**Usage:**
+
+```bash
+ggc prune [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc prune                             # Prune unreachable objects
+ggc prune --dry-run                   # Report what would be pruned
+```
+
 ### `ggc quit` {#cmd-quit}
 
 Exit interactive mode.
@@ -760,6 +1167,61 @@ quit
 
 ```bash
 quit
+```
+
+### `ggc reflog` {#cmd-reflog}
+
+Manage reflog information (recovery aid).
+
+**Usage:**
+
+```bash
+ggc reflog [<subcommand>] [<options>] [<ref>]
+```
+
+**Examples:**
+
+```bash
+ggc reflog                            # Show HEAD reflog
+ggc reflog show main                  # Show reflog for a specific ref
+ggc reflog expire --expire=now --all  # Aggressively expire reflog entries
+```
+
+### `ggc sparse-checkout` {#cmd-sparse-checkout}
+
+Reduce the working tree to a subset of tracked files.
+
+**Usage:**
+
+```bash
+ggc sparse-checkout <subcommand> [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc sparse-checkout init --cone       # Enable sparse-checkout in cone mode
+ggc sparse-checkout set src docs      # Limit working tree to these paths
+ggc sparse-checkout list              # Show currently checked-out paths
+ggc sparse-checkout disable           # Disable sparse-checkout
+```
+
+### `ggc submodule` {#cmd-submodule}
+
+Initialize, update, or inspect submodules.
+
+**Usage:**
+
+```bash
+ggc submodule <subcommand> [<options>]
+```
+
+**Examples:**
+
+```bash
+ggc submodule status                  # Show submodule status
+ggc submodule update --init           # Initialize and update submodules
+ggc submodule foreach git status      # Run a command in each submodule
 ```
 
 ### `ggc version` {#cmd-version}

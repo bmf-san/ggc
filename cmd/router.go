@@ -55,6 +55,23 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		},
 	}
 
+	// Wire pass-through commands (cherry-pick, revert, blame, ...). The
+	// passthroughs map is built in NewCmd from the canonical name list; the
+	// closure resolves the entry lazily so that tests which construct a Cmd
+	// without populating the map still pass router validation (handlers are
+	// keyed by name, not by their closure body).
+	for _, name := range passthroughCommandNames {
+		name := name
+		handlers[name] = func(args []string) {
+			if cmd.passthroughs == nil {
+				return
+			}
+			if pc, ok := cmd.passthroughs[name]; ok {
+				pc.Run(args)
+			}
+		}
+	}
+
 	available := make(map[string]struct{}, len(handlers))
 	for key := range handlers {
 		available[key] = struct{}{}
