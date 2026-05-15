@@ -10,7 +10,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add branch clean commit completion config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore stash status tag version"
+complete -c ggc -f -a "add branch clean commit completion config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore show stash status tag version"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "checkout contains create current delete info list move rename set sort"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"
@@ -32,6 +32,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from rebase" -a "abort autosquash 
 complete -c ggc -f -n "__fish_seen_subcommand_from remote" -a "add list remove set-url"
 complete -c ggc -f -n "__fish_seen_subcommand_from reset" -a "hard soft"
 complete -c ggc -f -n "__fish_seen_subcommand_from restore" -a "staged"
+complete -c ggc -f -n "__fish_seen_subcommand_from show" -a "--name-only --stat"
 complete -c ggc -f -n "__fish_seen_subcommand_from stash" -a "apply branch clear create drop list pop push save show store"
 complete -c ggc -f -n "__fish_seen_subcommand_from stash; and __fish_seen_subcommand_from push" -a "-m"
 complete -c ggc -f -n "__fish_seen_subcommand_from status" -a "short"

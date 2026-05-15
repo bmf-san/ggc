@@ -8,7 +8,7 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add branch clean commit completion config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore stash status tag version"
+    opts="add branch clean commit completion config debug-keys diff doctor fetch help hook log pull push quit rebase remote reset restore show stash status tag version"
     case ${prev} in
         branch)
             subopts="checkout contains create current delete info list move rename set sort"
@@ -87,6 +87,11 @@ _ggc()
             ;;
         restore)
             subopts="staged"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        show)
+            subopts="--name-only --stat"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

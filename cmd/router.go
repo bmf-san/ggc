@@ -46,6 +46,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"fetch":      func(args []string) { cmd.Fetch(args) },
 		"diff":       func(args []string) { cmd.Diff(args) },
 		"restore":    func(args []string) { cmd.Restore(args) },
+		"show":       func(args []string) { cmd.Show(args) },
 		"doctor":     func(args []string) { cmd.doctor.Doctor(args) },
 		"debug-keys": func(args []string) { cmd.DebugKeys(args) },
 		"completion": func(args []string) { cmd.completer.Completion(args) },
