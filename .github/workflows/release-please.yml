@@ -8,8 +8,11 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  # Inherited by the reusable GoReleaser workflow for cosign keyless signing
-  # and pushing container images to ghcr.io.
+  # The reusable GoReleaser workflow declares its own `permissions` block,
+  # but a called workflow can only request permissions that the caller has
+  # already granted. We declare id-token and packages here so the called
+  # workflow can perform cosign keyless signing (via GitHub's OIDC
+  # provider) and push container images to ghcr.io.
   id-token: write
   packages: write
 
