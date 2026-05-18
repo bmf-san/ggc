@@ -8,7 +8,7 @@ _ggc()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="add am archive bisect blame branch checkout cherry-pick clean commit completion config debug-keys describe diff doctor fetch format-patch fsck gc grep help hook log maintenance merge mv notes prune pull push quit range-diff rebase reflog remote reset restore revert rm shortlog show sparse-checkout stash status submodule switch tag version worktree"
+    opts="add am archive bisect blame branch checkout cherry-pick clean commit completion config debug-keys describe diff doctor fetch format-patch fsck gc grep help history hook log maintenance merge mv notes prune pull push quit range-diff rebase reflog remote reset restore revert rm shortlog show sparse-checkout stash status submodule switch tag version worktree"
     case ${prev} in
         branch)
             subopts="checkout contains create current delete info list move rename set sort"
@@ -47,6 +47,11 @@ _ggc()
             ;;
         fetch)
             subopts="prune"
+            COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
+            return 0
+            ;;
+        history)
+            subopts="last search"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;

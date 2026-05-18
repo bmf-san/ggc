@@ -39,6 +39,9 @@ _ggc() {
                 fetch)
                     _ggc_fetch
                     ;;
+                history)
+                    _ggc_history
+                    ;;
                 hook)
                     _ggc_hook
                     ;;
@@ -111,6 +114,7 @@ _ggc_commands() {
         'gc:Cleanup unnecessary files and optimize the local repository'
         'grep:Print lines matching a pattern in tracked files'
         'help:Show help information for commands'
+        'history:Show ggc command history'
         'hook:Manage Git hooks'
         'log:Inspect commit history'
         'maintenance:Run scheduled background repository optimizations'
@@ -295,6 +299,16 @@ _ggc_fetch() {
     )
     if (( CURRENT == 2 )); then
         _describe 'fetch subcommands' subcommands
+    fi
+}
+_ggc_history() {
+    local subcommands
+    subcommands=(
+        'last:Show last N commands'
+        'search:Search past commands'
+    )
+    if (( CURRENT == 2 )); then
+        _describe 'history subcommands' subcommands
     fi
 }
 _ggc_hook() {

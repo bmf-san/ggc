@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
+	"github.com/bmf-san/ggc/v8/internal/history"
 )
 
 // commandRouter dispatches a command name (plus its args) to the matching
@@ -31,6 +32,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"branch":     func(args []string) { cmd.Branch(args) },
 		"commit":     func(args []string) { cmd.Commit(args) },
 		"log":        func(args []string) { cmd.Log(args) },
+		"history":    func(args []string) { cmd.History(args) },
 		"pull":       func(args []string) { cmd.Pull(args) },
 		"push":       func(args []string) { cmd.Push(args) },
 		"reset":      func(args []string) { cmd.Reset(args) },
@@ -101,6 +103,8 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 	if !ok {
 		return false
 	}
+	// Best-effort: record this command invocation (canonical name + args).
+	_ = history.AppendCommand(append([]string{info.Name}, args...))
 	handler(args)
 	return true
 }
