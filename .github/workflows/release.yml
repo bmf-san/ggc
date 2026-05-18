@@ -4,6 +4,24 @@ on:
   push:
     tags:
       - '*'
+  # Allow other workflows (e.g. release-please) to invoke this workflow
+  # directly. Tags created by release-please-action using the default
+  # GITHUB_TOKEN do not trigger downstream `push: tags` workflows due to a
+  # well-known GitHub Actions safeguard against recursive triggers. Exposing
+  # this workflow via `workflow_call` lets release-please trigger GoReleaser
+  # explicitly so pre-compiled binaries get attached to every release.
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Tag (e.g. v8.5.0) to build and release. Required when invoked via workflow_call.'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag (e.g. v8.5.0) to build and release.'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -23,6 +41,11 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
         with:
           fetch-depth: 0
+          # When invoked from another workflow (release-please) or manually
+          # via workflow_dispatch, ensure we check out the release tag so
+          # GoReleaser sees the correct version. For tag pushes, GITHUB_REF
+          # already points at the tag and the input is empty.
+          ref: ${{ inputs.tag_name || github.ref }}
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
         with:

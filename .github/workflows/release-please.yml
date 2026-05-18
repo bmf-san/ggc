@@ -8,14 +8,36 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # Inherited by the reusable GoReleaser workflow for cosign keyless signing
+  # and pushing container images to ghcr.io.
+  id-token: write
+  packages: write
 
 jobs:
   release-please:
     name: Run release-please
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: release-please
+        id: release
         uses: googleapis/release-please-action@v4
         with:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Tags created by release-please-action with the default GITHUB_TOKEN do
+  # not trigger workflows listening on `push: tags`, so we explicitly invoke
+  # the reusable GoReleaser workflow here whenever a release is created.
+  # This ensures pre-compiled binaries are attached to every release
+  # (see issue #433).
+  goreleaser:
+    name: Build release artifacts
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/release.yml
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
