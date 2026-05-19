@@ -164,6 +164,31 @@ ggc config path   # prints the resolved path
 ggc config list   # print the fully-merged config
 ```
 
+## History
+
+`ggc` persists each executed command to a per-user JSONL store so the
+interactive prompt's recall (<kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd>),
+incremental search (<kbd>Ctrl</kbd>+<kbd>R</kbd>) and the `ggc history`
+subcommands have something to read.
+
+```yaml
+history:
+  enabled: true        # default; set to false to disable writes entirely
+  max-entries: 1000    # default; cap before truncate-rewrite kicks in
+```
+
+Behaviour:
+
+- Reads are always available, even when `enabled: false` — useful for
+  inspecting prior commands while temporarily off the record.
+- `GGC_NO_HISTORY=1` in the environment forces disabled state and
+  overrides the config value. Handy in one-off shells / CI.
+- The store lives under `$TMPDIR/ggc-<uid>/history.jsonl` on Unix-like
+  systems and `UserCacheDir()` on Windows. Use `ggc history clear` to
+  wipe it.
+- The `history` subcommand itself is never recorded so navigating the
+  history doesn't pollute it.
+
 ## tmux
 
 Under tmux, most terminals mangle the modifier prefix unless `xterm-keys` is on. Add to `~/.tmux.conf`:

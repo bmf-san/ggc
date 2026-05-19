@@ -20,6 +20,16 @@ From the prompt:
 
 Commands that take a branch, file, or stash entry open a nested picker using the same keys (<kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Enter</kbd> to accept, <kbd>Esc</kbd> to cancel).
 
+### History recall
+
+The interactive prompt remembers previously executed commands (see [Configuration & aliases → History](config.md#history)).
+
+- type `history` + <kbd>Enter</kbd> — open a numbered picker of the most recent commands; pick one to re-run it
+- <kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd> on an empty input — walk backwards/forwards through recent commands (when the input is non-empty these keys still move the selection, matching readline conventions)
+- <kbd>Ctrl</kbd>+<kbd>R</kbd> — open an incremental fuzzy search over the entire history; <kbd>Enter</kbd> runs the selection, <kbd>Ctrl</kbd>+<kbd>G</kbd> / <kbd>Esc</kbd> aborts
+
+Set `GGC_NO_HISTORY=1` (or `history.enabled: false` in the config) to disable history writes without affecting reads.
+
 ## Workflow mode
 
 Workflow mode turns the interactive prompt into a command pipeline builder. Typical use: stage → commit → push in one go without re-typing anything.
