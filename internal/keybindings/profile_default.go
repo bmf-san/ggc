@@ -21,8 +21,9 @@ func CreateDefaultProfile() *KeyBindingProfile {
 				// only exist in ContextInput so that the same chord can
 				// continue to drive list navigation once the user starts
 				// filtering (ContextSearch/ContextResults).
-				"history_prev": {NewCtrlKeyStroke('p')},
-				"history_next": {NewCtrlKeyStroke('n')},
+				"history_prev":   {NewCtrlKeyStroke('p')},
+				"history_next":   {NewCtrlKeyStroke('n')},
+				"history_search": {NewCtrlKeyStroke('r')},
 			},
 			ContextResults: {
 				"move_up":              {NewCtrlKeyStroke('p')},
@@ -37,6 +38,10 @@ func CreateDefaultProfile() *KeyBindingProfile {
 				"add_to_workflow":      {NewTabKeyStroke()},
 				"toggle_workflow_view": {NewCtrlKeyStroke('t')},
 				"clear_workflow":       {NewCharKeyStroke('c')},
+				// Ctrl+R remains available while filtering so the user
+				// can promote a partial query into a reverse history
+				// search without having to clear the buffer first.
+				"history_search": {NewCtrlKeyStroke('r')},
 			},
 		},
 	}

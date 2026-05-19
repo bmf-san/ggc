@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bmf-san/ggc/v8/internal/history"
 	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
@@ -54,6 +55,16 @@ type UIState struct {
 	historyDraftCursor  int
 	historyCursor       int // -1 == back at draft; otherwise index into historyEntries
 	historyEntries      []historyRecallEntry
+
+	// History search (Ctrl+R) state. While active, the commands slice
+	// is swapped to history-derived entries so the existing fuzzy
+	// filter / selection / Enter path works unchanged. historySearchBackup
+	// holds the original commands list to restore on exit, and the
+	// entries map lets handleEnter recover the original history.Entry
+	// from the displayed selection.
+	historySearchActive  bool
+	historySearchBackup  []CommandInfo
+	historySearchEntries map[string]history.Entry
 }
 
 // historyRecallEntry is the minimal projection of history.Entry the

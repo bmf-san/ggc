@@ -75,6 +75,13 @@ func (h *KeyHandler) handleSearchCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyStr
 		return true, true, nil
 	}
 
+	// Ctrl+R enters reverse-history-search; bound in ContextInput and
+	// ContextSearch so the user can promote a partial query into a
+	// history search without first clearing the buffer.
+	if h.handleHistorySearchTrigger(km, stroke) {
+		return true, true, nil
+	}
+
 	// Navigation keys
 	if h.handleSearchNavKeys(km, stroke) {
 		return true, true, nil
