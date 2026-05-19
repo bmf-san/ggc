@@ -4,12 +4,12 @@ on:
   push:
     tags:
       - '*'
-  # Allow other workflows (e.g. release-please) to invoke this workflow
-  # directly. Tags created by release-please-action using the default
-  # GITHUB_TOKEN do not trigger downstream `push: tags` workflows due to a
-  # well-known GitHub Actions safeguard against recursive triggers. Exposing
-  # this workflow via `workflow_call` lets release-please trigger GoReleaser
-  # explicitly so pre-compiled binaries get attached to every release.
+  # Manual / programmatic escape hatch. The normal path is `push: tags`,
+  # which fires automatically because release-please now publishes its
+  # release tag with a GitHub App installation token (the default
+  # `GITHUB_TOKEN` would have been blocked from starting downstream
+  # workflows). `workflow_call` stays available so the release can be
+  # rebuilt for an existing tag without re-tagging.
   workflow_call:
     inputs:
       tag_name:
