@@ -103,10 +103,32 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 	if !ok {
 		return false
 	}
-	// Best-effort: record this command invocation (canonical name + args).
-	_ = history.AppendCommand(append([]string{info.Name}, args...))
+	r.record(cmd, info.Name, args)
 	handler(args)
 	return true
+}
+
+// record persists this invocation, but skips meta-commands that would
+// pollute history searches without adding value. `history` itself would
+// make every `history search` query match the searches you ran, and the
+// interactive `quit` sentinel is an artifact of the REPL rather than a
+// real command. Failures are deliberately swallowed: an unwriteable
+// history file should never block the user's command.
+func (r *commandRouter) record(typed, canonical string, args []string) {
+	if canonical == "history" || canonical == interactiveQuitCommand {
+		return
+	}
+	// `typed` preserves the alias the user actually entered; `canonical`
+	// is what the registry mapped it to. We persist the canonical name
+	// so replays go through the same handler, and synthesize a raw
+	// string from the typed form so `ggc history` shows the alias the
+	// user is used to. Callers that have access to the literal command
+	// line can override this by writing to the store directly.
+	raw := typed
+	if len(args) > 0 {
+		raw = typed + " " + strings.Join(args, " ")
+	}
+	_ = history.AppendCommand(canonical, args, raw)
 }
 
 // missingHandlers returns every non-hidden registry command that has no
