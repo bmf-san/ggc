@@ -71,6 +71,13 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	// Restore terminal state BEFORE showing Execute message
 	h.restoreTerminalState(oldState)
 
+	// Intercept the bare `history` command: instead of printing the
+	// canonical text view, drop into a numbered picker so the user can
+	// pick a previous invocation and replay it through the router.
+	if isInteractiveHistoryCommand(selectedCmd.Command) {
+		return h.runHistorySelector(oldState)
+	}
+
 	// Clear screen and show execution message
 	clearScreen(h.ui.stdout)
 	executeMsg := fmt.Sprintf("%s🚀 %sExecuting:%s %s%s%s\n\n",
