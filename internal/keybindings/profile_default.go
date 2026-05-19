@@ -9,6 +9,15 @@ func CreateDefaultProfile() *KeyBindingProfile {
 		Contexts: map[Context]map[string][]KeyStroke{
 			ContextGlobal: {
 				"soft_cancel": {NewCtrlKeyStroke('g'), NewEscapeKeyStroke()},
+				// History recall / search are also bound globally so
+				// they fire on the fresh empty prompt (initial state
+				// is ContextGlobal until the user transitions into
+				// ContextInput by typing a rune). Without this overlay
+				// Ctrl+P/N/R would silently be claimed by move_up /
+				// move_down instead.
+				"history_prev":   {NewCtrlKeyStroke('p')},
+				"history_next":   {NewCtrlKeyStroke('n')},
+				"history_search": {NewCtrlKeyStroke('r')},
 			},
 			ContextInput: {
 				"delete_word":       {NewCtrlKeyStroke('w')},
