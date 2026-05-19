@@ -2,15 +2,18 @@ name: Dependabot auto-merge
 
 on: pull_request_target
 
-permissions:
-  contents: write
-  pull-requests: write
+# Default token to no permissions; the auto-merge job below requests just
+# what it needs. Satisfies the Scorecard Token-Permissions check.
+permissions: {}
 
 jobs:
   automerge:
     name: Auto-merge safe Dependabot PRs
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Fetch Dependabot metadata
         id: metadata

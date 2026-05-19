@@ -9,8 +9,11 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# CI only reads the repository (tests, lint, build, codecov upload via a
+# dedicated CODECOV_TOKEN). Nothing here writes back, so default the
+# token to read-only. Satisfies the Scorecard Token-Permissions check.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
