@@ -66,6 +66,15 @@ func (h *KeyHandler) handleWorkflowCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyS
 
 // handleSearchCtrlKeys handles Ctrl+letter in search mode
 func (h *KeyHandler) handleSearchCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke, oldState *term.State) (bool, bool, []string) {
+	// History recall keys (Ctrl+P / Ctrl+N) only bind in ContextInput,
+	// so MatchesKeyStroke naturally restricts them to the editing
+	// phase. They must run before the navigation handlers because the
+	// same chord would otherwise be claimed by move_up/move_down in
+	// later contexts.
+	if h.handleHistoryRecallKeys(km, stroke) {
+		return true, true, nil
+	}
+
 	// Navigation keys
 	if h.handleSearchNavKeys(km, stroke) {
 		return true, true, nil

@@ -49,6 +49,7 @@ func newSelectorHandler(stdin string) (*KeyHandler, *bytes.Buffer, *bytes.Buffer
 		colors:    NewANSIColors(),
 		term:      &mockTerminal{shouldFailRaw: true},
 		gitClient: testutil.NewMockGitClient(),
+		state:     newRecallState(),
 	}
 	h := &KeyHandler{ui: ui}
 	ui.handler = h

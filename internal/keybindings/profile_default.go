@@ -16,6 +16,13 @@ func CreateDefaultProfile() *KeyBindingProfile {
 				"delete_to_end":     {NewCtrlKeyStroke('k')},
 				"move_to_beginning": {NewCtrlKeyStroke('a')},
 				"move_to_end":       {NewCtrlKeyStroke('e')},
+				// Ctrl+P/N walk the persisted command history while the
+				// user is still editing the input buffer. These bindings
+				// only exist in ContextInput so that the same chord can
+				// continue to drive list navigation once the user starts
+				// filtering (ContextSearch/ContextResults).
+				"history_prev": {NewCtrlKeyStroke('p')},
+				"history_next": {NewCtrlKeyStroke('n')},
 			},
 			ContextResults: {
 				"move_up":              {NewCtrlKeyStroke('p')},
