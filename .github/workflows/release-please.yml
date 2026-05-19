@@ -5,42 +5,35 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
-  # The reusable GoReleaser workflow declares its own `permissions` block,
-  # but a called workflow can only request permissions that the caller has
-  # already granted. We declare id-token and packages here so the called
-  # workflow can perform cosign keyless signing (via GitHub's OIDC
-  # provider) and push container images to ghcr.io.
-  id-token: write
-  packages: write
+# The job itself runs with no special permissions; it authenticates as a
+# dedicated GitHub App (see `actions/create-github-app-token` below).
+# Using an App installation token instead of the default `GITHUB_TOKEN`
+# is what allows the release PR and the release tag pushed by
+# release-please to trigger downstream workflows (CI on the release PR,
+# `release.yml` on `push: tags`). Events authored by `GITHUB_TOKEN` are
+# intentionally barred from starting new workflow runs by GitHub.
+permissions: {}
 
 jobs:
   release-please:
     name: Run release-please
     runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - name: Generate GitHub App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_PRIVATE_KEY }}
+
       - name: release-please
-        id: release
         uses: googleapis/release-please-action@v5
         with:
+          token: ${{ steps.app-token.outputs.token }}
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Tags created by release-please-action with the default GITHUB_TOKEN do
-  # not trigger workflows listening on `push: tags`, so we explicitly invoke
-  # the reusable GoReleaser workflow here whenever a release is created.
-  # This ensures pre-compiled binaries are attached to every release
-  # (see issue #433).
-  goreleaser:
-    name: Build release artifacts
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
-    uses: ./.github/workflows/release.yml
-    with:
-      tag_name: ${{ needs.release-please.outputs.tag_name }}
-    secrets: inherit
+  # Note: no explicit GoReleaser job here. Because the release tag is now
+  # pushed by the GitHub App installation token (not `GITHUB_TOKEN`), the
+  # `on: push: tags:` trigger in `release.yml` fires naturally. Keeping a
+  # `workflow_call` invocation here too would just double the build.
