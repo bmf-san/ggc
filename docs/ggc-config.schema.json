@@ -261,6 +261,21 @@
       "required": [
         "default-remote"
       ]
+    },
+    "history": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Persist executed commands to the history store. Defaults to true; set to false to disable history writes entirely (reads still work)."
+        },
+        "max-entries": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of stored history entries before truncate-rewrite kicks in. Defaults to 1000 when unset or non-positive."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
     }
   },
   "additionalProperties": false,
