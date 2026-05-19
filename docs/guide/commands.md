@@ -1108,8 +1108,10 @@ Show ggc command history.
 
 ```bash
 ggc history
+ggc history <N>
 ggc history last <N>
 ggc history search <pattern>
+ggc history clear
 ```
 
 **Subcommands:**
@@ -1117,16 +1119,20 @@ ggc history search <pattern>
 | Subcommand | Description |
 |---|---|
 | `history` | Show recent commands |
-| `history last <N>` | Show last N commands |
-| `history search <pattern>` | Search past commands |
+| `history <N>` / `history last <N>` | Show last N commands |
+| `history search <pattern>` | Search past commands (substring match) |
+| `history clear` | Delete every entry from the local store |
 
 **Examples:**
 
 ```bash
-ggc history            # Show recent ggc commands
-ggc history last 50    # Show last 50 commands
+ggc history             # Show recent ggc commands
+ggc history last 50     # Show last 50 commands
 ggc history search push # Search history for 'push'
+ggc history clear       # Wipe the local history file
 ```
+
+The `history` command itself is never recorded, so its sub-invocations do not pollute future searches. Disable writes entirely with `GGC_NO_HISTORY=1` or `history.enabled: false` in the config; see [Configuration & aliases → History](config.md#history).
 
 ### `ggc maintenance` {#cmd-maintenance}
 

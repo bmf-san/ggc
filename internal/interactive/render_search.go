@@ -10,6 +10,36 @@ import (
 func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
 	inputWithCursor := r.formatInputWithCursor(state)
 
+	if state.IsHistorySearch() {
+		// Switch the whole prompt color scheme so users notice the
+		// candidate list has been swapped to history. Without the
+		// color cue the only difference is the candidate text, which
+		// is easy to miss when the recent history mirrors the ggc
+		// command catalog.
+		border := r.colors.BrightYellow
+		label := r.colors.BrightYellow + r.colors.Bold + "(reverse-i-search)" + r.colors.Reset
+		hint := r.colors.BrightYellow + "   Searching command history — Enter to run, Ctrl+C to cancel" + r.colors.Reset
+		r.writeColorln(ui, hint)
+		prompt := fmt.Sprintf("%s┌─ %s%s %s`%s%s%s':%s %s",
+			border,
+			r.colors.Reset,
+			label,
+			r.colors.BrightYellow,
+			r.colors.Reset,
+			state.input,
+			r.colors.BrightYellow,
+			r.colors.Reset,
+			inputWithCursor)
+		r.writeColorln(ui, prompt)
+		separator := fmt.Sprintf("%s└─ %sMatches:%s",
+			border,
+			r.colors.BrightMagenta+r.colors.Bold,
+			r.colors.Reset)
+		r.writeColorln(ui, separator)
+		r.writeEmptyLine()
+		return
+	}
+
 	searchPrompt := fmt.Sprintf("%s┌─ %sSearch:%s %s",
 		r.colors.BrightBlue,
 		r.colors.BrightGreen+r.colors.Bold,
@@ -30,11 +60,20 @@ func (r *Renderer) renderSearchPrompt(ui *UI, state *UIState) {
 
 func (r *Renderer) saveCursorAtSearchPrompt(state *UIState) func() {
 	linesUp := 2
-	if state.input != "" {
+	if state.IsHistorySearch() {
+		// History prompt: hint + prompt-with-input + matches-separator = 3 lines above cursor
+		linesUp = 3
+	} else if state.input != "" {
 		linesUp++
 	}
 	_, _ = fmt.Fprintf(r.writer, "\x1b[%dA", linesUp)
-	const prefix = "┌─ Search: "
+	prefix := "┌─ Search: "
+	if state.IsHistorySearch() {
+		// Mirror the visible literal in renderSearchPrompt so column
+		// math stays in sync. The duplicate input rendered inside
+		// backticks is part of the prefix and shifts the cursor.
+		prefix = "┌─ (reverse-i-search) `" + state.input + "': "
+	}
 	// Compute display width (columns) of the prefix using runeDisplayWidth
 	prefixCols := 0
 	for _, pr := range prefix {

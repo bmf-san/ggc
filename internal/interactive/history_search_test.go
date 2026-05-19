@@ -180,3 +180,46 @@ func TestResetToSearchMode_ExitsHistorySearch(t *testing.T) {
 		t.Error("soft cancel should drop out of history search")
 	}
 }
+
+func TestHandleSpecialCtrlChars_CtrlCInHistorySearchCancelsInsteadOfQuitting(t *testing.T) {
+	// While reverse-i-search is active, Ctrl+C must back out of the
+	// overlay rather than tear down ggc. We assert both the
+	// shouldContinue=true return (REPL keeps running) and that the
+	// history-search flag is cleared.
+	h, _, _ := newSelectorHandler("")
+	h.ui.state.EnterHistorySearch([]history.Entry{{Command: "status", Raw: "status"}})
+	if !h.ui.state.IsHistorySearch() {
+		t.Fatal("setup precondition failed: history search not active")
+	}
+
+	handled, shouldContinue, result := h.handleSpecialCtrlChars(3, nil, nil)
+	if !handled {
+		t.Fatal("Ctrl+C must always be handled")
+	}
+	if !shouldContinue {
+		t.Error("Ctrl+C in history search must keep the REPL alive (shouldContinue=true)")
+	}
+	if result != nil {
+		t.Errorf("Ctrl+C in history search should not dispatch args, got %v", result)
+	}
+	if h.ui.state.IsHistorySearch() {
+		t.Error("Ctrl+C in history search must exit the overlay")
+	}
+}
+
+func TestHandleSpecialCtrlChars_CtrlCOutsideHistorySearchStillQuits(t *testing.T) {
+	// Outside the overlay Ctrl+C keeps its global "quit ggc" meaning;
+	// shouldContinue=false signals the Run loop to exit.
+	h, _, _ := newSelectorHandler("")
+
+	handled, shouldContinue, result := h.handleSpecialCtrlChars(3, nil, nil)
+	if !handled {
+		t.Fatal("Ctrl+C must always be handled")
+	}
+	if shouldContinue {
+		t.Error("Ctrl+C outside history search must quit (shouldContinue=false)")
+	}
+	if result != nil {
+		t.Errorf("quit path should not return args, got %v", result)
+	}
+}

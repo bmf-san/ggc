@@ -152,6 +152,14 @@ func (h *KeyHandler) handleSearchModeKeys(km *kb.KeyBindingMap, stroke kb.KeyStr
 func (h *KeyHandler) handleSpecialCtrlChars(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	switch b {
 	case 3: // Ctrl+C
+		// While the reverse-i-search overlay is active, Ctrl+C should
+		// back out of the overlay rather than tear down ggc. This
+		// matches readline's reverse-i-search and the visible hint
+		// rendered next to the prompt.
+		if h.ui != nil && h.ui.state != nil && h.ui.state.IsHistorySearch() {
+			h.handleSoftCancel(oldState)
+			return true, true, nil
+		}
 		h.handleCtrlC(oldState)
 		return true, false, nil
 	case 13: // Enter

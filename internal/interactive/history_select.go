@@ -1,7 +1,7 @@
 package interactive
 
 import (
-	"bufio"
+	"fmt"
 	"io"
 	"strings"
 
@@ -52,12 +52,18 @@ func (h *KeyHandler) runHistorySelector(oldState *term.State) (bool, []string) {
 
 	// Render numbered list against the cooked terminal so the user
 	// can type a multi-digit index without raw-mode key handling.
-	items := newestFirstDisplay(entries)
+	items, picked := newestFirstUniqueDisplay(entries)
 	formatter := ui.NewFormatter(h.ui.stdout)
 	loop := ui.NewSelectionLoop(formatter, "Select a command from history:", items)
 	loop.Display()
 
-	line, ok := readSelectorLine(h.ui.stdin)
+	// Re-enter raw mode for the line read so Ctrl+C is delivered as
+	// the 0x03 byte and treated as a local cancel. Otherwise cooked
+	// mode forwards SIGINT to the interactive REPL's signal handler,
+	// which tears down the whole ggc process.
+	h.reenterRawMode(oldState)
+	line, ok := readSelectorLine(h.ui.stdin, h.ui.stdout)
+	h.restoreTerminalState(oldState)
 	if !ok {
 		h.reenterRawMode(oldState)
 		return true, nil
@@ -73,6 +79,15 @@ func (h *KeyHandler) runHistorySelector(oldState *term.State) (bool, []string) {
 		h.reenterRawMode(oldState)
 		return true, nil
 	}
+	return h.dispatchHistorySelection(input, picked, oldState)
+}
+
+// dispatchHistorySelection turns a parsed selection input into either
+// (a) a dispatched argv that the REPL should execute, or (b) a cancel
+// outcome that returns control to the prompt. Keeping the switch in
+// its own function trims runHistorySelector below the cyclomatic
+// complexity ceiling without changing observable behavior.
+func (h *KeyHandler) dispatchHistorySelection(input ui.SelectionInput, picked []history.Entry, oldState *term.State) (bool, []string) {
 	switch input.Result {
 	case ui.SelectionCanceled, ui.SelectionNone:
 		h.reenterRawMode(oldState)
@@ -84,32 +99,60 @@ func (h *KeyHandler) runHistorySelector(oldState *term.State) (bool, []string) {
 		h.reenterRawMode(oldState)
 		return true, nil
 	case ui.SelectionItems:
-		if len(input.Indices) != 1 {
-			h.ui.writeln("(history) pick exactly one entry; canceled.")
-			h.reenterRawMode(oldState)
-			return true, nil
-		}
-		// Selection list is newest-first, so the index maps back
-		// onto the reversed slice we just rendered.
-		picked := entries[len(entries)-1-input.Indices[0]]
-		return false, entryToArgs(&picked)
+		return h.dispatchHistoryItem(input.Indices, picked, oldState)
 	default:
 		h.reenterRawMode(oldState)
 		return true, nil
 	}
 }
 
-// newestFirstDisplay produces the display strings the picker shows,
-// reversing the chronological order returned by ReadLast so the most
-// recent command sits at position 1 — matching how shells render
-// `history | tail` style output.
-func newestFirstDisplay(entries []history.Entry) []string {
-	out := make([]string, len(entries))
-	for i := range entries {
-		src := entries[len(entries)-1-i]
-		out[i] = src.Display()
+// dispatchHistoryItem validates the single-item selection contract and
+// either returns the canonical argv for the picked entry or cancels
+// with a user-visible reason. Extracted from dispatchHistorySelection
+// to keep each function under the cyclomatic budget.
+func (h *KeyHandler) dispatchHistoryItem(indices []int, picked []history.Entry, oldState *term.State) (bool, []string) {
+	if len(indices) != 1 {
+		h.ui.writeln("(history) pick exactly one entry; canceled.")
+		h.reenterRawMode(oldState)
+		return true, nil
 	}
-	return out
+	idx := indices[0]
+	if idx < 0 || idx >= len(picked) {
+		h.ui.writeError("invalid selection: out of range")
+		h.reenterRawMode(oldState)
+		return true, nil
+	}
+	// `picked` is index-aligned with `items` (which is the
+	// deduplicated newest-first list), so the user-typed index
+	// maps straight onto the displayed row.
+	entry := picked[idx]
+	return false, entryToArgs(&entry)
+}
+
+// newestFirstUniqueDisplay produces the display strings the picker
+// shows along with the originating entries, in newest-first order and
+// deduplicated by display string. Deduplication keeps the most recent
+// occurrence, matching the Ctrl+R reverse-i-search behavior so the two
+// views never disagree about "how many times did I run X?". Returning
+// the picked entries alongside the display strings keeps the index
+// mapping trivial: items[i] and picked[i] reference the same row.
+func newestFirstUniqueDisplay(entries []history.Entry) ([]string, []history.Entry) {
+	items := make([]string, 0, len(entries))
+	picked := make([]history.Entry, 0, len(entries))
+	seen := make(map[string]struct{}, len(entries))
+	for i := len(entries) - 1; i >= 0; i-- {
+		disp := entries[i].Display()
+		if disp == "" {
+			continue
+		}
+		if _, dup := seen[disp]; dup {
+			continue
+		}
+		seen[disp] = struct{}{}
+		items = append(items, disp)
+		picked = append(picked, entries[i])
+	}
+	return items, picked
 }
 
 // entryToArgs reconstructs the argv used to dispatch a history entry
@@ -123,17 +166,66 @@ func entryToArgs(e *history.Entry) []string {
 	return args
 }
 
-// readSelectorLine reads a single line of input from the (cooked-mode)
-// terminal. Returns ok=false on EOF so the caller can fall back to
-// cancel semantics instead of blocking the REPL.
-func readSelectorLine(r io.Reader) (string, bool) {
-	br := bufio.NewReader(r)
-	line, err := br.ReadString('\n')
-	line = strings.TrimRight(line, "\r\n")
-	if err != nil && line == "" {
-		return "", false
+// readSelectorLine reads one line of selector input one byte at a
+// time so we can interpret control characters locally. We deliberately
+// avoid cooked-mode line buffering: Ctrl+C in cooked mode is converted
+// to SIGINT by the tty driver, and the interactive REPL's signal
+// handler treats SIGINT as "quit ggc", which is the wrong outcome
+// when the user just wants to back out of the history picker.
+//
+//   - Enter (\r or \n)   -> return the accumulated line, ok=true
+//   - Ctrl+C / Ctrl+G / Esc -> cancel, ok=false
+//   - Backspace (DEL or BS) -> erase one byte and redraw
+//   - printable ASCII       -> echo and append
+//
+// Multi-byte UTF-8 is not expected here (the picker accepts digits and
+// the literal word "all"), so we keep the reader byte-oriented.
+func readSelectorLine(r io.Reader, w io.Writer) (string, bool) {
+	buf := make([]byte, 0, 8)
+	one := make([]byte, 1)
+	for {
+		n, err := r.Read(one)
+		if err != nil || n == 0 {
+			if len(buf) > 0 {
+				return string(buf), true
+			}
+			return "", false
+		}
+		newBuf, done, accepted := stepSelectorByte(one[0], buf, w)
+		buf = newBuf
+		if done {
+			return string(buf), accepted
+		}
 	}
-	return line, true
+}
+
+// stepSelectorByte advances the readSelectorLine state machine by one
+// byte. Splitting the per-byte switch out keeps the loop function
+// under the cyclomatic complexity budget without losing the inline
+// control flow of a single switch. Returns the (possibly modified)
+// buffer, a done flag that ends the loop, and the accepted flag that
+// distinguishes Enter (true) from cancel (false).
+func stepSelectorByte(b byte, buf []byte, w io.Writer) ([]byte, bool, bool) {
+	switch b {
+	case '\r', '\n':
+		_, _ = fmt.Fprint(w, "\r\n")
+		return buf, true, true
+	case 0x03, 0x07, 0x1b: // Ctrl+C, Ctrl+G, Esc
+		_, _ = fmt.Fprint(w, "\r\n")
+		return buf[:0], true, false
+	case 0x7f, 0x08: // DEL / Backspace
+		if len(buf) > 0 {
+			buf = buf[:len(buf)-1]
+			_, _ = fmt.Fprint(w, "\b \b")
+		}
+		return buf, false, false
+	default:
+		if b >= 0x20 && b < 0x7f {
+			buf = append(buf, b)
+			_, _ = w.Write([]byte{b})
+		}
+		return buf, false, false
+	}
 }
 
 // isInteractiveHistoryCommand reports whether the selected command in

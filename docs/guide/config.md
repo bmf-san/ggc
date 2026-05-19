@@ -186,9 +186,16 @@ Behaviour:
 - The store lives under `$TMPDIR/ggc-<uid>/history.jsonl` on Unix-like
   systems and `UserCacheDir()` on Windows. Use `ggc history clear` to
   wipe it.
-- The `history` subcommand itself is never recorded so navigating the
-  history doesn't pollute it.
-
+- The `history` subcommand itself (including `history clear`,
+  `history search ...`, `history last ...`) is never recorded so
+  navigating history doesn't pollute it.
+- Inside the interactive prompt, the `history` picker and Ctrl+R
+  reverse-i-search share the same store and use the same deduplication
+  policy (newest occurrence wins per display string). The picker shows
+  up to 30 recent unique entries; Ctrl+R searches up to 200.
+- Inside the Ctrl+R overlay <kbd>Ctrl</kbd>+<kbd>C</kbd> cancels the
+  overlay rather than quitting ggc; the global "quit" meaning is
+  restored as soon as you exit the overlay.
 ## tmux
 
 Under tmux, most terminals mangle the modifier prefix unless `xterm-keys` is on. Add to `~/.tmux.conf`:
