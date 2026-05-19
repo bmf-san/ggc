@@ -23,16 +23,20 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
-  # Required for cosign keyless signing via GitHub's OIDC provider.
-  id-token: write
-  # Required to push container images to ghcr.io.
-  packages: write
+# Default the workflow token to no permissions and grant exactly what
+# GoReleaser needs at the job level. Satisfies the Scorecard
+# Token-Permissions check.
+permissions: {}
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # Required for cosign keyless signing via GitHub's OIDC provider.
+      id-token: write
+      # Required to push container images to ghcr.io.
+      packages: write
     strategy:
       matrix:
         go-version: [ '1.25.0' ]
