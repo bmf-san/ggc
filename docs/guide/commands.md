@@ -1100,6 +1100,40 @@ ggc gc                                # Run a normal gc
 ggc gc --aggressive --prune=now       # Aggressively repack and prune
 ```
 
+### `ggc history` {#cmd-history}
+
+Show ggc command history.
+
+**Usage:**
+
+```bash
+ggc history
+ggc history <N>
+ggc history last <N>
+ggc history search <pattern>
+ggc history clear
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|---|---|
+| `history` | Show recent commands |
+| `history <N>` | Show the last N commands (shorthand for `last N`) |
+| `history clear` | Delete every recorded entry |
+| `history last <N>` | Show last N commands |
+| `history search <pattern>` | Search past commands |
+
+**Examples:**
+
+```bash
+ggc history             # Show recent ggc commands
+ggc history 20          # Show the last 20 commands (shorthand)
+ggc history last 50     # Show last 50 commands
+ggc history search push # Search history for 'push'
+ggc history clear       # Delete every recorded entry
+```
+
 ### `ggc maintenance` {#cmd-maintenance}
 
 Run scheduled background repository optimizations.

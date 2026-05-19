@@ -13,6 +13,7 @@ import (
 	"github.com/bmf-san/ggc/v8/cmd"
 	"github.com/bmf-san/ggc/v8/internal/config"
 	"github.com/bmf-san/ggc/v8/internal/git"
+	"github.com/bmf-san/ggc/v8/internal/history"
 )
 
 var (
@@ -70,6 +71,7 @@ func RunApp(args []string) error {
 		}
 	}
 	cmd.SetVersionGetter(GetVersionInfo)
+	applyHistoryConfig(cm.GetConfig())
 	c, err := cmd.NewCmd(client, cm)
 	if err != nil {
 		return err
@@ -82,6 +84,24 @@ func main() {
 		writeCLIError(os.Stderr, err, os.Getenv("GGC_VERBOSE") == "1")
 		os.Exit(1)
 	}
+}
+
+// applyHistoryConfig overlays user history settings (history.enabled,
+// history.max-entries) onto the global history.Store. Built-in defaults
+// and the GGC_NO_HISTORY env var still apply when the config leaves
+// values unset.
+func applyHistoryConfig(cfg *config.Config) {
+	if cfg == nil {
+		return
+	}
+	store := history.Default()
+	if cfg.History.Enabled != nil && !*cfg.History.Enabled {
+		store.Disabled = true
+	}
+	if cfg.History.MaxEntries > 0 {
+		store.MaxEntries = cfg.History.MaxEntries
+	}
+	history.SetDefault(store)
 }
 
 // writeCLIError renders a terminal-facing error consistently across the CLI.

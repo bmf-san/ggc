@@ -33,6 +33,32 @@ func utility() []Info {
 			},
 		},
 		{
+			Name:     "history",
+			Category: CategoryUtility,
+			Summary:  "Show ggc command history",
+			Usage: []string{
+				"ggc history",
+				"ggc history <N>",
+				"ggc history last <N>",
+				"ggc history search <pattern>",
+				"ggc history clear",
+			},
+			Examples: []string{
+				"ggc history             # Show recent ggc commands",
+				"ggc history 20          # Show the last 20 commands (shorthand)",
+				"ggc history last 50     # Show last 50 commands",
+				"ggc history search push # Search history for 'push'",
+				"ggc history clear       # Delete every recorded entry",
+			},
+			Subcommands: []SubcommandInfo{
+				{Name: "history", Summary: "Show recent commands", Usage: []string{"ggc history"}},
+				{Name: "history <N>", Summary: "Show the last N commands (shorthand for `last N`)", Usage: []string{"ggc history 20"}},
+				{Name: "history last <N>", Summary: "Show last N commands", Usage: []string{"ggc history last 20"}},
+				{Name: "history search <pattern>", Summary: "Search past commands", Usage: []string{"ggc history search commit"}},
+				{Name: "history clear", Summary: "Delete every recorded entry", Usage: []string{"ggc history clear"}},
+			},
+		},
+		{
 			Name:     "completion",
 			Category: CategoryUtility,
 			Summary:  "Print or install shell completion scripts",

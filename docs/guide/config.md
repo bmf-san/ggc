@@ -164,6 +164,38 @@ ggc config path   # prints the resolved path
 ggc config list   # print the fully-merged config
 ```
 
+## History
+
+`ggc` persists each executed command to a per-user JSONL store so the
+interactive prompt's recall (<kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd>),
+incremental search (<kbd>Ctrl</kbd>+<kbd>R</kbd>) and the `ggc history`
+subcommands have something to read.
+
+```yaml
+history:
+  enabled: true        # default; set to false to disable writes entirely
+  max-entries: 1000    # default; cap before truncate-rewrite kicks in
+```
+
+Behaviour:
+
+- Reads are always available, even when `enabled: false` — useful for
+  inspecting prior commands while temporarily off the record.
+- `GGC_NO_HISTORY=1` in the environment forces disabled state and
+  overrides the config value. Handy in one-off shells / CI.
+- The store lives under `$TMPDIR/ggc-<uid>/history.jsonl` on Unix-like
+  systems and `UserCacheDir()` on Windows. Use `ggc history clear` to
+  wipe it.
+- The `history` subcommand itself (including `history clear`,
+  `history search ...`, `history last ...`) is never recorded so
+  navigating history doesn't pollute it.
+- Inside the interactive prompt, the `history` picker and Ctrl+R
+  reverse-i-search share the same store and use the same deduplication
+  policy (newest occurrence wins per display string). The picker shows
+  up to 30 recent unique entries; Ctrl+R searches up to 200.
+- Inside the Ctrl+R overlay <kbd>Ctrl</kbd>+<kbd>C</kbd> cancels the
+  overlay rather than quitting ggc; the global "quit" meaning is
+  restored as soon as you exit the overlay.
 ## tmux
 
 Under tmux, most terminals mangle the modifier prefix unless `xterm-keys` is on. Add to `~/.tmux.conf`:

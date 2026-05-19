@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	commandregistry "github.com/bmf-san/ggc/v8/cmd/command"
+	"github.com/bmf-san/ggc/v8/internal/history"
 )
 
 // commandRouter dispatches a command name (plus its args) to the matching
@@ -31,6 +32,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"branch":     func(args []string) { cmd.Branch(args) },
 		"commit":     func(args []string) { cmd.Commit(args) },
 		"log":        func(args []string) { cmd.Log(args) },
+		"history":    func(args []string) { cmd.History(args) },
 		"pull":       func(args []string) { cmd.Pull(args) },
 		"push":       func(args []string) { cmd.Push(args) },
 		"reset":      func(args []string) { cmd.Reset(args) },
@@ -101,8 +103,32 @@ func (r *commandRouter) route(cmd string, args []string) bool {
 	if !ok {
 		return false
 	}
+	r.record(cmd, info.Name, args)
 	handler(args)
 	return true
+}
+
+// record persists this invocation, but skips meta-commands that would
+// pollute history searches without adding value. `history` itself would
+// make every `history search` query match the searches you ran, and the
+// interactive `quit` sentinel is an artifact of the REPL rather than a
+// real command. Failures are deliberately swallowed: an unwriteable
+// history file should never block the user's command.
+func (r *commandRouter) record(typed, canonical string, args []string) {
+	if canonical == "history" || canonical == interactiveQuitCommand {
+		return
+	}
+	// `typed` preserves the alias the user actually entered; `canonical`
+	// is what the registry mapped it to. We persist the canonical name
+	// so replays go through the same handler, and synthesize a raw
+	// string from the typed form so `ggc history` shows the alias the
+	// user is used to. Callers that have access to the literal command
+	// line can override this by writing to the store directly.
+	raw := typed
+	if len(args) > 0 {
+		raw = typed + " " + strings.Join(args, " ")
+	}
+	_ = history.AppendCommand(canonical, args, raw)
 }
 
 // missingHandlers returns every non-hidden registry command that has no

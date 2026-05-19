@@ -10,7 +10,7 @@ function __ggc_complete_files
 end
 
 # Main commands
-complete -c ggc -f -a "add am archive bisect blame branch checkout cherry-pick clean commit completion config debug-keys describe diff doctor fetch format-patch fsck gc grep help hook log maintenance merge mv notes prune pull push quit range-diff rebase reflog remote reset restore revert rm shortlog show sparse-checkout stash status submodule switch tag version worktree"
+complete -c ggc -f -a "add am archive bisect blame branch checkout cherry-pick clean commit completion config debug-keys describe diff doctor fetch format-patch fsck gc grep help history hook log maintenance merge mv notes prune pull push quit range-diff rebase reflog remote reset restore revert rm shortlog show sparse-checkout stash status submodule switch tag version worktree"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch" -a "checkout contains create current delete info list move rename set sort"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from delete" -a "merged"
 complete -c ggc -f -n "__fish_seen_subcommand_from branch; and __fish_seen_subcommand_from list" -a "local remote verbose"
@@ -24,6 +24,7 @@ complete -c ggc -f -n "__fish_seen_subcommand_from config" -a "get list set"
 complete -c ggc -f -n "__fish_seen_subcommand_from debug-keys" -a "raw"
 complete -c ggc -f -n "__fish_seen_subcommand_from diff" -a "head staged unstaged"
 complete -c ggc -f -n "__fish_seen_subcommand_from fetch" -a "prune"
+complete -c ggc -f -n "__fish_seen_subcommand_from history" -a "clear last search"
 complete -c ggc -f -n "__fish_seen_subcommand_from hook" -a "disable edit enable install list uninstall"
 complete -c ggc -f -n "__fish_seen_subcommand_from log" -a "graph simple"
 complete -c ggc -f -n "__fish_seen_subcommand_from pull" -a "current rebase"

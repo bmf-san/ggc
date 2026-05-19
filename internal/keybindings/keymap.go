@@ -18,6 +18,9 @@ type KeyBindingMap struct {
 	WorkflowCreate     []KeyStroke // default: [Ctrl+N]
 	WorkflowDelete     []KeyStroke // default: [Ctrl+D]
 	SoftCancel         []KeyStroke // default: [Ctrl+G, Esc]
+	HistoryPrev        []KeyStroke // default: [Ctrl+P] in ContextInput only
+	HistoryNext        []KeyStroke // default: [Ctrl+N] in ContextInput only
+	HistorySearch      []KeyStroke // default: [Ctrl+R]
 }
 
 // DefaultKeyBindingMap returns the built-in default control bindings.
@@ -123,6 +126,9 @@ func (km *KeyBindingMap) MatchesKeyStroke(action string, input KeyStroke) bool {
 		"workflow_create":      km.WorkflowCreate,
 		"workflow_delete":      km.WorkflowDelete,
 		"soft_cancel":          km.SoftCancel,
+		"history_prev":         km.HistoryPrev,
+		"history_next":         km.HistoryNext,
+		"history_search":       km.HistorySearch,
 	}
 
 	keyStrokes, exists := actionMap[action]
