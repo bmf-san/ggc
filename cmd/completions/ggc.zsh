@@ -304,6 +304,7 @@ _ggc_fetch() {
 _ggc_history() {
     local subcommands
     subcommands=(
+        'clear:Delete every recorded entry'
         'last:Show last N commands'
         'search:Search past commands'
     )

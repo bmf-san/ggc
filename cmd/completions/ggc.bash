@@ -51,7 +51,7 @@ _ggc()
             return 0
             ;;
         history)
-            subopts="last search"
+            subopts="clear last search"
             COMPREPLY=( $(compgen -W "${subopts}" -- ${cur}) )
             return 0
             ;;
