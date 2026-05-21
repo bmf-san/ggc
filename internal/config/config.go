@@ -83,6 +83,16 @@ type Config struct {
 	Git struct {
 		DefaultRemote string `yaml:"default-remote"`
 	} `yaml:"git"`
+
+	History struct {
+		// Enabled is a pointer so an absent field falls back to the
+		// built-in default (enabled). Setting it to false disables
+		// every history write without otherwise touching reads.
+		Enabled *bool `yaml:"enabled,omitempty"`
+		// MaxEntries caps the number of stored history entries. Zero
+		// or negative values keep the built-in default.
+		MaxEntries int `yaml:"max-entries,omitempty"`
+	} `yaml:"history,omitempty"`
 }
 
 // Manager handles configuration loading, saving, and operations

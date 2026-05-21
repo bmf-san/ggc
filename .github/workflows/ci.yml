@@ -2,9 +2,18 @@ name: CI
 
 on:
   push:
+    branches: [main]
+  pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# CI only reads the repository (tests, lint, build, codecov upload via a
+# dedicated CODECOV_TOKEN). Nothing here writes back, so default the
+# token to read-only. Satisfies the Scorecard Token-Permissions check.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -77,7 +86,8 @@ jobs:
         run: make cover
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@3f20e214133d0983f9a10f3d63b0faf9241a3daa # v6.0.0
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           fail_ci_if_error: true
           file: ./coverage.out

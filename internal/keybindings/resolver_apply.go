@@ -42,6 +42,12 @@ func (r *KeyBindingResolver) applyProfile(keyMap *KeyBindingMap, profile *KeyBin
 	applyBinding("workflow_create", &keyMap.WorkflowCreate)
 	applyBinding("workflow_delete", &keyMap.WorkflowDelete)
 	applyBinding("soft_cancel", &keyMap.SoftCancel)
+	// History actions are context-scoped (ContextInput / ContextSearch
+	// in the default profile) so applyBinding will simply leave them
+	// empty for contexts that don't bind them.
+	applyBinding("history_prev", &keyMap.HistoryPrev)
+	applyBinding("history_next", &keyMap.HistoryNext)
+	applyBinding("history_search", &keyMap.HistorySearch)
 }
 
 func (r *KeyBindingResolver) applyPlatformLayer(keyMap *KeyBindingMap) {

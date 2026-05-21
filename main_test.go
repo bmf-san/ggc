@@ -1,14 +1,30 @@
 package main
 
 import (
+	"os"
 	"runtime/debug"
 	"strings"
 	"testing"
 
 	"github.com/bmf-san/ggc/v8/cmd"
 	"github.com/bmf-san/ggc/v8/internal/config"
+	"github.com/bmf-san/ggc/v8/internal/history"
 	"github.com/bmf-san/ggc/v8/internal/testutil"
 )
+
+// TestMain isolates the package-level history store for the duration
+// of `go test ./...` in the root package. Several tests below build a
+// real cmd.Cmd and invoke Route(), which would otherwise call into
+// history.AppendCommand and pollute the user's per-uid history.jsonl
+// (e.g. /tmp/ggc-<uid>/history.jsonl on Unix). The cmd package
+// installs the same guard in cmd/main_test.go.
+func TestMain(m *testing.M) {
+	prev := history.Default()
+	history.SetDefault(&history.Store{Disabled: true})
+	code := m.Run()
+	history.SetDefault(prev)
+	os.Exit(code)
+}
 
 func TestGetVersionInfo(t *testing.T) {
 	// Store original values to restore later

@@ -71,6 +71,36 @@ func (h *KeyHandler) handleEnter(oldState *term.State) (bool, []string) {
 	// Restore terminal state BEFORE showing Execute message
 	h.restoreTerminalState(oldState)
 
+	// Reverse-history-search: the displayed entry is the user's pick,
+	// dispatch it through entryToArgs so quoted arguments survive and
+	// the canonical command (not whatever alias was originally typed)
+	// reaches the router.
+	if h.ui.state.IsHistorySearch() {
+		entry, ok := h.ui.state.HistorySearchEntryFor(selectedCmd.Command)
+		h.ui.state.ExitHistorySearch()
+		if !ok {
+			h.reenterRawMode(oldState)
+			return true, nil
+		}
+		clearScreen(h.ui.stdout)
+		executeMsg := fmt.Sprintf("%s🚀 %sExecuting:%s %s%s%s\n\n",
+			h.ui.colors.BrightGreen,
+			h.ui.colors.BrightWhite+h.ui.colors.Bold,
+			h.ui.colors.Reset,
+			h.ui.colors.BrightCyan+h.ui.colors.Bold,
+			entry.Display(),
+			h.ui.colors.Reset)
+		h.ui.writeColor(executeMsg)
+		return false, entryToArgs(&entry)
+	}
+
+	// Intercept the bare `history` command: instead of printing the
+	// canonical text view, drop into a numbered picker so the user can
+	// pick a previous invocation and replay it through the router.
+	if isInteractiveHistoryCommand(selectedCmd.Command) {
+		return h.runHistorySelector(oldState)
+	}
+
 	// Clear screen and show execution message
 	clearScreen(h.ui.stdout)
 	executeMsg := fmt.Sprintf("%s🚀 %sExecuting:%s %s%s%s\n\n",

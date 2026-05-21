@@ -66,6 +66,22 @@ func (h *KeyHandler) handleWorkflowCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyS
 
 // handleSearchCtrlKeys handles Ctrl+letter in search mode
 func (h *KeyHandler) handleSearchCtrlKeys(km *kb.KeyBindingMap, stroke kb.KeyStroke, oldState *term.State) (bool, bool, []string) {
+	// History recall keys (Ctrl+P / Ctrl+N) only bind in ContextInput,
+	// so MatchesKeyStroke naturally restricts them to the editing
+	// phase. They must run before the navigation handlers because the
+	// same chord would otherwise be claimed by move_up/move_down in
+	// later contexts.
+	if h.handleHistoryRecallKeys(km, stroke) {
+		return true, true, nil
+	}
+
+	// Ctrl+R enters reverse-history-search; bound in ContextInput and
+	// ContextSearch so the user can promote a partial query into a
+	// history search without first clearing the buffer.
+	if h.handleHistorySearchTrigger(km, stroke) {
+		return true, true, nil
+	}
+
 	// Navigation keys
 	if h.handleSearchNavKeys(km, stroke) {
 		return true, true, nil
@@ -136,6 +152,14 @@ func (h *KeyHandler) handleSearchModeKeys(km *kb.KeyBindingMap, stroke kb.KeyStr
 func (h *KeyHandler) handleSpecialCtrlChars(b byte, oldState *term.State, reader *bufio.Reader) (bool, bool, []string) {
 	switch b {
 	case 3: // Ctrl+C
+		// While the reverse-i-search overlay is active, Ctrl+C should
+		// back out of the overlay rather than tear down ggc. This
+		// matches readline's reverse-i-search and the visible hint
+		// rendered next to the prompt.
+		if h.ui != nil && h.ui.state != nil && h.ui.state.IsHistorySearch() {
+			h.handleSoftCancel(oldState)
+			return true, true, nil
+		}
 		h.handleCtrlC(oldState)
 		return true, false, nil
 	case 13: // Enter

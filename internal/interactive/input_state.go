@@ -9,6 +9,10 @@ import (
 
 // AddRune adds a UTF-8 rune to the input at cursor position
 func (s *UIState) AddRune(r rune) {
+	// Any direct typing exits history recall: the user is composing a
+	// new command rather than walking previous ones.
+	s.resetHistoryRecall()
+
 	// Switch to input context when user starts typing
 	if s.context != kb.ContextInput {
 		s.SetContext(kb.ContextInput)
@@ -36,6 +40,7 @@ func (s *UIState) AddRune(r rune) {
 
 // RemoveChar removes character before cursor (backspace)
 func (s *UIState) RemoveChar() {
+	s.resetHistoryRecall()
 	if s.cursorPos > 0 && s.input != "" {
 		// Convert to runes for proper UTF-8 handling
 		inputRunes := []rune(s.input)
@@ -51,6 +56,7 @@ func (s *UIState) RemoveChar() {
 
 // ClearInput clears all input
 func (s *UIState) ClearInput() {
+	s.resetHistoryRecall()
 	s.input = ""
 	s.cursorPos = 0
 	s.UpdateFiltered()
@@ -58,6 +64,7 @@ func (s *UIState) ClearInput() {
 
 // DeleteWord deletes word before cursor (Ctrl+W)
 func (s *UIState) DeleteWord() {
+	s.resetHistoryRecall()
 	if s.cursorPos == 0 {
 		return
 	}
@@ -86,6 +93,7 @@ func (s *UIState) DeleteWord() {
 
 // DeleteToEnd deletes from cursor to end of line (Ctrl+K)
 func (s *UIState) DeleteToEnd() {
+	s.resetHistoryRecall()
 	if s.cursorPos < utf8.RuneCountInString(s.input) {
 		inputRunes := []rune(s.input)
 		s.input = string(inputRunes[:s.cursorPos])

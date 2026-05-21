@@ -2,8 +2,11 @@ name: Dry run GoReleaser
 
 on: [push]
 
+# Dry-run only: GoReleaser is invoked with `--snapshot --skip=sign,docker`
+# so it never pushes a tag, signs anything, or publishes images. Read-only
+# token is sufficient. Satisfies the Scorecard Token-Permissions check.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   goreleaser:

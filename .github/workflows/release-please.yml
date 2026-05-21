@@ -5,17 +5,35 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
+# The job itself runs with no special permissions; it authenticates as a
+# dedicated GitHub App (see `actions/create-github-app-token` below).
+# Using an App installation token instead of the default `GITHUB_TOKEN`
+# is what allows the release PR and the release tag pushed by
+# release-please to trigger downstream workflows (CI on the release PR,
+# `release.yml` on `push: tags`). Events authored by `GITHUB_TOKEN` are
+# intentionally barred from starting new workflow runs by GitHub.
+permissions: {}
 
 jobs:
   release-please:
     name: Run release-please
     runs-on: ubuntu-latest
     steps:
-      - name: release-please
-        uses: googleapis/release-please-action@v4
+      - name: Generate GitHub App installation token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_PRIVATE_KEY }}
+
+      - name: release-please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Note: no explicit GoReleaser job here. Because the release tag is now
+  # pushed by the GitHub App installation token (not `GITHUB_TOKEN`), the
+  # `on: push: tags:` trigger in `release.yml` fires naturally. Keeping a
+  # `workflow_call` invocation here too would just double the build.

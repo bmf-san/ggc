@@ -14,9 +14,10 @@ on:
       - '.github/workflows/bench-history.yml'
   workflow_dispatch:
 
-permissions:
-  # Needed to push benchmark results back to the `benchmarks` branch.
-  contents: write
+# Default the workflow token to read-only and scope write permissions
+# to the single job that actually pushes back to the benchmarks branch.
+# Satisfies the Scorecard Token-Permissions check.
+permissions: {}
 
 concurrency:
   group: bench-history
@@ -27,6 +28,9 @@ jobs:
     name: Record main benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      # Needed to push benchmark results back to the `benchmarks` branch.
+      contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
         with:
@@ -43,7 +47,7 @@ jobs:
             | tee bench-output/bench.txt
 
       - name: Publish to benchmarks branch
-        uses: benchmark-action/github-action-benchmark@a60cea5bc7b49e15c1f58f411161f99e0df48372 # v1
+        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1
         with:
           tool: 'go'
           output-file-path: bench-output/bench.txt

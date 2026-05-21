@@ -20,6 +20,18 @@ From the prompt:
 
 Commands that take a branch, file, or stash entry open a nested picker using the same keys (<kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Enter</kbd> to accept, <kbd>Esc</kbd> to cancel).
 
+### History recall
+
+The interactive prompt remembers previously executed commands (see [Configuration & aliases → History](config.md#history)).
+
+- type `history` + <kbd>Enter</kbd> — open a numbered picker of the most recent commands (deduplicated by display string, newest first); type a number + <kbd>Enter</kbd> to re-run, <kbd>Ctrl</kbd>+<kbd>C</kbd> (or <kbd>Ctrl</kbd>+<kbd>G</kbd> / <kbd>Esc</kbd>) cancels
+- <kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd> on an empty input — walk backwards/forwards through recent commands (when the input is non-empty these keys still move the selection, matching readline conventions)
+- <kbd>Ctrl</kbd>+<kbd>R</kbd> — enter reverse-i-search; the prompt turns yellow and shows a `(reverse-i-search)` label so the mode is unmistakable. Type to fuzzy filter, <kbd>↑</kbd>/<kbd>↓</kbd> or <kbd>Ctrl</kbd>+<kbd>P</kbd>/<kbd>Ctrl</kbd>+<kbd>N</kbd> to move, <kbd>Enter</kbd> runs the selection, <kbd>Ctrl</kbd>+<kbd>C</kbd> exits (the global "quit ggc" meaning of <kbd>Ctrl</kbd>+<kbd>C</kbd> is suspended inside the overlay). <kbd>Ctrl</kbd>+<kbd>G</kbd> / <kbd>Esc</kbd> also exit.
+
+The `history` command itself is never recorded, so navigating history (including `history clear`, `history search ...`, `history last ...`) never pollutes future searches.
+
+Set `GGC_NO_HISTORY=1` (or `history.enabled: false` in the config) to disable history writes without affecting reads.
+
 ## Workflow mode
 
 Workflow mode turns the interactive prompt into a command pipeline builder. Typical use: stage → commit → push in one go without re-typing anything.

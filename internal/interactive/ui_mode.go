@@ -44,7 +44,12 @@ func (ui *UI) resetToSearchMode() bool {
 	}
 
 	state := ui.state
-	active := state.HasInput() || state.IsWorkflowMode() || len(state.contextStack) > 0 || state.GetCurrentContext() != kb.ContextGlobal
+	active := state.HasInput() || state.IsWorkflowMode() || state.IsHistorySearch() || len(state.contextStack) > 0 || state.GetCurrentContext() != kb.ContextGlobal
+	// Exit history search before ClearInput so the swapped commands
+	// list is put back in place and the user lands on the regular
+	// search prompt — otherwise soft-cancel would leave a stale
+	// history-derived commands list lingering.
+	state.ExitHistorySearch()
 	state.ClearInput()
 	state.selected = 0
 	state.contextStack = nil

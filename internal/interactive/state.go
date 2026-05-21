@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bmf-san/ggc/v8/internal/history"
 	kb "github.com/bmf-san/ggc/v8/internal/keybindings"
 )
 
@@ -42,6 +43,36 @@ type UIState struct {
 	workflowFocus   WorkflowFocus
 	workflowListIdx int
 	workflowOffset  int
+
+	// History recall (Ctrl+P / Ctrl+N) state. We snapshot the entries
+	// once when recall starts so the user gets a stable view to walk
+	// even if a concurrent ggc invocation appends new lines mid-walk.
+	// historyRecallActive distinguishes "no recall in progress" from
+	// "recall active and we've already saved an empty draft", which a
+	// nil/empty draft alone cannot express.
+	historyRecallActive bool
+	historyDraft        string
+	historyDraftCursor  int
+	historyCursor       int // -1 == back at draft; otherwise index into historyEntries
+	historyEntries      []historyRecallEntry
+
+	// History search (Ctrl+R) state. While active, the commands slice
+	// is swapped to history-derived entries so the existing fuzzy
+	// filter / selection / Enter path works unchanged. historySearchBackup
+	// holds the original commands list to restore on exit, and the
+	// entries map lets handleEnter recover the original history.Entry
+	// from the displayed selection.
+	historySearchActive  bool
+	historySearchBackup  []CommandInfo
+	historySearchEntries map[string]history.Entry
+}
+
+// historyRecallEntry is the minimal projection of history.Entry the
+// recall buffer needs. Defined locally so internal/interactive does not
+// have to leak the history package into every test that constructs a
+// UIState.
+type historyRecallEntry struct {
+	display string
 }
 
 // SetMode switches between search and workflow modes.
