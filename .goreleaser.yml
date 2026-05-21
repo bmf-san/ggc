@@ -58,12 +58,16 @@ sboms:
 signs:
   - id: cosign-checksum
     cmd: cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
+    # NOTE: cosign v2.6+ defaults to --new-bundle-format, which ignores the
+    # legacy --output-certificate / --output-signature flags and requires
+    # --bundle. We reuse GoReleaser's `signature` field to carry the bundle
+    # path (cert + signature combined) so the resulting artifact is
+    # ${artifact}.bundle, not a detached .sig file. Keep this in mind when
+    # editing the field name.
+    signature: "${artifact}.bundle"
     args:
       - "sign-blob"
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
     artifacts: checksum
