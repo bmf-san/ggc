@@ -117,12 +117,10 @@ TAG=v8.2.0     # or whichever release
 BASE="https://github.com/bmf-san/ggc/releases/download/${TAG}"
 
 curl -sSLO "${BASE}/checksums.txt"
-curl -sSLO "${BASE}/checksums.txt.sig"
-curl -sSLO "${BASE}/checksums.txt.pem"
+curl -sSLO "${BASE}/checksums.txt.bundle"
 
 cosign verify-blob \
-  --certificate checksums.txt.pem \
-  --signature   checksums.txt.sig \
+  --bundle checksums.txt.bundle \
   --certificate-identity-regexp "^https://github.com/bmf-san/ggc/\.github/workflows/release\.yml@" \
   --certificate-oidc-issuer     "https://token.actions.githubusercontent.com" \
   checksums.txt
