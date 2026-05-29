@@ -17,7 +17,7 @@ $ ggc
 - **Type less, do more.** `ggc commit "fix: parser"` commits without a `-m` flag, `ggc branch checkout` lists local branches and lets you pick one, `ggc rebase interactive` starts an interactive rebase.
 - **Unified syntax.** No `-`/`--` flag soup. Every command is a verb followed by plain words.
 - **Scripts stay scripts.** `ggc` is a thin layer over `git`: anything you can't express in `ggc` you can always fall back to.
-- **Safe by default.** Destructive subcommands (branch/tag deletion, `clean`, stash drop/clear) confirm before acting.
+- **Know your destructive commands.** Interactive `clean` confirms before deleting, but `branch delete`, `tag` deletion, and `stash drop`/`clear` run immediately, and `ggc reset` is a hard-reset shortcut — see the [interactive guide](guide/interactive.md) for details.
 
 ## Get it
 
