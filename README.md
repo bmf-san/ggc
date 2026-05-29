@@ -12,7 +12,7 @@
 [![Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 
 
-A Go Git CLI.
+Scriptable Git shortcuts with a searchable workflow builder.
 
 📖 **Full documentation:** https://bmf-san.github.io/ggc/
 
@@ -31,9 +31,29 @@ Click any GIF to view full size.
 
 ## Overview
 
-ggc is a Git tool written in Go, offering both a traditional CLI and an interactive TUI with incremental search and multi-command workflows. Run `ggc <subcommand>` directly, or type `ggc` on its own to open the fuzzy picker.
+ggc gives you short, scriptable Git shortcuts and a searchable workflow builder. Run `ggc <subcommand>` directly for one-shot commands, drop them into shell scripts, or type `ggc` on its own to open a fuzzy picker where you can search every command, queue several into a workflow, and run them as a pipeline.
 
 Supported: macOS (amd64 / arm64 / universal), Linux (amd64 / arm64), Windows (amd64). Requires Git and Go 1.25+ to build.
+
+### Why ggc instead of raw git, lazygit, tig, or gitui?
+
+Git already has great TUIs and helpers — ggc fills a different niche. It is the only one of these that is **both scriptable on the command line and searchable as an interactive workflow builder**:
+
+- **Compose multi-step workflows, then run or reuse them.** Search commands in the fuzzy picker, press <kbd>Tab</kbd> to queue `add` → `commit` → `push`, and <kbd>Ctrl</kbd>+<kbd>T</kbd> to run the pipeline. lazygit/gitui drive one action at a time; tig is read-focused.
+- **Same tool in scripts and in CI.** `ggc commit "fix: parser"` or `ggc branch checkout main` work non-interactively, so the shortcuts you learn interactively drop straight into shell scripts and pipelines. The TUI tools are interactive-only.
+- **Memorable verbs over flag soup.** `ggc rebase interactive`, `ggc stash pop`, `ggc clean interactive` replace hard-to-remember `git` flag combinations, while still falling back to raw `git` for anything ggc doesn't cover.
+- **Review workflows before running them.** Queue commands in the workflow builder and see the full step list in the workflow view before you execute the pipeline.
+
+### Destructive operations
+
+Many ggc subcommands wrap destructive Git actions. Know how each behaves before relying on it:
+
+- **`clean` asks first.** Interactive `clean` shows the files it will remove and prompts for confirmation (`Delete these files? (y/n)`) before deleting.
+- **Other destructive commands run immediately.** `branch delete`, `tag` deletion, and `stash drop`/`stash clear` execute right away without a separate confirmation step — treat them like the underlying `git` commands.
+- **`reset` is a shortcut, not a passthrough.** Bare `ggc reset` performs a hard reset to the upstream branch and cleans the working tree (`reset --hard` + `clean`); `ggc reset hard <commit>` and `ggc reset soft <commit>` map to the corresponding `git reset`. These discard changes without prompting.
+- **Review workflows before executing.** The workflow view lists every queued step so you can inspect (and rebuild) a pipeline before running it.
+
+See the [interactive mode & workflows guide](https://bmf-san.github.io/ggc/guide/interactive/) for details.
 
 Full documentation lives at **<https://bmf-san.github.io/ggc/>**:
 
