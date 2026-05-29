@@ -12,7 +12,7 @@
 [![Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 
 
-A Go Git CLI.
+Scriptable Git shortcuts with a searchable workflow builder.
 
 📖 **Full documentation:** https://bmf-san.github.io/ggc/
 
@@ -31,9 +31,28 @@ Click any GIF to view full size.
 
 ## Overview
 
-ggc is a Git tool written in Go, offering both a traditional CLI and an interactive TUI with incremental search and multi-command workflows. Run `ggc <subcommand>` directly, or type `ggc` on its own to open the fuzzy picker.
+ggc gives you short, scriptable Git shortcuts and a searchable workflow builder. Run `ggc <subcommand>` directly for one-shot commands, drop them into shell scripts, or type `ggc` on its own to open a fuzzy picker where you can search every command, queue several into a workflow, and run them as a pipeline.
 
 Supported: macOS (amd64 / arm64 / universal), Linux (amd64 / arm64), Windows (amd64). Requires Git and Go 1.25+ to build.
+
+### Why ggc instead of raw git, lazygit, tig, or gitui?
+
+Git already has great TUIs and helpers — ggc fills a different niche. It is the only one of these that is **both scriptable on the command line and searchable as an interactive workflow builder**:
+
+- **Compose multi-step workflows, then run or reuse them.** Search commands in the fuzzy picker, press <kbd>Tab</kbd> to queue `add` → `commit` → `push`, and <kbd>Ctrl</kbd>+<kbd>T</kbd> to run the pipeline. lazygit/gitui drive one action at a time; tig is read-focused.
+- **Same tool in scripts and in CI.** `ggc commit "fix: parser"` or `ggc branch checkout main` work non-interactively, so the shortcuts you learn interactively drop straight into shell scripts and pipelines. The TUI tools are interactive-only.
+- **Memorable verbs over flag soup.** `ggc rebase interactive`, `ggc stash pop`, `ggc clean interactive` replace hard-to-remember `git` flag combinations, while still falling back to raw `git` for anything ggc doesn't cover.
+- **Safe by default for destructive actions** (see below) — explicit confirmations and previews instead of irreversible one-keystroke operations.
+
+### Safety for destructive operations
+
+ggc wraps destructive Git commands with guardrails so you don't lose work by accident:
+
+- **Confirmation prompts.** Branch and tag deletion, `clean`, and stash drop/clear ask for explicit confirmation before acting.
+- **Workflow previews.** Before a queued workflow runs, ggc shows the exact sequence of commands it will execute so you can review (and cancel) destructive steps first.
+- **Transparent passthrough.** Operations like `reset` map directly to the underlying `git` command, so behavior matches what you already expect from Git.
+
+See the [interactive mode & workflows guide](https://bmf-san.github.io/ggc/guide/interactive/) for the full confirmation and preview behavior.
 
 Full documentation lives at **<https://bmf-san.github.io/ggc/>**:
 
