@@ -42,17 +42,18 @@ Git already has great TUIs and helpers — ggc fills a different niche. It is th
 - **Compose multi-step workflows, then run or reuse them.** Search commands in the fuzzy picker, press <kbd>Tab</kbd> to queue `add` → `commit` → `push`, and <kbd>Ctrl</kbd>+<kbd>T</kbd> to run the pipeline. lazygit/gitui drive one action at a time; tig is read-focused.
 - **Same tool in scripts and in CI.** `ggc commit "fix: parser"` or `ggc branch checkout main` work non-interactively, so the shortcuts you learn interactively drop straight into shell scripts and pipelines. The TUI tools are interactive-only.
 - **Memorable verbs over flag soup.** `ggc rebase interactive`, `ggc stash pop`, `ggc clean interactive` replace hard-to-remember `git` flag combinations, while still falling back to raw `git` for anything ggc doesn't cover.
-- **Safe by default for destructive actions** (see below) — explicit confirmations and previews instead of irreversible one-keystroke operations.
+- **Review workflows before running them.** Queue commands in the workflow builder and see the full step list in the workflow view before you execute the pipeline.
 
-### Safety for destructive operations
+### Destructive operations
 
-ggc wraps destructive Git commands with guardrails so you don't lose work by accident:
+Many ggc subcommands wrap destructive Git actions. Know how each behaves before relying on it:
 
-- **Confirmation prompts.** Branch and tag deletion, `clean`, and stash drop/clear ask for explicit confirmation before acting.
-- **Workflow previews.** Before a queued workflow runs, ggc shows the exact sequence of commands it will execute so you can review (and cancel) destructive steps first.
-- **Transparent passthrough.** Operations like `reset` map directly to the underlying `git` command, so behavior matches what you already expect from Git.
+- **`clean` asks first.** Interactive `clean` shows the files it will remove and prompts for confirmation (`Delete these files? (y/n)`) before deleting.
+- **Other destructive commands run immediately.** `branch delete`, `tag` deletion, and `stash drop`/`stash clear` execute right away without a separate confirmation step — treat them like the underlying `git` commands.
+- **`reset` is a shortcut, not a passthrough.** Bare `ggc reset` performs a hard reset to the upstream branch and cleans the working tree (`reset --hard` + `clean`); `ggc reset hard <commit>` and `ggc reset soft <commit>` map to the corresponding `git reset`. These discard changes without prompting.
+- **Review workflows before executing.** The workflow view lists every queued step so you can inspect (and rebuild) a pipeline before running it.
 
-See the [interactive mode & workflows guide](https://bmf-san.github.io/ggc/guide/interactive/) for the full confirmation and preview behavior.
+See the [interactive mode & workflows guide](https://bmf-san.github.io/ggc/guide/interactive/) for details.
 
 Full documentation lives at **<https://bmf-san.github.io/ggc/>**:
 
