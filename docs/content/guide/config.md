@@ -1,4 +1,10 @@
-# Configuration & aliases
+---
+title: "Configuration & aliases"
+description: "Configure ggc through ~/.config/ggc/config.yaml and define custom aliases."
+slug: "config"
+categories:
+  - guide
+---
 
 ggc reads configuration from one of:
 

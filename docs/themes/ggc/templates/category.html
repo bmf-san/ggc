@@ -1,0 +1,52 @@
+{{- $base := .Config.Theme.Params.base_path -}}
+{{- $name := "" -}}{{if .CurrentTaxonomy}}{{- $name = .CurrentTaxonomy.Name -}}{{end}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{$name}} — {{.Config.Site.Title}}</title>
+  <link rel="stylesheet" href="{{.Config.Theme.Params.sleyt_css}}">
+  <link rel="icon" href="{{$base}}/assets/icon.png">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="{{$base}}/">ggc</a>
+    <ul class="navbar-nav">
+      <li><a class="navbar-item" href="{{$base}}/guide/install/">Get started</a></li>
+      <li><a class="navbar-item" href="{{.Config.Theme.Params.github_url}}" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <main class="container py-12">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumbs">
+        <li class="breadcrumbs-item"><a class="breadcrumbs-link" href="{{$base}}/">Home</a></li>
+        <li class="breadcrumbs-separator">/</li>
+        <li class="breadcrumbs-item active"><span class="breadcrumbs-link">{{$name}}</span></li>
+      </ol>
+    </nav>
+
+    <header class="mt-6 mb-8">
+      <h1 class="text-4xl font-bold capitalize">{{$name}}</h1>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {{range .Articles}}
+      <a class="card" href="{{$base}}{{.URL}}">
+        <div class="card-header">{{.FrontMatter.Title}}</div>
+        <div class="card-body">
+          <p class="text-sm text-secondary">{{.FrontMatter.Description}}</p>
+        </div>
+      </a>
+      {{end}}
+    </div>
+  </main>
+
+  <footer class="border-t mt-12 py-8 text-center text-sm text-secondary">
+    <div class="container">
+      <p>&copy; bmf-san. Built with <a href="https://github.com/bmf-san/gohan" target="_blank" rel="noopener">gohan</a> &amp; <a href="https://github.com/bmf-san/sleyt" target="_blank" rel="noopener">sleyt</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>

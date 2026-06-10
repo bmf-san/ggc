@@ -1,0 +1,82 @@
+{{- $base := .Config.Theme.Params.base_path -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{.Config.Site.Description}}">
+  <title>{{.Config.Site.Title}} — An interactive Git CLI written in Go</title>
+  <link rel="stylesheet" href="{{.Config.Theme.Params.sleyt_css}}">
+  <link rel="icon" href="{{$base}}/assets/icon.png">
+  <link rel="alternate" type="application/atom+xml" title="{{.Config.Site.Title}}" href="{{$base}}/atom.xml">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="{{$base}}/">ggc</a>
+    <input type="checkbox" id="navbar-toggle" class="navbar-toggle-checkbox">
+    <label for="navbar-toggle" class="navbar-toggle-label"><span></span><span></span><span></span></label>
+    <ul class="navbar-nav">
+      <li><a class="navbar-item" href="{{$base}}/guide/install/">Get started</a></li>
+      <li><a class="navbar-item" href="{{$base}}/guide/commands/">Commands</a></li>
+      <li><a class="navbar-item" href="{{.Config.Theme.Params.github_url}}" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <main class="container py-12">
+    <header class="text-center mb-12">
+      <h1 class="text-5xl font-bold mb-4">ggc</h1>
+      <p class="text-lg text-secondary mb-6">An interactive Git CLI written in Go — short, memorable subcommands and a fuzzy-finder UI for the everyday workflows that <code>git</code> makes too verbose.</p>
+      <div class="flex justify-center gap-3 flex-wrap">
+        <a class="btn btn-primary" href="{{$base}}/guide/install/">Get Started</a>
+        <a class="btn btn-outline-primary" href="{{.Config.Theme.Params.github_url}}" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </header>
+
+    <section class="mb-12">
+      <pre class="prose"><code>$ ggc
+&gt; status       show what's changed
+  commit       commit staged changes
+  branch       switch, create, delete branches
+  rebase       interactive rebase helper
+  stash        push/pop/apply/clear the stash
+  ...</code></pre>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-3xl font-bold mb-6">Why ggc?</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card"><div class="card-header">Type less, do more</div><div class="card-body"><p class="text-sm text-secondary"><code>ggc commit "fix: parser"</code> commits without a <code>-m</code> flag; <code>ggc branch checkout</code> lists branches and lets you pick one.</p></div></div>
+        <div class="card"><div class="card-header">Unified syntax</div><div class="card-body"><p class="text-sm text-secondary">No <code>-</code>/<code>--</code> flag soup. Every command is a verb followed by plain words.</p></div></div>
+        <div class="card"><div class="card-header">Scripts stay scripts</div><div class="card-body"><p class="text-sm text-secondary"><code>ggc</code> is a thin layer over <code>git</code>: anything you can't express in <code>ggc</code> you can always fall back to.</p></div></div>
+        <div class="card"><div class="card-header">Safe by default</div><div class="card-body"><p class="text-sm text-secondary">Destructive subcommands (branch/tag deletion, <code>clean</code>, stash drop/clear) confirm before acting.</p></div></div>
+      </div>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-3xl font-bold mb-6">Getting started</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a class="card" href="{{$base}}/guide/install/"><div class="card-header">Installation</div><div class="card-body"><p class="text-sm text-secondary">Install ggc via the script, Homebrew, go install, binaries, or Docker.</p></div></a>
+        <a class="card" href="{{$base}}/guide/quickstart/"><div class="card-header">Quick start</div><div class="card-body"><p class="text-sm text-secondary">A 10-minute tour of the commands you'll reach for every day.</p></div></a>
+      </div>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-3xl font-bold mb-6">Guide</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a class="card" href="{{$base}}/guide/commands/"><div class="card-header">Commands</div><div class="card-body"><p class="text-sm text-secondary">Complete reference of every ggc command.</p></div></a>
+        <a class="card" href="{{$base}}/guide/interactive/"><div class="card-header">Interactive mode</div><div class="card-body"><p class="text-sm text-secondary">Fuzzy finders, Workflow mode, and keybindings.</p></div></a>
+        <a class="card" href="{{$base}}/guide/config/"><div class="card-header">Configuration &amp; aliases</div><div class="card-body"><p class="text-sm text-secondary">Configure ggc and define custom aliases.</p></div></a>
+        <a class="card" href="{{$base}}/guide/recipes/"><div class="card-header">Recipes</div><div class="card-body"><p class="text-sm text-secondary">Practical workflows that combine commands.</p></div></a>
+        <a class="card" href="{{$base}}/guide/troubleshooting/"><div class="card-header">Troubleshooting</div><div class="card-body"><p class="text-sm text-secondary"><code>ggc doctor</code> and fixes for common issues.</p></div></a>
+        <a class="card" href="{{$base}}/contributing/"><div class="card-header">Contributing</div><div class="card-body"><p class="text-sm text-secondary">How to contribute to ggc and build these docs.</p></div></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t mt-12 py-8 text-center text-sm text-secondary">
+    <div class="container">
+      <p>&copy; bmf-san. Built with <a href="https://github.com/bmf-san/gohan" target="_blank" rel="noopener">gohan</a> &amp; <a href="https://github.com/bmf-san/sleyt" target="_blank" rel="noopener">sleyt</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>

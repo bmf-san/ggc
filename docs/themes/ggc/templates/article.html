@@ -1,0 +1,84 @@
+{{- $base := .Config.Theme.Params.base_path -}}
+{{- $article := index .Articles 0 -}}
+{{- $slug := $article.FrontMatter.Slug -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{$article.FrontMatter.Description}}">
+  <title>{{$article.FrontMatter.Title}} — {{.Config.Site.Title}}</title>
+  <link rel="stylesheet" href="{{.Config.Theme.Params.sleyt_css}}">
+  <link rel="icon" href="{{$base}}/assets/icon.png">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="{{$base}}/">ggc</a>
+    <input type="checkbox" id="navbar-toggle" class="navbar-toggle-checkbox">
+    <label for="navbar-toggle" class="navbar-toggle-label"><span></span><span></span><span></span></label>
+    <ul class="navbar-nav">
+      <li><a class="navbar-item" href="{{$base}}/guide/install/">Get started</a></li>
+      <li><a class="navbar-item" href="{{$base}}/guide/commands/">Commands</a></li>
+      <li><a class="navbar-item" href="{{$.Config.Theme.Params.github_url}}" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <div class="dashboard">
+    <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-checkbox">
+    <aside class="sidebar">
+      <a class="sidebar-brand" href="{{$base}}/">
+        <span class="sidebar-brand-icon">g</span>
+        ggc docs
+      </a>
+      <nav class="sidebar-nav">
+        <span class="sidebar-section-label">Getting started</span>
+        <a class="sidebar-link{{if eq $slug "install"}} active{{end}}" href="{{$base}}/guide/install/">Installation</a>
+        <a class="sidebar-link{{if eq $slug "quickstart"}} active{{end}}" href="{{$base}}/guide/quickstart/">Quick start</a>
+
+        <span class="sidebar-section-label">Guide</span>
+        <a class="sidebar-link{{if eq $slug "commands"}} active{{end}}" href="{{$base}}/guide/commands/">Commands</a>
+        <a class="sidebar-link{{if eq $slug "interactive"}} active{{end}}" href="{{$base}}/guide/interactive/">Interactive mode</a>
+        <a class="sidebar-link{{if eq $slug "config"}} active{{end}}" href="{{$base}}/guide/config/">Configuration &amp; aliases</a>
+        <a class="sidebar-link{{if eq $slug "recipes"}} active{{end}}" href="{{$base}}/guide/recipes/">Recipes</a>
+        <a class="sidebar-link{{if eq $slug "troubleshooting"}} active{{end}}" href="{{$base}}/guide/troubleshooting/">Troubleshooting</a>
+
+        <span class="sidebar-section-label">Project</span>
+        <a class="sidebar-link{{if eq $slug "contributing"}} active{{end}}" href="{{$base}}/contributing/">Contributing</a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main">
+      <div class="dashboard-content">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumbs">
+            <li class="breadcrumbs-item"><a class="breadcrumbs-link" href="{{$base}}/">Home</a></li>
+            <li class="breadcrumbs-separator">/</li>
+            {{if $article.FrontMatter.Categories}}<li class="breadcrumbs-item"><a class="breadcrumbs-link" href="{{$base}}/categories/{{index $article.FrontMatter.Categories 0}}/">{{index $article.FrontMatter.Categories 0}}</a></li>
+            <li class="breadcrumbs-separator">/</li>{{end}}
+            <li class="breadcrumbs-item active"><span class="breadcrumbs-link">{{$article.FrontMatter.Title}}</span></li>
+          </ol>
+        </nav>
+
+        <article class="prose prose-full mt-6">
+          <h1>{{$article.FrontMatter.Title}}</h1>
+          {{$article.HTMLContent}}
+        </article>
+
+        {{if $.Config.Site.GitHubRepo}}
+        <div class="mt-8 pt-6 border-t">
+          <a class="btn btn-sm btn-outline-primary" href="{{$.Config.Site.GitHubRepo}}/edit/{{$.Config.Site.GitHubBranch}}/docs/content/{{$article.ContentPath}}" target="_blank" rel="noopener">
+            Edit this page on GitHub
+          </a>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+
+  <footer class="border-t py-8 text-center text-sm text-secondary">
+    <div class="container">
+      <p>&copy; bmf-san. Built with <a href="https://github.com/bmf-san/gohan" target="_blank" rel="noopener">gohan</a> &amp; <a href="https://github.com/bmf-san/sleyt" target="_blank" rel="noopener">sleyt</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -31,8 +31,8 @@ go.work.sum
 .idea/
 # .vscode/
 
-# ggc
-ggc
+# ggc binary (repo root only; do not match docs/themes/ggc/)
+/ggc
 
 # Compiled binaries from goreleaser
 dist/
@@ -43,3 +43,14 @@ gencompletions
 # VHS demo workspaces
 docs/demos/workspaces/
 .claude/
+
+# Docs site (gohan + sleyt) build artifacts
+docs/public/
+docs/node_modules/
+docs/.gohan/
+docs/package-lock.json
+docs/assets/css/
+docs/assets/icon.png
+docs/static/ggc-config.schema.json
+# Stale MkDocs build output
+/site/

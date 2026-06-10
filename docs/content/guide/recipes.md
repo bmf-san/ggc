@@ -1,8 +1,14 @@
-# Recipes
+---
+title: "Recipes"
+description: "Practical ggc workflows that combine commands for common tasks."
+slug: "recipes"
+categories:
+  - guide
+---
 
 Task-oriented walkthroughs that combine ggc subcommands into typical Git workflows. Each recipe is a few lines you can copy-paste or build into a workflow (interactive mode → <kbd>Tab</kbd> → <kbd>Ctrl</kbd>+<kbd>T</kbd>).
 
-For the full reference see [Commands](commands.md); for the interactive flow see [Interactive mode](interactive.md).
+For the full reference see [Commands](/ggc/guide/commands/); for the interactive flow see [Interactive mode](/ggc/guide/interactive/).
 
 ## Start a feature branch
 
@@ -101,4 +107,4 @@ ggc log graph               # visual graph across branches
 
 ## Build your own workflow
 
-Drop into the fuzzy picker (`ggc` with no args), search each subcommand you want, press <kbd>Tab</kbd> to queue it, and <kbd>Ctrl</kbd>+<kbd>T</kbd> to run the full pipeline. Save the sequence as an alias in `~/.ggcconfig.yaml` — see [Configuration & aliases](config.md).
+Drop into the fuzzy picker (`ggc` with no args), search each subcommand you want, press <kbd>Tab</kbd> to queue it, and <kbd>Ctrl</kbd>+<kbd>T</kbd> to run the full pipeline. Save the sequence as an alias in `~/.ggcconfig.yaml` — see [Configuration & aliases](/ggc/guide/config/).

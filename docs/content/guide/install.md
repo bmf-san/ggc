@@ -1,4 +1,10 @@
-# Installation
+---
+title: "Installation"
+description: "Install ggc via the script, Homebrew, go install, pre-built binaries, or Docker."
+slug: "install"
+categories:
+  - getting-started
+---
 
 ## Quick install (macOS / Linux)
 

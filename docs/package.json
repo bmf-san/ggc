@@ -1,0 +1,17 @@
+{
+  "name": "ggc-docs",
+  "private": true,
+  "description": "ggc documentation site (built with gohan + sleyt).",
+  "scripts": {
+    "build:css": "mkdir -p assets/css && cp node_modules/sleyt/dist/css/index.css assets/css/sleyt.css",
+    "build:assets": "mkdir -p assets static && cp icon.png assets/icon.png && cp ggc-config.schema.json static/ggc-config.schema.json",
+    "prebuild": "npm run build:css && npm run build:assets",
+    "build": "gohan build",
+    "preserve": "npm run build:css && npm run build:assets",
+    "serve": "gohan serve",
+    "clean": "rm -rf public assets/css assets/icon.png static/ggc-config.schema.json"
+  },
+  "dependencies": {
+    "sleyt": "^1.4.0"
+  }
+}
