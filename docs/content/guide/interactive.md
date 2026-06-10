@@ -1,4 +1,10 @@
-# Interactive mode
+---
+title: "Interactive mode"
+description: "Fuzzy finders, Workflow mode, and keybindings in interactive ggc."
+slug: "interactive"
+categories:
+  - guide
+---
 
 Running `ggc` with no arguments drops you into the interactive prompt. There are two modes:
 
@@ -22,7 +28,7 @@ Commands that take a branch, file, or stash entry open a nested picker using the
 
 ### History recall
 
-The interactive prompt remembers previously executed commands (see [Configuration & aliases → History](config.md#history)).
+The interactive prompt remembers previously executed commands (see [Configuration & aliases → History](/ggc/guide/config/#history)).
 
 - type `history` + <kbd>Enter</kbd> — open a numbered picker of the most recent commands (deduplicated by display string, newest first); type a number + <kbd>Enter</kbd> to re-run, <kbd>Ctrl</kbd>+<kbd>C</kbd> (or <kbd>Ctrl</kbd>+<kbd>G</kbd> / <kbd>Esc</kbd>) cancels
 - <kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd> on an empty input — walk backwards/forwards through recent commands (when the input is non-empty these keys still move the selection, matching readline conventions)
@@ -59,7 +65,7 @@ interactive:
   profile: emacs
 ```
 
-Fine-grained overrides (per-OS, per-context, per-terminal, custom key combos) are documented in [Configuration & aliases → Keybindings](config.md#keybindings).
+Fine-grained overrides (per-OS, per-context, per-terminal, custom key combos) are documented in [Configuration & aliases → Keybindings](/ggc/guide/config/#keybindings).
 
 ## Exiting
 

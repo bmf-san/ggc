@@ -1,4 +1,10 @@
-# Troubleshooting
+---
+title: "Troubleshooting"
+description: "Use ggc doctor and fix the most common issues."
+slug: "troubleshooting"
+categories:
+  - guide
+---
 
 ## `ggc doctor`
 

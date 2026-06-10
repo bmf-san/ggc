@@ -1,0 +1,28 @@
+site:
+  title: "ggc"
+  description: "An interactive Git CLI written in Go with short subcommands and fuzzy finders."
+  base_url: "https://bmf-san.github.io/ggc"
+  language: "en"
+  github_repo: "https://github.com/bmf-san/ggc"
+  github_branch: "main"
+
+build:
+  content_dir: "content"
+  output_dir: "public"
+  assets_dir: "assets"
+  static_dir: "static"
+  parallelism: 4
+
+theme:
+  name: "ggc"
+  dir: "themes/ggc"
+  params:
+    # GitHub Pages serves the site at https://bmf-san.github.io/ggc/.
+    # All in-template links MUST be prefixed with this base_path; when the
+    # site is published at a custom domain (root), set this to an empty string.
+    base_path: "/ggc"
+    github_url: "https://github.com/bmf-san/ggc"
+
+syntax_highlight:
+  theme: "github"
+  line_numbers: false

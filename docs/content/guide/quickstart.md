@@ -1,4 +1,10 @@
-# Quick start
+---
+title: "Quick start"
+description: "A 10-minute tour of the ggc commands you'll reach for every day."
+slug: "quickstart"
+categories:
+  - getting-started
+---
 
 This is a 10-minute tour of the commands you'll reach for every day. Each example assumes you're already inside a Git working tree.
 
@@ -83,10 +89,10 @@ Run `ggc` by itself to drop into the fuzzy-search prompt:
 ggc
 ```
 
-Type a few letters, hit <kbd>Enter</kbd>, and you're off. See [Interactive mode](interactive.md) for the full key list and Workflow mode.
+Type a few letters, hit <kbd>Enter</kbd>, and you're off. See [Interactive mode](/ggc/guide/interactive/) for the full key list and Workflow mode.
 
 ## Where to next?
 
-- Full command reference: [Commands](commands.md)
-- Interactive pickers, Workflow mode, keybindings: [Interactive mode](interactive.md)
-- Aliases and defaults: [Configuration & aliases](config.md)
+- Full command reference: [Commands](/ggc/guide/commands/)
+- Interactive pickers, Workflow mode, keybindings: [Interactive mode](/ggc/guide/interactive/)
+- Aliases and defaults: [Configuration & aliases](/ggc/guide/config/)
