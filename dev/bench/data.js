@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779762608323,
+  "lastUpdate": 1781055579126,
   "repoUrl": "https://github.com/bmf-san/ggc",
   "entries": {
     "Benchmark": [
@@ -17064,6 +17064,1902 @@ window.BENCHMARK_DATA = {
             "value": 0,
             "unit": "allocs/op",
             "extra": "416524345 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bmf.infomation@gmail.com",
+            "name": "Kenta Takeuchi",
+            "username": "bmf-san"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "64dcf54f67fa68d5b501bf7a4d1abe21de3577ea",
+          "message": "docs: migrate documentation site from MkDocs to gohan (#477)\n\nReplace the MkDocs Material site with gohan + sleyt to unify on a Go\ntoolchain and dogfood gohan.\n\n- Add docs/config.yaml (gohan config, base_path /ggc, English-only)\n- Add docs/package.json (sleyt CSS + asset copy via prebuild, gohan build)\n- Add ggc theme templates: index, article (sidebar + breadcrumbs +\n  edit-on-GitHub), category\n- Migrate guide content into content/ with gohan front matter; convert\n  internal relative .md links to absolute /ggc/ paths\n- Update gendocs to emit docs/content/guide/commands.md using goldmark\n  auto-IDs (drop unsupported {#id} anchor syntax)\n- Update docs.yml CI to install gohan and run npm build, deploy public/\n- Remove mkdocs.yml, requirements.{in,txt}, and old docs layout\n- Restrict /ggc gitignore to repo root so docs/themes/ggc/ is tracked;\n  ignore docs build artifacts and stale /site/",
+          "timestamp": "2026-06-10T10:36:29+09:00",
+          "tree_id": "9c6d932800a8197a1155645aa0071914505fcb05",
+          "url": "https://github.com/bmf-san/ggc/commit/64dcf54f67fa68d5b501bf7a4d1abe21de3577ea"
+        },
+        "date": 1781055578866,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8)",
+            "value": 27614712,
+            "unit": "ns/op\t 3137793 B/op\t   15718 allocs/op",
+            "extra": "40 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 27614712,
+            "unit": "ns/op",
+            "extra": "40 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3137793,
+            "unit": "B/op",
+            "extra": "40 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 15718,
+            "unit": "allocs/op",
+            "extra": "40 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8)",
+            "value": 27848989,
+            "unit": "ns/op\t 3161545 B/op\t   16040 allocs/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 27848989,
+            "unit": "ns/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3161545,
+            "unit": "B/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 16040,
+            "unit": "allocs/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8)",
+            "value": 27779905,
+            "unit": "ns/op\t 3187136 B/op\t   16399 allocs/op",
+            "extra": "51 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 27779905,
+            "unit": "ns/op",
+            "extra": "51 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3187136,
+            "unit": "B/op",
+            "extra": "51 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 16399,
+            "unit": "allocs/op",
+            "extra": "51 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8)",
+            "value": 28089694,
+            "unit": "ns/op\t 3227217 B/op\t   16755 allocs/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28089694,
+            "unit": "ns/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3227217,
+            "unit": "B/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 16755,
+            "unit": "allocs/op",
+            "extra": "49 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8)",
+            "value": 28149367,
+            "unit": "ns/op\t 3241722 B/op\t   17101 allocs/op",
+            "extra": "48 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28149367,
+            "unit": "ns/op",
+            "extra": "48 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3241722,
+            "unit": "B/op",
+            "extra": "48 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 17101,
+            "unit": "allocs/op",
+            "extra": "48 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8)",
+            "value": 28160423,
+            "unit": "ns/op\t 3257980 B/op\t   17452 allocs/op",
+            "extra": "50 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28160423,
+            "unit": "ns/op",
+            "extra": "50 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3257980,
+            "unit": "B/op",
+            "extra": "50 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Version (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 17452,
+            "unit": "allocs/op",
+            "extra": "50 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8)",
+            "value": 28701421,
+            "unit": "ns/op\t 3463421 B/op\t   19259 allocs/op",
+            "extra": "74 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28701421,
+            "unit": "ns/op",
+            "extra": "74 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3463421,
+            "unit": "B/op",
+            "extra": "74 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 19259,
+            "unit": "allocs/op",
+            "extra": "74 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8)",
+            "value": 28676532,
+            "unit": "ns/op\t 3485565 B/op\t   19792 allocs/op",
+            "extra": "76 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28676532,
+            "unit": "ns/op",
+            "extra": "76 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3485565,
+            "unit": "B/op",
+            "extra": "76 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 19792,
+            "unit": "allocs/op",
+            "extra": "76 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8)",
+            "value": 28477511,
+            "unit": "ns/op\t 3509835 B/op\t   20320 allocs/op",
+            "extra": "73 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28477511,
+            "unit": "ns/op",
+            "extra": "73 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3509835,
+            "unit": "B/op",
+            "extra": "73 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 20320,
+            "unit": "allocs/op",
+            "extra": "73 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8)",
+            "value": 28592455,
+            "unit": "ns/op\t 3532712 B/op\t   20846 allocs/op",
+            "extra": "75 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 28592455,
+            "unit": "ns/op",
+            "extra": "75 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3532712,
+            "unit": "B/op",
+            "extra": "75 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 20846,
+            "unit": "allocs/op",
+            "extra": "75 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8)",
+            "value": 39844040,
+            "unit": "ns/op\t 3631316 B/op\t   21360 allocs/op",
+            "extra": "70 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 39844040,
+            "unit": "ns/op",
+            "extra": "70 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3631316,
+            "unit": "B/op",
+            "extra": "70 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 21360,
+            "unit": "allocs/op",
+            "extra": "70 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8)",
+            "value": 29132042,
+            "unit": "ns/op\t 3658119 B/op\t   21843 allocs/op",
+            "extra": "66 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - ns/op",
+            "value": 29132042,
+            "unit": "ns/op",
+            "extra": "66 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - B/op",
+            "value": 3658119,
+            "unit": "B/op",
+            "extra": "66 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkStartup_Help (github.com/bmf-san/ggc/v8) - allocs/op",
+            "value": 21843,
+            "unit": "allocs/op",
+            "extra": "66 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 2877,
+            "unit": "ns/op\t    1032 B/op\t      29 allocs/op",
+            "extra": "430148 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 2877,
+            "unit": "ns/op",
+            "extra": "430148 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 1032,
+            "unit": "B/op",
+            "extra": "430148 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 29,
+            "unit": "allocs/op",
+            "extra": "430148 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 2789,
+            "unit": "ns/op\t    1032 B/op\t      29 allocs/op",
+            "extra": "374043 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 2789,
+            "unit": "ns/op",
+            "extra": "374043 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 1032,
+            "unit": "B/op",
+            "extra": "374043 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 29,
+            "unit": "allocs/op",
+            "extra": "374043 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 2816,
+            "unit": "ns/op\t    1032 B/op\t      29 allocs/op",
+            "extra": "409239 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 2816,
+            "unit": "ns/op",
+            "extra": "409239 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 1032,
+            "unit": "B/op",
+            "extra": "409239 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 29,
+            "unit": "allocs/op",
+            "extra": "409239 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 2856,
+            "unit": "ns/op\t    1032 B/op\t      29 allocs/op",
+            "extra": "405390 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 2856,
+            "unit": "ns/op",
+            "extra": "405390 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 1032,
+            "unit": "B/op",
+            "extra": "405390 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 29,
+            "unit": "allocs/op",
+            "extra": "405390 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 2841,
+            "unit": "ns/op\t    1032 B/op\t      29 allocs/op",
+            "extra": "404174 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 2841,
+            "unit": "ns/op",
+            "extra": "404174 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 1032,
+            "unit": "B/op",
+            "extra": "404174 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 29,
+            "unit": "allocs/op",
+            "extra": "404174 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 2872,
+            "unit": "ns/op\t    1032 B/op\t      29 allocs/op",
+            "extra": "383815 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 2872,
+            "unit": "ns/op",
+            "extra": "383815 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 1032,
+            "unit": "B/op",
+            "extra": "383815 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Default (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 29,
+            "unit": "allocs/op",
+            "extra": "383815 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 67.95,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "17728872 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 67.95,
+            "unit": "ns/op",
+            "extra": "17728872 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "17728872 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "17728872 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 69.44,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "17681364 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 69.44,
+            "unit": "ns/op",
+            "extra": "17681364 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "17681364 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "17681364 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 72.32,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "16496685 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 72.32,
+            "unit": "ns/op",
+            "extra": "16496685 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "16496685 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "16496685 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 69.22,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "17457024 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 69.22,
+            "unit": "ns/op",
+            "extra": "17457024 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "17457024 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "17457024 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 69.38,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "17257132 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 69.38,
+            "unit": "ns/op",
+            "extra": "17257132 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "17257132 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "17257132 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd)",
+            "value": 71.1,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "17548896 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - ns/op",
+            "value": 71.1,
+            "unit": "ns/op",
+            "extra": "17548896 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "17548896 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugger_DebugKeys_Help (github.com/bmf-san/ggc/v8/cmd) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "17548896 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 5912,
+            "unit": "ns/op\t     961 B/op\t      48 allocs/op",
+            "extra": "202818 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 5912,
+            "unit": "ns/op",
+            "extra": "202818 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 961,
+            "unit": "B/op",
+            "extra": "202818 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 48,
+            "unit": "allocs/op",
+            "extra": "202818 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 5988,
+            "unit": "ns/op\t     961 B/op\t      48 allocs/op",
+            "extra": "179989 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 5988,
+            "unit": "ns/op",
+            "extra": "179989 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 961,
+            "unit": "B/op",
+            "extra": "179989 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 48,
+            "unit": "allocs/op",
+            "extra": "179989 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 5932,
+            "unit": "ns/op\t     961 B/op\t      48 allocs/op",
+            "extra": "196736 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 5932,
+            "unit": "ns/op",
+            "extra": "196736 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 961,
+            "unit": "B/op",
+            "extra": "196736 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 48,
+            "unit": "allocs/op",
+            "extra": "196736 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 5849,
+            "unit": "ns/op\t     961 B/op\t      48 allocs/op",
+            "extra": "197942 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 5849,
+            "unit": "ns/op",
+            "extra": "197942 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 961,
+            "unit": "B/op",
+            "extra": "197942 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 48,
+            "unit": "allocs/op",
+            "extra": "197942 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 5961,
+            "unit": "ns/op\t     961 B/op\t      48 allocs/op",
+            "extra": "196917 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 5961,
+            "unit": "ns/op",
+            "extra": "196917 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 961,
+            "unit": "B/op",
+            "extra": "196917 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 48,
+            "unit": "allocs/op",
+            "extra": "196917 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 5865,
+            "unit": "ns/op\t     961 B/op\t      48 allocs/op",
+            "extra": "198820 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 5865,
+            "unit": "ns/op",
+            "extra": "198820 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 961,
+            "unit": "B/op",
+            "extra": "198820 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkManagerGet (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 48,
+            "unit": "allocs/op",
+            "extra": "198820 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 1434,
+            "unit": "ns/op\t     128 B/op\t       3 allocs/op",
+            "extra": "792374 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 1434,
+            "unit": "ns/op",
+            "extra": "792374 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 128,
+            "unit": "B/op",
+            "extra": "792374 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 3,
+            "unit": "allocs/op",
+            "extra": "792374 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 1431,
+            "unit": "ns/op\t     128 B/op\t       3 allocs/op",
+            "extra": "799779 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 1431,
+            "unit": "ns/op",
+            "extra": "799779 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 128,
+            "unit": "B/op",
+            "extra": "799779 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 3,
+            "unit": "allocs/op",
+            "extra": "799779 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 1437,
+            "unit": "ns/op\t     128 B/op\t       3 allocs/op",
+            "extra": "819330 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 1437,
+            "unit": "ns/op",
+            "extra": "819330 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 128,
+            "unit": "B/op",
+            "extra": "819330 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 3,
+            "unit": "allocs/op",
+            "extra": "819330 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 1435,
+            "unit": "ns/op\t     128 B/op\t       3 allocs/op",
+            "extra": "818890 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 1435,
+            "unit": "ns/op",
+            "extra": "818890 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 128,
+            "unit": "B/op",
+            "extra": "818890 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 3,
+            "unit": "allocs/op",
+            "extra": "818890 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 1435,
+            "unit": "ns/op\t     128 B/op\t       3 allocs/op",
+            "extra": "818242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 1435,
+            "unit": "ns/op",
+            "extra": "818242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 128,
+            "unit": "B/op",
+            "extra": "818242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 3,
+            "unit": "allocs/op",
+            "extra": "818242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config)",
+            "value": 1428,
+            "unit": "ns/op\t     128 B/op\t       3 allocs/op",
+            "extra": "811752 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - ns/op",
+            "value": 1428,
+            "unit": "ns/op",
+            "extra": "811752 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - B/op",
+            "value": 128,
+            "unit": "B/op",
+            "extra": "811752 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeConfigPath (github.com/bmf-san/ggc/v8/internal/config) - allocs/op",
+            "value": 3,
+            "unit": "allocs/op",
+            "extra": "811752 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 916.5,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1308834 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 916.5,
+            "unit": "ns/op",
+            "extra": "1308834 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1308834 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1308834 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 916,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1297873 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 916,
+            "unit": "ns/op",
+            "extra": "1297873 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1297873 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1297873 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 922.3,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1311314 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 922.3,
+            "unit": "ns/op",
+            "extra": "1311314 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1311314 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1311314 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 916.8,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1292823 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 916.8,
+            "unit": "ns/op",
+            "extra": "1292823 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1292823 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1292823 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 918.8,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1307540 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 918.8,
+            "unit": "ns/op",
+            "extra": "1307540 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1307540 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1307540 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 920.5,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1292869 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 920.5,
+            "unit": "ns/op",
+            "extra": "1292869 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1292869 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/short (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1292869 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1016,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1016,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1020,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1020,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1018,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1018,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1013,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1013,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1016,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1016,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1016,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1016,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/medium (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1487,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "814126 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1487,
+            "unit": "ns/op",
+            "extra": "814126 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "814126 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "814126 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1479,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "835370 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1479,
+            "unit": "ns/op",
+            "extra": "835370 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "835370 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "835370 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1479,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "817795 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1479,
+            "unit": "ns/op",
+            "extra": "817795 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "817795 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "817795 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1467,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "837428 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1467,
+            "unit": "ns/op",
+            "extra": "837428 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "837428 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "837428 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1507,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "813997 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1507,
+            "unit": "ns/op",
+            "extra": "813997 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "813997 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "813997 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1478,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "834270 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1478,
+            "unit": "ns/op",
+            "extra": "834270 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "834270 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/long (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "834270 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1040,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1040,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1039,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1039,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1038,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1038,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1047,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1047,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1047,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1047,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1057,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1057,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/typo_miss (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 872.4,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1360590 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 872.4,
+            "unit": "ns/op",
+            "extra": "1360590 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1360590 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1360590 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 881.1,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1366267 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 881.1,
+            "unit": "ns/op",
+            "extra": "1366267 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1366267 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1366267 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 893.6,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1346454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 893.6,
+            "unit": "ns/op",
+            "extra": "1346454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1346454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1346454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 879.2,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1363622 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 879.2,
+            "unit": "ns/op",
+            "extra": "1363622 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1363622 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1363622 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 879.7,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1366766 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 879.7,
+            "unit": "ns/op",
+            "extra": "1366766 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1366766 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1366766 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 880.5,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1360305 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 880.5,
+            "unit": "ns/op",
+            "extra": "1360305 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1360305 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatch/single_char (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1360305 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1050,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1050,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1041,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1041,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1041,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1041,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1051,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1051,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1050,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1050,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive)",
+            "value": 1039,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - ns/op",
+            "value": 1039,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFuzzyMatchScore (github.com/bmf-san/ggc/v8/internal/interactive) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings)",
+            "value": 2.812,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "444729080 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - ns/op",
+            "value": 2.812,
+            "unit": "ns/op",
+            "extra": "444729080 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "444729080 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "444729080 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings)",
+            "value": 2.77,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "451161001 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - ns/op",
+            "value": 2.77,
+            "unit": "ns/op",
+            "extra": "451161001 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "451161001 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "451161001 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings)",
+            "value": 2.725,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "440976284 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - ns/op",
+            "value": 2.725,
+            "unit": "ns/op",
+            "extra": "440976284 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "440976284 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "440976284 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings)",
+            "value": 2.731,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "452747569 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - ns/op",
+            "value": 2.731,
+            "unit": "ns/op",
+            "extra": "452747569 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "452747569 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "452747569 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings)",
+            "value": 2.842,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "452035142 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - ns/op",
+            "value": 2.842,
+            "unit": "ns/op",
+            "extra": "452035142 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "452035142 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "452035142 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings)",
+            "value": 2.716,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "421447558 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - ns/op",
+            "value": 2.716,
+            "unit": "ns/op",
+            "extra": "421447558 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - B/op",
+            "value": 0,
+            "unit": "B/op",
+            "extra": "421447558 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkDebugKeysCommand_IdentifySequence (github.com/bmf-san/ggc/v8/internal/keybindings) - allocs/op",
+            "value": 0,
+            "unit": "allocs/op",
+            "extra": "421447558 times\n4 procs"
           }
         ]
       }
