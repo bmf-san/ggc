@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{{.Config.Site.Description}}">
   <title>{{.Config.Site.Title}} — An interactive Git CLI written in Go</title>
-  <link rel="stylesheet" href="{{.Config.Theme.Params.sleyt_css}}">
+  <link rel="stylesheet" href="{{$base}}/assets/css/sleyt.css">
   <link rel="icon" href="{{$base}}/assets/icon.png">
   <link rel="alternate" type="application/atom+xml" title="{{.Config.Site.Title}}" href="{{$base}}/atom.xml">
 </head>
@@ -14,7 +14,7 @@
   <nav class="navbar">
     <a class="navbar-brand" href="{{$base}}/">ggc</a>
     <input type="checkbox" id="navbar-toggle" class="navbar-toggle-checkbox">
-    <label for="navbar-toggle" class="navbar-toggle-label"><span></span><span></span><span></span></label>
+    <label for="navbar-toggle" class="navbar-toggle-label" aria-label="Toggle navigation"><span></span><span></span><span></span></label>
     <ul class="navbar-nav">
       <li><a class="navbar-item" href="{{$base}}/guide/install/">Get started</a></li>
       <li><a class="navbar-item" href="{{$base}}/guide/commands/">Commands</a></li>
@@ -48,7 +48,7 @@
         <div class="card"><div class="card-header">Type less, do more</div><div class="card-body"><p class="text-sm text-secondary"><code>ggc commit "fix: parser"</code> commits without a <code>-m</code> flag; <code>ggc branch checkout</code> lists branches and lets you pick one.</p></div></div>
         <div class="card"><div class="card-header">Unified syntax</div><div class="card-body"><p class="text-sm text-secondary">No <code>-</code>/<code>--</code> flag soup. Every command is a verb followed by plain words.</p></div></div>
         <div class="card"><div class="card-header">Scripts stay scripts</div><div class="card-body"><p class="text-sm text-secondary"><code>ggc</code> is a thin layer over <code>git</code>: anything you can't express in <code>ggc</code> you can always fall back to.</p></div></div>
-        <div class="card"><div class="card-header">Safe by default</div><div class="card-body"><p class="text-sm text-secondary">Destructive subcommands (branch/tag deletion, <code>clean</code>, stash drop/clear) confirm before acting.</p></div></div>
+        <div class="card"><div class="card-header">Know your destructive commands</div><div class="card-body"><p class="text-sm text-secondary">Interactive <code>clean</code> confirms before deleting, but <code>branch delete</code>, <code>tag</code> deletion, and <code>stash drop</code>/<code>clear</code> run immediately, and <code>ggc reset</code> is a hard-reset shortcut — see the <a href="{{$base}}/guide/interactive/">interactive guide</a>.</p></div></div>
       </div>
     </section>
 

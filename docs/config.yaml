@@ -21,7 +21,6 @@ theme:
     # All in-template links MUST be prefixed with this base_path; when the
     # site is published at a custom domain (root), set this to an empty string.
     base_path: "/ggc"
-    sleyt_css: "/ggc/assets/css/sleyt.css"
     github_url: "https://github.com/bmf-san/ggc"
 
 syntax_highlight:

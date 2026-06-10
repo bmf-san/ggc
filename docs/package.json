@@ -12,6 +12,6 @@
     "clean": "rm -rf public assets/css assets/icon.png static/ggc-config.schema.json"
   },
   "dependencies": {
-    "sleyt": "^1.4.0"
+    "sleyt": "1.4.0"
   }
 }
