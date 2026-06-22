@@ -959,7 +959,8 @@ ggc bisect <subcommand> [<options>]
 **Examples:**
 
 ```bash
-ggc bisect start                      # Start a new bisect session
+ggc bisect start <bad> <good>         # Start a new bisect session with known refs
+ggc bisect run ./scripts/test.sh      # Auto-mark commits with an executable script
 ggc bisect bad                        # Mark current commit as bad
 ggc bisect good v1.0.0                # Mark a known-good commit
 ggc bisect reset                      # Finish bisecting
