@@ -257,6 +257,7 @@ func TestNewCmd_Constructor(t *testing.T) {
 		adder:      &Adder{gitClient: mockClient, outputWriter: &buf},
 		remoter:    &Remoter{outputWriter: &buf, helper: NewHelper()},
 		rebaser:    &Rebaser{outputWriter: &buf, helper: NewHelper()},
+		bisector:   &Bisector{outputWriter: &buf, helper: NewHelper()},
 		stasher:    &Stasher{outputWriter: &buf, helper: NewHelper()},
 		fetcher:    &Fetcher{outputWriter: &buf, helper: NewHelper()},
 		statuser:   &Statuser{outputWriter: &buf, helper: NewHelper()},
@@ -276,7 +277,7 @@ func TestNewCmd_Constructor(t *testing.T) {
 	if cmd.brancher == nil || cmd.committer == nil || cmd.logger == nil ||
 		cmd.puller == nil || cmd.pusher == nil || cmd.resetter == nil ||
 		cmd.cleaner == nil || cmd.adder == nil ||
-		cmd.remoter == nil || cmd.rebaser == nil || cmd.stasher == nil ||
+		cmd.remoter == nil || cmd.rebaser == nil || cmd.bisector == nil || cmd.stasher == nil ||
 		cmd.fetcher == nil || cmd.statuser == nil ||
 		cmd.differ == nil || cmd.tagger == nil || cmd.versioner == nil ||
 		cmd.configurer == nil || cmd.hooker == nil || cmd.restorer == nil {

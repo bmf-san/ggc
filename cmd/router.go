@@ -40,6 +40,7 @@ func newCommandRouter(cmd *Cmd) (*commandRouter, error) {
 		"version":    func(args []string) { cmd.Version(args) },
 		"remote":     func(args []string) { cmd.Remote(args) },
 		"rebase":     func(args []string) { cmd.Rebase(args) },
+		"bisect":     func(args []string) { cmd.Bisect(args) },
 		"stash":      func(args []string) { cmd.Stash(args) },
 		"config":     func(args []string) { cmd.Config(args) },
 		"hook":       func(args []string) { cmd.Hook(args) },

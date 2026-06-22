@@ -292,6 +292,9 @@ func TestNewCmd(t *testing.T) {
 	if cmd.rebaser == nil {
 		t.Error("rebaser should not be nil")
 	}
+	if cmd.bisector == nil {
+		t.Error("bisector should not be nil")
+	}
 	if cmd.remoter == nil {
 		t.Error("remoteer should not be nil")
 	}
