@@ -38,6 +38,7 @@ type Cmd struct {
 	adder         *Adder
 	remoter       *Remoter
 	rebaser       *Rebaser
+	bisector      *Bisector
 	stasher       *Stasher
 	configurer    *Configurer
 	hooker        *Hooker
@@ -123,6 +124,7 @@ func NewCmd(client GitDeps, cm *config.Manager) (*Cmd, error) {
 		adder:         NewAdder(client),
 		remoter:       NewRemoter(client),
 		rebaser:       NewRebaser(client),
+		bisector:      NewBisector(client),
 		stasher:       NewStasher(client),
 		configurer:    NewConfigurer(client),
 		hooker:        NewHooker(client),
@@ -172,6 +174,11 @@ func (c *Cmd) Remote(args []string) {
 // Rebase executes the rebase command with the given arguments.
 func (c *Cmd) Rebase(args []string) {
 	c.rebaser.Rebase(args)
+}
+
+// Bisect executes the bisect command with the given arguments.
+func (c *Cmd) Bisect(args []string) {
+	c.bisector.Bisect(args)
 }
 
 // Stash executes the stash command with the given arguments.

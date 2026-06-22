@@ -55,7 +55,6 @@ var passthroughCommandNames = []string{
 	"blame",
 	// Tier 2
 	"worktree",
-	"bisect",
 	"reflog",
 	"format-patch",
 	"am",
