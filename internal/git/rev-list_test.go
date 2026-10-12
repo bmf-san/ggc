@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -36,7 +36,7 @@ func TestClient_GetAheadBehindCount(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo", "-n", tt.expectedOutput)
+					return echoCommand(tt.expectedOutput)
 				},
 			}
 
@@ -83,7 +83,7 @@ func TestClient_GetTagCommit(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo", "-n", tt.expectedOutput)
+					return echoCommand(tt.expectedOutput)
 				},
 			}
 
@@ -107,7 +107,7 @@ func TestClient_GetTagCommit(t *testing.T) {
 func TestClient_GetAheadBehindCount_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -120,7 +120,7 @@ func TestClient_GetAheadBehindCount_Error(t *testing.T) {
 func TestClient_GetTagCommit_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 

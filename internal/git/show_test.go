@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"errors"
@@ -36,7 +36,7 @@ func TestClient_Show(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 

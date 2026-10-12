@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -13,7 +13,7 @@ func TestClient_Status(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -39,7 +39,7 @@ func TestClient_StatusShort(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -65,7 +65,7 @@ func TestClient_StatusWithColor(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -91,7 +91,7 @@ func TestClient_StatusShortWithColor(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -114,7 +114,7 @@ func TestClient_StatusShortWithColor(t *testing.T) {
 func TestClient_Status_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -127,7 +127,7 @@ func TestClient_Status_Error(t *testing.T) {
 func TestClient_StatusShort_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -140,7 +140,7 @@ func TestClient_StatusShort_Error(t *testing.T) {
 func TestClient_StatusWithColor_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -153,7 +153,7 @@ func TestClient_StatusWithColor_Error(t *testing.T) {
 func TestClient_StatusShortWithColor_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 

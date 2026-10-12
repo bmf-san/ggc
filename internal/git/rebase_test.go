@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -36,7 +36,7 @@ func TestClient_LogOneline(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo", "-n", tt.expectedOutput)
+					return echoCommand(tt.expectedOutput)
 				},
 			}
 
@@ -85,7 +85,7 @@ func TestClient_RebaseInteractive(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -143,9 +143,9 @@ func TestClient_GetUpstreamBranch(t *testing.T) {
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
 					if tt.mockError {
-						return exec.Command("false")
+						return failingCommand()
 					}
-					return exec.Command("echo", "-n", tt.mockOutput)
+					return echoCommand(tt.mockOutput)
 				},
 			}
 
@@ -194,7 +194,7 @@ func TestClient_Rebase(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -227,7 +227,7 @@ func TestClient_RebaseContinue(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -260,7 +260,7 @@ func TestClient_RebaseAbort(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -293,7 +293,7 @@ func TestClient_RebaseSkip(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -313,7 +313,7 @@ func TestClient_RebaseSkip(t *testing.T) {
 func TestClient_LogOneline_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -326,7 +326,7 @@ func TestClient_LogOneline_Error(t *testing.T) {
 func TestClient_RebaseInteractive_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -339,7 +339,7 @@ func TestClient_RebaseInteractive_Error(t *testing.T) {
 func TestClient_Rebase_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -352,7 +352,7 @@ func TestClient_Rebase_Error(t *testing.T) {
 func TestClient_RebaseContinue_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -365,7 +365,7 @@ func TestClient_RebaseContinue_Error(t *testing.T) {
 func TestClient_RebaseAbort_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -378,7 +378,7 @@ func TestClient_RebaseAbort_Error(t *testing.T) {
 func TestClient_RebaseSkip_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 

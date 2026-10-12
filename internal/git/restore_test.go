@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -63,7 +63,7 @@ func TestClient_Restore(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -105,7 +105,7 @@ func TestClient_RestoreWorkingDir(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -147,7 +147,7 @@ func TestClient_RestoreStaged(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -199,7 +199,7 @@ func TestClient_RestoreFromCommit(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -217,7 +217,7 @@ func TestClient_RestoreAll(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -234,7 +234,7 @@ func TestClient_RestoreAllStaged(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 

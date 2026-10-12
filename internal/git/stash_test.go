@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -11,7 +11,7 @@ func TestClient_Stash(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -33,7 +33,7 @@ func TestClient_StashList(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -76,7 +76,7 @@ func TestClient_StashShow(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -116,7 +116,7 @@ func TestClient_StashApply(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -156,7 +156,7 @@ func TestClient_StashPop(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -196,7 +196,7 @@ func TestClient_StashPush(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -236,7 +236,7 @@ func TestClient_StashDrop(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -257,7 +257,7 @@ func TestClient_StashClear(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -276,7 +276,7 @@ func TestClient_StashClear(t *testing.T) {
 func TestClient_Stash_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -289,7 +289,7 @@ func TestClient_Stash_Error(t *testing.T) {
 func TestClient_StashList_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -318,7 +318,7 @@ func TestClient_StashShow_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
-					return exec.Command("false") // Command that always fails
+					return failingCommand() // Command that always fails
 				},
 			}
 
@@ -349,7 +349,7 @@ func TestClient_StashApply_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
-					return exec.Command("false") // Command that always fails
+					return failingCommand() // Command that always fails
 				},
 			}
 
@@ -380,7 +380,7 @@ func TestClient_StashPop_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
-					return exec.Command("false") // Command that always fails
+					return failingCommand() // Command that always fails
 				},
 			}
 
@@ -411,7 +411,7 @@ func TestClient_StashDrop_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
-					return exec.Command("false") // Command that always fails
+					return failingCommand() // Command that always fails
 				},
 			}
 
@@ -426,7 +426,7 @@ func TestClient_StashDrop_Error(t *testing.T) {
 func TestClient_StashClear_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -439,7 +439,7 @@ func TestClient_StashClear_Error(t *testing.T) {
 func TestClient_StashPush_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 

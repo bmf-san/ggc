@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -33,11 +33,11 @@ func TestClient_Push(t *testing.T) {
 					callCount++
 					if callCount == 1 {
 						// First call is GetCurrentBranch (rev-parse)
-						return exec.Command("echo", "-n", "main")
+						return echoCommand("main")
 					}
 					// Second call is Push
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 

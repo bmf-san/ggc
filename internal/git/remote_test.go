@@ -1,4 +1,4 @@
-package git
+﻿package git
 
 import (
 	"os/exec"
@@ -11,7 +11,7 @@ func TestClient_RemoteList(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -31,7 +31,7 @@ func TestClient_RemoteAdd(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestClient_RemoteRemove(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -71,7 +71,7 @@ func TestClient_RemoteSetURL(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
