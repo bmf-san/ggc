@@ -13,7 +13,7 @@ func TestClient_CommitAllowEmpty(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 

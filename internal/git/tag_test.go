@@ -35,7 +35,7 @@ func TestClient_TagList(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -78,7 +78,7 @@ func TestClient_TagCreate(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -121,7 +121,7 @@ func TestClient_TagCreateAnnotated(t *testing.T) {
 			client := &Client{
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -163,7 +163,7 @@ func TestClient_TagDelete(t *testing.T) {
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					callCount++
 					lastArgs = append([]string{name}, args...)
-					return exec.Command("echo")
+					return successCommand()
 				},
 			}
 
@@ -192,7 +192,7 @@ func TestClient_TagPush(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -212,7 +212,7 @@ func TestClient_TagPushAll(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -232,7 +232,7 @@ func TestClient_TagShow(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 
@@ -254,7 +254,7 @@ func TestClient_GetLatestTag(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -311,9 +311,9 @@ func TestClient_TagExists(t *testing.T) {
 				execCommand: func(name string, args ...string) *exec.Cmd {
 					gotArgs = append([]string{name}, args...)
 					if tt.mockError {
-						return exec.Command("false")
+						return failingCommand()
 					}
-					return exec.Command("echo", "-n", tt.mockOutput)
+					return echoCommand(tt.mockOutput)
 				},
 			}
 
