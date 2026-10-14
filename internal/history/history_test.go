@@ -3,6 +3,7 @@ package history
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -195,13 +196,16 @@ func TestStore_TrimEnforcesCap(t *testing.T) {
 		t.Errorf("trim kept wrong entries: %+v", all)
 	}
 
-	// File permissions survived the rewrite.
-	info, err := os.Stat(s.Path)
-	if err != nil {
-		t.Fatalf("stat: %v", err)
-	}
-	if info.Mode().Perm() != 0o600 {
-		t.Errorf("after trim perms = %o, want 0600", info.Mode().Perm())
+	// File permissions survived the rewrite. (Unix-only: Windows doesn't
+	// report POSIX permission bits through os.Stat.)
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(s.Path)
+		if err != nil {
+			t.Fatalf("stat: %v", err)
+		}
+		if info.Mode().Perm() != 0o600 {
+			t.Errorf("after trim perms = %o, want 0600", info.Mode().Perm())
+		}
 	}
 }
 
@@ -291,14 +295,17 @@ func TestDefaultPathIsUserScoped(t *testing.T) {
 	if !strings.HasSuffix(p, "history.jsonl") {
 		t.Errorf("default path %q should end with history.jsonl", p)
 	}
-	// Parent directory should exist and be 0700.
-	dir := filepath.Dir(p)
-	info, err := os.Stat(dir)
-	if err != nil {
-		t.Fatalf("stat dir: %v", err)
-	}
-	if info.Mode().Perm()&0o077 != 0 {
-		t.Errorf("history dir perms %o should not be group/world accessible", info.Mode().Perm())
+	// Parent directory should exist and be 0700. (Perm bits are a Unix
+	// concept; Windows os.Stat always reports 0777 for directories.)
+	if runtime.GOOS != "windows" {
+		dir := filepath.Dir(p)
+		info, err := os.Stat(dir)
+		if err != nil {
+			t.Fatalf("stat dir: %v", err)
+		}
+		if info.Mode().Perm()&0o077 != 0 {
+			t.Errorf("history dir perms %o should not be group/world accessible", info.Mode().Perm())
+		}
 	}
 }
 
