@@ -184,7 +184,7 @@ func TestClient_CheckoutNewBranch(t *testing.T) {
 			c := &Client{
 				execCommand: func(name string, arg ...string) *exec.Cmd {
 					if len(arg) > 0 && arg[0] == "check-ref-format" {
-						return exec.Command("true")
+						return successCommand()
 					}
 					if name != "git" || !strings.Contains(strings.Join(arg, " "), "checkout -b "+tt.branch) {
 						t.Errorf("unexpected command: %s %v", name, arg)
@@ -538,15 +538,15 @@ func helperCommand(t *testing.T, output string, err error) *exec.Cmd {
 		t.Helper()
 	}
 	if err != nil {
-		return exec.Command("false")
+		return failingCommand()
 	}
 	if output == "" {
-		return exec.Command("true")
+		return successCommand()
 	}
-	return exec.Command("echo", "-n", output)
+	return echoCommand(output)
 }
 
 // fakeExecCommand creates a mock command that returns specified output
 func fakeExecCommand(output string) *exec.Cmd {
-	return exec.Command("echo", "-n", output)
+	return echoCommand(output)
 }

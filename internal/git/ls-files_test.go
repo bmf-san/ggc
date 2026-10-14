@@ -13,7 +13,7 @@ func TestClient_ListFiles(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -36,7 +36,7 @@ func TestClient_ListFiles(t *testing.T) {
 func TestClient_ListFiles_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
