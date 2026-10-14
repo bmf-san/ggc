@@ -13,7 +13,7 @@ func TestClient_Diff(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -39,7 +39,7 @@ func TestClient_DiffStaged(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -65,7 +65,7 @@ func TestClient_DiffHead(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, args...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
@@ -88,7 +88,7 @@ func TestClient_DiffHead(t *testing.T) {
 func TestClient_Diff_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -101,7 +101,7 @@ func TestClient_Diff_Error(t *testing.T) {
 func TestClient_DiffStaged_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -114,7 +114,7 @@ func TestClient_DiffStaged_Error(t *testing.T) {
 func TestClient_DiffHead_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("false") // Command that always fails
+			return failingCommand() // Command that always fails
 		},
 	}
 
@@ -132,7 +132,7 @@ func TestClient_DiffWith(t *testing.T) {
 	client := &Client{
 		execCommand: func(name string, a ...string) *exec.Cmd {
 			gotArgs = append([]string{name}, a...)
-			return exec.Command("echo", "-n", expectedOutput)
+			return echoCommand(expectedOutput)
 		},
 	}
 
