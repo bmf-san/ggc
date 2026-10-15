@@ -12,6 +12,9 @@ import (
 func TestNewUIHonorsConfigProfileAndOverrides(t *testing.T) {
 	tempHome := t.TempDir()
 	t.Setenv("HOME", tempHome)
+	// os.UserHomeDir() reads USERPROFILE on Windows, so point it at the same
+	// temporary home or the config below is never found there.
+	t.Setenv("USERPROFILE", tempHome)
 
 	configContent := `interactive:
   profile: emacs
