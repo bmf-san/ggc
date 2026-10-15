@@ -580,6 +580,20 @@ func TestKeyBindingResolver(t *testing.T) {
 	}
 }
 
+// validEditorForTests returns an editor value that passes validation on every
+// platform. The test binary itself always exists, and its absolute path takes
+// the valid-path branch of config's editor validation, so the tests don't
+// depend on commands like vim being installed on the host (they aren't on
+// Windows or in minimal containers).
+func validEditorForTests(t *testing.T) string {
+	t.Helper()
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatalf("failed to locate test binary for editor fixture: %v", err)
+	}
+	return `"` + exe + `"`
+}
+
 // TestConfigValidation tests config validation for supported profiles
 func TestConfigValidation(t *testing.T) {
 	tests := []struct {
@@ -600,7 +614,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg := &config.Config{}
 			// Set required defaults to make validation pass
 			cfg.Default.Branch = "main"
-			cfg.Default.Editor = "vim"
+			cfg.Default.Editor = validEditorForTests(t)
 			cfg.Behavior.ConfirmDestructive = "simple"
 			cfg.Interactive.Profile = test.profile
 
@@ -620,7 +634,7 @@ func TestContextualKeybindingValidation(t *testing.T) {
 	cfg := &config.Config{}
 	// Set required defaults to make validation pass
 	cfg.Default.Branch = "main"
-	cfg.Default.Editor = "vim"
+	cfg.Default.Editor = validEditorForTests(t)
 	cfg.Behavior.ConfirmDestructive = "simple"
 
 	// Test valid context bindings
