@@ -15,11 +15,11 @@ func TestClient_ResetHardAndClean(t *testing.T) {
 			callCount++
 			if callCount == 1 {
 				// First call is GetCurrentBranch (rev-parse)
-				return exec.Command("echo", "-n", "main")
+				return echoCommand("main")
 			}
 			// Subsequent calls are reset and clean
 			gotArgs = append(gotArgs, append([]string{name}, args...))
-			return exec.Command("echo")
+			return successCommand()
 		},
 	}
 

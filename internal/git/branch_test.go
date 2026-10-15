@@ -111,7 +111,7 @@ func TestClient_ListRemoteBranches(t *testing.T) {
 func TestListLocalBranches_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			return exec.Command("false") // Always fails
+			return failingCommand() // Always fails
 		},
 	}
 
@@ -124,7 +124,7 @@ func TestListLocalBranches_Error(t *testing.T) {
 func TestListRemoteBranches_Error(t *testing.T) {
 	client := &Client{
 		execCommand: func(_ string, _ ...string) *exec.Cmd {
-			return exec.Command("false") // Always fails
+			return failingCommand() // Always fails
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestClient_RenameMoveSetUpstream(t *testing.T) {
 	t.Run("rename_branch_command", func(t *testing.T) {
 		c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
 			if len(arg) > 0 && arg[0] == "check-ref-format" {
-				return exec.Command("true")
+				return successCommand()
 			}
 			if name != "git" || strings.Join(arg, " ") != "branch -m old new" {
 				t.Errorf("unexpected command: %s %v", name, arg)
@@ -154,7 +154,7 @@ func TestClient_RenameMoveSetUpstream(t *testing.T) {
 	t.Run("move_branch_command", func(t *testing.T) {
 		c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
 			if len(arg) > 0 && arg[0] == "check-ref-format" {
-				return exec.Command("true")
+				return successCommand()
 			}
 			if name != "git" || strings.Join(arg, " ") != "branch -f feat abc123" {
 				t.Errorf("unexpected command: %s %v", name, arg)
@@ -179,7 +179,7 @@ func TestClient_RenameMoveSetUpstream(t *testing.T) {
 	t.Run("set_upstream_command", func(t *testing.T) {
 		c := &Client{execCommand: func(name string, arg ...string) *exec.Cmd {
 			if len(arg) > 0 && arg[0] == "check-ref-format" {
-				return exec.Command("true")
+				return successCommand()
 			}
 			if name != "git" || strings.Join(arg, " ") != "branch -u origin/main feat" {
 				t.Errorf("unexpected command: %s %v", name, arg)
@@ -221,9 +221,9 @@ func TestValidateBranchName(t *testing.T) {
 					// Simulate git check-ref-format: reject names containing spaces.
 					name := arg[len(arg)-1]
 					if strings.Contains(name, " ") {
-						return exec.Command("false")
+						return failingCommand()
 					}
-					return exec.Command("true")
+					return successCommand()
 				},
 			}
 			err := c.ValidateBranchName(tt.branch)
@@ -485,9 +485,9 @@ func TestClient_CheckoutNewBranchFromRemote(t *testing.T) {
 					if len(arg) > 0 && arg[0] == "check-ref-format" {
 						// Simulate validity: reject names with spaces.
 						if strings.Contains(arg[len(arg)-1], " ") {
-							return exec.Command("false")
+							return failingCommand()
 						}
-						return exec.Command("true")
+						return successCommand()
 					}
 					executed = true
 					expectedArgs := []string{"checkout", "-b", tt.localBranch, "--track", tt.remoteBranch}
@@ -564,7 +564,7 @@ func TestClient_DeleteBranch(t *testing.T) {
 			c := &Client{
 				execCommand: func(name string, arg ...string) *exec.Cmd {
 					if len(arg) > 0 && arg[0] == "check-ref-format" {
-						return exec.Command("true")
+						return successCommand()
 					}
 					expectedArgs := []string{"branch", "-d", tt.branchName}
 					if name != "git" || len(arg) != len(expectedArgs) {
