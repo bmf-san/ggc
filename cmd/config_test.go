@@ -180,6 +180,12 @@ func TestConfigurer_Config(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// The config list case routes through the real config.Manager,
+			// which validates the default editor (vim) on Load; stub it onto
+			// PATH for platforms that don't ship it.
+			if tc.name == "config list" {
+				testutil.InstallEditorStubsOnPath(t, "vim")
+			}
 			var buf bytes.Buffer
 
 			// Set up mock for LoadConfig method

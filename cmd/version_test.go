@@ -445,7 +445,19 @@ func TestVersioner_UpdateVersionInfoFromBuild(t *testing.T) {
 	if err := os.Setenv("HOME", tempDir); err != nil {
 		t.Fatalf("Setenv HOME: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+	// os.UserHomeDir() reads USERPROFILE on Windows.
+	originalProfile := os.Getenv("USERPROFILE")
+	if err := os.Setenv("USERPROFILE", tempDir); err != nil {
+		t.Fatalf("Setenv USERPROFILE: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", originalHome)
+		_ = os.Setenv("USERPROFILE", originalProfile)
+	})
+	// The empty config under test falls back to the built-in default editor
+	// (vim), which the config loader validates on save; stub it onto PATH for
+	// platforms that don't ship it.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 
 	originalGetter := getVersionInfo
 	SetVersionGetter(func() (string, string) { return "v99.0.0", "commit9999" })
@@ -496,7 +508,18 @@ func TestVersioner_VersionJSON(t *testing.T) {
 	if err := os.Setenv("HOME", tempDir); err != nil {
 		t.Fatalf("Setenv HOME: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+	// os.UserHomeDir() reads USERPROFILE on Windows.
+	originalProfile := os.Getenv("USERPROFILE")
+	if err := os.Setenv("USERPROFILE", tempDir); err != nil {
+		t.Fatalf("Setenv USERPROFILE: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", originalHome)
+		_ = os.Setenv("USERPROFILE", originalProfile)
+	})
+	// Version JSON loads the real config, whose default editor (vim) is
+	// validated on load; stub it onto PATH for platforms without it.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 
 	var buf bytes.Buffer
 	v := &Versioner{

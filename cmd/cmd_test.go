@@ -371,6 +371,9 @@ func TestCmd_Branch(t *testing.T) {
 }
 
 func TestCmd_Route(t *testing.T) {
+	// The config list route loads the real config.Manager, which validates
+	// the default editor (vim); stub it onto PATH for platforms without it.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	// Use mock client to avoid git command side effects
 	mockClient := &mockGitClient{}
 	helper := NewHelper()
@@ -545,6 +548,9 @@ func TestCmd_Status(t *testing.T) {
 }
 
 func TestCmd_Config(t *testing.T) {
+	// config list loads the real config.Manager, which validates the default
+	// editor (vim); stub it onto PATH for platforms without it.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	// Use mock client to avoid git command side effects
 	mockClient := &mockGitClient{}
 	helper := NewHelper()
