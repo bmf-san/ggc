@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -160,6 +161,12 @@ func TestHooker_listHooks(t *testing.T) {
 			}
 
 			if tc.cleanupFiles != nil {
+				// Leave tmpDir before deleting it: on Windows a directory
+				// that is still some process's working directory can't be
+				// removed ("being used by another process").
+				if err := os.Chdir(originalDir); err != nil {
+					t.Fatalf("failed to chdir before cleanup: %v", err)
+				}
 				err := tc.cleanupFiles(tmpDir)
 				if err != nil {
 					t.Errorf("error during file cleanup: %v", err)
@@ -545,7 +552,9 @@ func TestHooker_copyFile(t *testing.T) {
 		t.Errorf("failed to stat copied file: %v", err)
 	}
 
-	if info.Mode().Perm() != 0755 {
+	// Check file permissions. (POSIX permission bits don't exist on Windows:
+	// os.Stat always reports 0666 there.)
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0755 {
 		t.Errorf("expected file permissions 0755, got %v", info.Mode().Perm())
 	}
 }

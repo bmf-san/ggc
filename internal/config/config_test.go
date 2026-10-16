@@ -281,6 +281,9 @@ git:
 
 // TestLoad tests the Load method with no config file
 func TestLoad(t *testing.T) {
+	// The default config uses vim as its editor and Load validates it, so make
+	// sure an editor command exists on PATH (Windows/minimal images have none).
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	// Note: This test uses the real filesystem because Load() method uses getConfigPaths()
 	// which depends on os.UserHomeDir(). This is acceptable as it only reads (doesn't write)
 	// and doesn't modify the system state.
@@ -306,6 +309,8 @@ func TestLoad(t *testing.T) {
 
 // TestSave tests saving configuration to file
 func TestSave(t *testing.T) {
+	// Save validates the config, whose default editor (vim) must be on PATH.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	mockFS := NewMockFileOps()
 	configPath := "/test/config.yaml"
 
@@ -488,6 +493,8 @@ func TestGet(t *testing.T) {
 
 // TestSet tests the Set method
 func TestSet(t *testing.T) {
+	// Set persists through Save, which validates the default editor (vim).
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "config.yaml")
 
@@ -717,9 +724,17 @@ func TestLoadConfigDoesNotOverwriteMalformedFile(t *testing.T) {
 	if err := os.Setenv("HOME", tempDir); err != nil {
 		t.Fatalf("failed to set HOME: %v", err)
 	}
+	// os.UserHomeDir() reads USERPROFILE on Windows.
+	originalProfile := os.Getenv("USERPROFILE")
+	if err := os.Setenv("USERPROFILE", tempDir); err != nil {
+		t.Fatalf("failed to set USERPROFILE: %v", err)
+	}
 	defer func() {
 		if err := os.Setenv("HOME", originalHome); err != nil {
 			t.Fatalf("failed to restore HOME: %v", err)
+		}
+		if err := os.Setenv("USERPROFILE", originalProfile); err != nil {
+			t.Fatalf("failed to restore USERPROFILE: %v", err)
 		}
 	}()
 
@@ -766,6 +781,7 @@ func TestTypeConversion(t *testing.T) {
 
 func TestConfig_Validate(t *testing.T) {
 	t.Run("Valid config", func(t *testing.T) {
+		testutil.InstallEditorStubsOnPath(t, "vim")
 		cfg := &Config{}
 		cfg.Default.Branch = "main"
 		cfg.Default.Editor = "vim"
@@ -817,6 +833,7 @@ func TestConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("Invalid interactive keybinding", func(t *testing.T) {
+		testutil.InstallEditorStubsOnPath(t, "cat")
 		cfg := &Config{}
 		cfg.Default.Branch = "main"
 		cfg.Default.Editor = "cat"
@@ -833,6 +850,7 @@ func TestConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("Context keybindings missing in partial configuration", func(t *testing.T) {
+		testutil.InstallEditorStubsOnPath(t, "vim")
 		cfg := &Config{}
 		cfg.Default.Branch = "main"
 		cfg.Default.Editor = "vim"
@@ -851,6 +869,7 @@ func TestConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("Invalid interactive profile", func(t *testing.T) {
+		testutil.InstallEditorStubsOnPath(t, "cat")
 		cfg := &Config{}
 		cfg.Default.Branch = "main"
 		cfg.Default.Editor = "cat"
@@ -1671,9 +1690,14 @@ func TestConfig_GetAllAliases(t *testing.T) {
 }
 
 func TestManagerLoadWithKeybindingConfig(t *testing.T) {
+	// The config under test omits default.editor, so validation falls back to
+	// the built-in default (vim), which must exist on PATH.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	mockFS := NewMockFileOps()
 	homeDir := filepath.Join(os.TempDir(), "ggc-home-phase2")
 	t.Setenv("HOME", homeDir)
+	// os.UserHomeDir() reads USERPROFILE on Windows.
+	t.Setenv("USERPROFILE", homeDir)
 	configPath := filepath.Join(homeDir, ".ggcconfig.yaml")
 	mockFS.files[configPath] = []byte(`interactive:
   profile: vi
@@ -1731,6 +1755,8 @@ func TestManagerLoadWithKeybindingConfig(t *testing.T) {
 }
 
 func TestManagerSaveWithKeybindingValidation(t *testing.T) {
+	// Save validates the config, whose default editor (vim) must be on PATH.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	cm := newTestConfigManager()
 	cm.configPath = filepath.Join(os.TempDir(), "ggc", "config.yaml")
 	cm.config.Interactive.Keybindings.DeleteWord = "Shift+A"
@@ -1749,6 +1775,8 @@ func TestManagerSaveWithKeybindingValidation(t *testing.T) {
 }
 
 func TestManagerSaveWithKeybindingOverrides(t *testing.T) {
+	// Save validates the config, whose default editor (vim) must be on PATH.
+	testutil.InstallEditorStubsOnPath(t, "vim")
 	cm := newTestConfigManager()
 	cm.configPath = filepath.Join(os.TempDir(), "ggc", "config.yaml")
 	cm.config.Interactive.Keybindings.DeleteWord = "Ctrl+W"
