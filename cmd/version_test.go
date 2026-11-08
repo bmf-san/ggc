@@ -95,10 +95,16 @@ func TestVersioner_VersionDoesNotOverwriteMalformedConfig(t *testing.T) {
 	if err := os.Setenv("HOME", tempDir); err != nil {
 		t.Fatalf("failed to set HOME: %v", err)
 	}
+	// os.UserHomeDir() reads USERPROFILE on Windows.
+	originalProfile := os.Getenv("USERPROFILE")
+	if err := os.Setenv("USERPROFILE", tempDir); err != nil {
+		t.Fatalf("failed to set USERPROFILE: %v", err)
+	}
 	t.Cleanup(func() {
 		if err := os.Setenv("HOME", originalHome); err != nil {
 			t.Fatalf("failed to restore HOME: %v", err)
 		}
+		_ = os.Setenv("USERPROFILE", originalProfile)
 	})
 
 	originalGetter := getVersionInfo
